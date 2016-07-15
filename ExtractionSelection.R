@@ -1,27 +1,70 @@
 
 setwd("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink")
 
-# Read in as data.table (lightning fast!)
+# Read in OceanAK data as data.table (lightning fast!)
 require(data.table)
-collections.df <- fread(input = "OceanAK 13-7-2015 Salmon Biological Data All Stockdale and Hogan.txt")  # amazing
-str(collections.df)
-
-collections.df$Concatenate <- paste(collections.df$`DNA Tray Code`, collections.df$`DNA Tray Well Code`, sep = "_")
-
-head(collections.df)
-dimnames(collections.df)
-
-collections.df[Year == 2013, ]
-collections.df[collections.df$Year==2013, ]
-
-collections.df[collections.df$`Silly Code` == "PHOGAN13" & collections.df$`Otolith Mark Present` == "YES", c("Silly Code", "DNA Tray Code", "DNA Tray Well Code", "DNA Tray Well Pos", "Otolith Mark Present", "Sex")]
-
-collections.df[collections.df$`Silly Code` == "PHOGAN13" & collections.df$`Otolith Mark Present` == "YES", ]
-collections.df[collections.df$`Silly Code` == "PHOGAN13" & collections.df$`Otolith Mark Present` == "YES", ]
-
+oceanak.dt <- fread(input = "OceanAK 14-7-2015 Salmon Biological Data All Stockdale and Hogan.txt")  # amazing
+str(oceanak.dt)
 # Convert to data.frame
-collections.df <- data.frame(collections.df)
-str(collections.df)
+oceanak.df <- data.frame(oceanak.dt)
+
+# Read in Finsight data (need to join Spawning State that isn't available on OceanAK)
+finsight.dt <- fread(input = "Finsight 13-7-2015 All Stockdale and Hogan.txt")
+str(finsight.dt)
+# Convert to data.frame
+finsight.df <- data.frame(finsight.dt)
+
+
+# Create data keys for both (barcode + position)
+oceanak.df$Key <- paste(oceanak.df$DNA.Tray.Code, oceanak.df$DNA.Tray.Well.Code, sep = "_")
+finsight.df$Key <- paste(finsight.df$Sample.Tray.Id, finsight.df$Sample.Cell, sep = "_")
+
+
+# Use data key to match up Stream Status from Finsight
+# First confirm that other fields match up with Key
+key.match <- match(oceanak.df$Key, finsight.df$Key)
+
+table(oceanak.df$Sex == finsight.df$Sex[key.match])  # perfect match
+table(oceanak.df$Length.Mm == finsight.df$MEHLength[key.match])  # perfect match
+table(sapply(oceanak.df$Otolith.Mark.Present, function(ind) {unlist(strsplit(x = ind, split = ""))[1]} ) == finsight.df$Mark.Present[key.match])  # some issues...
+
+# Confirm that these indeed do not match up
+oto.match <- sapply(oceanak.df$Otolith.Mark.Present, function(ind) {unlist(strsplit(x = ind, split = ""))[1]} ) == finsight.df$Mark.Present[key.match]  # where are conflicts?
+cbind(oceanak.df$Otolith.Mark.Present[which(oto.match == FALSE)],
+      finsight.df$Mark.Present[match(oceanak.df$Key, finsight.df$Key)][which(oto.match == FALSE)]
+)
+
+# Which fish do not match up?
+cbind(oceanak.df$Key[which(oto.match == FALSE)],
+      finsight.df$Key[match(oceanak.df$Key, finsight.df$Key)][which(oto.match == FALSE)]
+)
+
+# This is evidence that finsight only has 1st read data, not 2nd reads
+# This is why we have a data warehouse that is constantly updating from various department databases
+# Confirmed with Stacy Vega in CDV that 1300001557_9 was "wild" on 1st read, but "hatchery" on 2nd
+
+# Given that we trust Finsight field data, append Spawning State data to oceanak.df
+oceanak.df$Spawning.State <- finsight.df$Spawning.State[key.match]
+
+
+# We don't have finsight data on fish with unread otoliths from 2015
+oceanak.df[which(oceanak.df$DNA.Tray.Code == 0000002876), ]
+oceanak.df[which(oceanak.df$DNA.Tray.Code == 0000002876), "Otolith.Mark.Present"]
+
+table(oceanak.df$Otolith.Mark.Present, oceanak.df$Spawning.State, useNA = "ifany")
+
+# Subset data such that we only keep non-rotting fish with known sex
+table(oceanak.df$Sex, useNA = "ifany")
+table(oceanak.df$Spawning.State, useNA = "ifany")
+table(oceanak.df$Otolith.Mark.Present, useNA = "ifany")
+
+
+
+
+
+str(oceanak.df)
+str(subset(x = oceanak.df, subset = Sex == "F" | Sex == "M"))
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Subset for extraction
