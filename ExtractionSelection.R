@@ -305,3 +305,29 @@ extraction.list$DNA.Tray.Code <- paste("'", extraction.list$DNA.Tray.Code, "'", 
 extraction.list$Key <- paste("'", extraction.list$Key, "'", sep = '')
 
 write.table(x = extraction.list, file = "ExtractionList15072016.txt", sep = "\t")
+
+
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+date()
+#"Wed Aug 17 10:20:52 2016" Zach P. found some missing fish, decided to fill in with natural origin
+
+# Figure out which 866 natural I picked, then add 5 more
+
+# All natural fish
+Stockdale13Natural <- oceanak.sex.oto.df[sort(
+  which(oceanak.sex.oto.df$Silly.Code == "PSTOCK13" & oceanak.sex.oto.df$Otolith.Mark.Present == "NO")),
+  extraction.fields]
+dim(Stockdale13Natural)[1]; table(Stockdale13Natural$Otolith.Mark.Present); table(Stockdale13Natural$Otolith.Mark.Present, Stockdale13Natural$Spawning.State)
+
+# Read in Key for extract
+Stockdale13ExtractNaturalKey <- readClipboard()
+
+# Sample 5 fish that have not been extracted
+Stockdale13ExtractAdditionalKey <- sample(x = Stockdale13Natural$Key[!Stockdale13Natural$Key %in% Stockdale13ExtractNaturalKey], size = 5, replace = FALSE)
+
+Stockdale13ExtractAdditional <- oceanak.sex.oto.df[which(oceanak.sex.oto.df$Key %in% sort(Stockdale13ExtractAdditionalKey)), extraction.fields]
+
+write.table(x = Stockdale13ExtractAdditional, file = "Stockdale13ExtractAdditional17082016.txt", sep = "\t")
