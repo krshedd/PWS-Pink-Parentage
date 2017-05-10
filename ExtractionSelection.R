@@ -1,5 +1,4 @@
 # Using OceanAK and Finsight Data to create extraction list of PWS Pink Salmon
-# Stockdale + Hogan Bay 2013-2015
 
 setwd("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink")
 rm(list = ls())
@@ -7,6 +6,8 @@ rm(list = ls())
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Create extraction list for eP001 ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Stockdale and Hogan 2013-2015
+
 #### Read in OceanAK data ####
 # Read in as data.table (lightning fast!)
 require(data.table)
@@ -153,7 +154,7 @@ extraction.list$Key <- paste(extraction.list$DNA.Tray.Code, extraction.list$DNA.
 extraction.list$DNA.Tray.Code <- paste("'", extraction.list$DNA.Tray.Code, "'", sep = '')
 extraction.list$Key <- paste("'", extraction.list$Key, "'", sep = '')
 
-write.table(x = extraction.list, file = "ExtractionList15072016.txt", sep = "\t")
+write.table(x = extraction.list, file = "Extraction/eP001_ExtractionList15072016.txt", sep = "\t")
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -177,6 +178,133 @@ Stockdale13ExtractAdditionalKey <- sample(x = Stockdale13Natural$Key[!Stockdale1
 
 Stockdale13ExtractAdditional <- oceanak.sex.oto.df[which(oceanak.sex.oto.df$Key %in% sort(Stockdale13ExtractAdditionalKey)), extraction.fields]
 
-write.table(x = Stockdale13ExtractAdditional, file = "Stockdale13ExtractAdditional17082016.txt", sep = "\t")
+write.table(x = Stockdale13ExtractAdditional, file = "eP001_Stockdale13ExtractAdditional17082016.txt", sep = "\t")
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Create extraction list for eP002 ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Stockdale and Hogan 2016 to meet NPRB (4,300 more fish) and SK (7,050 more fish) funding requirements
+
+#### Read in OceanAK data ####
+# Read in as data.table (lightning fast!)
+require(data.table)
+oceanak.dt <- fread(input = "OceanAK 10-5-2017 Salmon Biological Data 2016 Stockdale and Hogan.txt")  # amazing
+str(oceanak.dt)
+# Convert to data.frame
+oceanak.df <- data.frame(oceanak.dt)
+
+# Since we are sampling fish randomly with respect to spawning state, no need to get any Finsight data
+# Everything we need is in OceanAK
+
+# Create data keys for both (barcode + position)
+oceanak.df$Key <- paste(oceanak.df$DNA.Tray.Code, oceanak.df$DNA.Tray.Well.Code, sep = "_")
+
+# Reformat Sample Date
+oceanak.df$Sample.Date <- as.Date(x = oceanak.df$Sample.Date, format = "%m/%d/%Y")
+
+table(oceanak.df$Otolith.Mark.Present, oceanak.df$Silly.Code, useNA = "ifany")
+table(oceanak.df$Is.Missing.Paired.Data.Exists, oceanak.df$Well.Has.More.Than.One.Sample, useNA = "ifany")
+
+
+# Remove fish with Keys that have missing tissue or that have double samples
+# NOTE: OceanAK gave duplicate rows for fish that had missing tissue or double samples, so that is why I remove any fish with that Key
+dim(oceanak.df)[1]
+keys2remove <- oceanak.df$Key[which(oceanak.df$Is.Missing.Paired.Data.Exists == 1 | oceanak.df$Well.Has.More.Than.One.Sample == 1)]
+str(keys2remove)
+oceanak.df <- oceanak.df[!oceanak.df$Key %in% keys2remove, ]
+
+table(oceanak.df$Otolith.Mark.Present, oceanak.df$Sex, oceanak.df$Silly.Code, useNA = "ifany")
+
+# Remove fish that do not have known sex
+str(oceanak.df)
+oceanak.sex.df <- subset(x = oceanak.df, subset = Sex == "F" | Sex == "M")
+str(oceanak.sex.df)
+table(oceanak.sex.df$Otolith.Mark.Present, useNA = "ifany")
+
+# Remove fish that do not have known otolith state
+oceanak.sex.oto.df <- subset(x = oceanak.sex.df, subset = Otolith.Mark.Present == "YES" | Otolith.Mark.Present == "NO")
+str(oceanak.sex.oto.df)
+
+table(oceanak.sex.oto.df$Otolith.Mark.Present, oceanak.sex.oto.df$Sex, oceanak.sex.oto.df$Silly.Code, useNA = "ifany")
+table(oceanak.sex.oto.df$Otolith.Mark.Present, oceanak.sex.oto.df$Sample.Date, oceanak.sex.oto.df$Silly.Code, useNA = "ifany")
+
+# Stray rate over time
+plot(by(data = oceanak.sex.oto.df, INDICES = oceanak.sex.oto.df[, "Sample.Date"], FUN = function(x) {sum(x$Otolith.Mark.Present == "YES") / length(x$Otolith.Mark.Present)}), ylim = c(0, 1))
+plot(by(data = subset(x = oceanak.sex.oto.df, subset = oceanak.sex.oto.df$Silly.Code == "PSTOCK16"), INDICES = subset(x = oceanak.sex.oto.df, subset = oceanak.sex.oto.df$Silly.Code == "PSTOCK16")[, "Sample.Date"], FUN = function(x) {sum(x$Otolith.Mark.Present == "YES") / length(x$Otolith.Mark.Present)}), ylim = c(0, 1))
+plot(by(data = subset(x = oceanak.sex.oto.df, subset = oceanak.sex.oto.df$Silly.Code == "PHOGAN16"), INDICES = subset(x = oceanak.sex.oto.df, subset = oceanak.sex.oto.df$Silly.Code == "PHOGAN16")[, "Sample.Date"], FUN = function(x) {sum(x$Otolith.Mark.Present == "YES") / length(x$Otolith.Mark.Present)}), ylim = c(0, 1))
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Subset for extraction ####
+extraction.fields <- c("Key", "Silly.Code", "DNA.Tray.Code", "DNA.Tray.Well.Code", "Sample.Date", "Otolith.Mark.Present", "Sex", "Length.Mm")
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Random everything ####
+# 4300 Hogan 16 natural-origin with otolith data and sex
+Hogan16Extract <- oceanak.sex.oto.df[sort(sample(x = which(oceanak.sex.oto.df$Silly.Code == "PHOGAN16" & oceanak.sex.oto.df$Otolith.Mark.Present == "NO"), size = 4300, replace = FALSE)), extraction.fields]
+table(Hogan16Extract$Otolith.Mark.Present)
+
+# 7050 Stockdale 16 natural-origin with otolith data and sex
+Stockdale16Extract <- oceanak.sex.oto.df[sort(sample(x = which(oceanak.sex.oto.df$Silly.Code == "PSTOCK16" & oceanak.sex.oto.df$Otolith.Mark.Present == "NO"), size = 7050, replace = FALSE)), extraction.fields]
+table(Stockdale16Extract$Otolith.Mark.Present)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Create single extraction list ####
+extraction.list <- rbind(Hogan16Extract, Stockdale16Extract)
+str(extraction.list)
+
+table(extraction.list$Silly.Code, extraction.list$Otolith.Mark.Present)
+
+sum(table(extraction.list$Silly.Code, extraction.list$Otolith.Mark.Present))  # number of fish to extract
+sum(table(extraction.list$Silly.Code, extraction.list$Otolith.Mark.Present)) / 95  # number of plates
+sum(table(extraction.list$Silly.Code, extraction.list$Otolith.Mark.Present)) / 95 / 12 # number of plates (divisible by 12 for QC purposes)
+
+## Need to convert DNA.Tray.Code to character and then add leading zeros for 2016
+extraction.list$DNA.Tray.Code <- as.character(extraction.list$DNA.Tray.Code)
+
+table(nchar(extraction.list$DNA.Tray.Code))  # 5
+
+extraction.list$DNA.Tray.Code[nchar(extraction.list$DNA.Tray.Code) == 5] <- paste0("00000", extraction.list$DNA.Tray.Code[nchar(extraction.list$DNA.Tray.Code) == 5])
+
+table(nchar(extraction.list$DNA.Tray.Code))  # resolved
+
+extraction.list$Key <- paste(extraction.list$DNA.Tray.Code, extraction.list$DNA.Tray.Well.Code, sep = "_")
+extraction.list$DNA.Tray.Code <- paste0("'", extraction.list$DNA.Tray.Code, "'")
+extraction.list$Key <- paste0("'", extraction.list$Key, "'")
+
+# Write extraction list
+write.table(x = extraction.list, file = "Extraction/eP002_ExtractionList10052017.txt", sep = "\t", row.names = FALSE)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Extra fish ####
+# Write separate lists for all remaining natural-origin fish from these two sillys
+
+#~~~~~~~~~~~~~~~~~~
+# Hogan
+Hogan16Natural <- oceanak.sex.oto.df[sort(which(oceanak.sex.oto.df$Silly.Code == "PHOGAN16" & oceanak.sex.oto.df$Otolith.Mark.Present == "NO")), extraction.fields]
+dim(Hogan16Natural)[1]; table(Hogan16Natural$Otolith.Mark.Present)
+
+# All fish that have not been extracted
+Hogan16ExtractAdditionalKey <- setdiff(Hogan16Natural$Key, Hogan16Extract$Key)
+
+Hogan16ExtractAdditional <- oceanak.sex.oto.df[oceanak.sex.oto.df$Key %in% Hogan16ExtractAdditionalKey, extraction.fields]
+
+write.table(x = Hogan16ExtractAdditional, file = "Extraction/eP002_PHOGAN16_ExtraFish_10502017.txt", sep = "\t", row.names = FALSE)
+
+#~~~~~~~~~~~~~~~~~~
+# Stockdale
+Stockdale16Natural <- oceanak.sex.oto.df[sort(which(oceanak.sex.oto.df$Silly.Code == "PSTOCK16" & oceanak.sex.oto.df$Otolith.Mark.Present == "NO")), extraction.fields]
+dim(Stockdale16Natural)[1]; table(Stockdale16Natural$Otolith.Mark.Present)
+
+# All fish that have not been extracted
+Stockdale16ExtractAdditionalKey <- setdiff(Stockdale16Natural$Key, Stockdale16Extract$Key)
+
+Stockdale16ExtractAdditional <- oceanak.sex.oto.df[oceanak.sex.oto.df$Key %in% Stockdale16ExtractAdditionalKey, extraction.fields]
+
+write.table(x = Stockdale16ExtractAdditional, file = "Extraction/eP002_PSTOCK16_ExtraFish_10502017.txt", sep = "\t", row.names = FALSE)
+
+
+# Save
+save.image("Extraction/eP002_ExtractionList10052017.RData")
