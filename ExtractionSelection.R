@@ -4,8 +4,11 @@
 setwd("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink")
 rm(list = ls())
 
-
-# Read in OceanAK data as data.table (lightning fast!)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Create extraction list for eP001 ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Read in OceanAK data ####
+# Read in as data.table (lightning fast!)
 require(data.table)
 oceanak.dt <- fread(input = "OceanAK 15-7-2015 Salmon Biological Data All Stockdale and Hogan.txt")  # amazing
 str(oceanak.dt)
@@ -83,7 +86,7 @@ oceanak.sex.oto.df <- subset(x = oceanak.sex.df, subset = Otolith.Mark.Present =
 str(oceanak.sex.oto.df)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Subset for extraction
+## Subset for extraction ####
 
 extraction.fields <- c("Key", "Silly.Code", "DNA.Tray.Code", "DNA.Tray.Well.Code", "DNA.Tray.Well.Pos", "Sample.Date", "Otolith.Mark.Present", "Sex", "Length.Mm", "Spawning.State")
 
@@ -103,7 +106,7 @@ table(Stockdale15Extract$Otolith.Mark.Present)
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Random everything
+## Random everything ####
 # All Hogan 14 natural and 512 hatchery
 Hogan14Extract <- oceanak.sex.oto.df[sort(c(
   which(oceanak.sex.oto.df$Silly.Code == "PHOGAN14" & oceanak.sex.oto.df$Otolith.Mark.Present == "NO"),
@@ -126,162 +129,8 @@ Stockdale14Extract <- oceanak.sex.oto.df[sort(c(
 dim(Stockdale14Extract)[1]; table(Stockdale14Extract$Otolith.Mark.Present); table(Stockdale14Extract$Otolith.Mark.Present, Stockdale14Extract$Spawning.State)
 
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ## Random everything, but since we are sub-sampling, we don't want rotting fish
-# table(oceanak.sex.oto.df$Otolith.Mark.Present, oceanak.sex.oto.df$Spawning.State, oceanak.sex.oto.df$Silly.Code, useNA = "ifany")
-# 
-# # All Hogan 14 natural and 512 hatchery
-# Hogan14Extract <- oceanak.sex.oto.df[sort(c(
-#   which(oceanak.sex.oto.df$Silly.Code == "PHOGAN14" & oceanak.sex.oto.df$Otolith.Mark.Present == "NO"),
-#   sample(x = which(oceanak.sex.oto.df$Silly.Code == "PHOGAN14" & oceanak.sex.oto.df$Otolith.Mark.Present == "YES" & oceanak.sex.oto.df$Spawning.State == "Alive" |
-#                      oceanak.sex.oto.df$Silly.Code == "PHOGAN14" & oceanak.sex.oto.df$Otolith.Mark.Present == "YES" & oceanak.sex.oto.df$Spawning.State == "Grey Gill" |
-#                      oceanak.sex.oto.df$Silly.Code == "PHOGAN14" & oceanak.sex.oto.df$Otolith.Mark.Present == "YES" & oceanak.sex.oto.df$Spawning.State == "Pink Gill"),
-#          size = 512, replace = FALSE))),
-#   extraction.fields]
-# dim(Hogan14Extract)[1]; table(Hogan14Extract$Otolith.Mark.Present, Hogan14Extract$Spawning.State)
-# 
-# # All Stockdale 13 hatchery and 866 natural
-# Stockdale13Extract <- oceanak.sex.oto.df[sort(c(
-#   sample(x = which(oceanak.sex.oto.df$Silly.Code == "PSTOCK13" & oceanak.sex.oto.df$Otolith.Mark.Present == "NO" & oceanak.sex.oto.df$Spawning.State == "Alive" |
-#                      oceanak.sex.oto.df$Silly.Code == "PSTOCK13" & oceanak.sex.oto.df$Otolith.Mark.Present == "NO" & oceanak.sex.oto.df$Spawning.State == "Grey Gill" |
-#                      oceanak.sex.oto.df$Silly.Code == "PSTOCK13" & oceanak.sex.oto.df$Otolith.Mark.Present == "NO" & oceanak.sex.oto.df$Spawning.State == "Pink Gill"),
-#          size = 866, replace = FALSE),
-#   which(oceanak.sex.oto.df$Silly.Code == "PSTOCK13" & oceanak.sex.oto.df$Otolith.Mark.Present == "YES"))),
-#   extraction.fields]
-# dim(Stockdale13Extract)[1]; table(Stockdale13Extract$Otolith.Mark.Present, Stockdale13Extract$Spawning.State)
-# 
-# # All Stockdale 14 natural and 512 hatchery
-# Stockdale14Extract <- oceanak.sex.oto.df[sort(c(
-#   which(oceanak.sex.oto.df$Silly.Code == "PSTOCK14" & oceanak.sex.oto.df$Otolith.Mark.Present == "NO"),
-#   sample(x = which(oceanak.sex.oto.df$Silly.Code == "PSTOCK14" & oceanak.sex.oto.df$Otolith.Mark.Present == "YES" & oceanak.sex.oto.df$Spawning.State == "Alive" |
-#                      oceanak.sex.oto.df$Silly.Code == "PSTOCK14" & oceanak.sex.oto.df$Otolith.Mark.Present == "YES" & oceanak.sex.oto.df$Spawning.State == "Grey Gill" |
-#                      oceanak.sex.oto.df$Silly.Code == "PSTOCK14" & oceanak.sex.oto.df$Otolith.Mark.Present == "YES" & oceanak.sex.oto.df$Spawning.State == "Pink Gill"),
-#          size = 512, replace = FALSE))),
-#   extraction.fields]
-# dim(Stockdale14Extract)[1]; table(Stockdale14Extract$Otolith.Mark.Present, Stockdale14Extract$Spawning.State)
-
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ## Stratified when subsampling, but since we are sub-sampling, we don't want rotting fish
-# table(oceanak.sex.oto.df$Otolith.Mark.Present, oceanak.sex.oto.df$Spawning.State, oceanak.sex.oto.df$Silly.Code, useNA = "ifany")
-# 
-# #~~~~~~~~~~~~~~~~~~
-# # All Hogan 14 natural and 512 hatchery
-# 
-# # Subset out Hogan 14 Hatchery fish
-# hogan14.hatchery.df <- subset(x = oceanak.sex.df, subset = Silly.Code == "PHOGAN14" & Otolith.Mark.Present == "YES")
-# dim(hogan14.hatchery.df)[1]
-# 
-# # Spawning state by date
-# table(hogan14.hatchery.df$Sample.Date, hogan14.hatchery.df$Spawning.State)
-# 
-# # Stratified number of fish to sample by date
-# n.fish.per.date <- round(table(hogan14.hatchery.df$Sample.Date) / dim(hogan14.hatchery.df)[1] * 511.5)
-# sum(n.fish.per.date)
-# n.fish.per.date
-# 
-# # Confirm there are enough non-rotten fish per day
-# n.fish.per.date.nonrot <- apply(table(hogan14.hatchery.df$Sample.Date, hogan14.hatchery.df$Spawning.State), 1, function(date) {sum(date[1:3])})
-# n.fish.per.date.nonrot > n.fish.per.date
-# 
-# n.fish.per.date.samp <- apply(cbind(n.fish.per.date,
-#                                     apply(table(hogan14.hatchery.df$Sample.Date, hogan14.hatchery.df$Spawning.State), 1, function(date) {sum(date[1:3])})),
-#                               1, min)
-# 
-# # We will grab all non-rotten fish available, then randomly from whatever rotten ones are left to fill out the stratified
-# n.fish.per.date.rotsamp <- (n.fish.per.date - n.fish.per.date.samp)[(n.fish.per.date - n.fish.per.date.samp) > 0]
-# 
-# n.fish.per.date.samp <- n.fish.per.date.samp[!n.fish.per.date.samp == 0]
-# 
-# sum(n.fish.per.date.samp, n.fish.per.date.rotsamp)
-# 
-# # Randomly sample non-rotten stratified fish per date
-# hogan14.hatchery.norot.df <- subset(x = hogan14.hatchery.df, 
-#                                         subset = Spawning.State == "Alive" |
-#                                           Spawning.State == "Grey Gill" |
-#                                           Spawning.State == "Pink Gill")
-# table(hogan14.hatchery.norot.df$Sample.Date, hogan14.hatchery.norot.df$Spawning.State)
-# 
-# 
-# hogan14.hatchery.norot.keys <- sort(c(
-#   hogan14.hatchery.norot.df$Key[
-#     unlist(sapply(seq_along(n.fish.per.date.samp), function(i) {
-#       sample(x = which(hogan14.hatchery.norot.df$Sample.Date == names(n.fish.per.date.samp[i])), size = n.fish.per.date.samp[i], replace = FALSE)
-#     } ))],
-#   hogan14.hatchery.df$Key[
-#     unlist(sapply(seq_along(n.fish.per.date.rotsamp), function(j) {
-#       sample(x = which(hogan14.hatchery.df$Sample.Date == names(n.fish.per.date.rotsamp[j]) & hogan14.hatchery.df$Spawning.State == "Rotting"), 
-#              size = n.fish.per.date.rotsamp[j], replace = FALSE)
-#     } ))]
-# ))
-# 
-# # Use key's to grab all PHOGAN14 fish
-# Hogan14Extract <- oceanak.sex.oto.df[sort(c(
-#   which(oceanak.sex.oto.df$Silly.Code == "PHOGAN14" & oceanak.sex.oto.df$Otolith.Mark.Present == "NO"),
-#   which(oceanak.sex.oto.df$Key %in% hogan14.hatchery.norot.keys)
-# )),  extraction.fields]
-# dim(Hogan14Extract)[1]; table(Hogan14Extract$Otolith.Mark.Present, Hogan14Extract$Spawning.State)
-# table(Hogan14Extract$Otolith.Mark.Present)
-# 
-# 
-# #~~~~~~~~~~~~~~~~~~
-# # All Stockdale 14 natural and 512 hatchery
-# 
-# # Subset out Stockdale 14 Hatchery fish
-# stockdale14.hatchery.df <- subset(x = oceanak.sex.df, subset = Silly.Code == "PSTOCK14" & Otolith.Mark.Present == "YES")
-# dim(stockdale14.hatchery.df)[1]
-# 
-# # Spawning state by date
-# table(stockdale14.hatchery.df$Sample.Date, stockdale14.hatchery.df$Spawning.State)
-# 
-# # Stratified number of fish to sample by date
-# n.fish.per.date <- round(table(stockdale14.hatchery.df$Sample.Date) / dim(stockdale14.hatchery.df)[1] * 512)
-# sum(n.fish.per.date)
-# n.fish.per.date
-# 
-# # Confirm there are enough non-rotten fish per day
-# n.fish.per.date.nonrot <- apply(table(stockdale14.hatchery.df$Sample.Date, stockdale14.hatchery.df$Spawning.State), 1, function(date) {sum(date[1:3])})
-# n.fish.per.date.nonrot > n.fish.per.date
-# 
-# n.fish.per.date.samp <- apply(cbind(n.fish.per.date,
-#             apply(table(stockdale14.hatchery.df$Sample.Date, stockdale14.hatchery.df$Spawning.State), 1, function(date) {sum(date[1:3])})),
-#       1, min)
-# 
-# # We will grab all non-rotten fish available, then randomly from whatever rotten ones are left to fill out the stratified
-# n.fish.per.date.rotsamp <- (n.fish.per.date - n.fish.per.date.samp)[(n.fish.per.date - n.fish.per.date.samp) > 0]
-# 
-# sum(n.fish.per.date.samp, n.fish.per.date.rotsamp)
-# # Randomly sample non-rotten stratified fish per date
-# stockdale14.hatchery.norot.df <- subset(x = stockdale14.hatchery.df, 
-#                                     subset = Spawning.State == "Alive" |
-#                                       Spawning.State == "Grey Gill" |
-#                                       Spawning.State == "Pink Gill")
-# table(stockdale14.hatchery.norot.df$Sample.Date, stockdale14.hatchery.norot.df$Spawning.State)
-# 
-# 
-# stockdale14.hatchery.norot.keys <- sort(c(
-#   stockdale14.hatchery.norot.df$Key[
-#     unlist(sapply(seq_along(n.fish.per.date.samp), function(i) {
-#       sample(x = which(stockdale14.hatchery.norot.df$Sample.Date == names(n.fish.per.date.samp[i])), size = n.fish.per.date.samp[i], replace = FALSE)
-#     } ))],
-#   stockdale14.hatchery.df$Key[
-#     unlist(sapply(seq_along(n.fish.per.date.rotsamp), function(j) {
-#       sample(x = which(stockdale14.hatchery.df$Sample.Date == names(n.fish.per.date.rotsamp[j]) & stockdale14.hatchery.df$Spawning.State == "Rotting"), 
-#              size = n.fish.per.date.rotsamp[j], replace = FALSE)
-#     } ))]
-# ))
-# 
-# # Use key's to grab all PSTOCK14 fish
-# Stockdale14Extract <- oceanak.sex.oto.df[sort(c(
-#   which(oceanak.sex.oto.df$Silly.Code == "PSTOCK14" & oceanak.sex.oto.df$Otolith.Mark.Present == "NO"),
-#   which(oceanak.sex.oto.df$Key %in% stockdale14.hatchery.norot.keys)
-# )),  extraction.fields]
-# dim(Stockdale14Extract)[1]; table(Stockdale14Extract$Otolith.Mark.Present, Stockdale14Extract$Spawning.State)
-# table(Stockdale14Extract$Otolith.Mark.Present)
-
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Create single extraction list
+## Create single extraction list ####
 extraction.list <- rbind(Hogan13Extract, Hogan14Extract, Hogan15Extract, Stockdale13Extract, Stockdale14Extract, Stockdale15Extract)
 str(extraction.list)
 
@@ -307,10 +156,8 @@ extraction.list$Key <- paste("'", extraction.list$Key, "'", sep = '')
 write.table(x = extraction.list, file = "ExtractionList15072016.txt", sep = "\t")
 
 
-
-
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Fill in "missing" fish ####
 date()
 #"Wed Aug 17 10:20:52 2016" Zach P. found some missing fish, decided to fill in with natural origin
 
@@ -331,3 +178,5 @@ Stockdale13ExtractAdditionalKey <- sample(x = Stockdale13Natural$Key[!Stockdale1
 Stockdale13ExtractAdditional <- oceanak.sex.oto.df[which(oceanak.sex.oto.df$Key %in% sort(Stockdale13ExtractAdditionalKey)), extraction.fields]
 
 write.table(x = Stockdale13ExtractAdditional, file = "Stockdale13ExtractAdditional17082016.txt", sep = "\t")
+
+
