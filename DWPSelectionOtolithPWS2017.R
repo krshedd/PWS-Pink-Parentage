@@ -79,6 +79,11 @@ plot(aggregate(Num.Otoliths ~ Sample.Date, data = Hogan, sum), type = "h")
 Hogan.ind <- seq(from = 1, by = 2, length.out = round(nrow(Hogan)/2))
 Hogan[Hogan.ind, ]  # All full but one
 
+# Pick 488 extra Hogan fish to replace missing/bad fish (0, 3, 4 otoliths per well)
+# Pick 10 extra DWPs randomly
+#"Fri Jan 05 14:04:24 2018"
+Hogan.ind2 <- sort(sample(x = seq(nrow(Hogan))[-Hogan.ind], size = 10, replace = FALSE))
+Hogan[Hogan.ind2, ]
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Create Table ####
