@@ -4,7 +4,7 @@ setwd("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS
 rm(list = ls())
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### Create extraction list for eP001 ####
+#### eP001: Create extraction list for ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Stockdale and Hogan 2013-2015
 
@@ -182,7 +182,7 @@ write.table(x = Stockdale13ExtractAdditional, file = "eP001_Stockdale13ExtractAd
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### Create extraction list for eP002 ####
+#### eP002: Create extraction list for ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Stockdale and Hogan 2016 to meet NPRB (4,300 more fish) and SK (7,050 more fish) funding requirements
 
@@ -308,3 +308,78 @@ write.table(x = Stockdale16ExtractAdditional, file = "Extraction/eP002_PSTOCK16_
 
 # Save
 save.image("Extraction/eP002_ExtractionList10052017.RData")
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP003: Create extraction list for ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# All remaining Stockdale and Hogan DWPs from 2015, previously we did every other tray
+
+#### Read in OceanAK data ####
+# Read in as data.table (lightning fast!)
+require(data.table)
+oceanak.dt <- fread(input = "OceanAK 15-7-2015 Salmon Biological Data All Stockdale and Hogan.txt")  # amazing
+str(oceanak.dt)
+# Convert to data.frame
+oceanak.df <- data.frame(oceanak.dt)
+
+# Read in Finsight data (need to join Spawning State that isn't available on OceanAK)
+finsight.dt <- fread(input = "Finsight 13-7-2016 All Stockdale and Hogan.txt")
+str(finsight.dt)
+# Convert to data.frame
+finsight.df <- data.frame(finsight.dt)
+
+
+# Create data Key for both (barcode + position)
+require(tidyverse)
+
+# Only want spawning state from finsight, all other data is from OceanAK
+finsight.df <- finsight.df %>% 
+  mutate(Sample.Tray.Id = str_pad(string = Sample.Tray.Id, width = 10, pad = "0")) %>% 
+  mutate(Key = paste(Sample.Tray.Id, Sample.Cell, sep = "_")) %>% 
+  select(Key, Spawning.State)
+
+# Join with finsight, filter for more than one sample, paired data, known sex
+# Random with respect to spawning state
+oceanak.df <- oceanak.df %>% 
+  mutate(DNA.Tray.Code = str_pad(string = DNA.Tray.Code, width = 10, pad = "0")) %>% 
+  mutate(Key = paste(DNA.Tray.Code, DNA.Tray.Well.Code, sep = "_")) %>% 
+  left_join(finsight.df, by = "Key") %>% 
+  filter(!Well.Has.More.Than.One.Sample %in% 1) %>% 
+  filter(!Is.Missing.Paired.Data.Exists %in% 1) %>% 
+  filter(Sex %in% c("M", "F"))
+
+# Table silly by oto read
+table(oceanak.df$Silly.Code, oceanak.df$Otolith.Mark.Present)
+
+# Which fields do we want?
+extraction.fields <- c("Key", "Silly.Code", "DNA.Tray.Code", "DNA.Tray.Well.Code", "DNA.Tray.Well.Pos", "Sample.Date", "Otolith.Mark.Present", "Sex", "Length.Mm", "Spawning.State")
+
+# Create extraction list for Hogan and Stockdale 2015, hatchery fish + unread otoliths
+extraction_eP003.df <- oceanak.df %>% 
+  filter(Silly.Code %in% c("PHOGAN15", "PSTOCK15")) %>% 
+  filter(Otolith.Mark.Present %in% c("YES", "")) %>% 
+  select(extraction.fields)
+str(extraction_eP003.df)
+
+# How many fish per silly
+table(extraction_eP003.df$Silly.Code)
+
+# How many DWPs per silly
+extraction_eP003.df %>% 
+  group_by(Silly.Code, Otolith.Mark.Present) %>% 
+  summarise(nDWP = n_distinct(DNA.Tray.Code)) %>% 
+  spread(Silly.Code, nDWP)
+
+# How many fish per silly
+extraction_eP003.df %>% 
+  group_by(Silly.Code, Otolith.Mark.Present) %>% 
+  summarise(n = n()) %>% 
+  spread(Silly.Code, n)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Create single extraction list ####
+
+# Write extraction list
+write.table(x = extraction_eP003.df, file = "Extraction/eP003_ExtractionList13022018.txt", sep = "\t", row.names = FALSE)
+save.image("Extraction/eP003_ExtractionList13022018.RData")
