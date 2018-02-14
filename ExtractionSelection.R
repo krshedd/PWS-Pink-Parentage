@@ -318,7 +318,7 @@ save.image("Extraction/eP002_ExtractionList10052017.RData")
 #### Read in OceanAK data ####
 # Read in as data.table (lightning fast!)
 require(data.table)
-oceanak.dt <- fread(input = "OceanAK 15-7-2015 Salmon Biological Data All Stockdale and Hogan.txt")  # amazing
+oceanak.dt <- fread(input = "OceanAK 15-7-2016 Salmon Biological Data All Stockdale and Hogan.txt")  # amazing
 str(oceanak.dt)
 # Convert to data.frame
 oceanak.df <- data.frame(oceanak.dt)
@@ -339,8 +339,7 @@ finsight.df <- finsight.df %>%
   mutate(Key = paste(Sample.Tray.Id, Sample.Cell, sep = "_")) %>% 
   select(Key, Spawning.State)
 
-# Join with finsight, filter for more than one sample, paired data, known sex
-# Random with respect to spawning state
+# Join with finsight, filter for more than one sample, paired data, known sex, random with respect to spawning state
 oceanak.df <- oceanak.df %>% 
   mutate(DNA.Tray.Code = str_pad(string = DNA.Tray.Code, width = 10, pad = "0")) %>% 
   mutate(Key = paste(DNA.Tray.Code, DNA.Tray.Well.Code, sep = "_")) %>% 
@@ -350,18 +349,37 @@ oceanak.df <- oceanak.df %>%
   filter(Sex %in% c("M", "F"))
 
 # Table silly by oto read
+# NOTE: some unknown otoliths are from DWPs that have been read, most are from DWPs that haven't been read
 table(oceanak.df$Silly.Code, oceanak.df$Otolith.Mark.Present)
 
 # Which fields do we want?
 extraction.fields <- c("Key", "Silly.Code", "DNA.Tray.Code", "DNA.Tray.Well.Code", "DNA.Tray.Well.Pos", "Sample.Date", "Otolith.Mark.Present", "Sex", "Length.Mm", "Spawning.State")
 
-# Create extraction list for Hogan and Stockdale 2015, hatchery fish + unread otoliths
-extraction_eP003.df <- oceanak.df %>% 
+#~~~~~~~~~~~~~~~~~~
+# Create extraction list for DWPs that have NOT been read
+extraction_eP003_fullDWP.df <- oceanak.df %>% 
   filter(Silly.Code %in% c("PHOGAN15", "PSTOCK15")) %>% 
-  filter(Otolith.Mark.Present %in% c("YES", "")) %>% 
+  group_by(DNA.Tray.Code) %>% 
+  filter(all(Otolith.Mark.Present == "")) %>% 
+  ungroup() %>% 
   select(extraction.fields)
+str(extraction_eP003_fullDWP.df)
+
+# Create extraction list for Hogan and Stockdale 2015, hatchery fish
+extraction_eP003_cherryDWP.df <- oceanak.df %>% 
+  filter(Silly.Code %in% c("PHOGAN15", "PSTOCK15")) %>% 
+  filter(Otolith.Mark.Present %in% c("YES")) %>% 
+  select(extraction.fields)
+str(extraction_eP003_cherryDWP.df)
+
+
+# Merge extraction lists
+extraction_eP003.df <- rbind(extraction_eP003_fullDWP.df, extraction_eP003_cherryDWP.df)
 str(extraction_eP003.df)
 
+
+#~~~~~~~~~~~~~~~~~~
+## Summary statistics
 # How many fish per silly
 table(extraction_eP003.df$Silly.Code)
 
@@ -376,6 +394,12 @@ extraction_eP003.df %>%
   group_by(Silly.Code, Otolith.Mark.Present) %>% 
   summarise(n = n()) %>% 
   spread(Silly.Code, n)
+
+# Unique DWPs from unread
+extraction_eP003.df %>% 
+  filter(Otolith.Mark.Present == "") %>% 
+  group_by(Silly.Code) %>% 
+  distinct(DNA.Tray.Code)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Create single extraction list ####
