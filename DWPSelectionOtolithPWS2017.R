@@ -1,6 +1,7 @@
 # Using Finsight Data to pick list of PWS Pink Salmon to read Otoliths
 # Paddy, Erb, Gilmour 2017 pick 8 full trays
 # Stockdale and Hogan pick every other tray
+# All remaining Stockdale trays due to extra Cordova Otolith lab capacity Wed Mar 14 15:34:32 2018
 
 setwd("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink")
 rm(list = ls())
@@ -70,6 +71,13 @@ plot(aggregate(Num.Otoliths ~ Sample.Date, data = Stockdale, sum), type = "h")
 Stockdale.ind <- seq(from = 1, by = 2, length.out = round(nrow(Stockdale)/2))
 Stockdale[Stockdale.ind, ]  # All full but one
 
+# Pick all remaining Hogan fish in order to provide Cordova with addtional otoliths
+# They have capacity for an additional 3K, but we'll send all just in case
+# "Wed Mar 14 15:40:37 2018"
+Stockdale.ind2 <- seq(from = 2, to = nrow(Stockdale), by = 2)
+
+
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Hogan
 Hogan <- subset(x = finsight.df[iord, ], subset = Stream == "Hogan")
@@ -96,3 +104,4 @@ write.xlsx(x = Gilmour[Gilmour.ind, c("Stream", "Sample.Date", "Sample.Tray.Id",
 write.xlsx(x = Stockdale[Stockdale.ind, c("Stream", "Sample.Date", "Sample.Tray.Id", "Num.Otoliths", "Shipping.Box.Number")], file = "PWS Pink Otolith Separation DWPs 2017.xlsx", sheetName = "Stockdale", col.names = TRUE, row.names = FALSE, append = TRUE)
 write.xlsx(x = Hogan[Hogan.ind, c("Stream", "Sample.Date", "Sample.Tray.Id", "Num.Otoliths", "Shipping.Box.Number")], file = "PWS Pink Otolith Separation DWPs 2017.xlsx", sheetName = "Hogan", col.names = TRUE, row.names = FALSE, append = TRUE)
 write.xlsx(x = Hogan[Hogan.ind2, c("Stream", "Sample.Date", "Sample.Tray.Id", "Num.Otoliths", "Shipping.Box.Number")], file = "PWS Pink Otolith Separation DWPs 2017.xlsx", sheetName = "Hogan2", col.names = TRUE, row.names = FALSE, append = TRUE)
+write.xlsx(x = Stockdale[Stockdale.ind2, c("Stream", "Sample.Date", "Sample.Tray.Id", "Num.Otoliths", "Shipping.Box.Number")], file = "PWS Pink Otolith Separation DWPs 2017.xlsx", sheetName = "Stockdale2", col.names = TRUE, row.names = FALSE, append = TRUE)
