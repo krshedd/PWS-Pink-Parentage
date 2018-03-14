@@ -407,3 +407,16 @@ extraction_eP003.df %>%
 # Write extraction list
 write.table(x = extraction_eP003.df, file = "Extraction/eP003_ExtractionList13022018.txt", sep = "\t", row.names = FALSE)
 save.image("Extraction/eP003_ExtractionList13022018.RData")
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Error checking ####
+extraction_eP003_fullDWP_n.df <- oceanak.df %>% 
+  filter(Silly.Code %in% c("PHOGAN15", "PSTOCK15")) %>% 
+  group_by(Silly.Code, DNA.Tray.Code) %>% 
+  filter(all(Otolith.Mark.Present == "")) %>% 
+  summarize(n = n()) %>% 
+  select(c(DNA.Tray.Code, Silly.Code, n))
+
+# Write extraction list
+write.table(x = extraction_eP003_fullDWP_n.df, file = "Extraction/eP003_ExtractionList13022018_fullplate_n.txt", sep = "\t", row.names = FALSE)
