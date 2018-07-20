@@ -2,6 +2,7 @@
 # Kyle Shedd
 # Wed Jul 18 10:14:50 2018
 
+rm(list = ls())
 date()
 setwd("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/")
 library(tidyverse)
@@ -11,16 +12,34 @@ library(lubridate)
 #### OceanAK ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # List of silly's for OceanAK filter
+streams <- c("ERB", "HOGAN", "GILMOUR", "PADDY", "STOCK")
+yrs <- 13:17
 writeClipboard(paste(paste0("P", rep(streams, each = 5), yrs), collapse = ";"))
 
-oceanak <- read_csv(file = "OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017.csv") %>% 
-  unite(SillySource, `Silly Code`, `Fish ID`, sep = "_", remove = FALSE)
+oceanak <- read_csv(file = "OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017_no_otoliths.csv") %>% 
+  unite(SillySource, `Silly Code`, `Fish ID`, sep = "_", remove = FALSE) %>% 
+  unite(TrayCodeID, `DNA Tray Code`, `DNA Tray Well Code`, sep = "_", remove = FALSE)
+
 dups <- oceanak %>% 
   group_by(SillySource) %>% 
   summarise(n = n()) %>% 
   filter(n > 1) %>% 
   arrange(desc(n)) %>% 
   left_join(oceanak)
+nrow(dups)
+table(dups$`Location Code`, dups$`Sample Year`)
+View(dups)
+length(unique(dups$`Sample ID`))
+
+dups_tray <- oceanak %>% 
+  group_by(TrayCodeID) %>% 
+  summarise(n = n()) %>% 
+  filter(n > 1) %>% 
+  arrange(desc(n)) %>% 
+  left_join(oceanak)
+nrow(dups_tray)
+table(dups_tray$`Location Code`, dups_tray$`Sample Year`)
+View(dups_tray)
 
 write_csv(x = dups, path = "OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017_duplicates.csv")
 
