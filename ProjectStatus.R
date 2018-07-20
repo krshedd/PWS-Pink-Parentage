@@ -13,8 +13,16 @@ library(lubridate)
 # List of silly's for OceanAK filter
 writeClipboard(paste(paste0("P", rep(streams, each = 5), yrs), collapse = ";"))
 
-oceanak <- read_csv(file = "OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017.csv")
-oceanak
+oceanak <- read_csv(file = "OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017.csv") %>% 
+  unite(SillySource, `Silly Code`, `Fish ID`, sep = "_", remove = FALSE)
+dups <- oceanak %>% 
+  group_by(SillySource) %>% 
+  summarise(n = n()) %>% 
+  filter(n > 1) %>% 
+  arrange(desc(n)) %>% 
+  left_join(oceanak)
+
+write_csv(x = dups, path = "OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017_duplicates.csv")
 
 # samples per stream per year
 addmargins(table(oceanak$`Location Code`, oceanak$`Sample Year`))
