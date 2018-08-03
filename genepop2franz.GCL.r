@@ -227,4 +227,3 @@ gind_df <- gind_df %>%
             )
   
 }
-
