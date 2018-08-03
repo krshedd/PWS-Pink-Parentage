@@ -1,4 +1,4 @@
-genepop2franz.GCL=function(Genepop,OceanAK,output_dir){
+genepop2franz.GCL=function(Genepop,OceanAK,Year, Stream, output_dir){
   ####################################################################################################################################################################################################################################################################
   # This function converts a genepop file into a FRANz pedigree format. 
   # It relies on the adegenet and tidyverse packages. The function filters out
@@ -12,6 +12,12 @@ genepop2franz.GCL=function(Genepop,OceanAK,output_dir){
   #   ~ The path to the genepop file, in .gen format.
   # oceanak = 
   #   ~ The path to the OceanAK file, in .csv format. 
+  # Stream = 
+  #   ~ The streamname for the population(s) you're interested in. passed as a vector list in caps.
+  #   ~ Note that the input is taken from SILLY, so may not be full stream name (e.g., stockdate = stock)
+  # Year = 
+  #   ~ The year of the population as taken from the SILLY. This is for getting at parent vs offspring
+  #     (i.e., odd vs even years). 
   # output = 
   #   ~ The path to the directory for the output files (note: they will be placed in a "Franz" folder).
   # 
@@ -30,7 +36,20 @@ genepop2franz.GCL=function(Genepop,OceanAK,output_dir){
   genepop <- read.genepop(Genepop) #import genepop file as genind object using adegenet
   
   gind_df <- genind2df(genepop, pop = NULL, sep = "/", usepop = FALSE, oneColPerAll = FALSE) # convert genind to dataframedata using adegenet
-  
+
+ gind_df$silly <- str_extract(row.names(gind_df),"^([^_]*)")# get silly from rownames using regex
+ gind_df$death <- as.numeric(str_extract( gind_df$silly, "([0-9]{2})")) + 2000 # get death year from silly
+ gind_df$river <- str_extract(gind_df$silly, "(?<=[A-Z]{1})(.*)(?=[0-9]{2})") # get stream name from silly
+ 
+ # Filter the dataframe based on input Stream name and Year (both taken from SILLY). First we're filtering for year
+ # and Year + 2 to get parents and offspring. Then we filter based on list of stream names. 
+ # Just FYI- good explanation of "%in%" vs "==" https://stackoverflow.com/questions/25647470/filter-multiple-conditions-dplyr
+gind_df <- gind_df %>%
+  rownames_to_column('names') %>% 
+  filter(death %in% as.numeric(Year) | 
+  death %in% (as.numeric(Year) + 2)) %>% 
+  filter(river %in% Stream) %>% 
+  column_to_rownames('names')
   
   # Filter by all rows (individuals) missing more than 20%
   filt_df <- gind_df[ -which( rowMeans( 
@@ -62,11 +81,13 @@ genepop2franz.GCL=function(Genepop,OceanAK,output_dir){
   
   # Add column signaling how often the genotype is observed. This is for clonal organisms so our fish will always be "1".
   OBSERVED = rep("1", length(row.names(filt_df)))
+
   
   # combine the above values into a dataframe
   combined_df = bind_cols(list(SILLY, FISHID, STREAM, SPECIES, BIRTH_YR, DEATH_YR, OBSERVED)) 
   
   names(combined_df) = c("SILLY","FISHID","STREAM", "SPECIES", "BIRTH_YR", "DEATH_YR", "OBSERVED") # add names to dataframe 
+  
   
   # Create unique FRANz ID - this MUST be 10-digits and can be padded with spaces, if necessary. Here, I combined as follows:
   combined_df$franz_id <- str_c(SPECIES, # 1st letter of species name
@@ -75,6 +96,7 @@ genepop2franz.GCL=function(Genepop,OceanAK,output_dir){
                                  "_", # underscore
                                  str_pad(FISHID,5, pad = "0")  # 5 digit fishid using padded zeros up front
                                  )
+  
   
   # Read in csv containing OceanAK data for collections
   oceanak <- read_csv(OceanAK) %>% 
@@ -176,8 +198,10 @@ genepop2franz.GCL=function(Genepop,OceanAK,output_dir){
   
   # export in franz file format
   write.table(file, file = paste0(output_dir,"/Franz/",
-                                  gsub(".*[/]([^.]+)[.].*", "\\1", Genepop)
-                                  ,".dat"), 
+                                  gsub(".*[/]([^.]+)[.].*", "\\1", Genepop),
+                                  Year, 
+                                  Stream,
+                                  ".dat"), 
               row.names=FALSE,
               col.names=FALSE, 
               sep = " ", 
@@ -189,8 +213,11 @@ genepop2franz.GCL=function(Genepop,OceanAK,output_dir){
                                   gsub(".*[/]([^.]+)[.].*", "\\1", 
                                        Genepop),
                                   "_OceanAK_paired",
+                                  Year,
+                                  Stream,
                                        ".csv"),
             col_names = TRUE
             )
   
 }
+
