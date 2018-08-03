@@ -49,7 +49,8 @@ gind_df <- gind_df %>%
   filter(death %in% as.numeric(Year) | 
   death %in% (as.numeric(Year) + 2)) %>% 
   filter(river %in% Stream) %>% 
-  column_to_rownames('names')
+  column_to_rownames('names') %>% 
+  select(-c(silly,death,river))
   
   # Filter by all rows (individuals) missing more than 20%
   filt_df <- gind_df[ -which( rowMeans( 
@@ -190,17 +191,22 @@ gind_df <- gind_df %>%
                      )
   
   # create franz directory
-   dir.create( paste0(
+  if ( !dir.exists(paste0(
+    output_dir, 
+    "/Franz"))) { 
+  dir.create( paste0(
     output_dir, 
     "/Franz")
     )
-  
+  }
   
   # export in franz file format
   write.table(file, file = paste0(output_dir,"/Franz/",
                                   gsub(".*[/]([^.]+)[.].*", "\\1", Genepop),
-                                  Year, 
-                                  Stream,
+                                  "_",
+                                  paste(Year, collapse ="_"),
+                                  "_",
+                                  paste(Stream, collapse = "_"),
                                   ".dat"), 
               row.names=FALSE,
               col.names=FALSE, 
@@ -212,9 +218,10 @@ gind_df <- gind_df %>%
   write_csv(OCEANAK_FRANZ, path = paste0(output_dir, "/Franz/",
                                   gsub(".*[/]([^.]+)[.].*", "\\1", 
                                        Genepop),
-                                  "_OceanAK_paired",
-                                  Year,
-                                  Stream,
+                                  "_OceanAK_paired_",
+                                  paste(Year, collapse ="_"), 
+                                  "_",
+                                  paste(Stream, collapse = "_"),
                                        ".csv"),
             col_names = TRUE
             )
