@@ -76,6 +76,19 @@ oceanak_mod %>%
   summarise(freq = n()) %>% 
   spread(year, freq)
 
+# min and max date within a year
+oceanak_mod %>% 
+  group_by(year) %>% 
+  summarise(begin_date = min(`Sample Date`), end_date = max(`Sample Date`))
+
+# histogram of samples per date per year
+oceanak_mod %>% 
+  mutate(julian_date = yday(`Sample Date`)) %>% 
+  ggplot(aes(x = julian_date)) +
+  geom_histogram() +
+  facet_wrap(~year)
+yday(Sys.Date())  # today's Julian date
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Stream Specimens ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
