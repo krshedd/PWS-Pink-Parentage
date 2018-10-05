@@ -1,0 +1,107 @@
+---
+title: "R Notebook"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+## Introduction
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook to document the DWP sample selection process for Erb, Paddy, and Gilmour Creek. We are otolith separating all samples for Stockdale and Hogan Bay. The **goal** of this Notebook is to pick 8, full (all 48 samples) DWPs from each of the three streams in order to estimate the *stray* rate or *proportion hatchery in stream*. These DWPs will be tissue/otolith separated and sent to Cordova for otolith reading. All other DWPs from these three creeks will be dessicated for storage, but not tissue/otolith separated. 
+
+```{r setup, message=FALSE}
+library(tidyverse)
+library(lubridate)
+library(DT)
+```
+
+## Import Data
+Tray inventory data from Finsight's Hatchery-Wild database sent by Pete Rand on 10/4/18
+```{r import_data, message=FALSE}
+dwp <- read_csv(file = "../Inventory/2018 HW Tray Inventory as of 10.04.18 FINAL to ADFG.csv") %>% 
+  filter(!is.na(Region))
+dwp
+```
+
+## Review Samples per Stream
+Visualize number of otolith samples per stream.
+```{r data_review, message=FALSE}
+dwp %>% 
+  group_by(`Stream Name`) %>% 
+  summarise(n_otoliths = sum(`Num Otoliths`))
+```
+
+Need to create a new variable for stream since they specified tributaries. Will also format dates.
+```{r data_manipulate}
+level_key <- list("Erb C" = "Erb",
+                  "Gilmour C" = "Gilmour",
+                  "Gilmour Right Trib Below Lake" = "Gilmour",
+                  "Hogan Bay" = "Hogan",
+                  "Paddy C" = "Paddy",
+                  "Paddy Left Trib" = "Paddy",
+                  "Paddy Lower Right Trib" = "Paddy",
+                  "Stockdale C" = "Stockdale",
+                  "Stockdale Right Trib" = "Stockdale")
+
+dwp <- dwp %>% 
+  mutate(stream = recode(`Stream Name`, !!!level_key)) %>% 
+  separate(`Sample Date`, into = c("date", "time", "AM/PM"), sep = " ") %>% 
+  mutate(date = mdy(date)) %>% 
+  rename(n_otoliths = `Num Otoliths`, dwp_barcode = `Sample Tray Id`) %>% 
+  select(stream, date, n_otoliths, dwp_barcode) %>% 
+  arrange(stream, date)
+
+dwp %>% 
+  group_by(stream) %>% 
+  summarise(n_otoliths = sum(n_otoliths))
+```
+
+Plot number of samples per stream per day.
+```{r plot_samples_stream}
+dwp %>%
+  group_by(stream, date) %>% 
+  summarise(n_otoliths = sum(n_otoliths)) %>% 
+  ggplot(aes(x = date, y = n_otoliths)) +
+  geom_col() +
+  facet_grid(stream ~ .)
+```
+
+Note that the every other day sampling patterns are because one crew was sampling Erb/Paddy and another was sampling Gilmour/Stockdale. Hogan had it's own, dedicated sampling crew.
+
+## Sample Selection
+Now pick DWPs systematically. First determine number of DWPs per stream.
+```{r dwp_stream}
+dwp %>% 
+  count(stream)
+```
+
+Select Erb samples
+```{r select_erb}
+dwp_erb <- dwp %>% 
+  filter(stream == "Erb") %>% 
+  slice(seq(from = n()/8/2 - 2, by = n()/8, length.out = 8))
+dwp_erb
+```
+
+Select Paddy samples
+```{r select_paddy}
+dwp_paddy <- dwp %>% 
+  filter(stream == "Paddy") %>% 
+  slice(seq(from = n()/8/2 + 2, by = n()/8, length.out = 8))
+dwp_paddy
+```
+
+Select Gilmour samples
+```{r select_gilmour}
+dwp_gilmour <- dwp %>% 
+  filter(stream == "Gilmour") %>% 
+  slice(seq(from = n()/8/2 - 1, by = n()/8, length.out = 8))
+dwp_gilmour
+```
+
+## Write Out Selection
+```{r write_selection}
+bind_rows(dwp_erb, dwp_paddy, dwp_gilmour) %>% 
+  write_csv(path = "../Otolith Separation/PWS_pink_otolith_separation_2018.csv")
+```
+
+Fin!
