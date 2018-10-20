@@ -86,7 +86,14 @@ oceanak_mod %>%
   mutate(julian_date = yday(`Sample Date`)) %>% 
   ggplot(aes(x = julian_date)) +
   geom_histogram() +
-  facet_wrap(~year)
+  facet_grid(year ~ .)
+
+# histogram of samples per date per year per stream
+oceanak_mod %>% 
+  mutate(julian_date = yday(`Sample Date`)) %>% 
+  ggplot(aes(x = julian_date)) +
+  geom_histogram() +
+  facet_grid(year ~ stream)
 yday(Sys.Date())  # today's Julian date
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
