@@ -19,35 +19,44 @@ date()
 # This sources all of the new GCL functions to this workspace
 # source("C:/Users/krshedd/R/Functions.GCL.R")
 
-#Arguments
-sillyvec <- c("PHOGAN13", "PHOGAN14", "PHOGAN15", "PHOGAN16") 
+# Some of the required code expects "ProjectSillys", so I assigned both
+sillyvec <- ProjectSillys <- c("PHOGAN13", "PHOGAN14", "PHOGAN15", "PHOGAN16") 
 
-markersuite="Pink_PWS_304"
+markersuite <- "Pink_PWS_304"
 
-dirQC <- "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/"
+# I changed this up one level to keep the output out of the GitHub repository
+dirQC <- "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/"
 
 species <- "pink"
 
-project <- c("P12", "P014", "P15", "P16")
+project <- "NPRB Hogan Bay"
 
-projectID <- c("2415", "2420", "2422", "2423")
+# We are going to pull genotypes by silly, not by project
+# projectID <- c("2415", "2420", "2422", "2423")
 
-username <- "ealescak"
+# I made these "hidden" objects
+.username <- "  "
+.password <- "  "
 
-.password <- "1234"
+# I changed the name to something more descriptive, feel free to change if you'd like
+QCSummaryfile <- "Combined QC for NPRB Hogan Bay.xlsx"
 
-QCSummaryfile <- paste("Project", project,"QC Summary R Script.xlsx") #  Do name normal summary file!!! If you do, it will overwrite it, not append it
+# Load packages
+while(!require(pacman)){ install.packages("pacman") }
 
-conflict_rate <- 0.10  # conflict rate at which dupcheck between sillys occurs
+p_load(tidyverse, lattice, writexl, abind)  # use pacman to load or install + load necessary packages
 
+bbind <- function(...) { abind(..., along = 3) }
+
+source(path.expand("~/R/Functions.GCL.R"))  # user may need to change depending on where you put this directory
+
+setwd(dirQC)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Create Locus Control ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-CreateLocusControl.GCL(markersuite = markersuite, username = username, password = .password)
-
-LOKI2R.GCL(sillyvec,username,password)
+CreateLocusControl.GCL(markersuite = markersuite, username = .username, password = .password)
 
 loci <- LocusControl$locusnames
 
@@ -57,12 +66,11 @@ ploidy <- LocusControl$ploidy
 
 alleles <- LocusControl$alleles
 
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Read in Project Genotypes ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-ReadProjectLOKI2R.GCL(projectID = projectID, username = username, password = .password)
+LOKI2R.GCL(sillyvec = sillyvec, username = .username, password = .password)
 
 rm(.password)
 
@@ -70,71 +78,92 @@ rm(.password)
 #### Failure Rate ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-failure_rate <- FailureRate.GCL(sillyvec = ProjectSillys)
+failure_rate <- FailureRate.GCL(sillyvec = sillyvec)
 
 failure_rate
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Read in QC Genotypes ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Kyle was incorrect, we do need to read in QC genotypes because we need to
+# determine the "error rate" which is the n_conflicts / n_qc_genotypes / 2
 
-QCfiles <- list.files(path = "Genotype Data Files", pattern = ".csv", full.names = TRUE, recursive = FALSE)
+QCfiles <- c(
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P012 AHRP Parentage GTSeq Part 1/QC/Genotype Data Files/", pattern = ".csv", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P014 AHRP Parentage GTSeq Part 2/QC/Genotype Data Files/", pattern = ".csv", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P015 AHRP Parentage GTSeq Part 3/QC/Genotype Data Files/", pattern = ".csv", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P016 AHRP Parentage GTSeq Part 4/QC/Genotype Data Files/", pattern = ".csv", full.names = TRUE)
+)
 
-if(max(nalleles) <= 2) {
-  # SNP
-  ReadBiomarkQC.GCL(QCcsvFilepaths = QCfiles)
-} else {
-  if(max(nalleles) <= 4) {
-    # GTseq
-    ReadGTseqQC.GCL(QCcsvFilepaths = QCfiles)
-  } else {
-    # uSat
-    ReadUSatQC.GCL(QCcsvFilepaths = QCfiles)
-  } # else for usat
-} # else for usat or GTseq
+# Read in QC genotype files as one filtered tibble
+QC_genotypes <- QCfiles %>%  # loop over each file
+  purrr::map(function(x) readr::read_csv(file = x, col_types = cols(.default = "c"), na = c("", "NA", "0"))) %>%  # read in each file with default column type = "c" for character
+  dplyr::bind_rows() %>%  # bind each file together into one tibble
+  dplyr::filter(SILLY_CODE %in% sillyvec)  # filter for only sillys in sillyvec
 
-QCColSize <- sapply(paste(QCSillys, ".gcl", sep = ''), function(x) get(x)$n)
+# Number of non-zero QC genotypes per locus
+n_geno_per_locus <- QC_genotypes %>% 
+  dplyr::filter(!(SILLY_CODE == "PHOGAN15" & SAMPLE_NUM == "4424")) %>%  # remove PHOGAN15_4424, catastrophic conflict ind from P014
+  dplyr::filter(!is.na(GENOTYPE)) %>%  # remove all "zero" or NA genotypes
+  dplyr::count(LOCUS)  # count genotypes per locus
 
-QCColSizeAll <- setNames(rep(0, length(ProjectSillys)),paste0(ProjectSillys, "QC.gcl"))
 
-QCColSizeAll[paste0(QCSillys, ".gcl")] <- QCColSize[paste0(QCSillys, ".gcl")]
-
-QCColSizeAll
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Read in Conflict Report ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Need to filter again for Hogan. Pull from .GCL script
+# Kyle was mistaken, as part of the "CombineConflictsWithPlateID.GCL" function,
+# it writes out the output as a "CombinedConflictsWithPlateID.csv"
+# So we just need to read in that output .csv from each project, bind them,
+# and filter for just Hogan fish
 
-QCConcordanceReportfile <- list.files (path = "Conflict Reports", pattern = "ConcordanceReport", full.names = TRUE)
+# List the output.csv for each lab Project, P012-P016
+QCConcordanceReportfile <- c(
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P012 AHRP Parentage GTSeq Part 1/QC/Conflict Reports/", pattern = "CombinedConflictsWithPlateID.csv", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P014 AHRP Parentage GTSeq Part 2/QC/Conflict Reports/", pattern = "CombinedConflictsWithPlateID.csv", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P015 AHRP Parentage GTSeq Part 3/QC/Conflict Reports/", pattern = "CombinedConflictsWithPlateID.csv", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P016 AHRP Parentage GTSeq Part 4/QC/Conflict Reports/", pattern = "CombinedConflictsWithPlateID.csv", full.names = TRUE)
+)
 
-CombineConflictsWithPlateID.GCL(files = QCConcordanceReportfile)
+# Read in concordance files as one filtered tibble
+concordance <- QCConcordanceReportfile %>%  # loop over each file
+  purrr::map(function(x) readr::read_csv(file = x, col_types = cols(.default = "c"))) %>%  # read in each file with default column type = "c" for character
+  dplyr::bind_rows() %>%  # bind each file together into one tibble
+  dplyr::filter(silly %in% sillyvec) %>%  # filter for only sillys in sillyvec
+  dplyr::filter(silly_source != "PHOGAN15_4424")  # remove PHOGAN15_4424, catastrophic conflict ind from P014
 
-# Old conflict report has "0" for mitochondrial conflicts, new has " " for mitochondrial conflicts, we will refer to them as "Homo-Homo".
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Conflict summaries
 
-conflicts_by_plate <- combined_conflicts %>% 
+conflicts_by_plate <- concordance %>% 
   dplyr::group_by(plate_id, concordance_type) %>%
   dplyr::summarise(n = n()) %>% 
   tidyr::spread(concordance_type, n, fill = 0, drop = FALSE) %>% 
   dplyr::mutate(Conflict = sum(`Het-Het`, `Het-Homo`, `Homo-Het`, `Homo-Homo`)) %>% 
   dplyr::ungroup()
 
-conflicts_by_silly <- combined_conflicts %>% 
+conflicts_by_silly <- concordance %>% 
   dplyr::group_by(silly, concordance_type) %>% 
   dplyr::summarise(n = n()) %>% 
   tidyr::spread(concordance_type, n, fill = 0, drop = FALSE) %>% 
   dplyr::mutate(Conflict = sum(`Het-Het`, `Het-Homo`, `Homo-Het`, `Homo-Homo`)) %>% 
   dplyr::ungroup()
 
-conflicts_by_locus <- combined_conflicts %>% 
+conflicts_by_locus <- concordance %>% 
   dplyr::group_by(locus, concordance_type) %>% 
   dplyr::summarise(n = n()) %>% 
   tidyr::spread(concordance_type, n, fill = 0, drop = FALSE) %>% 
   dplyr::mutate(Conflict = sum(`Het-Het`, `Het-Homo`, `Homo-Het`, `Homo-Homo`)) %>% 
   dplyr::ungroup()
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Locus-specific error rate
+conflicts_by_locus <- conflicts_by_locus %>%
+  dplyr::left_join(n_geno_per_locus, by = c("locus" = "LOCUS")) %>%  # join with number of qc genotypes per locus
+  dplyr::mutate(conflict_rate = Conflict / n) %>%  # conflict rate is number of conflicts / number of qc genotypes
+  dplyr::mutate(error_rate = conflict_rate / 2)  # error rate is conflict rate / 2, because conflict could be due to error in "project fish" or "qc fish"
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Sample Size by Locus for Project Genotypes ####
@@ -145,16 +174,18 @@ OriginalProjectSampleSizebyLocus <- SampSizeByLocus.GCL(sillyvec = ProjectSillys
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Sample Size by Locus for QC Genotypes ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Do not need this section, can delete, we already calculated this above
 
-OriginalQCSampleSizebyLocus <- SampSizeByLocus.GCL(sillyvec = QCSillys, loci = loci)
 
-OriginalQCPercentbyLocus <- apply(OriginalQCSampleSizebyLocus, 1, function(row) {row / max(row)} )
-
-rerunsQC <- which(apply(OriginalQCPercentbyLocus, 2, min) < 0.8)
-
-new_colors <- colorRampPalette(c("black", "white"))
-
-levelplot(t(OriginalQCPercentbyLocus), col.regions = new_colors, at = seq(0, 1, length.out = 100), main = "% Genotyped", xlab = "SILLY", ylab = "Locus", scales = list(x = list(rot = 90)), aspect = "fill") # aspect = "iso" will make squares
+# OriginalQCSampleSizebyLocus <- SampSizeByLocus.GCL(sillyvec = QCSillys, loci = loci)
+# 
+# OriginalQCPercentbyLocus <- apply(OriginalQCSampleSizebyLocus, 1, function(row) {row / max(row)} )
+# 
+# rerunsQC <- which(apply(OriginalQCPercentbyLocus, 2, min) < 0.8)
+# 
+# new_colors <- colorRampPalette(c("black", "white"))
+# 
+# levelplot(t(OriginalQCPercentbyLocus), col.regions = new_colors, at = seq(0, 1, length.out = 100), main = "% Genotyped", xlab = "SILLY", ylab = "Locus", scales = list(x = list(rot = 90)), aspect = "fill") # aspect = "iso" will make squares
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### QA of Project Genotypes ####
@@ -216,12 +247,15 @@ ProjectSillys_SampleSizes
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### QA of QC Genotypes ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Do not need this section
 
-MissLociQC <- RemoveIndMissLoci.GCL(sillyvec = QCSillys, proportion = 0.8)
+# MissLociQC <- RemoveIndMissLoci.GCL(sillyvec = QCSillys, proportion = 0.8)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Create Summary Tables ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# We do not need all of this
+
 
 summary_table_1 <- dplyr::bind_cols(tibble(Silly = ProjectSillys), as.tibble(ProjectSillys_SampleSizes)) %>% 
   dplyr::left_join(failure_rate$silly_failure_rate, by = c("Silly" = "silly")) %>% 
