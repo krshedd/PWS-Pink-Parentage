@@ -1,18 +1,122 @@
 ---
-title: "R Notebook"
+title: "NPRB - Hogan Bay Exploratory Analysis"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(DT)
+library(abind)
+bbind <- function(...) { abind(..., along = 3) }
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
-
-```{r}
-plot(cars)
+.username <- "krshedd"
+.password <- "kokanee"
+source("~/../R/Functions.GCL.R")
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+## Introduction
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+This is a quick exploratory analysis of the NPRB Hogan Bay 2013-2016 genotype data. Here we will:
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+  * Create *LocusControl*
+  * Read in all project genotypes
+  * Determine *FailureRate*
+  * Perform QA on project gentoypes
+    + Removing fish missing >= 20% of genotypes
+    + Remove within collection duplicates
+    + Explore the use of a **heterozygosity** filter to remove individuals with bogus genotype calls
+  * Read in paired field/otoltih data from [OceanAK](http://www.oceanak.adfg.alaska.gov/)
+  * Join paired data from OceanAK
+    + Will need to create data key for join (DWP barcode + "_" + DWP position number)
+  * Explore genetic structure
+    + Among brood lines (even/odd)
+    + Among years
+    + Among hatchery/wild (note different hatcheries have different brood sources)
+  * Export genotypes as a *Genepop* file to feed in to *genepop2franz.GCL.r*
+  
+## Read in genotypes
+
+Create *LocusControl* and read in genotypes by *silly*
+```{r loki}
+sillyvec <- ProjectSillys <- c("PHOGAN13", "PHOGAN14", "PHOGAN15", "PHOGAN16") 
+markersuite <- "Pink_PWS_304"
+
+CreateLocusControl.GCL(markersuite = markersuite, username = .username, password = .password)
+loci <- LocusControl$locusnames
+nalleles <- LocusControl$nalleles
+ploidy <- LocusControl$ploidy
+alleles <- LocusControl$alleles
+
+LOKI2R.GCL(sillyvec = sillyvec, username = .username, password = .password)
+rm(.username, .password)
+```
+
+## Failure rate
+
+Calculate and view the failure rate by silly, locus, and plate.
+```{r failure_rate}
+project <- "NPRB"
+failure_rate <- FailureRate.GCL(sillyvec = sillyvec)
+failure_rate
+```
+We can see some very specific plate effects, we tried to address some of these QC re-runs project, but clearly some just have bad tissues. It also appears that there are a few markers that consistently fail. Also of note, 2014 had a higher failure rate that other years, I suspect that this is due to some field sampling issues from that year (i.e. evaporation of ethanol from DWPs).
+
+## QA
+
+Go through our standard Quality Assurance (QA) process, then explore heterozygosity. Produce a matrix with sample sizes.
+```{r qa_setup}
+ProjectSillys_SampleSizes <- matrix(data = NA, nrow = length(ProjectSillys), ncol = 4, dimnames = list(ProjectSillys, c("Genotyped", "Missing", "Duplicate", "Final")))
+ProjectSillys_SampleSizes[, "Genotyped"] <- sapply(paste0(ProjectSillys, ".gcl"), function(x) get(x)$n)
+```
+
+### Missing
+
+Remove individuals missing >=20% of genotypes (i.e. the 80% rule).
+```{r qa_missing}
+MissLoci <- RemoveIndMissLoci.GCL(sillyvec = ProjectSillys, proportion = 0.8)
+MissLoci
+ProjectSillys_SampleSizes[, "Missing"] <-  ProjectSillys_SampleSizes[, "Genotyped"] - sapply(paste0(ProjectSillys, ".gcl"), function(x) get(x)$n)
+```
+
+### Duplicate
+
+Remove duplicate individuals within the same collection. Typically we specify *duplicates* as a pair of individuals that share >=95% of genotypes. Once a pair of *duplicates* is identified, we keep the individual with the most genotypes and remove the other.
+```{r qa_duplicate}
+DuplicateCheck95MinProportion <- CheckDupWithinSilly.GCL(sillyvec = ProjectSillys, loci = loci, quantile = NULL, minproportion = 0.95)
+DuplicateCheckReportSummary <- sapply(ProjectSillys, function(x) DuplicateCheck95MinProportion[[x]]$report, simplify = FALSE)
+DuplicateCheckReportSummary
+RemovedDups <- RemoveDups.GCL(DuplicateCheck95MinProportion)
+ProjectSillys_SampleSizes[, "Duplicate"] <-  ProjectSillys_SampleSizes[, "Genotyped"] - ProjectSillys_SampleSizes[, "Missing"] - sapply(paste0(ProjectSillys, ".gcl"), function(x) get(x)$n)
+```
+
+### Final
+
+How many fish did we end up with?
+```{r qa_final}
+ProjectSillys_SampleSizes[, "Final"] <- sapply(paste0(ProjectSillys, ".gcl"), function(x) get(x)$n)
+ProjectSillys_SampleSizes
+```
+
+### Heterozygosity
+
+We know from the QC work that the **GTscore** genotyping pipeline can sometimes result in individuals with an overabundance of heterozygous calls (perhaps from contamination?). We want to remove individuals with untrustworth genotypes. In order to explore the utility of some sort of *heterozygosity fileter*, we should first plot a histogram of heterozygosity per individual to see what the problem looks like. From there we can set a threshold or range of acceptable heterozygosities.
+```{r heterozygosity}
+
+```
+
+## OceanAK
+
+```{r read_oceanak}
+
+```
+
+```{r join_oceanak}
+
+```
+
+## Explore structure
+
+## Export genepop file
+
+Now that we have final, post QA/QC genotypes, we want to save our work by exporting the genotypes as a **Genepeop** file. That **Genepop** file will then feed in to Chase's *genepop2franz.GCL.r* script to create a **FRANz** input file for parentage analysis!
