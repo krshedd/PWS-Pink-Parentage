@@ -1,13 +1,16 @@
-
-######################################################################################################################################################################################
-#
-#  This script is intended for quality assurance across all Hogan samples. The goal is to: 
-# 1. Create locus control with all project codes combined.
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# This script is intended for quality assurance across all Hogan samples for
+# the NPRB project. The goal is to: 
+# 1. Create locus control with all lab project codes combined.
 # 2. Calculate failure rate and conflict reports from QC.R.
 # 3. Filter to include only Hogan samples (minus the one fish that failed QC).
 # 4. Perform quality assurance measures from QC.R.
 # 5. Print summary report. 
-#########
+
+# The 2 desired outputs are:
+# 1) QC publication table (discrepancy + error rate by year)
+# 2) Error rate by locus (FRANz input parameter)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Setup ####
@@ -105,9 +108,15 @@ QC_genotypes <- QCfiles %>%  # loop over each file
 n_geno_per_locus <- QC_genotypes %>% 
   dplyr::filter(!(SILLY_CODE == "PHOGAN15" & SAMPLE_NUM == "4424")) %>%  # remove PHOGAN15_4424, catastrophic conflict ind from P014
   dplyr::filter(!is.na(GENOTYPE)) %>%  # remove all "zero" or NA genotypes
-  dplyr::count(LOCUS)  # count genotypes per locus
+  dplyr::count(LOCUS) %>%  # count genotypes per locus
+  dplyr::rename(locus = LOCUS, n_qc = n)
 
-
+# Number of non-zero QC genotypes per silly (year)
+n_geno_per_silly <- QC_genotypes %>% 
+  dplyr::filter(!(SILLY_CODE == "PHOGAN15" & SAMPLE_NUM == "4424")) %>%  # remove PHOGAN15_4424, catastrophic conflict ind from P014
+  dplyr::filter(!is.na(GENOTYPE)) %>%  # remove all "zero" or NA genotypes
+  dplyr::count(SILLY_CODE) %>%  # count genotypes per locus
+  dplyr::rename(silly = SILLY_CODE, n_qc = n)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Read in Conflict Report ####
@@ -132,7 +141,6 @@ concordance <- QCConcordanceReportfile %>%  # loop over each file
   dplyr::bind_rows() %>%  # bind each file together into one tibble
   dplyr::filter(silly %in% sillyvec) %>%  # filter for only sillys in sillyvec
   dplyr::filter(silly_source != "PHOGAN15_4424")  # remove PHOGAN15_4424, catastrophic conflict ind from P014
-
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Conflict summaries
@@ -159,37 +167,58 @@ conflicts_by_locus <- concordance %>%
   dplyr::ungroup()
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Locus-specific error rate
-conflicts_by_locus <- conflicts_by_locus %>%
-  dplyr::left_join(n_geno_per_locus, by = c("locus" = "LOCUS")) %>%  # join with number of qc genotypes per locus
-  dplyr::mutate(conflict_rate = Conflict / n) %>%  # conflict rate is number of conflicts / number of qc genotypes
-  dplyr::mutate(error_rate = conflict_rate / 2)  # error rate is conflict rate / 2, because conflict could be due to error in "project fish" or "qc fish"
+## Locus-specific error rate for FRANz
+conflicts_by_locus_FRANz <- conflicts_by_locus %>%
+  dplyr::left_join(n_geno_per_locus, by = "locus") %>%  # join with number of qc genotypes per locus
+  dplyr::mutate(conflict_rate = Conflict / n_qc) %>%  # conflict rate is number of conflicts / number of qc genotypes
+  dplyr::mutate(error_rate = conflict_rate / 2) %>%  # error rate is conflict rate / 2, because conflict could be due to error in "project fish" or "qc fish"
+  dplyr::select(locus, error_rate)  # drop unnecessary variables
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Silly-specific error rate for publication table
+conflicts_by_silly_pub <- conflicts_by_silly %>% 
+  dplyr::left_join(n_geno_per_silly, by = "silly") %>%  # join with number of qc genotypes per silly
+  dplyr::mutate(conflict_rate = Conflict / n_qc) %>%  # conflict rate is number of conflicts / number of qc genotypes
+  dplyr::mutate(error_rate = conflict_rate / 2) %>%  # error rate is conflict rate / 2, because conflict could be due to error in "project fish" or "qc fish"
+  dplyr::select(silly, error_rate)  # drop unnecessary variables
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### Sample Size by Locus for Project Genotypes ####
+#### Read in Full Conflict Report ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Need to filter again for Hogan. Pull from .GCL script
+# Kyle was mistaken, as part of the "CombineConflictsWithPlateID.GCL" function,
+# it writes out the output as a "CombinedConflictsWithPlateID.csv"
+# So we just need to read in that output .csv from each project, bind them,
+# and filter for just Hogan fish
 
-OriginalProjectSampleSizebyLocus <- SampSizeByLocus.GCL(sillyvec = ProjectSillys, loci = loci)
+# List the output.csv for each lab Project, P012-P016 from LOKI (conflicts + agreements)
+QC_concordance_files_all <- c(
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P012 AHRP Parentage GTSeq Part 1/QC/Conflict Reports/Concordance Tables Loki/", pattern = "_csv", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P014 AHRP Parentage GTSeq Part 2/QC/Conflict Reports/Concordance Tables Loki/", pattern = "_csv", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P015 AHRP Parentage GTSeq Part 3/QC/Conflict Reports/Concordance Tables Loki/", pattern = "_csv", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P016 AHRP Parentage GTSeq Part 4/QC/Conflict Reports/Concordance Tables Loki/", pattern = "_csv", full.names = TRUE)
+)
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### Sample Size by Locus for QC Genotypes ####
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Do not need this section, can delete, we already calculated this above
+# Read in concordance files as one filtered tibble
+concordance_all <- QC_concordance_files_all %>%  # loop over each file
+  purrr::map(function(x) readr::read_csv(file = x, col_types = cols(.default = "c"), na = c("", "NA", "0"))) %>%  # read in each file with default column type = "c" for character
+  dplyr::bind_rows() %>%  # bind each file together into one tibble
+  dplyr::filter(`Silly Code` %in% sillyvec) %>%  # filter for only sillys in sillyvec
+  tidyr::unite(silly_source, c("Silly Code", "Sample Number"), sep = "_", remove = FALSE) %>%  # create silly_source
+  dplyr::filter(silly_source != "PHOGAN15_4424")  # remove PHOGAN15_4424, catastrophic conflict ind from P014
 
+# Number of non-zero QC genotypes per silly (year)
+concordance_all %>% 
+  dplyr::filter(!is.na(`File: Allele 1`) & !is.na(`Database: Allele 1`)) %>% 
+  dplyr::count(`Silly Code`)
 
-# OriginalQCSampleSizebyLocus <- SampSizeByLocus.GCL(sillyvec = QCSillys, loci = loci)
-# 
-# OriginalQCPercentbyLocus <- apply(OriginalQCSampleSizebyLocus, 1, function(row) {row / max(row)} )
-# 
-# rerunsQC <- which(apply(OriginalQCPercentbyLocus, 2, min) < 0.8)
-# 
-# new_colors <- colorRampPalette(c("black", "white"))
-# 
-# levelplot(t(OriginalQCPercentbyLocus), col.regions = new_colors, at = seq(0, 1, length.out = 100), main = "% Genotyped", xlab = "SILLY", ylab = "Locus", scales = list(x = list(rot = 90)), aspect = "fill") # aspect = "iso" will make squares
+n_geno_per_silly
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### QA of Project Genotypes ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# We do not necessarily need this here, but this is what you will recycle for
+# your exploratory analysis R notebook
 
 ProjectSillys_SampleSizes <- matrix(data = NA, nrow = length(ProjectSillys), ncol = 5, dimnames = list(ProjectSillys, c("Genotyped", "Alternate", "Missing", "Duplicate", "Final")))
 
@@ -243,13 +272,6 @@ ProjectSillys_SampleSizes[, "Duplicate"] <- ColSizePostMissLoci - ColSizePostDup
 ProjectSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
 
 ProjectSillys_SampleSizes
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### QA of QC Genotypes ####
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Do not need this section
-
-# MissLociQC <- RemoveIndMissLoci.GCL(sillyvec = QCSillys, proportion = 0.8)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Create Summary Tables ####
