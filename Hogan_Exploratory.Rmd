@@ -10,8 +10,8 @@ library(DT)
 library(abind)
 bbind <- function(...) { abind(..., along = 3) }
 
-.username <- "krshedd"
-.password <- "kokanee"
+.username <- "ealescak"
+.password <- "1234"
 source("~/../R/Functions.GCL.R")
 ```
 
@@ -100,19 +100,290 @@ ProjectSillys_SampleSizes
 
 ### Heterozygosity
 
-We know from the QC work that the **GTscore** genotyping pipeline can sometimes result in individuals with an overabundance of heterozygous calls (perhaps from contamination?). We want to remove individuals with untrustworth genotypes. In order to explore the utility of some sort of *heterozygosity fileter*, we should first plot a histogram of heterozygosity per individual to see what the problem looks like. From there we can set a threshold or range of acceptable heterozygosities.
+We know from the QC work that the **GTscore** genotyping pipeline can sometimes result in individuals with an overabundance of heterozygous calls (perhaps from contamination?). We want to remove individuals with untrustworth genotypes. In order to explore the utility of some sort of *heterozygosity filter*, we should first plot a histogram of heterozygosity per individual to see what the problem looks like. From there we can set a threshold or range of acceptable heterozygosities.
 ```{r heterozygosity}
+#genotype.counts <- apply(PHOGAN13.gcl$scores, MARGIN=1, table) #provides counts of each genotype/individual
+
+#calculate heterozygosity by individual :-) 
+PHOGAN13_ind_het <- apply(PHOGAN13.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304}) 
+PHOGAN14_ind_het <- apply(PHOGAN14.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304})
+PHOGAN15_ind_het <- apply(PHOGAN15.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304})
+PHOGAN16_ind_het <- apply(PHOGAN16.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304})
+mean_13 <- mean(PHOGAN13_ind_het)
+mean_14 <- mean(PHOGAN14_ind_het)
+mean_15 <- mean(PHOGAN15_ind_het)
+mean_16 <- mean(PHOGAN16_ind_het)
+sd_13 <- sd(PHOGAN13_ind_het)
+sd_14 <- sd(PHOGAN14_ind_het)
+sd_15 <- sd(PHOGAN15_ind_het)
+sd_16 <- sd(PHOGAN16_ind_het)
+low_cutoff_13 <- mean_13 - (sd_13*3)
+high_cutoff_13 <- mean_13 + (sd_13*3)
+low_cutoff_14 <- mean_14 - (sd_14*3)
+high_cutoff_14 <- mean_14 + (sd_14*3)
+low_cutoff_15 <- mean_15 - (sd_15*3)
+high_cutoff_15 <- mean_15 + (sd_15*3)
+low_cutoff_16 <- mean_16 - (sd_16*3)
+high_cutoff_16 <- mean_16 + (sd_16*3)
+```
+
+```{r plot heterozygosity}
+#easily plot histograms with cutoffs for outliers
+par(mfrow=c(2,2))
+hist(PHOGAN13_ind_het) 
+abline(v=low_cutoff_13) #0.3228336
+abline(v=high_cutoff_13) #0.5007186
+hist(PHOGAN14_ind_het)
+abline(v=low_cutoff_14)
+abline(v=high_cutoff_14)
+hist(PHOGAN15_ind_het)
+abline(v=low_cutoff_15)
+abline(v=high_cutoff_15)
+hist(PHOGAN16_ind_het)
+abline(v=low_cutoff_16)
+abline(v=high_cutoff_16)
+```
+
+```{r visualize heterozygosity by silly}
+library(tibble)
+tibble_PHOGAN13 <- tibble(silly=PHOGAN13.gcl$attributes$SILLY_CODE, sillysource=PHOGAN13.gcl$attributes$SillySource, het=PHOGAN13_ind_het)
+tibble_PHOGAN14 <- tibble(silly=PHOGAN14.gcl$attributes$SILLY_CODE, sillysource=PHOGAN14.gcl$attributes$SillySource, het=PHOGAN14_ind_het)
+tibble_PHOGAN15 <- tibble(silly=PHOGAN15.gcl$attributes$SILLY_CODE, sillysource=PHOGAN15.gcl$attributes$SillySource, het=PHOGAN15_ind_het)
+tibble_PHOGAN16 <- tibble(silly=PHOGAN16.gcl$attributes$SILLY_CODE, sillysource=PHOGAN16.gcl$attributes$SillySource, het=PHOGAN16_ind_het)
+
+het_tibble <- bind_rows(tibble_PHOGAN13, tibble_PHOGAN14, tibble_PHOGAN15, tibble_PHOGAN16)  
+ 
+#make het mean and lower and upper bounds (+/-3SD) tibbles
+mean_het <- het_tibble %>% 
+  dplyr::group_by(silly) %>% 
+  dplyr::summarise(het=mean(het))
+low_cutoff_het <- het_tibble %>% 
+  dplyr::group_by(silly) %>% 
+  summarise(het=mean(het)-3*sd(het))
+high_cutoff_het <- het_tibble %>% 
+  dplyr::group_by(silly) %>% 
+  summarise(het=mean(het)+3*sd(het))
+#plot individual heterozygosity by silly:
+het_tibble %>% 
+    ggplot2::ggplot(aes(x = het)) +
+    ggplot2::geom_histogram(binwidth = 0.01) +
+    ggplot2::geom_vline(aes(xintercept = het), mean_het) +
+    ggplot2::geom_vline(aes(xintercept = het), low_cutoff_het) +
+    ggplot2::geom_vline(aes(xintercept = het), high_cutoff_het) +
+    ggplot2::facet_grid(rows=vars(silly), scales = "free_y") +
+    ggplot2::xlim(0.15, 0.85) +
+    ggplot2::xlab("Individual Heterozygosity") +
+    ggplot2::ylab("Frequency") +
+    ggplot2::ggtitle("Individual Heterozygosity By Silly")
+```
+
+After discussions with Chris, Tyler, and Dan, we decided that it would be more appropriate to examine heterozygosity by lineage (even versus odd) instead of year. 
+
+```{r visualize heterozygosity by lineage}
+
+#combine tibbles and add lineage as grouping variable
+het_tibble <- bind_rows(tibble_PHOGAN13, tibble_PHOGAN14, tibble_PHOGAN15, tibble_PHOGAN16) %>% 
+  mutate(lineage = case_when(silly %in% c("PHOGAN13", "PHOGAN15") ~ "odd",
+                           silly %in% c("PHOGAN14", "PHOGAN16") ~ "even"))
+
+#make het mean and lower and upper bounds (+/-3SD) tibbles
+mean_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het=mean(het))
+low_cutoff_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  summarise(het=mean(het)-3*sd(het))
+high_cutoff_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  summarise(het=mean(het)+3*sd(het))
+
+#plot individual heterozygosity by lineage:
+het_tibble %>% 
+    ggplot2::ggplot(aes(x = het)) +
+    ggplot2::geom_histogram(binwidth = 1/304) +
+    ggplot2::geom_vline(aes(xintercept = het), mean_het) +
+    ggplot2::geom_vline(aes(xintercept = het), low_cutoff_het) +
+    ggplot2::geom_vline(aes(xintercept = het), high_cutoff_het) +
+    ggplot2::facet_grid(rows=vars(lineage), scales = "free_y") +
+    ggplot2::xlim(0.15, 0.85) +
+    ggplot2::xlab("Individual Heterozygosity") +
+    ggplot2::ylab("Frequency") +
+    ggplot2::ggtitle("Individual Heterozygosity By Lineage")
+```
+
+```{r calculate how many individuals we would lose if we go with the 3SD cutoff}
+
+mean_odd <- mean(subset(het_tibble, lineage == "odd")$het)
+mean_even <- mean(subset(het_tibble, lineage == "even")$het)
+sd_odd <- sd(subset(het_tibble, lineage=="odd")$het)
+sd_even <- sd(subset(het_tibble, lineage=="even")$het)
+cutoff_odd <- mean_odd + (3*sd_odd)
+cutoff_even <- mean_odd + (3*sd_even)
+filter(het_tibble, het>0.5923544 & lineage == "odd")
+filter(het_tibble, het>0.562092 & lineage == "even")
+```
+If we went with the 3SD cutoff, we would lose 80 samples from the odd lineage and 103 from the even. 
+
+```{r make qq plots to visualize outliers}
+#qq plot of heterozygosity by lineage:
+het_tibble %>% 
+    ggplot2::ggplot(aes(sample = het)) +
+    ggplot2::stat_qq() +
+    ggplot2::stat_qq_line() +
+    ggplot2::facet_grid(rows = vars(lineage)) #+
+    #ggplot2::coord_flip()
+```
+
+
+```{r boxplots}
+het_tibble %>% 
+  ggplot(aes(x = lineage, y = het)) + 
+  stat_boxplot(geom = "errorbar", width = 0.5) + 
+  geom_boxplot(outlier.colour = "red", notch = FALSE, varwidth = FALSE, coef = 1.5) + 
+  ggtitle("Boxplot of individual heterozygosity by lineage\noutliers are in red (1.5 IQR)")
+
+# Calculate 1.5 IQR
+het_tibble %>% 
+  group_by(lineage) %>% 
+  summarise(low_1.5_IQR = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))),
+            high_1.5_IQR = quantile(het, probs = 0.75) + 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
+
+```
+
+```{r another way to visualize outliers (from Chris)}
+# Calculate mode of each distribution
+mode_het <- het_tibble %>% 
+  group_by(lineage) %>% 
+  count(het) %>% 
+  slice(which.max(n))
+
+
+# Chris wants to assume the mode is the mean, mirror the lower half of the dist, calculate SD and use that for +-3SD
+# Odd mirror lower bounds +-3sd
+het_tibble %>% 
+  filter(lineage == "odd", het < 0.4078947) %>% 
+  mutate(het = 0.4078947 - het + 0.4078947) %>% 
+  bind_rows(het_tibble %>% 
+              filter(lineage == "odd", het <= 0.4078948)  # floating point error
+           ) %>% 
+  # ggplot(aes(x = het)) +
+  # geom_histogram(binwidth = 1/304)
+  group_by(lineage) %>% 
+  summarise(het_mean = mean(het), 
+            het_lower_3sd = mean(het) - 3 * sd(het),
+            het_upper_3sd = mean(het) + 3 * sd(het))
+
+
+# Even mirror lower bounds +-3sd
+het_tibble %>% 
+  filter(lineage == "even", het < 0.4177631) %>% 
+  mutate(het = 0.4177631 - het + 0.4177631) %>% 
+  bind_rows(het_tibble %>% 
+              filter(lineage == "even", het <= 0.4177633)  # floating point error
+  ) %>% 
+  # ggplot(aes(x = het)) +
+  # geom_histogram(binwidth = 1/304)
+  group_by(lineage) %>%
+  summarise(het_mean = mean(het),
+            het_lower_3sd = mean(het) - 3 * sd(het),
+            het_upper_3sd = mean(het) + 3 * sd(het))
+
+```
+
+```{r plot all of the different cutoffs on the same histogram.}
+
+het_tibble <- bind_rows(tibble_PHOGAN13, tibble_PHOGAN14, tibble_PHOGAN15, tibble_PHOGAN16) %>% 
+  mutate(lineage = case_when(silly %in% c("PHOGAN13", "PHOGAN15") ~ "odd",
+                           silly %in% c("PHOGAN14", "PHOGAN16") ~ "even"))
+
+mean_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het=mean(het))
+
+low_cutoff_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  summarise(het=mean(het)-3*sd(het))
+
+high_cutoff_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  summarise(het=mean(het)+3*sd(het))
+
+low_box_het <- het_tibble %>% 
+  group_by(lineage) %>% 
+  summarise(het = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
+
+high_box_het <- het_tibble %>% 
+  group_by(lineage) %>% 
+  summarise(het = quantile(het, probs = 0.75) + 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
+
+odd_chris_het <- het_tibble %>% 
+  filter(lineage == "odd", het < 0.4078947) %>% 
+  mutate(het = 0.4078947 - het + 0.4078947) %>% 
+  bind_rows(het_tibble %>% 
+              filter(lineage == "odd", het <= 0.4078948)  # floating point error
+           ) %>% 
+  group_by(lineage) %>% 
+  summarise(het_mean = mean(het), 
+            het_lower_3sd = mean(het) - 3 * sd(het),
+            het_upper_3sd = mean(het) + 3 * sd(het))
+
+even_chris_het <-
+  het_tibble %>% 
+  filter(lineage == "even", het < 0.4177631) %>% 
+  mutate(het = 0.4177631 - het + 0.4177631) %>% 
+  bind_rows(het_tibble %>% 
+              filter(lineage == "even", het <= 0.4177633)  # floating point error
+  ) %>% 
+  group_by(lineage) %>%
+  summarise(het_mean = mean(het),
+            het_lower_3sd = mean(het) - 3 * sd(het),
+            het_upper_3sd = mean(het) + 3 * sd(het))
+
+chris_het_tibble <- bind_rows(odd_chris_het, even_chris_het)
+
+low_chris_het <- tibble(lineage=chris_het_tibble$lineage, het=chris_het_tibble$het_lower_3sd)
+
+high_chris_het <- tibble(lineage=chris_het_tibble$lineage, het=chris_het_tibble$het_upper_3sd)
+
+
+#high_chris_het <- het_tibble %>% 
+#  group_by(lineage) %>% 
+ # summarise(het=(mean(het) - 3 * sd(het))+mean(het))
+
+het_tibble %>% 
+    ggplot2::ggplot(aes(x = het)) +
+    ggplot2::geom_histogram(binwidth = 1/304) +
+    ggplot2::geom_vline(aes(xintercept = het, color = "mean"), mean_het) +
+    ggplot2::geom_vline(aes(xintercept = het, color = "SD"), low_cutoff_het) +
+    ggplot2::geom_vline(aes(xintercept = het, color = "SD"), high_cutoff_het) +
+    ggplot2::geom_vline(aes(xintercept = het, color = "IQ"), low_box_het) +
+    ggplot2::geom_vline(aes(xintercept = het, color = "IQ"), high_box_het) +
+   ggplot2::geom_vline(aes(xintercept = het, color = "Chris"), low_chris_het) +
+   ggplot2::geom_vline(aes(xintercept = het, color = "Chris"), high_chris_het) +
+    ggplot2::facet_grid(rows=vars(lineage), scales = "free_y") +
+    ggplot2::scale_color_manual(name="statistics", values=c(mean="blue", SD="red", IQ="black", Chris="orange")) +
+    ggplot2::xlim(0.15, 0.85) +
+    ggplot2::xlab("Individual Heterozygosity") +
+    ggplot2::ylab("Frequency") +
+    ggplot2::ggtitle("Individual Heterozygosity By Lineage")
 
 ```
 
 ## OceanAK
 
 ```{r read_oceanak}
-
+AHRP_oceanak <- read.csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017.csv")
 ```
 
 ```{r join_oceanak}
+tibble_PHOGAN13_scores <- tibble(silly=PHOGAN13.gcl$attributes$SILLY_CODE, sillysource=PHOGAN13.gcl$attributes$SillySource, scores=PHOGAN13.gcl$scores)
+tibble_PHOGAN14_scores <- tibble(silly=PHOGAN14.gcl$attributes$SILLY_CODE, sillysource=PHOGAN14.gcl$attributes$SillySource, scores=PHOGAN14.gcl$scores)
+tibble_PHOGAN15_scores <- tibble(silly=PHOGAN15.gcl$attributes$SILLY_CODE, sillysource=PHOGAN15.gcl$attributes$SillySource, scores=PHOGAN15.gcl$scores)
+tibble_PHOGAN16_scores <- tibble(silly=PHOGAN16.gcl$attributes$SILLY_CODE, sillysource=PHOGAN16.gcl$attributes$SillySource, scores=PHOGAN16.gcl$scores)
 
+hogan_tibble <- bind_rows(tibble_PHOGAN13_scores, tibble_PHOGAN14_scores, tibble_PHOGAN15_scores, tibble_PHOGAN16_scores)
+
+hogan_oceanak <- merge(x=hogan_tibble, y=AHRP_oceanak, by=)
 ```
 
 ## Explore structure
