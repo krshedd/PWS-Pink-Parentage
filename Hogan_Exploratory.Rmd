@@ -127,6 +127,7 @@ low_cutoff_16 <- mean_16 - (sd_16*3)
 high_cutoff_16 <- mean_16 + (sd_16*3)
 ```
 
+Simple histogram using *base* plotting
 ```{r plot heterozygosity}
 #easily plot histograms with cutoffs for outliers
 par(mfrow=c(2,2))
@@ -144,13 +145,15 @@ abline(v=low_cutoff_16)
 abline(v=high_cutoff_16)
 ```
 
+Switch from *base* to *tidyverse* for ease of use/visualization. Add +- 3SD cutoff from literature.
 ```{r visualize heterozygosity by silly}
-library(tibble)
+# Convert to tibbles
 tibble_PHOGAN13 <- tibble(silly=PHOGAN13.gcl$attributes$SILLY_CODE, sillysource=PHOGAN13.gcl$attributes$SillySource, het=PHOGAN13_ind_het)
 tibble_PHOGAN14 <- tibble(silly=PHOGAN14.gcl$attributes$SILLY_CODE, sillysource=PHOGAN14.gcl$attributes$SillySource, het=PHOGAN14_ind_het)
 tibble_PHOGAN15 <- tibble(silly=PHOGAN15.gcl$attributes$SILLY_CODE, sillysource=PHOGAN15.gcl$attributes$SillySource, het=PHOGAN15_ind_het)
 tibble_PHOGAN16 <- tibble(silly=PHOGAN16.gcl$attributes$SILLY_CODE, sillysource=PHOGAN16.gcl$attributes$SillySource, het=PHOGAN16_ind_het)
 
+# Create a single tibble
 het_tibble <- bind_rows(tibble_PHOGAN13, tibble_PHOGAN14, tibble_PHOGAN15, tibble_PHOGAN16)  
  
 #make het mean and lower and upper bounds (+/-3SD) tibbles
@@ -166,7 +169,7 @@ high_cutoff_het <- het_tibble %>%
 #plot individual heterozygosity by silly:
 het_tibble %>% 
     ggplot2::ggplot(aes(x = het)) +
-    ggplot2::geom_histogram(binwidth = 0.01) +
+    ggplot2::geom_histogram(binwidth = 1/304) +
     ggplot2::geom_vline(aes(xintercept = het), mean_het) +
     ggplot2::geom_vline(aes(xintercept = het), low_cutoff_het) +
     ggplot2::geom_vline(aes(xintercept = het), high_cutoff_het) +
@@ -177,7 +180,7 @@ het_tibble %>%
     ggplot2::ggtitle("Individual Heterozygosity By Silly")
 ```
 
-After discussions with Chris, Tyler, and Dan, we decided that it would be more appropriate to examine heterozygosity by lineage (even versus odd) instead of year. 
+After discussions with Chris, Tyler, and Dan, we decided that it would be more appropriate to examine heterozygosity by lineage (even versus odd) instead of year. Additionally, we all agreed that the +-3SD cutoff was not restrictive enough, the upper bound for the cutoff should be closer to the main distribution.
 
 ```{r visualize heterozygosity by lineage}
 
@@ -211,18 +214,19 @@ het_tibble %>%
     ggplot2::ggtitle("Individual Heterozygosity By Lineage")
 ```
 
+How many fish would we lose if we went with these cutoffs?
 ```{r calculate how many individuals we would lose if we go with the 3SD cutoff}
 
-mean_odd <- mean(subset(het_tibble, lineage == "odd")$het)
-mean_even <- mean(subset(het_tibble, lineage == "even")$het)
-sd_odd <- sd(subset(het_tibble, lineage=="odd")$het)
-sd_even <- sd(subset(het_tibble, lineage=="even")$het)
-cutoff_odd <- mean_odd + (3*sd_odd)
-cutoff_even <- mean_odd + (3*sd_even)
-filter(het_tibble, het>0.5923544 & lineage == "odd")
-filter(het_tibble, het>0.562092 & lineage == "even")
+# Upper cutoff only, lower doesn't apply
+het_tibble %>% 
+  group_by(lineage) %>% 
+  summarise(upper = mean(het) + 3* sd(het)) %>% 
+  right_join(het_tibble) %>% 
+  filter(het >= upper) %>% 
+  count(lineage)
 ```
-If we went with the 3SD cutoff, we would lose 80 samples from the odd lineage and 103 from the even. 
+
+If we went with the 3SD cutoff, we would lose 80 samples from the odd lineage and 103 from the even. Still, this +-3SD by lineage approach does not seem ideal given the large number of outliers that **pull** the SD. We can see this long right tail with a qqplot.
 
 ```{r make qq plots to visualize outliers}
 #qq plot of heterozygosity by lineage:
@@ -234,7 +238,7 @@ het_tibble %>%
     #ggplot2::coord_flip()
 ```
 
-
+Same idea, but with a boxplot. **Note** all points are 1.5 IQR +- upper/lower boxplot. Perhaps we could use this 1.5 IQR approach for removing outliers?
 ```{r boxplots}
 het_tibble %>% 
   ggplot(aes(x = lineage, y = het)) + 
@@ -250,6 +254,7 @@ het_tibble %>%
 
 ```
 
+Chris suggested that we stick with the +-3SD approach, however, before calculating the SD, we mirror the left hand side of the distribution to the right (assuming the **mode** should be the **mean**).
 ```{r another way to visualize outliers (from Chris)}
 # Calculate mode of each distribution
 mode_het <- het_tibble %>% 
@@ -290,6 +295,10 @@ het_tibble %>%
 
 ```
 
+Now lets look at all three of these approaches on the original histograms.
+1. +-3SD by lineage
+2. 1.5 IQR +- 75% and 25% quartiles
+3. Chris' +-3SD by lineage only using the left hand side of the distribution.
 ```{r plot all of the different cutoffs on the same histogram.}
 
 het_tibble <- bind_rows(tibble_PHOGAN13, tibble_PHOGAN14, tibble_PHOGAN15, tibble_PHOGAN16) %>% 
@@ -351,24 +360,25 @@ high_chris_het <- tibble(lineage=chris_het_tibble$lineage, het=chris_het_tibble$
  # summarise(het=(mean(het) - 3 * sd(het))+mean(het))
 
 het_tibble %>% 
-    ggplot2::ggplot(aes(x = het)) +
-    ggplot2::geom_histogram(binwidth = 1/304) +
-    ggplot2::geom_vline(aes(xintercept = het, color = "mean"), mean_het) +
-    ggplot2::geom_vline(aes(xintercept = het, color = "SD"), low_cutoff_het) +
-    ggplot2::geom_vline(aes(xintercept = het, color = "SD"), high_cutoff_het) +
-    ggplot2::geom_vline(aes(xintercept = het, color = "IQ"), low_box_het) +
-    ggplot2::geom_vline(aes(xintercept = het, color = "IQ"), high_box_het) +
-   ggplot2::geom_vline(aes(xintercept = het, color = "Chris"), low_chris_het) +
-   ggplot2::geom_vline(aes(xintercept = het, color = "Chris"), high_chris_het) +
-    ggplot2::facet_grid(rows=vars(lineage), scales = "free_y") +
-    ggplot2::scale_color_manual(name="statistics", values=c(mean="blue", SD="red", IQ="black", Chris="orange")) +
-    ggplot2::xlim(0.15, 0.85) +
-    ggplot2::xlab("Individual Heterozygosity") +
-    ggplot2::ylab("Frequency") +
-    ggplot2::ggtitle("Individual Heterozygosity By Lineage")
+  ggplot2::ggplot(aes(x = het)) +
+  ggplot2::geom_histogram(binwidth = 1/304) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "mean"), mean_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "SD"), low_cutoff_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "SD"), high_cutoff_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "IQR"), low_box_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "IQR"), high_box_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "Chris"), low_chris_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "Chris"), high_chris_het) +
+  ggplot2::facet_grid(rows=vars(lineage), scales = "free_y") +
+  ggplot2::scale_color_manual(name="statistics", values=c(mean="blue", SD="red", IQR="black", Chris="orange")) +
+  ggplot2::xlim(0.15, 0.85) +
+  ggplot2::xlab("Individual Heterozygosity") +
+  ggplot2::ylab("Frequency") +
+  ggplot2::ggtitle("Individual Heterozygosity By Lineage")
 
 ```
-
+ 
+We can see that the upper bound is virtually identical for both Chris' method and IQR. I propose that we go with the 1.5 IQR method given that it is well known and well documented. Thoughts?
 ## OceanAK
 
 ```{r read_oceanak}
@@ -383,7 +393,8 @@ tibble_PHOGAN16_scores <- tibble(silly=PHOGAN16.gcl$attributes$SILLY_CODE, silly
 
 hogan_tibble <- bind_rows(tibble_PHOGAN13_scores, tibble_PHOGAN14_scores, tibble_PHOGAN15_scores, tibble_PHOGAN16_scores)
 
-hogan_oceanak <- merge(x=hogan_tibble, y=AHRP_oceanak, by=)
+## Note, you will want to use dplyr::left_join here, not merge, left_join is safer by far
+# hogan_oceanak <- merge(x=hogan_tibble, y=AHRP_oceanak, by=)
 ```
 
 ## Explore structure
