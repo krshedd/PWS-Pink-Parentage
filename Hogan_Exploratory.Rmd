@@ -6,6 +6,7 @@ output: html_notebook
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(lubridate)
 library(DT)
 library(abind)
 bbind <- function(...) { abind(..., along = 3) }
@@ -13,29 +14,33 @@ bbind <- function(...) { abind(..., along = 3) }
 .username <- "ealescak"
 .password <- "1234"
 source("~/../R/Functions.GCL.R")
+
+load_objects(path = "../Objects/")
+load_sillys(path = "../Genotypes/Original/")
 ```
 
-## Introduction
+# Introduction
 
 This is a quick exploratory analysis of the NPRB Hogan Bay 2013-2016 genotype data. Here we will:
 
   * Create *LocusControl*
   * Read in all project genotypes
+  * Read in paired field/otoltih data from [OceanAK](http://www.oceanak.adfg.alaska.gov/)
+  * Join paired data from OceanAK
+    + Will need to create data key for join (DWP barcode + "_" + DWP position number)
   * Determine *FailureRate*
   * Perform QA on project gentoypes
     + Removing fish missing >= 20% of genotypes
     + Remove within collection duplicates
     + Explore the use of a **heterozygosity** filter to remove individuals with bogus genotype calls
-  * Read in paired field/otoltih data from [OceanAK](http://www.oceanak.adfg.alaska.gov/)
-  * Join paired data from OceanAK
-    + Will need to create data key for join (DWP barcode + "_" + DWP position number)
+    + Save final, post-QA genotypes with paired data
   * Explore genetic structure
     + Among brood lines (even/odd)
     + Among years
     + Among hatchery/wild (note different hatcheries have different brood sources)
   * Export genotypes as a *Genepop* file to feed in to *genepop2franz.GCL.r*
   
-## Read in genotypes
+# Read in genotypes
 
 Create *LocusControl* and read in genotypes by *silly*
 ```{r loki}
@@ -52,109 +57,168 @@ LOKI2R.GCL(sillyvec = sillyvec, username = .username, password = .password)
 rm(.username, .password)
 ```
 
-## Failure rate
+Save objects
+```{r save_locus_control_sillys}
+save_objects(objects = c("LocusControl", "loci", "sillyvec", "ProjectSillys"), path = "../Objects")
+save_sillys(sillyvec = sillyvec, path = "../Genotypes/Original/")
+```
+
+# OceanAK
+
+## Read data
+Read in paired field and otolith data from *OceanAK*, join that data to the attributes table of each silly object.
+```{r read_oceanak, message=FALSE}
+AHRP_oceanak <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017_no_otoliths.csv")
+hogan_oceanak <- AHRP_oceanak %>% 
+  dplyr::filter(`Location Code` == "Hogan Creek") %>% 
+  tidyr::unite(silly_source, c("Silly Code", "Fish ID"), sep = "_", remove = FALSE)
+```
+
+## Join attributes table
+Join *hogan_oceanak* data to the attributes table of each silly. Already looked to verify that no tissues were missing or duplicated, this makes sense because the lab can't genotype tissue that aren't there and they never genotype two samples in a well.
+```{r join_oceanak_hogan1}
+PHOGAN13.gcl$attributes <- PHOGAN13.gcl$attributes %>% 
+  dplyr::left_join(hogan_oceanak, by = c("SillySource" = "silly_source")) %>% 
+  dplyr::select(FK_FISH_ID, SILLY_CODE, PLATE_ID, DNA_TRAY_CODE, DNA_TRAY_WELL_CODE, SillySource, `Sample Date`, Sex, `Length Mm`, `Location Code`, `Otolith Mark Present`, `Otolith Mark ID`, `Sample Year`)
+
+PHOGAN14.gcl$attributes <- PHOGAN14.gcl$attributes %>% 
+  dplyr::left_join(hogan_oceanak, by = c("SillySource" = "silly_source")) %>% 
+  dplyr::select(FK_FISH_ID, SILLY_CODE, PLATE_ID, DNA_TRAY_CODE, DNA_TRAY_WELL_CODE, SillySource, `Sample Date`, Sex, `Length Mm`, `Location Code`, `Otolith Mark Present`, `Otolith Mark ID`, `Sample Year`)
+
+PHOGAN15.gcl$attributes <- PHOGAN15.gcl$attributes %>% 
+  dplyr::left_join(hogan_oceanak, by = c("SillySource" = "silly_source")) %>% 
+  dplyr::select(FK_FISH_ID, SILLY_CODE, PLATE_ID, DNA_TRAY_CODE, DNA_TRAY_WELL_CODE, SillySource, `Sample Date`, Sex, `Length Mm`, `Location Code`, `Otolith Mark Present`, `Otolith Mark ID`, `Sample Year`)
+
+PHOGAN16.gcl$attributes <- PHOGAN16.gcl$attributes %>% 
+  dplyr::left_join(hogan_oceanak, by = c("SillySource" = "silly_source")) %>% 
+  dplyr::select(FK_FISH_ID, SILLY_CODE, PLATE_ID, DNA_TRAY_CODE, DNA_TRAY_WELL_CODE, SillySource, `Sample Date`, Sex, `Length Mm`, `Location Code`, `Otolith Mark Present`, `Otolith Mark ID`, `Sample Year`)
+
+save_sillys(sillyvec = sillyvec, path = "../Genotypes/OceanAK/")
+```
+
+## Split by otolith-origin
+
+First we need to verify that we only have hatcery and natural-origin fish for the **F0** years (2013 & 2014), and only natural-origin fish for the **F1** years (2015 & 2016).
+```{r verify_origin}
+dplyr::bind_rows(PHOGAN13.gcl$attributes, 
+                 PHOGAN14.gcl$attributes, 
+                 PHOGAN15.gcl$attributes, 
+                 PHOGAN16.gcl$attributes) %>% 
+  count(SILLY_CODE, `Otolith Mark Present`) %>% 
+  spread(`Otolith Mark Present`, n, fill = 0)
+```
+
+Ruh-roh, looks like we ended up with some hatchery-origin fish and some unknown origin fish (NA) in 2015, when they all should have been natural-origin. This is likely due to a discrepancy between first otolith reads and second otolith reads (i.e. fish were picked for extraction after first reads when all were thought to be natural-origin, but the second read overwrote). We will want to remove those fish (43 total) from PHOGAN15.
+
+```{r remove_hogan15_hatchery}
+PHOGAN15_ids_remove <- PHOGAN15.gcl$attributes %>% 
+  filter(`Otolith Mark Present` == "YES" | is.na(`Otolith Mark Present`)) %>% 
+  mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PHOGAN15", IDs = PHOGAN15_ids_remove)
+```
+
+Now that we have removed those fish that we did not want due to their otolith status, we will split 2013 & 2014 by otolith-origin. Also create a new *sillyvec*.
+```{r split_hogan13-14}
+PHOGAN13_ids_natural <- list("PHOGAN13" = PHOGAN13.gcl$attributes %>% 
+  filter(`Otolith Mark Present` == "NO") %>% 
+  mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  pull(FK_FISH_ID))
+PoolCollections.GCL(collections = "PHOGAN13", loci = loci, IDs = PHOGAN13_ids_natural, newname = "PHOGAN13n")
+
+PHOGAN13_ids_hatchery <- list("PHOGAN13" = PHOGAN13.gcl$attributes %>% 
+  filter(`Otolith Mark Present` == "YES") %>% 
+  mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  pull(FK_FISH_ID))
+PoolCollections.GCL(collections = "PHOGAN13", loci = loci, IDs = PHOGAN13_ids_hatchery, newname = "PHOGAN13h")
+
+PHOGAN14_ids_natural <- list("PHOGAN14" = PHOGAN14.gcl$attributes %>% 
+  filter(`Otolith Mark Present` == "NO") %>% 
+  mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  pull(FK_FISH_ID))
+PoolCollections.GCL(collections = "PHOGAN14", loci = loci, IDs = PHOGAN14_ids_natural, newname = "PHOGAN14n")
+
+PHOGAN14_ids_hatchery <- list("PHOGAN14" = PHOGAN14.gcl$attributes %>% 
+  filter(`Otolith Mark Present` == "YES") %>% 
+  mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  pull(FK_FISH_ID))
+PoolCollections.GCL(collections = "PHOGAN14", loci = loci, IDs = PHOGAN14_ids_hatchery, newname = "PHOGAN14h")
+
+ProjectSillys_Origin <- c("PHOGAN13n", "PHOGAN13h", "PHOGAN14n", "PHOGAN14h", "PHOGAN15", "PHOGAN16")
+save_sillys(ProjectSillys_Origin, "../Genotypes/OceanAK_Origin/")
+```
+
+
+# Failure rate
 
 Calculate and view the failure rate by silly, locus, and plate.
 ```{r failure_rate}
 project <- "NPRB"
-failure_rate <- FailureRate.GCL(sillyvec = sillyvec)
+failure_rate <- FailureRate.GCL(sillyvec = ProjectSillys_Origin)
+failure_rate_noplots <- failure_rate[1:4]
+save_objects("failure_rate_noplots", "../Objects/")
 failure_rate
 ```
 We can see some very specific plate effects, we tried to address some of these QC re-runs project, but clearly some just have bad tissues. It also appears that there are a few markers that consistently fail. Also of note, 2014 had a higher failure rate that other years, I suspect that this is due to some field sampling issues from that year (i.e. evaporation of ethanol from DWPs).
 
-## QA
+# QA
 
 Go through our standard Quality Assurance (QA) process, then explore heterozygosity. Produce a matrix with sample sizes.
 ```{r qa_setup}
-ProjectSillys_SampleSizes <- matrix(data = NA, nrow = length(ProjectSillys), ncol = 4, dimnames = list(ProjectSillys, c("Genotyped", "Missing", "Duplicate", "Final")))
-ProjectSillys_SampleSizes[, "Genotyped"] <- sapply(paste0(ProjectSillys, ".gcl"), function(x) get(x)$n)
+ProjectSillys_Origin_SampleSizes <- matrix(data = NA, nrow = length(ProjectSillys_Origin), ncol = 5, dimnames = list(ProjectSillys_Origin, c("Genotyped", "Missing", "Duplicate", "Heterozygosity", "Final")))
+ProjectSillys_Origin_SampleSizes[, "Genotyped"] <- sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
 ```
 
-### Missing
+## Missing
 
 Remove individuals missing >=20% of genotypes (i.e. the 80% rule).
 ```{r qa_missing}
-MissLoci <- RemoveIndMissLoci.GCL(sillyvec = ProjectSillys, proportion = 0.8)
-MissLoci
-ProjectSillys_SampleSizes[, "Missing"] <-  ProjectSillys_SampleSizes[, "Genotyped"] - sapply(paste0(ProjectSillys, ".gcl"), function(x) get(x)$n)
+MissLoci <- RemoveIndMissLoci.GCL(sillyvec = ProjectSillys_Origin, proportion = 0.8) 
+MissLoci  # character vector of fish removed
+save_objects("MissLoci", path = "../Objects/")
+ProjectSillys_Origin_SampleSizes[, "Missing"] <-  ProjectSillys_Origin_SampleSizes[, "Genotyped"] - sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
 ```
 
-### Duplicate
+## Duplicate
 
 Remove duplicate individuals within the same collection. Typically we specify *duplicates* as a pair of individuals that share >=95% of genotypes. Once a pair of *duplicates* is identified, we keep the individual with the most genotypes and remove the other.
 ```{r qa_duplicate}
-DuplicateCheck95MinProportion <- CheckDupWithinSilly.GCL(sillyvec = ProjectSillys, loci = loci, quantile = NULL, minproportion = 0.95)
-DuplicateCheckReportSummary <- sapply(ProjectSillys, function(x) DuplicateCheck95MinProportion[[x]]$report, simplify = FALSE)
+DuplicateCheck95MinProportion <- CheckDupWithinSilly.GCL(sillyvec = ProjectSillys_Origin, loci = loci, quantile = NULL, minproportion = 0.95)
+DuplicateCheckReportSummary <- sapply(ProjectSillys_Origin, function(x) DuplicateCheck95MinProportion[[x]]$report, simplify = FALSE)
 DuplicateCheckReportSummary
 RemovedDups <- RemoveDups.GCL(DuplicateCheck95MinProportion)
-ProjectSillys_SampleSizes[, "Duplicate"] <-  ProjectSillys_SampleSizes[, "Genotyped"] - ProjectSillys_SampleSizes[, "Missing"] - sapply(paste0(ProjectSillys, ".gcl"), function(x) get(x)$n)
+save_objects("RemovedDups", path = "../Objects/")
+ProjectSillys_Origin_SampleSizes[, "Duplicate"] <-  ProjectSillys_Origin_SampleSizes[, "Genotyped"] - ProjectSillys_Origin_SampleSizes[, "Missing"] - sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
 ```
 
-### Final
-
-How many fish did we end up with?
-```{r qa_final}
-ProjectSillys_SampleSizes[, "Final"] <- sapply(paste0(ProjectSillys, ".gcl"), function(x) get(x)$n)
-ProjectSillys_SampleSizes
-```
-
-### Heterozygosity
+## Heterozygosity
 
 We know from the QC work that the **GTscore** genotyping pipeline can sometimes result in individuals with an overabundance of heterozygous calls (perhaps from contamination?). We want to remove individuals with untrustworth genotypes. In order to explore the utility of some sort of *heterozygosity filter*, we should first plot a histogram of heterozygosity per individual to see what the problem looks like. From there we can set a threshold or range of acceptable heterozygosities.
-```{r heterozygosity}
+```{r heterozygosity_calculations}
 #genotype.counts <- apply(PHOGAN13.gcl$scores, MARGIN=1, table) #provides counts of each genotype/individual
 
 #calculate heterozygosity by individual :-) 
-PHOGAN13_ind_het <- apply(PHOGAN13.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304}) 
-PHOGAN14_ind_het <- apply(PHOGAN14.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304})
-PHOGAN15_ind_het <- apply(PHOGAN15.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304})
-PHOGAN16_ind_het <- apply(PHOGAN16.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304})
-mean_13 <- mean(PHOGAN13_ind_het)
-mean_14 <- mean(PHOGAN14_ind_het)
-mean_15 <- mean(PHOGAN15_ind_het)
-mean_16 <- mean(PHOGAN16_ind_het)
-sd_13 <- sd(PHOGAN13_ind_het)
-sd_14 <- sd(PHOGAN14_ind_het)
-sd_15 <- sd(PHOGAN15_ind_het)
-sd_16 <- sd(PHOGAN16_ind_het)
-low_cutoff_13 <- mean_13 - (sd_13*3)
-high_cutoff_13 <- mean_13 + (sd_13*3)
-low_cutoff_14 <- mean_14 - (sd_14*3)
-high_cutoff_14 <- mean_14 + (sd_14*3)
-low_cutoff_15 <- mean_15 - (sd_15*3)
-high_cutoff_15 <- mean_15 + (sd_15*3)
-low_cutoff_16 <- mean_16 - (sd_16*3)
-high_cutoff_16 <- mean_16 + (sd_16*3)
+PHOGAN13n_ind_het <- apply(PHOGAN13n.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304} ) 
+PHOGAN13h_ind_het <- apply(PHOGAN13h.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304} ) 
+PHOGAN14n_ind_het <- apply(PHOGAN14n.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304} )
+PHOGAN14h_ind_het <- apply(PHOGAN14h.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304} )
+PHOGAN15_ind_het <- apply(PHOGAN15.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304} )
+PHOGAN16_ind_het <- apply(PHOGAN16.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/304} )
 ```
 
-Simple histogram using *base* plotting
-```{r plot heterozygosity}
-#easily plot histograms with cutoffs for outliers
-par(mfrow=c(2,2))
-hist(PHOGAN13_ind_het) 
-abline(v=low_cutoff_13) #0.3228336
-abline(v=high_cutoff_13) #0.5007186
-hist(PHOGAN14_ind_het)
-abline(v=low_cutoff_14)
-abline(v=high_cutoff_14)
-hist(PHOGAN15_ind_het)
-abline(v=low_cutoff_15)
-abline(v=high_cutoff_15)
-hist(PHOGAN16_ind_het)
-abline(v=low_cutoff_16)
-abline(v=high_cutoff_16)
-```
-
-Switch from *base* to *tidyverse* for ease of use/visualization. Add +- 3SD cutoff from literature.
+### Plot by silly
+Plot with *tidyverse* for ease of use/visualization. Add +- 3SD cutoff from literature (Anderson et al. 2010).
 ```{r visualize heterozygosity by silly}
 # Convert to tibbles
-tibble_PHOGAN13 <- tibble(silly=PHOGAN13.gcl$attributes$SILLY_CODE, sillysource=PHOGAN13.gcl$attributes$SillySource, het=PHOGAN13_ind_het)
-tibble_PHOGAN14 <- tibble(silly=PHOGAN14.gcl$attributes$SILLY_CODE, sillysource=PHOGAN14.gcl$attributes$SillySource, het=PHOGAN14_ind_het)
+tibble_PHOGAN13n <- tibble(silly=PHOGAN13n.gcl$attributes$SILLY_CODE, sillysource=PHOGAN13n.gcl$attributes$SillySource, het=PHOGAN13n_ind_het)
+tibble_PHOGAN13h <- tibble(silly=PHOGAN13h.gcl$attributes$SILLY_CODE, sillysource=PHOGAN13h.gcl$attributes$SillySource, het=PHOGAN13h_ind_het)
+tibble_PHOGAN14n <- tibble(silly=PHOGAN14n.gcl$attributes$SILLY_CODE, sillysource=PHOGAN14n.gcl$attributes$SillySource, het=PHOGAN14n_ind_het)
+tibble_PHOGAN14h <- tibble(silly=PHOGAN14h.gcl$attributes$SILLY_CODE, sillysource=PHOGAN14h.gcl$attributes$SillySource, het=PHOGAN14h_ind_het)
 tibble_PHOGAN15 <- tibble(silly=PHOGAN15.gcl$attributes$SILLY_CODE, sillysource=PHOGAN15.gcl$attributes$SillySource, het=PHOGAN15_ind_het)
 tibble_PHOGAN16 <- tibble(silly=PHOGAN16.gcl$attributes$SILLY_CODE, sillysource=PHOGAN16.gcl$attributes$SillySource, het=PHOGAN16_ind_het)
 
 # Create a single tibble
-het_tibble <- bind_rows(tibble_PHOGAN13, tibble_PHOGAN14, tibble_PHOGAN15, tibble_PHOGAN16)  
+het_tibble <- bind_rows(tibble_PHOGAN13n, tibble_PHOGAN13h, tibble_PHOGAN14n, tibble_PHOGAN14h, tibble_PHOGAN15, tibble_PHOGAN16)  
  
 #make het mean and lower and upper bounds (+/-3SD) tibbles
 mean_het <- het_tibble %>% 
@@ -182,12 +246,13 @@ het_tibble %>%
 
 After discussions with Chris, Tyler, and Dan, we decided that it would be more appropriate to examine heterozygosity by lineage (even versus odd) instead of year. Additionally, we all agreed that the +-3SD cutoff was not restrictive enough, the upper bound for the cutoff should be closer to the main distribution.
 
+### Plot by lineage
 ```{r visualize heterozygosity by lineage}
-
 #combine tibbles and add lineage as grouping variable
-het_tibble <- bind_rows(tibble_PHOGAN13, tibble_PHOGAN14, tibble_PHOGAN15, tibble_PHOGAN16) %>% 
-  mutate(lineage = case_when(silly %in% c("PHOGAN13", "PHOGAN15") ~ "odd",
+het_tibble <- het_tibble %>% 
+  dplyr::mutate(lineage = dplyr::case_when(silly %in% c("PHOGAN13", "PHOGAN15") ~ "odd",
                            silly %in% c("PHOGAN14", "PHOGAN16") ~ "even"))
+save_objects("het_tibble", "../Objects/")
 
 #make het mean and lower and upper bounds (+/-3SD) tibbles
 mean_het <- het_tibble %>% 
@@ -219,13 +284,14 @@ How many fish would we lose if we went with these cutoffs?
 
 # Upper cutoff only, lower doesn't apply
 het_tibble %>% 
-  group_by(lineage) %>% 
-  summarise(upper = mean(het) + 3* sd(het)) %>% 
-  right_join(het_tibble) %>% 
-  filter(het >= upper) %>% 
-  count(lineage)
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(upper = mean(het) + 3* sd(het)) %>% 
+  dplyr::right_join(het_tibble) %>% 
+  dplyr::filter(het >= upper) %>% 
+  dplyr::count(lineage)
 ```
 
+### Cutoffs to remove outliers
 If we went with the 3SD cutoff, we would lose 80 samples from the odd lineage and 103 from the even. Still, this +-3SD by lineage approach does not seem ideal given the large number of outliers that **pull** the SD. We can see this long right tail with a qqplot.
 
 ```{r make qq plots to visualize outliers}
@@ -241,15 +307,15 @@ het_tibble %>%
 Same idea, but with a boxplot. **Note** all points are 1.5 IQR +- upper/lower boxplot. Perhaps we could use this 1.5 IQR approach for removing outliers?
 ```{r boxplots}
 het_tibble %>% 
-  ggplot(aes(x = lineage, y = het)) + 
-  stat_boxplot(geom = "errorbar", width = 0.5) + 
-  geom_boxplot(outlier.colour = "red", notch = FALSE, varwidth = FALSE, coef = 1.5) + 
-  ggtitle("Boxplot of individual heterozygosity by lineage\noutliers are in red (1.5 IQR)")
+  ggplot2::ggplot(aes(x = lineage, y = het)) + 
+  ggplot2::stat_boxplot(geom = "errorbar", width = 0.5) + 
+  ggplot2::geom_boxplot(outlier.colour = "red", notch = FALSE, varwidth = FALSE, coef = 1.5) + 
+  ggplot2::ggtitle("Boxplot of individual heterozygosity by lineage\noutliers are in red (1.5 IQR)")
 
 # Calculate 1.5 IQR
-het_tibble %>% 
-  group_by(lineage) %>% 
-  summarise(low_1.5_IQR = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))),
+het_IQR_cutoffs <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(low_1.5_IQR = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))),
             high_1.5_IQR = quantile(het, probs = 0.75) + 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
 
 ```
@@ -258,106 +324,97 @@ Chris suggested that we stick with the +-3SD approach, however, before calculati
 ```{r another way to visualize outliers (from Chris)}
 # Calculate mode of each distribution
 mode_het <- het_tibble %>% 
-  group_by(lineage) %>% 
-  count(het) %>% 
-  slice(which.max(n))
+  dplyr::group_by(lineage) %>% 
+  dplyr::count(het) %>% 
+  dplyr::slice(which.max(n))
 
 
 # Chris wants to assume the mode is the mean, mirror the lower half of the dist, calculate SD and use that for +-3SD
 # Odd mirror lower bounds +-3sd
 het_tibble %>% 
-  filter(lineage == "odd", het < 0.4078947) %>% 
-  mutate(het = 0.4078947 - het + 0.4078947) %>% 
-  bind_rows(het_tibble %>% 
+  dplyr::filter(lineage == "odd", het < 0.4078947) %>% 
+  dplyr::mutate(het = 0.4078947 - het + 0.4078947) %>% 
+  dplyr::bind_rows(het_tibble %>% 
               filter(lineage == "odd", het <= 0.4078948)  # floating point error
            ) %>% 
   # ggplot(aes(x = het)) +
   # geom_histogram(binwidth = 1/304)
-  group_by(lineage) %>% 
-  summarise(het_mean = mean(het), 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het_mean = mean(het), 
             het_lower_3sd = mean(het) - 3 * sd(het),
             het_upper_3sd = mean(het) + 3 * sd(het))
 
 
 # Even mirror lower bounds +-3sd
 het_tibble %>% 
-  filter(lineage == "even", het < 0.4177631) %>% 
-  mutate(het = 0.4177631 - het + 0.4177631) %>% 
-  bind_rows(het_tibble %>% 
+  dplyr::filter(lineage == "even", het < 0.4177631) %>% 
+  dplyr::mutate(het = 0.4177631 - het + 0.4177631) %>% 
+  dplyr::bind_rows(het_tibble %>% 
               filter(lineage == "even", het <= 0.4177633)  # floating point error
   ) %>% 
   # ggplot(aes(x = het)) +
   # geom_histogram(binwidth = 1/304)
-  group_by(lineage) %>%
-  summarise(het_mean = mean(het),
+  dplyr::group_by(lineage) %>%
+  dplyr::summarise(het_mean = mean(het),
             het_lower_3sd = mean(het) - 3 * sd(het),
             het_upper_3sd = mean(het) + 3 * sd(het))
 
 ```
 
 Now lets look at all three of these approaches on the original histograms.
+
 1. +-3SD by lineage
 2. 1.5 IQR +- 75% and 25% quartiles
 3. Chris' +-3SD by lineage only using the left hand side of the distribution.
 ```{r plot all of the different cutoffs on the same histogram.}
-
-het_tibble <- bind_rows(tibble_PHOGAN13, tibble_PHOGAN14, tibble_PHOGAN15, tibble_PHOGAN16) %>% 
-  mutate(lineage = case_when(silly %in% c("PHOGAN13", "PHOGAN15") ~ "odd",
-                           silly %in% c("PHOGAN14", "PHOGAN16") ~ "even"))
-
 mean_het <- het_tibble %>% 
   dplyr::group_by(lineage) %>% 
   dplyr::summarise(het=mean(het))
 
 low_cutoff_het <- het_tibble %>% 
   dplyr::group_by(lineage) %>% 
-  summarise(het=mean(het)-3*sd(het))
+  dplyr::summarise(het=mean(het)-3*sd(het))
 
 high_cutoff_het <- het_tibble %>% 
   dplyr::group_by(lineage) %>% 
-  summarise(het=mean(het)+3*sd(het))
+  dplyr::summarise(het=mean(het)+3*sd(het))
 
 low_box_het <- het_tibble %>% 
-  group_by(lineage) %>% 
-  summarise(het = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
 
 high_box_het <- het_tibble %>% 
-  group_by(lineage) %>% 
-  summarise(het = quantile(het, probs = 0.75) + 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het = quantile(het, probs = 0.75) + 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
 
 odd_chris_het <- het_tibble %>% 
-  filter(lineage == "odd", het < 0.4078947) %>% 
-  mutate(het = 0.4078947 - het + 0.4078947) %>% 
-  bind_rows(het_tibble %>% 
+  dplyr::filter(lineage == "odd", het < 0.4078947) %>% 
+  dplyr::mutate(het = 0.4078947 - het + 0.4078947) %>% 
+  dplyr::bind_rows(het_tibble %>% 
               filter(lineage == "odd", het <= 0.4078948)  # floating point error
            ) %>% 
-  group_by(lineage) %>% 
-  summarise(het_mean = mean(het), 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het_mean = mean(het), 
             het_lower_3sd = mean(het) - 3 * sd(het),
             het_upper_3sd = mean(het) + 3 * sd(het))
 
 even_chris_het <-
   het_tibble %>% 
-  filter(lineage == "even", het < 0.4177631) %>% 
-  mutate(het = 0.4177631 - het + 0.4177631) %>% 
-  bind_rows(het_tibble %>% 
+  dplyr::filter(lineage == "even", het < 0.4177631) %>% 
+  dplyr::mutate(het = 0.4177631 - het + 0.4177631) %>% 
+  dplyr::bind_rows(het_tibble %>% 
               filter(lineage == "even", het <= 0.4177633)  # floating point error
   ) %>% 
-  group_by(lineage) %>%
-  summarise(het_mean = mean(het),
+  dplyr::group_by(lineage) %>%
+  dplyr::summarise(het_mean = mean(het),
             het_lower_3sd = mean(het) - 3 * sd(het),
             het_upper_3sd = mean(het) + 3 * sd(het))
 
-chris_het_tibble <- bind_rows(odd_chris_het, even_chris_het)
+chris_het_tibble <- dplyr::bind_rows(odd_chris_het, even_chris_het)
 
 low_chris_het <- tibble(lineage=chris_het_tibble$lineage, het=chris_het_tibble$het_lower_3sd)
 
 high_chris_het <- tibble(lineage=chris_het_tibble$lineage, het=chris_het_tibble$het_upper_3sd)
-
-
-#high_chris_het <- het_tibble %>% 
-#  group_by(lineage) %>% 
- # summarise(het=(mean(het) - 3 * sd(het))+mean(het))
 
 het_tibble %>% 
   ggplot2::ggplot(aes(x = het)) +
@@ -378,27 +435,82 @@ het_tibble %>%
 
 ```
  
-We can see that the upper bound is virtually identical for both Chris' method and IQR. I propose that we go with the 1.5 IQR method given that it is well known and well documented. Thoughts?
-## OceanAK
+We can see that the upper bound is virtually identical for both Chris' method and IQR. We proposed that we go with the 1.5 IQR method given that it is well known and well documented. All agreed.
 
-```{r read_oceanak}
-AHRP_oceanak <- read.csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017.csv")
+### Remove fish with IQR cutoff
+
+Now that we've decided to use the 1.5IQR, how many fish are we going to remove from each silly?
+```{r table_het_cutoff}
+# Get list of fish to remove
+het_tibble %>% 
+  dplyr::left_join(het_IQR_cutoffs, by = "lineage") %>% 
+  dplyr::filter(het < low_1.5_IQR | het > high_1.5_IQR) %>% 
+  dplyr::count(silly)
 ```
 
-```{r join_oceanak}
-tibble_PHOGAN13_scores <- tibble(silly=PHOGAN13.gcl$attributes$SILLY_CODE, sillysource=PHOGAN13.gcl$attributes$SillySource, scores=PHOGAN13.gcl$scores)
-tibble_PHOGAN14_scores <- tibble(silly=PHOGAN14.gcl$attributes$SILLY_CODE, sillysource=PHOGAN14.gcl$attributes$SillySource, scores=PHOGAN14.gcl$scores)
-tibble_PHOGAN15_scores <- tibble(silly=PHOGAN15.gcl$attributes$SILLY_CODE, sillysource=PHOGAN15.gcl$attributes$SillySource, scores=PHOGAN15.gcl$scores)
-tibble_PHOGAN16_scores <- tibble(silly=PHOGAN16.gcl$attributes$SILLY_CODE, sillysource=PHOGAN16.gcl$attributes$SillySource, scores=PHOGAN16.gcl$scores)
+Now remove those fish. Figure out which ones they are, convert *SillySource* to *FK_FISH_ID* (**note**: the values for *FK_FISH_ID* got reassigned after pooling), remove them.
+```{r remove_het_cutoff}
+removed_hets <- het_tibble %>% 
+  dplyr::left_join(het_IQR_cutoffs, by = "lineage") %>% 
+  dplyr::filter(het < low_1.5_IQR | het > high_1.5_IQR) %>% 
+  dplyr::pull(sillysource)
+save_objects("removed_hets", "../Objects/")
 
-hogan_tibble <- bind_rows(tibble_PHOGAN13_scores, tibble_PHOGAN14_scores, tibble_PHOGAN15_scores, tibble_PHOGAN16_scores)
+PHOGAN13h_hets_remove <- PHOGAN13h.gcl$attributes %>% 
+  dplyr::filter(SillySource %in% removed_hets) %>% 
+  dplyr::mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  dplyr::pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PHOGAN13h", IDs = PHOGAN13h_hets_remove)
 
-## Note, you will want to use dplyr::left_join here, not merge, left_join is safer by far
-# hogan_oceanak <- merge(x=hogan_tibble, y=AHRP_oceanak, by=)
+PHOGAN13n_hets_remove <- PHOGAN13n.gcl$attributes %>% 
+  dplyr::filter(SillySource %in% removed_hets) %>% 
+  dplyr::mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  dplyr::pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PHOGAN13n", IDs = PHOGAN13n_hets_remove)
+
+PHOGAN14h_hets_remove <- PHOGAN14h.gcl$attributes %>% 
+  dplyr::filter(SillySource %in% removed_hets) %>% 
+  dplyr::mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  dplyr::pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PHOGAN14h", IDs = PHOGAN14h_hets_remove)
+
+PHOGAN14n_hets_remove <- PHOGAN14n.gcl$attributes %>% 
+  dplyr::filter(SillySource %in% removed_hets) %>% 
+  dplyr::mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  dplyr::pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PHOGAN14n", IDs = PHOGAN14n_hets_remove)
+
+PHOGAN15_hets_remove <- PHOGAN15.gcl$attributes %>% 
+  dplyr::filter(SillySource %in% removed_hets) %>% 
+  dplyr::mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  dplyr::pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PHOGAN15", IDs = PHOGAN15_hets_remove)
+
+PHOGAN16_hets_remove <- PHOGAN16.gcl$attributes %>% 
+  dplyr::filter(SillySource %in% removed_hets) %>% 
+  dplyr::mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  dplyr::pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PHOGAN16", IDs = PHOGAN16_hets_remove)
+
+ProjectSillys_Origin_SampleSizes[, "Heterozygosity"] <-  ProjectSillys_Origin_SampleSizes[, "Genotyped"] - ProjectSillys_Origin_SampleSizes[, "Missing"] - ProjectSillys_Origin_SampleSizes[, "Duplicate"] - sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
 ```
 
-## Explore structure
 
-## Export genepop file
+## Final
+How many fish did we end up with?
+```{r qa_final}
+ProjectSillys_Origin_SampleSizes[, "Final"] <- sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
+ProjectSillys_Origin_SampleSizes
+```
+
+Save post-QA genotypes.
+```{r save_postQA_genotypes}
+save_sillys(ProjectSillys_Origin, "../Genotypes/OceanAK_Origin_PostQA/")
+```
+
+
+# Explore structure
+
+# Export genepop file
 
 Now that we have final, post QA/QC genotypes, we want to save our work by exporting the genotypes as a **Genepeop** file. That **Genepop** file will then feed in to Chase's *genepop2franz.GCL.r* script to create a **FRANz** input file for parentage analysis!
