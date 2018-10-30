@@ -1,0 +1,300 @@
+---
+title: "Hogan_popgen"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(DT)
+library(abind)
+bbind <- function(...) { abind(..., along = 3) }
+
+source("~/../R/Functions.GCL.R")
+
+load_objects(path = "../Objects/")
+load_sillys(path = "../Genotypes/OceanAK_Origin_PostQA/")
+```
+
+# Introduction
+
+This is a quick exploratory analysis of the population structure of the NPRB Hogan Bay 2013-2016 genotype data, post-QA. Here we will:
+
+  * Read in all post-QA project genotypes
+  * Create a *genepop* file to read back in with *adegenet*
+  * Explore genetic structure
+    + Among brood lines (even/odd)
+    + Among years
+    + Among hatchery/wild (note different hatcheries have different brood sources)
+  * Export genotypes as a *Genepop* file to feed in to *genepop2franz.GCL.r*
+  
+# Create genepop
+
+Create a *genepop* using `gcl2Genepop.GCL`, individuals are named by *SillySource*.
+```{r genepop}
+gcl2Genepop.GCL(sillyvec = c("PHOGAN13n", "PHOGAN13h", "PHOGAN14n", "PHOGAN14h", "PHOGAN15", "PHOGAN16"), 
+                loci = loci, 
+                path = "../Genepop/hogan_postQA.gen", 
+                VialNums = TRUE, 
+                usat = FALSE)
+```
+
+```{r combine attributes tables}
+#When we pooled PHOGAN 13 and 14, the FK_FISH_ID column was converted from numeric to character. However, it remained numeric for PHOGAN 15 and 16. Its structure needs to be uniform across tables to allow for combining. 
+
+PHOGAN15.gcl$attributes <- PHOGAN15.gcl$attributes %>% 
+  mutate(FK_FISH_ID = as.character(FK_FISH_ID))
+PHOGAN16.gcl$attributes <- PHOGAN16.gcl$attributes %>% 
+  mutate(FK_FISH_ID = as.character(FK_FISH_ID))
+HOGAN_attributes_tibble <- dplyr::bind_rows(PHOGAN13n.gcl$attributes, PHOGAN13h.gcl$attributes, PHOGAN14n.gcl$attributes, PHOGAN14h.gcl$attributes, PHOGAN15.gcl$attributes, PHOGAN16.gcl$attributes)
+```
+
+
+# Analysis in *adegenet*
+
+```{r adegenet}
+install.packages("adegenet")
+library("adegenet")
+
+Hogan <- read.genepop(file="v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genepop/hogan_postQA.gen")
+Hogan 
+
+Hoganpop <- genind2genpop(Hogan)
+
+Hoganpop@tab[1:6, 1:7] #Shows population names.  
+
+
+```
+
+##Inbreeding Estimates
+
+Here we will:
+1. Create separate genind files for each year and origin.
+2. Estimate and plot inbreeding (F).
+3. Calculate and plot mean F across individuals.
+4. Estimate and plot probability density functions. 
+5. Estimate and plot MLE.
+6. Compare MLE with observed values. 
+
+
+```{r estimate inbreeding}
+#From adgenet manual - see p 106
+
+#isolate populations
+PHOGAN13n_genind <- seppop(Hogan)$PHOGAN13_813
+PHOGAN13h_genind <- seppop(Hogan)$PHOGAN13_829
+PHOGAN14n_genind <- seppop(Hogan)$PHOGAN14_2649
+PHOGAN14h_genind <- seppop(Hogan)$PHOGAN14_2647
+PHOGAN15_genind <- seppop(Hogan)$PHOGAN15_9409
+PHOGAN16_genind <- seppop(Hogan)$PHOGAN16_13054
+
+#Estimate inbreeding and return sample of F values
+Fs_13n <- inbreeding(PHOGAN13n_genind, N=30)
+Fs_13h <- inbreeding(PHOGAN13h_genind, N=30)
+Fs_14n <- inbreeding(PHOGAN14n_genind, N=30)
+Fs_14h <- inbreeding(PHOGAN14h_genind, N=30)
+Fs_15 <- inbreeding(PHOGAN15_genind, N=30)
+Fs_16 <- inbreeding (PHOGAN16_genind, N=30)
+
+#plot first 10 results
+invisible(sapply(Fs_13n[1:10], function(e) plot(density(e), xlab="F", xlim=c(0,1), main="Density of Sampled F Values"))) 
+invisible(sapply(Fs_13h[1:10], function(e) plot(density(e), xlab="F", xlim=c(0,1), main="Density of sampled F Values")))
+invisible(sapply(Fs_14n[1:10], function(e) plot(density(e), xlab="F", xlim=c(0,1), main="Density of sampled F Values")))
+invisible(sapply(Fs_14h[1:10], function(e) plot(density(e), xlab="F", xlim=c(0,1), main="Density of sampled F Values")))
+invisible(sapply(Fs_15[1:10], function(e) plot(density(e), xlab="F", xlim=c(0,1), main="Density of sampled F Values")))
+invisible(sapply(Fs_16[1:10], function(e) plot(density(e), xlab="F", xlim=c(0,1), main="Density of sampled F Values")))
+
+```
+
+```{r compute mean F}
+#compute means for all individuals
+Fmean_13n <- sapply(Fs_13n, mean) 
+Fmean_13h <- sapply(Fs_13h, mean)
+Fmean_14n <- sapply(Fs_14n, mean)
+Fmean_14h <- sapply(Fs_14h, mean)
+Fmean_15 <- sapply(Fs_15, mean)
+Fmean_16 <- sapply(Fs_16, mean)
+
+par(mfrow=c(3,3))
+hist(Fmean_13n, col="orange", xlab="Mean value of F", main="2013 natural")
+hist(Fmean_13h, col="orange", xlab="Mean value of F", main="2013 hatchery")
+hist(Fmean_14n, col="Orange", xlab="Mean value of F", main="2014 natural")
+hist(Fmean_14h, col="orange", xlab="Mean value of F", main="2014 hatchery")
+hist(Fmean_15, col="orange", xlab="Mean value of F", main="2015")
+hist(Fmean_16, col="orange", xlab="Mean value of F", main="2016")
+```
+
+There appear to be potential qualitative differences in F between lineages, but not origins. 
+
+```{r estimate inbreeding and probability density functions}
+#estimate inbreeding and return probability density functions
+Fdens_13n <- inbreeding(PHOGAN13n_genind, res.type = "function")
+Fdens_13h <- inbreeding(PHOGAN13h_genind, res.type = "function")
+Fdens_14n <- inbreeding(PHOGAN14n_genind, res.type = "function")
+Fdens_14h <- inbreeding(PHOGAN14h_genind, res.type = "function")
+Fdens_15 <- inbreeding(PHOGAN15_genind, res.type = "function")
+Fdens_16 <- inbreeding(PHOGAN16_genind, res.type = "function")
+
+#plot the first 10 functions
+invisible(sapply(Fdens_13n[1:10], plot, ylab="Density", main="Density of probability of F values")) 
+invisible(sapply(Fdens_13h[1:10], plot, ylab="Density", main="Density of probability of F values"))
+invisible(sapply(Fdens_14n[1:10], plot, ylab="Density", main="Density of probability of F values"))
+invisible(sapply(Fdens_14h[1:10], plot, ylab="Density", main="Density of probability of F values"))
+invisible(sapply(Fdens_15[1:10], plot, ylab="Density", main="Density of probability of F values"))
+invisible(sapply(Fdens_16[1:10], plot, ylab="Density", main="Density of probability of F values"))
+```
+
+```{r estimate inbreeding and maximum likelihood estimates}
+#estimate inbreeding and return maximum likelihood estimates
+Fest_13n <- inbreeding(PHOGAN13n_genind, res.type = "estimate")
+Fest_13h <- inbreeding(PHOGAN13h_genind, res.type = "estimate")
+Fest_14n <- inbreeding(PHOGAN14n_genind, res.type = "estimate")
+Fest_14h <- inbreeding(PHOGAN14h_genind, res.type = "estimate")
+Fest_15 <- inbreeding(PHOGAN15_genind, res.type = "estimate")
+Fest_16 <- inbreeding(PHOGAN16_genind, res.type = "estimate")
+
+mostinbred_13n <- which.max(Fest_13n)
+mostinbred_13h <- which.max(Fest_13h)
+mostinbred_14n <- which.max(Fest_14n)
+mostinbred_14h <- which.max(Fest_14h)
+mostinbred_15 <- which.max(Fest_15)
+mostinbred_16 <- which.max(Fest_16)
+
+par(mfrow=c(3,3))
+plot(Fdens_13n[[mostinbred_13n]], ylab="Density", xlab="F", main = paste("Probability density of F values 2013 natural", names(mostinbred_13n)))
+abline(v=Fest_13n[mostinbred_13n], col="red", lty=2)
+legend("topright", legend="MLE", col="red", lty=2)
+plot(Fdens_13h[[mostinbred_13h]], ylab="Density", xlab="F", main = paste("Probability density of F values 2013 hatchery", names(mostinbred_13h)))
+abline(v=Fest_13h[mostinbred_13h], col="red", lty=2)
+legend("topright", legend="MLE", col="red", lty=2)
+plot(Fdens_14n[[mostinbred_14n]], ylab="Density", xlab="F", main = paste("Probability density of F values 2014 natural", names(mostinbred_14n)))
+abline(v=Fest_14n[mostinbred_14n], col="red", lty=2)
+legend("topright", legend="MLE", col="red", lty=2)
+plot(Fdens_14h[[mostinbred_14h]], ylab="Density", xlab="F", main = paste("Probability density of F values 2014 hatchery", names(mostinbred_14h)))
+abline(v=Fest_14h[mostinbred_14h], col="red", lty=2)
+legend("topright", legend="MLE", col="red", lty=2)
+plot(Fdens_15[[mostinbred_15]], ylab="Density", xlab="F", main = paste("Probability density of F values 2015", names(mostinbred_15)))
+abline(v=Fest_15[mostinbred_15], col="red", lty=2)
+legend("topright", legend="MLE", col="red", lty=2)
+plot(Fdens_16[[mostinbred_16]], ylab="Density", xlab="F", main = paste("Probability density of F values 2016", names(mostinbred_16)))
+abline(v=Fest_16[mostinbred_16], col="red", lty=2)
+legend("topright", legend="MLE", col="red", lty=2)
+```
+
+```{r compare MLE and means}
+#compare MLE and means
+par(mfrow=c(3,3))
+plot(Fest_13n, ylim=c(0,0.8), ylab="F", col="blue", main = "Comparison of MLE and average sample estimates of F")
+points(Fmean_13n, pch=2, col="red")
+arrows(x0=1:length(Fest_13n), y0=Fest_13n, y1=Fmean_13n, x1=1:length(Fest_13n), length=0.125)
+legend("topleft", legend=c("estimate", "sample"), col=c("blue", "red"), pch=c(1,2), title="res.type")
+plot(Fest_13h, ylim=c(0,0.8), ylab="F", col="blue", main = "Comparison of MLE and average sample estimates of F")
+points(Fmean_13h, pch=2, col="red")
+arrows(x0=1:length(Fest_13h), y0=Fest_13h, y1=Fmean_13h, x1=1:length(Fest_13h), length=0.125)
+legend("topleft", legend=c("estimate", "sample"), col=c("blue", "red"), pch=c(1,2), title="res.type")
+plot(Fest_14n, ylim=c(0,0.8), ylab="F", col="blue", main = "Comparison of MLE and average sample estimates of F")
+points(Fmean_14n, pch=2, col="red")
+arrows(x0=1:length(Fest_14n), y0=Fest_14n, y1=Fmean_14n, x1=1:length(Fest_14n), length=0.125)
+legend("topleft", legend=c("estimate", "sample"), col=c("blue", "red"), pch=c(1,2), title="res.type")
+plot(Fest_14h, ylim=c(0,0.8), ylab="F", col="blue", main = "Comparison of MLE and average sample estimates of F")
+points(Fmean_14h, pch=2, col="red")
+arrows(x0=1:length(Fest_14h), y0=Fest_14h, y1=Fmean_14h, x1=1:length(Fest_14h), length=0.125)
+legend("topleft", legend=c("estimate", "sample"), col=c("blue", "red"), pch=c(1,2), title="res.type")
+plot(Fest_15, ylim=c(0,0.8), ylab="F", col="blue", main = "Comparison of MLE and average sample estimates of F")
+points(Fmean_15, pch=2, col="red")
+arrows(x0=1:length(Fest_15), y0=Fest_15, y1=Fmean_15, x1=1:length(Fest_15), length=0.125)
+legend("topleft", legend=c("estimate", "sample"), col=c("blue", "red"), pch=c(1,2), title="res.type")
+plot(Fest_16, ylim=c(0,0.8), ylab="F", col="blue", main = "Comparison of MLE and average sample estimates of F")
+points(Fmean_16, pch=2, col="red")
+arrows(x0=1:length(Fest_16), y0=Fest_16, y1=Fmean_16, x1=1:length(Fest_16), length=0.125)
+legend("topleft", legend=c("estimate", "sample"), col=c("blue", "red"), pch=c(1,2), title="res.type")
+
+```
+
+##Fst
+
+Here we will:
+1. Calculate Fst, Fit, and Fis.
+2. Calculate PW Fst across year*origin. 
+3. Calculate Fst for each locus. 
+
+```{r Calculate F statistics}
+install.packages("hierfstat")
+library(hierfstat)
+fstat(Hogan)
+```
+
+```{r Calculate PW Fst}
+PW_Fst_Hogan <- pairwise.fst(Hogan)
+PW_Fst_Hogan
+```
+
+Note that I've turned this into an Excel heatmap located here: ("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genepop"). Differentiation is evident across, but not within, lineages. 
+
+```{r Calculate Fst across loci}
+install.packages("pegas")
+library(pegas)
+Fst(as.loci(Hogan))
+Gtest_Hogan <- gstat.randtest(Hogan, nsim=99)
+Gtest_Hogan
+plot(Gtest_Hogan)
+```
+
+##Principal Components Analysis
+
+```{r Calculate the PCA}
+#Count instances of missing data. 
+sum(is.na(Hogan$tab))
+
+#Replace missing data.
+Hogan_imputed <- scaleGen(Hogan, NA.method="mean")
+class(Hogan_imputed)
+dim(Hogan_imputed)
+
+pca1 <- dudi.pca(Hogan_imputed, cent=FALSE, scale=FALSE, scannf=FALSE, nf=3)
+barplot(pca1$eig[1:50], main="PCA Eigenvalues", col=heat.colors(50))
+```
+
+Wow, take a look at PC 1. 
+
+```{r Examine the output object}
+pca1
+```
+
+The output object is a list containing: 1) $eig (eigenvalues), 2) $li (PC's), 3) $c1 (allele loadings).
+
+```{r scatterplot of axes 1 and 2}
+s.class(pca1$li, pop(Hogan))
+title("PCA\naxes 1-2")
+add.scatter.eig(pca1$eig[1:20], 3, 1, 2)
+```
+
+PC 1 clearly separates the two lineages. 
+
+```{r scatterplot of axes 1 and 3}
+s.class(pca1$li, pop(Hogan), xax=1, yax=3, sub="PCA 1-3", csub=2)
+title("PCA\naxes 1-3")
+add.scatter.eig(pca1$eig[1:20], nf=3, xax=1, yax=3)
+```
+
+Hmm... I wonder what's separating out in the odd lineage? 
+
+```{r PCs 1 and 3}
+col <- funky(15)
+s.class(pca1$li, pop(Hogan), xax=1, yax=3, col=transp(col, .6), axesell=FALSE, cstar=0, cpoint=3, grid=FALSE)
+
+```
+
+```{Plot of PCs 1 and 2}
+colorplot(pca1$li, pca1$li, transp = TRUE, cex=3, xlab="PC 1", ylab="PC 2")
+title("PCA of axes 1-2")
+```
+
+```{r Plot of PCs 1 and 3}
+colorplot(pca1$li[c(1,3)], pca1$li, transp=TRUE, cex=3, xlab="PC 1", ylab="PC 3")
+title("PCA of axes 1-3")
+```
+
