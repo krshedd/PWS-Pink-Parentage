@@ -50,6 +50,7 @@ PHOGAN15.gcl$attributes <- PHOGAN15.gcl$attributes %>%
 PHOGAN16.gcl$attributes <- PHOGAN16.gcl$attributes %>% 
   mutate(FK_FISH_ID = as.character(FK_FISH_ID))
 HOGAN_attributes_tibble <- dplyr::bind_rows(PHOGAN13n.gcl$attributes, PHOGAN13h.gcl$attributes, PHOGAN14n.gcl$attributes, PHOGAN14h.gcl$attributes, PHOGAN15.gcl$attributes, PHOGAN16.gcl$attributes)
+write_csv(HOGAN_attributes_tibble, "../Attributes table/HOGAN_attributes_tibble.csv")
 ```
 
 
