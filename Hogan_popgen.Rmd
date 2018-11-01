@@ -21,14 +21,15 @@ load_sillys(path = "../Genotypes/OceanAK_Origin_PostQA/")
 
 # Introduction
 
-This is a quick exploratory analysis of the population structure of the NPRB Hogan Bay 2013-2016 genotype data, post-QA. Here we will:
+This is an exploratory analysis of the population structure of the NPRB Hogan Bay 2013-2016 genotype data, post-QA. Here we will:
 
   * Read in all post-QA project genotypes
   * Create a *genepop* file to read back in with *adegenet*
   * Explore genetic structure
     + Among brood lines (even/odd)
     + Among years
-    + Among hatchery/wild (note different hatcheries have different brood sources)
+    + Among hatchery/wild (note different hatcheries have different brood sources) 
+    + Between sexes
   * Export genotypes as a *Genepop* file to feed in to *genepop2franz.GCL.r*
   
 # Create genepop
@@ -40,7 +41,21 @@ gcl2Genepop.GCL(sillyvec = c("PHOGAN13n", "PHOGAN13h", "PHOGAN14n", "PHOGAN14h",
                 path = "../Genepop/hogan_postQA.gen", 
                 VialNums = TRUE, 
                 usat = FALSE)
+
+gcl2Genepop.GCL(sillyvec = c("PHOGAN13n", "PHOGAN13h", "PHOGAN15"), 
+                loci = loci, 
+                path = "../Genepop/hogan_odd_postQA.gen", 
+                VialNums = TRUE, 
+                usat = FALSE)
+
+gcl2Genepop.GCL(sillyvec = c("PHOGAN14n", "PHOGAN14h", "PHOGAN16"), 
+                loci = loci, 
+                path = "../Genepop/hogan_even_postQA.gen", 
+                VialNums = TRUE, 
+                usat = FALSE)
 ```
+
+Note that I created separate genepop files for each lineage in addition to one for the complete dataset so I could run separate PCAs by lineage.
 
 ```{r combine attributes tables}
 #When we pooled PHOGAN 13 and 14, the FK_FISH_ID column was converted from numeric to character. However, it remained numeric for PHOGAN 15 and 16. Its structure needs to be uniform across tables to allow for combining. 
@@ -53,6 +68,11 @@ HOGAN_attributes_tibble <- dplyr::bind_rows(PHOGAN13n.gcl$attributes, PHOGAN13h.
   mutate(Lineage = case_when(SILLY_CODE %in% c("PHOGAN13", "PHOGAN15") ~ "ODD", 
                              SILLY_CODE %in% c("PHOGAN14", "PHOGAN16") ~ "EVEN"))
 write_csv(HOGAN_attributes_tibble, "../Attributes table/HOGAN_attributes_tibble.csv")
+
+HOGAN_attributes_odd_tibble <- dplyr::bind_rows(PHOGAN13n.gcl$attributes, PHOGAN13h.gcl$attributes, PHOGAN15.gcl$attributes)
+
+HOGAN_attributes_even_tibble <- dplyr::bind_rows(PHOGAN14n.gcl$attributes, PHOGAN14h.gcl$attributes, PHOGAN16.gcl$attributes)
+
 ```
 
 
@@ -69,6 +89,9 @@ Hoganpop <- genind2genpop(Hogan)
 
 Hoganpop@tab[1:6, 1:7] #Shows population names.  
 
+Hogan_odd <- read.genepop(file="v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genepop/hogan_odd_postQA.gen")
+
+Hogan_even <- read.genepop(file="v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genepop/hogan_even_postQA.gen")
 
 ```
 
@@ -132,7 +155,7 @@ hist(Fmean_15, col="orange", xlab="Mean value of F", main="2015")
 hist(Fmean_16, col="orange", xlab="Mean value of F", main="2016")
 ```
 
-There appear to be potential qualitative differences in F between lineages, but not origins. 
+These histograms show the mean value of F (inbreeding coefficient) across years and origin types. There appear to be potential qualitative differences in F between lineages, but not origins. 
 
 ```{r estimate inbreeding and probability density functions, include=FALSE}
 #estimate inbreeding and return probability density functions
@@ -232,12 +255,18 @@ library(hierfstat)
 fstat(Hogan)
 ```
 
+This is a table of global F statistics (across all individuals in the dataset). 
+Fst=pop/total=0.05
+Fit=ind/total=0.04
+Fis=ind/pop=0
+
 ```{r Calculate PW Fst}
 PW_Fst_Hogan <- pairwise.fst(Hogan)
 PW_Fst_Hogan
 ```
 
-Note that I've turned this into an Excel heatmap located here: ("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genepop"). Differentiation is evident across, but not within, lineages. 
+These are pairwise Fst values among populations and origins. 
+Note that I've turned this into an Excel heatmap ("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genepop"), which is much easier to interpret because it includes population names. Differentiation is evident across, but not within, lineages. 
 
 ```{r Calculate Fst across loci, include=FALSE}
 install.packages("pegas")
@@ -249,6 +278,7 @@ plot(Gtest_Hogan)
 ```
 
 ##Principal Components Analysis
+The purpose of the PCAs is to visualize the distribution of variation across the dataset (and subsets of the data) and calculate the extent to which the following variables contribute to that variation: year, lineage, origin, hatchery, and sex. 
 
 ```{r Calculate the PCA}
 #Count instances of missing data. 
@@ -261,9 +291,13 @@ dim(Hogan_imputed)
 
 pca1 <- dudi.pca(Hogan_imputed, cent=FALSE, scale=FALSE, scannf=FALSE, nf=3)
 barplot(pca1$eig[1:50], main="PCA Eigenvalues", col=heat.colors(50))
+pca1$eig[1:3]
+summary(pca1)
+sum_pca1 <- sum(pca1$eig)
+sum_pca1
 ```
 
-Wow, take a look at PC 1. 
+These are the eigenvalues for the PCA that includes the entire dataset. PC 1 explains the vast majority of the variation. 
 
 ```{r Examine the output object}
 pca1
@@ -277,7 +311,7 @@ title("PCA\naxes 1-2")
 add.scatter.eig(pca1$eig[1:20], 3, 1, 2)
 ```
 
-PC 1 clearly separates the two lineages. 
+Axis 1 clearly separates the two lineages. Odd is on the left and even is on the right. 
 
 ```{r scatterplot of axes 1 and 3}
 s.class(pca1$li, pop(Hogan), xax=1, yax=3, sub="PCA 1-3", csub=2)
@@ -285,7 +319,7 @@ title("PCA\naxes 1-3")
 add.scatter.eig(pca1$eig[1:20], nf=3, xax=1, yax=3)
 ```
 
-Hmm... I wonder what's separating out in the odd lineage? 
+
 
 ```{r PCs 1 and 3}
 col <- funky(15)
@@ -309,69 +343,58 @@ Scores_Attributes <- pca1$li %>%
   left_join(HOGAN_attributes_tibble, by=c("silly_source"= "SillySource"))
 ```
 
-```{r Exploratory Plots for PCs 1-2}
+```{r Exploratory Plots for Year and Origin}
 par(mfrow=c(1,3))
-ggplot(Scores_Attributes, aes(x=Axis1, y=Axis2, color=Lineage)) + 
+ggplot(Scores_Attributes, aes(x=Axis1, y=Axis2, shape=`Otolith Mark Present`, color=SILLY_CODE)) + 
   geom_point(alpha=0.2) +
-  labs(title="PC Scores By Lineage")
+  labs(title="PC Scores By Year and Origin", x="Axis 1 (~5.6%)", y="Axis 2 (~0.6%)")
+ggplot(Scores_Attributes, aes(x=Axis1, y=Axis3, shape=`Otolith Mark Present`, color=SILLY_CODE)) + 
+  geom_point(alpha=0.2) +
+  labs(title="PC Scores by Year and Origin", x="Axis 1 (~5.6%)", y="Axis 3 (0.5%)")
+ggplot(Scores_Attributes, aes(x=Axis2, y=Axis3, shape=`Otolith Mark Present`, color=SILLY_CODE)) + 
+  geom_point(alpha=0.2) +
+  labs(title="PC Scores by Year and Origin", x= "Axis 2 (~0.6%)", y="Axis 3 (0.5%)")
+```
+
+These plots visualize variation in the full dataset by year and origin. Axis 1 clearly separates lineages. We do see some separation within lineages along axis 2, but it does not appear to be due to origin or year. However, note that some natural-origin fish from years 2015 and 2016 separate out. Are these natural strays?
+
+Axis labels provide the percent variation explained. Note that the axes do not explain much of the overall variation. This supports that there's little overall population structure. 
+
+```{r Plots of PCs Showing Origin and Lineage}
+
 ggplot(Scores_Attributes, aes(x=Axis1, y=Axis2, shape=`Otolith Mark Present`, color=Lineage)) + 
   geom_point(alpha=0.2) +
-  labs(title="PC Scores by Origin and Lineage")
-
-```
-
-```{r Plots of PCs 1-3}
-ggplot(Scores_Attributes, aes(x=Axis1, y=Axis3, color=Lineage)) + 
-  geom_point(alpha=0.2) +
-  labs(title = "PC Scores by Lineage")
+  labs(title = "PC Scores by Origin and Lineage", x="Axis 1 (~5.6%)", y="Axis 2 (~0.6%)")
 ggplot(Scores_Attributes, aes(x=Axis1, y=Axis3, shape=`Otolith Mark Present`, color=Lineage)) + 
   geom_point(alpha=0.2) +
-  labs(title = "PC Scores by Origin and Lineage")
-ggplot(Scores_Attributes, aes(x=Axis1, y=Axis3, shape=`Otolith Mark Present`, color=Sex)) + 
-  geom_point(alpha=0.2) +
-  labs(title = "PC Scores by Origin and Sex")
-
-```
-
-```{r Plots of PCs 2-3}
-ggplot(Scores_Attributes, aes(x=Axis2, y=Axis3, color=Lineage)) + 
-  geom_point(alpha=0.2) +
-  labs(title = "PC Scores by Lineage")
+  labs(title = "PC Scores by Origin and Lineage", x="Axis 1 (~5.6%)", y="Axis 3 (0.5%)")
 ggplot(Scores_Attributes, aes(x=Axis2, y=Axis3, shape=`Otolith Mark Present`, color=Lineage)) + 
   geom_point(alpha=0.2) +
-  labs(title = "PC Scores by Origin and Lineage")
+  labs(title = "PC Scores by Origin and Lineage",  x= "Axis 2 (~0.6%)", y="Axis 3 (0.5%)")
 
-```
-
-```{r}
-par(mfrow=c(3,1))
-
-Scores_Attributes %>% 
-  filter(`Otolith Mark Present`=="YES") %>% 
-  ggplot(aes(x=Axis1, y=Axis2, color=`Otolith Mark ID`)) +
-  geom_point(alpha=0.2) +
-  facet_grid(rows = vars(Lineage)) +
-  labs(title="PC Scores by Hatchery")
-
-Scores_Attributes %>% 
-  filter(`Otolith Mark Present`=="YES") %>% 
-  ggplot(aes(x=Axis2, y=Axis3, color=`Otolith Mark ID`)) +
-  geom_point(alpha=0.2) +
-  facet_grid(rows = vars(Lineage)) +
-  labs(title="PC Scores by Hatchery")
-  
-Scores_Attributes %>% 
-  filter(`Otolith Mark Present`=="YES") %>% 
-  ggplot(aes(x=Axis1, y=Axis3, color=`Otolith Mark ID`)) +
-  geom_point(alpha=0.2) +
-  facet_grid(rows = vars(Lineage)) +
-  labs(title="PC Scores by Hatchery")
 
 
 ```
 
-This plot only contains hatchery fish. 
+These are PC plots of the full dataset with individuals categorized by origin and lineage. Axis 1 separates the lineages. Axis 2 shows separation within lineages. Axis 3 shows separation of some natural origin fish from the odd lineage (natural strays?). The plot of Axis2 versus Axis3 shows evidence of multimodality within lineages, suggesting that the data are not normally distributed. We had considered plotting mean scores by lineage, year, origin, and sex, but given this non-normality, the approach seemed inappropriate and potentially misleading. 
 
+```{r Plots of PCs Showing Origin and Sex}
+ggplot(Scores_Attributes, aes(x=Axis1, y=Axis2, shape=`Otolith Mark Present`, color=Sex)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Sex", x="Axis 1 (~5.6%)", y="Axis 2 (~0.6%)")
+ggplot(Scores_Attributes, aes(x=Axis1, y=Axis3, shape=`Otolith Mark Present`, color=Sex)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Sex", x="Axis 1 (~5.6%)", y="Axis 3 (0.5%)")
+ggplot(Scores_Attributes, aes(x=Axis2, y=Axis3, shape=`Otolith Mark Present`, color=Sex)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Sex", x= "Axis 2 (~0.6%)", y="Axis 3 (0.5%)")
+
+```
+
+These are plots of the full dataset with individuals categorized by origin and sex. Overall, hatchery and natural origin fish and males and females appear admixed. The clustering we see along axis two does not seem to be due to sex or origin differences. The individuals that separate out along axis 3 appear to be a combination of males and females, but qualitatively may be male-biased. 
+
+These plots are consistently showing that axis 1 separates the two lineages, which is what we expect. However, we do see some apparent clustering along axes 2 and 3. We used anovas to determine which variables are driving the variation in these scores. 
+ 
 ```{r anova on PC 2 scores}
 aov_PC2 <- aov(Scores_Attributes$Axis2 ~ Scores_Attributes$SILLY_CODE*Scores_Attributes$Sex*Scores_Attributes$`Otolith Mark Present`)
 aov_PC2
@@ -379,16 +402,7 @@ summary(aov_PC2)
 
 ```
 
-```{r Examine PC 2 scores by sex and origin}
-ggplot(Scores_Attributes, aes(x=Axis1, y=Axis2, color=`Otolith Mark Present`, shape=Sex)) + 
-  geom_point(alpha=0.2) +
-  labs(title = "PC Scores by Origin and Sex")
-
-ggplot(Scores_Attributes, aes(x=Axis2, y=Axis3, color=`Otolith Mark Present`, shape=Sex)) + 
-  geom_point(alpha=0.2) +
-  labs(title = "PC Scores by Origin and Sex")
-```
-
+This is an anova for Axis 2 scores. There is a significant interaction between sex and origin (p=0.003). 
 
 ```{r anova on PC 3 scores}
 aov_PC3 <- aov(Scores_Attributes$Axis3 ~ Scores_Attributes$SILLY_CODE*Scores_Attributes$Sex*Scores_Attributes$`Otolith Mark Present`)
@@ -396,18 +410,55 @@ aov_PC3
 summary(aov_PC3)
 ```
 
-Sex and year significantly partition variation in PC 3 scores. 
+This is an anova of Axis 3 scores. SILLY_CODE (year and origin) has a significant effect (p<0.001), as does sex (p=0.03). 
 
-Let's examine the distributions of PC 3 scores by sex. 
+Let's examine the distributions of Axis 2 and 3 scores by sex to see if there truly are sex effects. 
 
-```{r Boxplots of scores by sex}
-par(mfrow=c(1,2))
-boxplot(Scores_Attributes$Axis2~Scores_Attributes$Sex, ylab="PC 2 Scores")
-boxplot(Scores_Attributes$Axis3~Scores_Attributes$Sex, ylab="PC 3 Scores")
+```{r Violin plots of scores by sex}
+#par(mfrow=c(1,2))
+#boxplot(Scores_Attributes$Axis2~Scores_Attributes$Sex, ylab="PC 2 Scores")
+#boxplot(Scores_Attributes$Axis3~Scores_Attributes$Sex, ylab="PC 3 Scores")
+
+ggplot(Scores_Attributes, aes(x=Sex, y=Axis2)) +
+  geom_violin()
+ggplot(Scores_Attributes, aes(x=Sex, y=Axis3)) +
+  geom_violin()
 ```
-The distributions of scores between the sexes don't appear to be different. 
 
-```{r}
+The distributions of Axis 2 and 3 scores between sexes do not appear to differ. 
+
+Now that we've examined the full dataset, let's focus on only the hatchery origin fish to see if there is differentiation among the hatcheries. 
+
+```{r Plots of PCs by Hatchery}
+par(mfrow=c(3,1))
+
+Scores_Attributes %>% 
+  filter(`Otolith Mark Present`=="YES") %>% 
+  ggplot(aes(x=Axis1, y=Axis2, color=`Otolith Mark ID`)) +
+  geom_point(alpha=0.2) +
+  facet_grid(rows = vars(Lineage)) +
+  labs(title="PC Scores by Hatchery", x="Axis 1 (~5.6%)", y="Axis 2 (~0.6%)")
+
+Scores_Attributes %>% 
+  filter(`Otolith Mark Present`=="YES") %>% 
+  ggplot(aes(x=Axis2, y=Axis3, color=`Otolith Mark ID`)) +
+  geom_point(alpha=0.2) +
+  facet_grid(rows = vars(Lineage)) +
+  labs(title="PC Scores by Hatchery", x="Axis 2 (~0.6%)", y="Axis 3 (0.5%)")
+  
+Scores_Attributes %>% 
+  filter(`Otolith Mark Present`=="YES") %>% 
+  ggplot(aes(x=Axis1, y=Axis3, color=`Otolith Mark ID`)) +
+  geom_point(alpha=0.2) +
+  facet_grid(rows = vars(Lineage)) +
+  labs(title="PC Scores by Hatchery", x="Axis 1 (~5.6%)", y="Axis 3 (0.5%)")
+
+
+```
+
+These are plots of only hatchery fish. We do see some clustering along axes 2 and 3, but particular hatcheries do not seem to be grouping together. Overall, hatchery fish appear to be mixed.    
+
+```{r Hatchery anova}
 aov_PC1_hatchery <- aov(Scores_Attributes$Axis1 ~ Scores_Attributes$`Otolith Mark ID`)
 summary(aov_PC1_hatchery)
 aov_PC2_hatchery <- aov(Scores_Attributes$Axis2 ~ Scores_Attributes$`Otolith Mark ID`)
@@ -416,18 +467,160 @@ aov_PC3_hatchery <- aov(Scores_Attributes$Axis3 ~ Scores_Attributes$`Otolith Mar
 summary(aov_PC3_hatchery)
 ```
 
-```{r}
+There are significant differences in Axis 1 and 3 scores among the different hatcheries. However, this significance is confounded by year. 
+
+```{r Violin plots of PC Scores for fish from each hatchery}
 #par(mfrow=c(3,1))
 
-boxplot(Scores_Attributes$Axis1~Scores_Attributes$`Otolith Mark ID`, ylab="PC 1 Scores", par(cex.axis=0.5))
-boxplot(Scores_Attributes$Axis2~Scores_Attributes$`Otolith Mark ID`, ylab="PC 2 Scores", par(cex.axis=0.5))
-boxplot(Scores_Attributes$Axis3~Scores_Attributes$`Otolith Mark ID`, ylab="PC 3 Scores", par(cex.axis=0.5))
+#boxplot(Scores_Attributes$Axis1~Scores_Attributes$`Otolith Mark ID`, ylab="PC 1 Scores", par(cex.axis=0.5))
+#boxplot(Scores_Attributes$Axis2~Scores_Attributes$`Otolith Mark ID`, ylab="PC 2 Scores", par(cex.axis=0.5))
+#boxplot(Scores_Attributes$Axis3~Scores_Attributes$`Otolith Mark ID`, ylab="PC 3 Scores", par(cex.axis=0.5))
+
+ggplot(Scores_Attributes, aes(x=`Otolith Mark ID`, y=Axis1)) +
+  geom_violin() +
+  theme(axis.text=element_text(size=6))
+ggplot(Scores_Attributes, aes(x=`Otolith Mark ID`, y=Axis2)) +
+  geom_violin() +
+  theme(axis.text=element_text(size=6))
+ggplot(Scores_Attributes, aes(x=`Otolith Mark ID`, y=Axis3)) +
+  geom_violin() +
+  theme(axis.text=element_text(size=6))
 ```
-Hatcheries are strongly differentiated in PC 1 scores. This is likely confounded by year effects.
 
-Main take-aways:
+We can visualize differences in Axis scores among hatcheries using violin plots. The strongest differentiation is seen in Axis 1, with hatcheries splitting by lineage. Distributions appear more similar in scores from axes 2 and 3. Note that NA denotes natural fish.  
+
+```{r Sample sizes by hatchery}
+Scores_Attributes %>% 
+  count(SILLY_CODE, `Otolith Mark ID`) %>% 
+  spread(`Otolith Mark ID`, n, fill=0)
+```
+
+Here are the counts of hatchery fish by year. Note that there is only 1 fish from Solomon Gulch, which explains the missing data in the plots above.
+
+Since the PCA for the full dataset was so strongly driven by differences between lineages, we decided to perform separate PCA's by lineage to better examine differentiation. 
+
+```{r Separate PCA for Odd Lineage}
+#Replace missing data.
+Hogan_imputed_odd <- scaleGen(Hogan_odd, NA.method="mean")
+class(Hogan_imputed_odd)
+dim(Hogan_imputed_odd)
+
+pca_odd <- dudi.pca(Hogan_imputed_odd, cent=FALSE, scale=FALSE, scannf=FALSE, nf=3)
+barplot(pca_odd$eig[1:50], main="PCA Eigenvalues", col=heat.colors(50))
+summary(pca_odd)
+```
+
+These are eigenvalues for a PCA that only includes odd-lineage fish. Note that the eigenvalues are much more similar. 
+
+```{r Explore PC Scores by origin and sex}
+Scores_Attributes_odd <- pca_odd$li %>% 
+  as_tibble(rownames="silly_source") %>% 
+  left_join(HOGAN_attributes_odd_tibble, by=c("silly_source"= "SillySource"))
+
+ggplot(Scores_Attributes_odd, aes(x=Axis1, y=Axis2, color=`Otolith Mark Present`, shape=Sex)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Sex", x="Axis 1 (~0.9%)", y="Axis 2 (~0.8%)")
+
+ggplot(Scores_Attributes_odd, aes(x=Axis1, y=Axis3, color=`Otolith Mark Present`, shape=Sex)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Sex", x="Axis 1 (~0.9%)", y="Axis 3 (~0.7%)")
+
+ggplot(Scores_Attributes_odd, aes(x=Axis2, y=Axis3, color=`Otolith Mark Present`, shape=Sex)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Sex", x="Axis 2 (~0.8%)", y="Axis 3 (~0.7%)")
+```
+
+For odd-year fish, axis 1 separates a small cluster of natural origin fish, which may be natural strays. Axes 2 and 3 also separate a small cluster of natural origin fish that appear to be a mix of males and females. 
+
+```{r Explore PC Scores by hatchery}
+Scores_Attributes_odd %>% 
+  filter(`Otolith Mark Present`=="YES") %>% 
+  ggplot(aes(x=Axis1, y=Axis2, color=`Otolith Mark ID`)) +
+  geom_point(alpha=0.2) +
+  labs(title="PC Scores by Hatchery", x="Axis 1 (~0.9%)", y="Axis 2 (~0.8%)")
+
+Scores_Attributes_odd %>% 
+  filter(`Otolith Mark Present`=="YES") %>% 
+  ggplot(aes(x=Axis1, y=Axis3, color=`Otolith Mark ID`)) +
+  geom_point(alpha=0.2) +
+  labs(title="PC Scores by Hatchery", x="Axis 1 (~0.9%)", y="Axis 3 (~0.7%)")
+
+Scores_Attributes_odd %>% 
+  filter(`Otolith Mark Present`=="YES") %>% 
+  ggplot(aes(x=Axis2, y=Axis3, color=`Otolith Mark ID`)) +
+  geom_point(alpha=0.2) +
+  labs(title="PC Scores by Hatchery", x="Axis 2 (~0.8%)", y="Axis 3 (~0.7%)")
+```
+
+Fish from different hatcheries appear intermixed.
+
+```{r Separate PCA for even lineage}
+#Replace missing data.
+Hogan_imputed_even <- scaleGen(Hogan_even, NA.method="mean")
+class(Hogan_imputed_even)
+dim(Hogan_imputed_even)
+
+pca_even <- dudi.pca(Hogan_imputed_even, cent=FALSE, scale=FALSE, scannf=FALSE, nf=3)
+barplot(pca_even$eig[1:50], main="PCA Eigenvalues", col=heat.colors(50))
+summary(pca_even)
+```
+
+These are eigenvalues for a PCA including only even-year fish. These values are similar to what we observed for the odd-year lineage. 
+
+```{r Explore PCs by origin and sex}
+Scores_Attributes_even <- pca_even$li %>% 
+  as_tibble(rownames="silly_source") %>% 
+  left_join(HOGAN_attributes_even_tibble, by=c("silly_source"= "SillySource"))
+
+ggplot(Scores_Attributes_even, aes(x=Axis1, y=Axis2, color=`Otolith Mark Present`, shape=Sex)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Sex", x="Axis 1 (~0.7%)", y="Axis 2 (~0.5%)")
+
+ggplot(Scores_Attributes_even, aes(x=Axis1, y=Axis3, color=`Otolith Mark Present`, shape=Sex)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Sex", x="Axis 1 (~0.7%)", y="Axis 3 (~0.5%)")
+
+ggplot(Scores_Attributes_even, aes(x=Axis2, y=Axis3, color=`Otolith Mark Present`, shape=Sex)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Sex", x="Axis 2 (~0.5%)", y="Axis 3 (~0.5%)")
+```
+
+It's interesting that Axis 1 separates fish into three clusters. Outliers appear to be mostly natural fish. 
+
+```{r PC Scores by hatchery}
+Scores_Attributes_even %>% 
+  filter(`Otolith Mark Present`=="YES") %>% 
+  ggplot(aes(x=Axis1, y=Axis2, color=`Otolith Mark ID`)) +
+  geom_point(alpha=0.2) +
+  labs(title="PC Scores by Hatchery", x="Axis 1 (~0.7%)", y="Axis 2 (~0.5%)")
+
+Scores_Attributes_even %>% 
+  filter(`Otolith Mark Present`=="YES") %>% 
+  ggplot(aes(x=Axis1, y=Axis3, color=`Otolith Mark ID`)) +
+  geom_point(alpha=0.2) +
+  labs(title="PC Scores by Hatchery", x="Axis 1(~0.7%)", y="Axis 3 (~0.5%)")
+
+Scores_Attributes_even %>% 
+  filter(`Otolith Mark Present`=="YES") %>% 
+  ggplot(aes(x=Axis2, y=Axis3, color=`Otolith Mark ID`)) +
+  geom_point(alpha=0.2) +
+  labs(title="PC Scores by Hatchery", x="Axis 2 (~0.5%)", y="Axis 3 (~0.5%)")
+```
+
+Again, axis 1 seems to separate the fish into clusters, although fish do not cluster by hatchery. 
+
+```{r ANOVA for PC 1 scores}
+aov_even <- aov(Scores_Attributes_even$Axis1~Scores_Attributes_even$SILLY_CODE*Scores_Attributes_even$Sex*Scores_Attributes_even$`Otolith Mark Present`)
+summary(aov_even)
+
+```
+
+Despite apparent clustering along axis 1, there are no significant differences in Axis 1 scores due to year, sex, origin, or interactions. 
+
+
+# Main take-aways:
 1. The two lineages are strongly genetically differentiated. 
-2. Fish from different hatcheries are differentiated in scores from PCs 1 and 3, most likely due to strong associations between hatchery and year. 
-3. There may be some slight partitioning of variation by sex and origin. 
+2. Fish from different hatcheries are differentiated in scores from Axes 1 and 3 in the full dataset, due to strong associations between hatchery and year. These differences go away when we examine the lineages separately. 
+3. There may be some slight partitioning of variation by sex and origin, but overall fish appear to be admixed. 
 
-The remaining mystery seems to be explaining the outgroup in PC's 2 and 3. They appear to be natural-origin fish. Perhaps they are strays? 
+The remaining mystery seems to be explaining the outgroup in Axes 2 and 3. They appear to be natural-origin strays.  
