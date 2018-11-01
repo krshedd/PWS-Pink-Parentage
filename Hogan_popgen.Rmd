@@ -49,7 +49,9 @@ PHOGAN15.gcl$attributes <- PHOGAN15.gcl$attributes %>%
   mutate(FK_FISH_ID = as.character(FK_FISH_ID))
 PHOGAN16.gcl$attributes <- PHOGAN16.gcl$attributes %>% 
   mutate(FK_FISH_ID = as.character(FK_FISH_ID))
-HOGAN_attributes_tibble <- dplyr::bind_rows(PHOGAN13n.gcl$attributes, PHOGAN13h.gcl$attributes, PHOGAN14n.gcl$attributes, PHOGAN14h.gcl$attributes, PHOGAN15.gcl$attributes, PHOGAN16.gcl$attributes)
+HOGAN_attributes_tibble <- dplyr::bind_rows(PHOGAN13n.gcl$attributes, PHOGAN13h.gcl$attributes, PHOGAN14n.gcl$attributes, PHOGAN14h.gcl$attributes, PHOGAN15.gcl$attributes, PHOGAN16.gcl$attributes) %>% 
+  mutate(Lineage = case_when(SILLY_CODE %in% c("PHOGAN13", "PHOGAN15") ~ "ODD", 
+                             SILLY_CODE %in% c("PHOGAN14", "PHOGAN16") ~ "EVEN"))
 write_csv(HOGAN_attributes_tibble, "../Attributes table/HOGAN_attributes_tibble.csv")
 ```
 
@@ -76,9 +78,7 @@ Here we will:
 1. Create separate genind files for each year and origin.
 2. Estimate and plot inbreeding (F).
 3. Calculate and plot mean F across individuals.
-4. Estimate and plot probability density functions. 
-5. Estimate and plot MLE.
-6. Compare MLE with observed values. 
+ 
 
 
 ```{r estimate inbreeding}
@@ -100,6 +100,9 @@ Fs_14h <- inbreeding(PHOGAN14h_genind, N=30)
 Fs_15 <- inbreeding(PHOGAN15_genind, N=30)
 Fs_16 <- inbreeding (PHOGAN16_genind, N=30)
 
+```
+
+```{r F density plots, include=FALSE}
 #plot first 10 results
 invisible(sapply(Fs_13n[1:10], function(e) plot(density(e), xlab="F", xlim=c(0,1), main="Density of Sampled F Values"))) 
 invisible(sapply(Fs_13h[1:10], function(e) plot(density(e), xlab="F", xlim=c(0,1), main="Density of sampled F Values")))
@@ -109,6 +112,7 @@ invisible(sapply(Fs_15[1:10], function(e) plot(density(e), xlab="F", xlim=c(0,1)
 invisible(sapply(Fs_16[1:10], function(e) plot(density(e), xlab="F", xlim=c(0,1), main="Density of sampled F Values")))
 
 ```
+
 
 ```{r compute mean F}
 #compute means for all individuals
@@ -130,7 +134,7 @@ hist(Fmean_16, col="orange", xlab="Mean value of F", main="2016")
 
 There appear to be potential qualitative differences in F between lineages, but not origins. 
 
-```{r estimate inbreeding and probability density functions}
+```{r estimate inbreeding and probability density functions, include=FALSE}
 #estimate inbreeding and return probability density functions
 Fdens_13n <- inbreeding(PHOGAN13n_genind, res.type = "function")
 Fdens_13h <- inbreeding(PHOGAN13h_genind, res.type = "function")
@@ -148,7 +152,7 @@ invisible(sapply(Fdens_15[1:10], plot, ylab="Density", main="Density of probabil
 invisible(sapply(Fdens_16[1:10], plot, ylab="Density", main="Density of probability of F values"))
 ```
 
-```{r estimate inbreeding and maximum likelihood estimates}
+```{r estimate inbreeding and maximum likelihood estimates, include=FALSE}
 #estimate inbreeding and return maximum likelihood estimates
 Fest_13n <- inbreeding(PHOGAN13n_genind, res.type = "estimate")
 Fest_13h <- inbreeding(PHOGAN13h_genind, res.type = "estimate")
@@ -185,7 +189,7 @@ abline(v=Fest_16[mostinbred_16], col="red", lty=2)
 legend("topright", legend="MLE", col="red", lty=2)
 ```
 
-```{r compare MLE and means}
+```{r compare MLE and means, include=FALSE}
 #compare MLE and means
 par(mfrow=c(3,3))
 plot(Fest_13n, ylim=c(0,0.8), ylab="F", col="blue", main = "Comparison of MLE and average sample estimates of F")
@@ -220,7 +224,7 @@ legend("topleft", legend=c("estimate", "sample"), col=c("blue", "red"), pch=c(1,
 Here we will:
 1. Calculate Fst, Fit, and Fis.
 2. Calculate PW Fst across year*origin. 
-3. Calculate Fst for each locus. 
+ 
 
 ```{r Calculate F statistics}
 install.packages("hierfstat")
@@ -235,7 +239,7 @@ PW_Fst_Hogan
 
 Note that I've turned this into an Excel heatmap located here: ("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genepop"). Differentiation is evident across, but not within, lineages. 
 
-```{r Calculate Fst across loci}
+```{r Calculate Fst across loci, include=FALSE}
 install.packages("pegas")
 library(pegas)
 Fst(as.loci(Hogan))
@@ -299,3 +303,131 @@ colorplot(pca1$li[c(1,3)], pca1$li, transp=TRUE, cex=3, xlab="PC 1", ylab="PC 3"
 title("PCA of axes 1-3")
 ```
 
+```{r combine attributes table with PC scores}
+Scores_Attributes <- pca1$li %>% 
+  as_tibble(rownames="silly_source") %>% 
+  left_join(HOGAN_attributes_tibble, by=c("silly_source"= "SillySource"))
+```
+
+```{r Exploratory Plots for PCs 1-2}
+par(mfrow=c(1,3))
+ggplot(Scores_Attributes, aes(x=Axis1, y=Axis2, color=Lineage)) + 
+  geom_point(alpha=0.2) +
+  labs(title="PC Scores By Lineage")
+ggplot(Scores_Attributes, aes(x=Axis1, y=Axis2, shape=`Otolith Mark Present`, color=Lineage)) + 
+  geom_point(alpha=0.2) +
+  labs(title="PC Scores by Origin and Lineage")
+
+```
+
+```{r Plots of PCs 1-3}
+ggplot(Scores_Attributes, aes(x=Axis1, y=Axis3, color=Lineage)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Lineage")
+ggplot(Scores_Attributes, aes(x=Axis1, y=Axis3, shape=`Otolith Mark Present`, color=Lineage)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Lineage")
+ggplot(Scores_Attributes, aes(x=Axis1, y=Axis3, shape=`Otolith Mark Present`, color=Sex)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Sex")
+
+```
+
+```{r Plots of PCs 2-3}
+ggplot(Scores_Attributes, aes(x=Axis2, y=Axis3, color=Lineage)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Lineage")
+ggplot(Scores_Attributes, aes(x=Axis2, y=Axis3, shape=`Otolith Mark Present`, color=Lineage)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Lineage")
+
+```
+
+```{r}
+par(mfrow=c(3,1))
+
+Scores_Attributes %>% 
+  filter(`Otolith Mark Present`=="YES") %>% 
+  ggplot(aes(x=Axis1, y=Axis2, color=`Otolith Mark ID`)) +
+  geom_point(alpha=0.2) +
+  facet_grid(rows = vars(Lineage)) +
+  labs(title="PC Scores by Hatchery")
+
+Scores_Attributes %>% 
+  filter(`Otolith Mark Present`=="YES") %>% 
+  ggplot(aes(x=Axis2, y=Axis3, color=`Otolith Mark ID`)) +
+  geom_point(alpha=0.2) +
+  facet_grid(rows = vars(Lineage)) +
+  labs(title="PC Scores by Hatchery")
+  
+Scores_Attributes %>% 
+  filter(`Otolith Mark Present`=="YES") %>% 
+  ggplot(aes(x=Axis1, y=Axis3, color=`Otolith Mark ID`)) +
+  geom_point(alpha=0.2) +
+  facet_grid(rows = vars(Lineage)) +
+  labs(title="PC Scores by Hatchery")
+
+
+```
+
+This plot only contains hatchery fish. 
+
+```{r anova on PC 2 scores}
+aov_PC2 <- aov(Scores_Attributes$Axis2 ~ Scores_Attributes$SILLY_CODE*Scores_Attributes$Sex*Scores_Attributes$`Otolith Mark Present`)
+aov_PC2
+summary(aov_PC2)
+
+```
+
+```{r Examine PC 2 scores by sex and origin}
+ggplot(Scores_Attributes, aes(x=Axis1, y=Axis2, color=`Otolith Mark Present`, shape=Sex)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Sex")
+
+ggplot(Scores_Attributes, aes(x=Axis2, y=Axis3, color=`Otolith Mark Present`, shape=Sex)) + 
+  geom_point(alpha=0.2) +
+  labs(title = "PC Scores by Origin and Sex")
+```
+
+
+```{r anova on PC 3 scores}
+aov_PC3 <- aov(Scores_Attributes$Axis3 ~ Scores_Attributes$SILLY_CODE*Scores_Attributes$Sex*Scores_Attributes$`Otolith Mark Present`)
+aov_PC3
+summary(aov_PC3)
+```
+
+Sex and year significantly partition variation in PC 3 scores. 
+
+Let's examine the distributions of PC 3 scores by sex. 
+
+```{r Boxplots of scores by sex}
+par(mfrow=c(1,2))
+boxplot(Scores_Attributes$Axis2~Scores_Attributes$Sex, ylab="PC 2 Scores")
+boxplot(Scores_Attributes$Axis3~Scores_Attributes$Sex, ylab="PC 3 Scores")
+```
+The distributions of scores between the sexes don't appear to be different. 
+
+```{r}
+aov_PC1_hatchery <- aov(Scores_Attributes$Axis1 ~ Scores_Attributes$`Otolith Mark ID`)
+summary(aov_PC1_hatchery)
+aov_PC2_hatchery <- aov(Scores_Attributes$Axis2 ~ Scores_Attributes$`Otolith Mark ID`)
+summary(aov_PC2_hatchery)
+aov_PC3_hatchery <- aov(Scores_Attributes$Axis3 ~ Scores_Attributes$`Otolith Mark ID`)
+summary(aov_PC3_hatchery)
+```
+
+```{r}
+#par(mfrow=c(3,1))
+
+boxplot(Scores_Attributes$Axis1~Scores_Attributes$`Otolith Mark ID`, ylab="PC 1 Scores", par(cex.axis=0.5))
+boxplot(Scores_Attributes$Axis2~Scores_Attributes$`Otolith Mark ID`, ylab="PC 2 Scores", par(cex.axis=0.5))
+boxplot(Scores_Attributes$Axis3~Scores_Attributes$`Otolith Mark ID`, ylab="PC 3 Scores", par(cex.axis=0.5))
+```
+Hatcheries are strongly differentiated in PC 1 scores. This is likely confounded by year effects.
+
+Main take-aways:
+1. The two lineages are strongly genetically differentiated. 
+2. Fish from different hatcheries are differentiated in scores from PCs 1 and 3, most likely due to strong associations between hatchery and year. 
+3. There may be some slight partitioning of variation by sex and origin. 
+
+The remaining mystery seems to be explaining the outgroup in PC's 2 and 3. They appear to be natural-origin fish. Perhaps they are strays? 
