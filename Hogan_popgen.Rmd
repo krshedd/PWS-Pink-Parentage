@@ -104,7 +104,7 @@ Here we will:
  
 
 
-```{r estimate inbreeding}
+```{r estimate inbreeding, include=FALSE}
 #From adgenet manual - see p 106
 
 #isolate populations
@@ -122,6 +122,13 @@ Fs_14n <- inbreeding(PHOGAN14n_genind, N=30)
 Fs_14h <- inbreeding(PHOGAN14h_genind, N=30)
 Fs_15 <- inbreeding(PHOGAN15_genind, N=30)
 Fs_16 <- inbreeding (PHOGAN16_genind, N=30)
+
+Fs_13n_1 <- inbreeding(PHOGAN13n_genind, N=1)
+Fs_13h_1 <- inbreeding(PHOGAN13h_genind, N=1)
+Fs_14n_1 <- inbreeding(PHOGAN14n_genind, N=1)
+Fs_14h_1 <- inbreeding(PHOGAN14h_genind, N=1)
+Fs_15_1 <- inbreeding(PHOGAN15_genind, N=1)
+Fs_16_1 <- inbreeding(PHOGAN16_genind, N=1)
 
 ```
 
@@ -305,6 +312,7 @@ pca1
 
 The output object is a list containing: 1) $eig (eigenvalues), 2) $li (PC's), 3) $c1 (allele loadings).
 
+
 ```{r scatterplot of axes 1 and 2}
 s.class(pca1$li, pop(Hogan))
 title("PCA\naxes 1-2")
@@ -313,7 +321,7 @@ add.scatter.eig(pca1$eig[1:20], 3, 1, 2)
 
 Axis 1 clearly separates the two lineages. Odd is on the left and even is on the right. 
 
-```{r scatterplot of axes 1 and 3}
+```{r scatterplot of axes 1 and 3, include=FALSE}
 s.class(pca1$li, pop(Hogan), xax=1, yax=3, sub="PCA 1-3", csub=2)
 title("PCA\naxes 1-3")
 add.scatter.eig(pca1$eig[1:20], nf=3, xax=1, yax=3)
@@ -321,23 +329,23 @@ add.scatter.eig(pca1$eig[1:20], nf=3, xax=1, yax=3)
 
 
 
-```{r PCs 1 and 3}
+```{r PCs 1 and 3, include = FALSE}
 col <- funky(15)
 s.class(pca1$li, pop(Hogan), xax=1, yax=3, col=transp(col, .6), axesell=FALSE, cstar=0, cpoint=3, grid=FALSE)
 
 ```
 
-```{Plot of PCs 1 and 2}
+```{Plot of PCs 1 and 2, include=FALSE}
 colorplot(pca1$li, pca1$li, transp = TRUE, cex=3, xlab="PC 1", ylab="PC 2")
 title("PCA of axes 1-2")
 ```
 
-```{r Plot of PCs 1 and 3}
+```{r Plot of PCs 1 and 3, include=FALSE}
 colorplot(pca1$li[c(1,3)], pca1$li, transp=TRUE, cex=3, xlab="PC 1", ylab="PC 3")
 title("PCA of axes 1-3")
 ```
 
-```{r combine attributes table with PC scores}
+```{r combine attributes table with PC scores, include=FALSE}
 Scores_Attributes <- pca1$li %>% 
   as_tibble(rownames="silly_source") %>% 
   left_join(HOGAN_attributes_tibble, by=c("silly_source"= "SillySource"))
@@ -377,6 +385,22 @@ ggplot(Scores_Attributes, aes(x=Axis2, y=Axis3, shape=`Otolith Mark Present`, co
 ```
 
 These are PC plots of the full dataset with individuals categorized by origin and lineage. Axis 1 separates the lineages. Axis 2 shows separation within lineages. Axis 3 shows separation of some natural origin fish from the odd lineage (natural strays?). The plot of Axis2 versus Axis3 shows evidence of multimodality within lineages, suggesting that the data are not normally distributed. We had considered plotting mean scores by lineage, year, origin, and sex, but given this non-normality, the approach seemed inappropriate and potentially misleading. 
+
+Update: After speaking with Chris and Wei, we determined that these clusters are likely artefacts and represent genotype frequencies. This is a limitation of using categorical data as input in a PCA. This is corroborated by (https://privefl.github.io/bigsnpr/articles/how-to-PCA.html) - Scroll down to the explanation of plots of axes 3 and 4. 
+
+Let's examine our loadings.
+
+```{r Plot distribution of loadings }
+plot(pca1$c1)
+max_loading <- max(pca1$c1)
+max_loading
+min_loading <- min(pca1$c1)
+min_loading
+range_loading <- range(pca1$c1)
+range_loading
+```
+
+Similar to the example cited above, it appears that the banding we observed in axes 2 and 3 may be representing variation at just a couple of loci. 
 
 ```{r Plots of PCs Showing Origin and Sex}
 ggplot(Scores_Attributes, aes(x=Axis1, y=Axis2, shape=`Otolith Mark Present`, color=Sex)) + 
@@ -425,7 +449,33 @@ ggplot(Scores_Attributes, aes(x=Sex, y=Axis3)) +
   geom_violin()
 ```
 
-The distributions of Axis 2 and 3 scores between sexes do not appear to differ. 
+The distributions of Axis 2 and 3 scores between sexes do not appear to differ. The distributions seen here along Axis 2 are reflective of the artefactual clustering that we saw in the PC plots. 
+
+
+```{r Biplots of F and PC 1 Scores}
+Fs_all <- c(Fs_13n_1, Fs_13h_1, Fs_14n_1, Fs_14h_1, Fs_15_1, Fs_16_1)
+head(Fs_all) #this is a list, need to convert to DF
+Fs_all_df <- data.frame(matrix(unlist(Fs_all), nrow=7367, byrow = T))
+head(Fs_all_df)
+
+Fs_odd <- c(Fs_13n_1, Fs_13h_1, Fs_15)
+
+Fs_even <- c(Fs_14n_1, Fs_14h_1, Fs_16)
+
+par(mfrow=c(1,3))
+plot(Fs_all, Scores_Attributes$Axis1)
+plot(Fs_all, Scores_Attributes$Axis2)
+plot(Fs_all, Scores_Attributes$Axis3)
+
+plot(Fs_odd, Scores_Attributes_odd$Axis1)
+plot(Fs_even, Scores_Attributes_even$Axis1)
+head(Fs_odd)
+Scores_all <- pca1$li
+
+Fs_Scores <- left_join(Fs_all, Scores_all)
+```
+
+These are plots of F versus Scores for Axes 1-3. There are no apparent patterns between the two.  
 
 Now that we've examined the full dataset, let's focus on only the hatchery origin fish to see if there is differentiation among the hatcheries. 
 
@@ -585,7 +635,16 @@ ggplot(Scores_Attributes_even, aes(x=Axis2, y=Axis3, color=`Otolith Mark Present
   labs(title = "PC Scores by Origin and Sex", x="Axis 2 (~0.5%)", y="Axis 3 (~0.5%)")
 ```
 
-It's interesting that Axis 1 separates fish into three clusters. Outliers appear to be mostly natural fish. 
+Axis 1 separates fish into three clusters. Outliers appear to be mostly natural fish. 
+
+Let's examine loadings again. 
+
+```{r Loadings for even year PCA}
+plot(pca_even$c1)
+
+```
+
+It appears that the banding is again driven by a small number of outlier loci. 
 
 ```{r PC Scores by hatchery}
 Scores_Attributes_even %>% 
@@ -622,5 +681,6 @@ Despite apparent clustering along axis 1, there are no significant differences i
 1. The two lineages are strongly genetically differentiated. 
 2. Fish from different hatcheries are differentiated in scores from Axes 1 and 3 in the full dataset, due to strong associations between hatchery and year. These differences go away when we examine the lineages separately. 
 3. There may be some slight partitioning of variation by sex and origin, but overall fish appear to be admixed. 
+4. PCAs are limiting when categorical data are used as input. The clustering that we observe along Axis 2 appears to be due to loadings from a small number of loci, rather than biological effects. 
 
 The remaining mystery seems to be explaining the outgroup in Axes 2 and 3. They appear to be natural-origin strays.  
