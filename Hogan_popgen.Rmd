@@ -446,7 +446,9 @@ Let's examine the distributions of Axis 2 and 3 scores by sex to see if there tr
 ggplot(Scores_Attributes, aes(x=Sex, y=Axis2)) +
   geom_violin()
 ggplot(Scores_Attributes, aes(x=Sex, y=Axis3)) +
-  geom_violin()
+  geom_violin(fill="grey", color="grey") +
+  theme(panel.background = element_rect(fill="blue", color="blue")) +
+  theme(panel.grid = element_line(linetype="blank")) 
 ```
 
 The distributions of Axis 2 and 3 scores between sexes do not appear to differ. The distributions seen here along Axis 2 are reflective of the artefactual clustering that we saw in the PC plots. 
@@ -676,6 +678,40 @@ summary(aov_even)
 
 Despite apparent clustering along axis 1, there are no significant differences in Axis 1 scores due to year, sex, origin, or interactions. 
 
+## Examine Linkage Disequilibrium among Loci
+
+```{r Examine LD}
+
+LD <- ReadGenepopDis.GCL(file = "V:/Software/Genepop V4.7/hogan_postQA.txt.DIS")
+LD$npopsfail <- apply(LD[, 3:dim(LD)[2]] < 0.05, 1, function(locuspair) {sum(locuspair)} )
+
+# Loci_Sorted <- tibble(Locus = LocusControl$locusnames) %>% 
+#   separate(Locus, c("Foo", "Position"), sep = "_RAD", remove = FALSE) %>% 
+#   mutate(Position = as.numeric(Position)) %>% 
+#   arrange(Position) %>% 
+#   pull(Locus)
+# 
+# LD %>% 
+#   mutate(Locus1 = factor(Locus1, Loci_Sorted)) %>% 
+#   mutate(Locus2 = factor(Locus2, rev(Loci_Sorted))) %>% 
+
+ggplot(LD, aes(x=Locus1, y=Locus2)) +
+  geom_tile(aes(fill=Overall))
+
+
+```
+
+Plot of overall LD. The heatmap is unfortunately pretty indecipherable due to the large number of pairwise comparisons. Because of this, I filtered the dataframe below to only include loci with significant linkage (p<0.05). 
+
+```{r Examine loci with significant LD}
+hogan_LD_sig <- LD[LD$Overall<0.05, ]
+
+ggplot(data=hogan_LD_sig, aes(x=Locus1, y=Locus2)) +
+  geom_tile(aes(fill=Overall)) +
+  theme(axis.text = element_text(size=6))
+```
+
+Plot of markers with significant LD (p<0.05). About 1/10 of the comparisons were significant. We can return to this list of loci later if we need to after we've tested the power of our marker set. 
 
 # Main take-aways:
 1. The two lineages are strongly genetically differentiated. 
@@ -684,3 +720,15 @@ Despite apparent clustering along axis 1, there are no significant differences i
 4. PCAs are limiting when categorical data are used as input. The clustering that we observe along Axis 2 appears to be due to loadings from a small number of loci, rather than biological effects. 
 
 The remaining mystery seems to be explaining the outgroup in Axes 2 and 3. They appear to be natural-origin strays.  
+
+#Convert GenePop file to Franz format for parentage analysis
+```{r Convert genepop to Franz for parentage}
+source("genepop2franz.GCL.r")
+genepop2franz.GCL("../Genepop/hogan_postQA.gen", "../OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017_no_otoliths.csv", c(2013, 2015), "HOGAN", "../")
+genepop2franz.GCL("../Genepop/hogan_postQA.gen", "../OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017_no_otoliths.csv", c(2014, 2016), "HOGAN", "../")
+genepop2franz.GCL("../Genepop/hogan_postQA.gen", "../OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017_no_otoliths.csv", c(2013, 2016), "HOGAN", "../")
+genepop2franz.GCL("../Genepop/hogan_postQA.gen", "../OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017_no_otoliths.csv", c(2014, 2015), "HOGAN", "../")
+
+```
+
+Note that we had to make separate files for even and odd lineages. We also created two files that we'll use to calculate error rates. These contain mismatched parent-offspring years (2013 and 2016 as well as 2014 and 2015). We kept the parental and offspring assignments consistent (e.g. in all files 2013 and 2014 are parental years and 2015 and 2016 are offspring years). Note that we need to manually modify years in the 2013-2016 file, otherwise the parents would all be dead before any of the offspring were born. 
