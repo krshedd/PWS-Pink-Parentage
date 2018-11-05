@@ -1,4 +1,4 @@
-genepop2franz.GCL=function(Genepop,OceanAK,Year, Stream, output_dir){
+genepop2franz.GCL=function(Genepop, OceanAK, Year, Stream, output_dir){
   ####################################################################################################################################################################################################################################################################
   # This function converts a genepop file into a FRANz pedigree format. 
   # It relies on the adegenet and tidyverse packages. The function filters out
@@ -14,7 +14,7 @@ genepop2franz.GCL=function(Genepop,OceanAK,Year, Stream, output_dir){
   #   ~ The path to the OceanAK file, in .csv format. 
   # Stream = 
   #   ~ The streamname for the population(s) you're interested in. passed as a vector list in caps.
-  #   ~ Note that the input is taken from SILLY, so may not be full stream name (e.g., stockdate = stock)
+  #   ~ Note that the input is taken from SILLY, so may not be full stream name (e.g., stockdate = STOCK)
   # Year = 
   #   ~ The year of the population as taken from the SILLY. This is for getting at parent vs offspring
   #     (i.e., odd vs even years). 
@@ -52,18 +52,21 @@ gind_df <- gind_df %>%
   column_to_rownames('names') %>% 
   select(-c(silly,death,river))
   
-  # Filter by all rows (individuals) missing more than 20%
-  filt_df <- gind_df[ -which( rowMeans( 
-    is.na( gind_df)) > 0.2 ), ] 
-  
+  # # Filter by all rows (individuals) missing more than 20%
+  # filt_df <- gind_df[ -which( rowMeans( 
+  #   is.na( gind_df)) > 0.2 ), ] 
+
+  # we removed filtering steps because this will be done before running this function. But I rely on the "filt_df" so make a copy of the original df for now. 
+  filt_df <- gind_df
+
   # replace NAs (0000) with ?/? as requird by FRANz
   filt_df[ is.na( filt_df )] <- "?/?"
   
   # add column to count the number of no calls per invididual
   filt_df$NOCALLS <- rowSums( filt_df == "?/?") 
   
-  # Extract fish id by selecting everything between the first two "_" in the id list
-  FISHID = str_extract(row.names(filt_df), "(?<=_)(.*?)(?=_)")
+  # Extract fish id by selecting everything between the first "_" and the end ($) in the id list
+  FISHID = str_extract(row.names(filt_df), "(?<=_)(.*?)(?=$)")
   
   # Extract silly from the IDs by matchiung everyting that is not a "_", from the start of the string, until the "_"
   SILLY = str_extract(row.names(filt_df), "^([^_]*)") 
