@@ -67,13 +67,17 @@ Here, we calculate and plot family size for both natural and hatchery parents. N
 Of the 1,920 offspring collected in 2015, 48 were assigned to parents, for an overall assignment rate of 2.5%. 
 
 ```{r Family size Odd}
+install.packages("scales")
+library(scales)
+library(tidyverse)
+
 parents_paired_13_15 %>% 
   count(`Fish ID.y`, `Otolith Mark Present.y`) %>% 
   arrange(`Otolith Mark Present.y`, n) %>% 
   ggplot(aes(x=n, fill=`Otolith Mark Present.y`))+
            geom_bar(position=position_dodge()) +
-  scale_y_continuous(breaks = seq(0, 9, 1)) +
-  scale_x_continuous(breaks = seq(1, 16, 1)) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
   labs(title="Distribution of Family Size Males and Females Combined") +
   xlab("Number of Offspring")+
   ylab("Number of Parents")
@@ -99,8 +103,9 @@ parents_paired_13_15 %>%
 When we plot the sexes separately, we can see that most of the assigned parents are males. Females produced 0-16 offspring, while males produced 0-4.  
 
 
-##Body length and run timing comparisons
-Because size and run timing are heritable, we would like to compare these variables between parents and offspring. 
+##Associations between parent and offspring body size
+
+Because size is highly heritable, we compared length between parents and offspring.  
 
 ```{r Examine body length Odd}
 parents_paired_13_15 %>% 
@@ -122,7 +127,9 @@ Offspring lengths show a great deal of variation. Males tend to be larger than f
 
 There is not a statistically significant relationship between parent and offspring length, but there is a significant effect of sex, which is what we observe in the scatterplot above. 
 
-Let's examine the relationship between length and origin in the parent generation. 
+##Associations between length and origin in the parental generation
+
+Let's examine the relationship between length and origin in the parent generation to see if there is a size difference between natural and hatchery origin fish. 
 
 ```{r Fit a linear model between parent length and origin Odd}
 fit.lm.length.origin <- lm(paired_14_16_filter$`Length Mm`~paired_14_16_filter$`Otolith Mark Present`+ paired_14_16_filter$SEX)
@@ -140,7 +147,11 @@ paired_13_15_filter %>%
 
 Hatchery fish have a tighter length distribution than natural origin fish. 
 
-```{r Examine sample data Odd}
+##Associations between parent and offspring sample date
+
+Run timing is also highly heritable, so we examined sample date in parents and their offspring. 
+
+```{r Examine sample date Odd}
 parents_paired_13_15 %>% 
   ggplot(aes(x=`Sample Date.y`, y=`Sample Date.x`, colour = `Otolith Mark Present.y`, shape = SEX.x))+
   geom_jitter() +
@@ -150,13 +161,15 @@ parents_paired_13_15 %>%
 
 Parents collected in early August had offspring who were also collected in August. Parents collected late August-early September had offspring collected across the duration of the season. Parents sampled later in September had offspring collected in late August-September (however, this is based on an n of 2). **Note** that hatchery fish were not collected until late August-early September. Males also tend to be collected earlier than females. Again, Otolith Mark Present refers to the parental generation and sex refers to the offspring. 
 
-Let's compare these sample dates to all of the individuals collected in 2013. 
+##Comparison of sample date in hatchery and natural fish in the parental generation
+
+Let's compare sample dates across all of the individuals collected in 2013 to examine differences in run timing between hatchery and natural origin fish. 
 
 ```{r Compare sample dates by origin for 2013}
 paired_13_15_filter %>% 
 filter(`Sample Year`=="2013") %>% 
-ggplot(aes(x=`Sample Date`, colour=`Otolith Mark Present`)) +
-           geom_histogram(position=position_dodge(), fill="white") +
+ggplot(aes(x=`Sample Date`, fill=`Otolith Mark Present`)) +
+           geom_histogram(position=position_dodge()) +
   labs(title="Sample Date by Origin for 2013")
 ```
 
@@ -282,6 +295,8 @@ parents_paired_14_16 %>%
 
 For parent 1 assignments, females produced 1-10 offspring and males produced 1-13. For parent 2 assignments, females produced 1-3 offspring, while males produced 1-2. 
 
+###Relative reproductive success
+
 ```{r calculate mean numbers of offspring}
 parents_14_16_h <- 
 parents_paired_14_16 %>%
@@ -313,6 +328,7 @@ parents_paired_14_16 %>%
   count(`Fish ID.y`, `Otolith Mark Present.y`) %>% 
   ggplot(aes(x=n, fill=`Otolith Mark Present.y`))+
            geom_bar(position=position_dodge2(preserve="single")) +
+  scale_x_continuous(breaks=pretty_breaks()) +
   xlab("Number of Offspring")+
   ylab("Number of Parents")+
   labs(title="Number of Offspring for Females") +
@@ -340,9 +356,22 @@ parents_paired_14_16 %>%
 
 This is a plot of number of offspring for natural and hatchery males assigned as parent 1. Vertical lines represent mean family sizes for natural (orange) and hatchery (green) origin fish. Mean offspring number for male hatchery fish = **`r round(M_h, 2)`**, while mean offspring number for male natural fish = **`r round(M_n, 2)`**.
 
+###Calculate relative reproductive success
+We'll calculate relative reproductive success (RRS) using the following equation: mean hatchery family size/mean natural family size. We'll do this separately for males and females. 
 
+```{r Calculate relative reproductive success}
+RRS_m <- M_h/M_n
+RRS_f <- F_h/F_n
 
-Let's test for differences in RRS between male and female hatchery and natural origin fish. We'll perform a permutation test and fit a negative binomial GLM and then save the p values in a table. **Note** we are only doing this for the even lineage because the sample sizes are too low in the odd lineage. 
+RRS_tibble <- tibble(
+RRS_m,
+RRS_f)
+RRS_tibble
+```
+
+RRS for males = `r round(RRS_m, 2)`. RRS for females = `r round(RRS_f, 2)`.
+
+Let's test for significant differences in RRS between male and female hatchery and natural origin fish. We'll perform a permutation test and fit a negative binomial GLM and then save the p values in a table. **Note** we are only doing this for the even lineage because the sample sizes are too low in the odd lineage. 
 
 ```{r RRS statistical testing}
 # The format of the data to test was very simple, it was a data.frame called “mydata” with 2 columns
@@ -421,12 +450,12 @@ parents_paired_14_16_2 %>%
   count(`Fish ID.y`, `Otolith Mark Present.y`, `Fish ID`, `Otolith Mark Present`)
 ```
 
+###Examination of 2-parent families
+
 Because we have 22 individuals who were assigned to 2 parents, we are able to examine instances of crosses between hatchery fish, between natural fish, and between natural and hatchery fish. **Note** that we have divided natural-hatchery crosses into "HN", which indicates a hatchery origin mother and natural origin father and "NH", which indicates a natural origin mother and hatchery origin father. 
 
 ```{r Create cross as new grouping variable}
-het_tibble <- het_tibble %>% 
-  dplyr::mutate(lineage = dplyr::case_when(silly %in% c("PHOGAN13", "PHOGAN15") ~ "odd",
-                           silly %in% c("PHOGAN14", "PHOGAN16") ~ "even"))
+
 
 parents_paired_14_16_2_cross <- parents_paired_14_16_2 %>% 
   filter(`Otolith Mark Present` != "NA") %>% 
@@ -443,6 +472,7 @@ parents_paired_14_16_2_cross %>%
   count(cross, `Fish ID`, `Fish ID.y`) %>% 
    ggplot(aes(x=n, fill=cross))+
            geom_bar(position=position_dodge2(preserve = "single")) +
+  scale_x_continuous(breaks = c(1,2,3)) +
   labs(title="Distribution of Family Size by Cross") +
   xlab("Number of Offspring")+
   ylab("Number of Parents") 
@@ -450,8 +480,8 @@ parents_paired_14_16_2_cross %>%
 
 Offspring from all four different types of crosses are represented in our dataset. HH crosses produced 1-2 offspring, HN and NH crosses produced 1-3 offspring, and NN crosses produced 1-2 offspring. 
 
-##Body length and run timing comparisons
-Because size and run timing are heritable, we would like to compare these variables between parents and offspring.
+##Associations between parent and offspring body size
+Because size is heritable, we would like to compare body length between parents and offspring.
 
 ```{r Examine body length Even}
 parents_paired_14_16 %>% 
@@ -462,15 +492,16 @@ parents_paired_14_16 %>%
   xlab("Parent Length (mm)") +
   ylab("Offspring Length (mm)")
 
-parents_paired_14_16_2 %>% 
-  filter(`Length Mm` != "NA") %>% 
-  ggplot(aes(x=`Length Mm`, y=`Length Mm.x`, colour = `Otolith Mark Present`, shape = SEX.x))+
-  geom_point()+
-  labs(title="Parent Length by Offspring Length for Parent 2") +
-  xlab("Parent Length (mm)") +
-  ylab("Offspring Length (mm)")
+# parents_paired_14_16_2 %>% 
+#   filter(`Length Mm` != "NA") %>% 
+#   ggplot(aes(x=`Length Mm`, y=`Length Mm.x`, colour = `Otolith Mark Present`, shape = SEX.x))+
+#   geom_point()+
+#   labs(title="Parent Length by Offspring Length for Parent 2") +
+#   xlab("Parent Length (mm)") +
+#   ylab("Offspring Length (mm)")
 ```
 
+This is a plot of the relationship between parent and offspring length. Otolith mark present refers to the parental generation and sex refers to the offspring.  
 
 We fit linear models to examine relationships between offspring length and parent length and offspring sex. 
 
@@ -484,9 +515,11 @@ summary(fit.lm.length.2)
 
 ```
 
-Offspring length is has a significant linear relationship with parent length (p=0.003), but there is not an effect of sex (p=0.85). 
+Offspring length has a significant linear relationship with parent 1 length (p=0.003), but there is not an effect of sex (p=0.85). Relationships between offspring length and parent 2 length were not significant (p=0.478), likely due to low sample sizes. 
 
-We can also examine whether parent length differs between natural and hatchery origin. 
+##Associations between length and origin in the parental generation
+
+We can also examine whether parent length differs between natural and hatchery origin fish in the parental generation. 
 
 ```{r Fit a linear model between parent length and origin Even}
 fit.lm.length.origin <- lm(paired_14_16_filter$`Length Mm`~paired_14_16_filter$`Otolith Mark Present`)
@@ -503,6 +536,10 @@ paired_14_16_filter %>%
 ```
 
 Hatchery-origin fish have a tighter length distribution than natural-origin fish. 
+
+##Associations between parent and offspring sample date
+
+Because run timing is highly heritable, we want to examine relationships between parent and offspring sample date. We also examine sample dates of both parents in biparental families. 
 
 ```{r Examine sample data Even}
 parents_paired_14_16 %>% 
@@ -527,6 +564,8 @@ parents_paired_14_16_2 %>%
 
 Natural origin fish appear to be sampled earlier in the season than hatchery origin fish. There is quite a bit of variation among offspring sample dates.  
 Parent 1 and parent 2 sample dates closely align. In this graph, red circles indicate NN crosses, blue triangles represent HH crosses, and red triangles and blue circles represent NH and HN crosses. All of the NN crosses occur early (before September 1). Crosses including hatchery fish occur throughout the run. As before, Otolith Mark Present refers to the parental generation and sex refers to offspring. 
+
+##Comparison of sample date in hatchery and natural origin fish in the parental generation
 
 ```{r Plot proportion of hatchery fish by date Even}
 #colnames(paired_14_16_filter)
@@ -554,4 +593,10 @@ These are sample dates for all of the fish in the parental generation (2014). Ha
 4. Parent length did not have a significant effect on offspring length for the odd lineage, but did for the even lineage. The odd lineage did have a significant sex effect, however, with males being larger than females.  
 5. For both lineages, hatchery origin parents had a tighter distribution of length than natural origin parents. In both lineages, hatchery origin fish tended to return later than natural origin fish, which is consistent with our prior knowledge. Also in both lineages, offspring sample date varied widely by parental sample date.  
 6. For the even lineage, Franz was able to assign 22 individuals to 2 parents. We observe four types of crosses: natural-natural, hatchery-hatchery, natural-hatchery (in which the female is natural origin), and hatchery-natural (in which the female is hatchery origin). Since this is a small sample size, it's difficult to draw conclusions about differences in reproductive success among offspring. However, it does appear that crosses involving hatchery fish occur throughout the season, while crosses involving natural fish occur early on.  
+
+#Potential Next Steps
+1. Run Franz again for each dataset using escapement estimates from stream walks to inform our Nm and Nf parameters.  
+2. Use CKMRSim to further evaluate the power of our marker set.  
+3. Validate our findings by using another parentage software package (e.g. Cervus).  
+4. Examine sibling assignments produced by Franz as well as other software packages (e.g. fullsnplings). 
 
