@@ -157,7 +157,7 @@ parents_paired_13_15 %>%
   ylab("Offspring Length (mm)")
 ```
 
-Offspring lengths show a great deal of variation. Males tend to be larger than females, as expected.  
+Offspring lengths show a great deal of variation. Male offspring tend to be larger than female offspring, as expected.  
 
 ```{r Fit a linear model between parent and offspring length Odd}
 fit.lm.length <- lm(`Length Mm.x` ~ `Length Mm.y` + SEX.x, parents_paired_13_15)  
@@ -186,7 +186,7 @@ paired_13_15_filter %>%
   ggtitle("Distribution of Length by Origin (2013)")
 ```
 
-Hatchery fish have a tighter length distribution than natural origin fish, particularly in males. Below is a table of average length by otolith origin and sex for BY 2013.
+Hatchery fish have a tighter length distribution than natural origin fish, particularly in males. Below is a table of average length by otolith origin and sex for 2013 (the parental generation).
 
 ```{r Calculate mean lengths of hatchery and natural origin fish}
 paired_13_15_filter %>% 
@@ -195,7 +195,7 @@ paired_13_15_filter %>%
   summarise(avg_length = round(mean(`Length Mm`, na.rm = TRUE))) %>% 
   spread(SEX, avg_length)
 ```
-Hatchery males and females are larger than natural males and females. Hatchery females are on average larger than hatchery males, but natural females are on average larger than natural males. 
+Hatchery males and females are larger than natural males and females. Both hatchery and natural females are larger than males. This is interesting and perhaps puzzling given that above we see that male offspring are larger than female offspring. Bear in mind that these were all fish collected in the parental generation and not just the parents. 
 
 ### Sample date
 
@@ -608,7 +608,7 @@ paired_14_16_filter %>%
   summarise(avg_length = round(mean(`Length Mm`, na.rm = TRUE))) %>% 
   spread(SEX, avg_length)
 ```
-As we saw in the odd lineage, hatchery origin males and females are larger than natural origin males and females. Hatchery females are larger than hatchery males and natural females are smaller than natural males. 
+As we saw in the odd lineage, hatchery origin males and females are larger than natural origin males and females. Hatchery and natural origin females are larger than males. Bear in mind that these are all of the individuals collected in 2014, not just the parents.  
 
 ### Sample date
 
@@ -676,3 +676,4 @@ These are sample dates for all of the fish in the parental generation (2014). Na
 2. Validate our findings by using another parentage software package (e.g. Cervus).  
 3. Examine sibling assignments produced by *FRANz* as well as other software packages (e.g. fullsnplings).
 4. Apply the unbiased RRS calculation from Araki and Blouin (2005). 
+5. Run Dan's simulated data through *FRANz* to estimate potential false positive and negative rates. 
