@@ -699,12 +699,11 @@ These are sample dates for all of the fish in the parental generation (2014). Na
 5. Parent length did not have a significant effect on offspring length for the odd lineage, but did for the even lineage (albeit very small). The odd lineage did have a significant sex effect, however, with males being larger than females.  
 6. For both lineages, hatchery origin parents had a tighter distribution of length than natural origin parents. In both lineages, hatchery origin fish tended to return later than natural origin fish, which is consistent with our prior knowledge. Also in both lineages, offspring sample date varied widely by parental sample date.  
 7. For the even lineage, *FRANz* was able to assign 22 individuals to 2 parents. We observe four types of crosses: natural-natural, hatchery-hatchery, natural-hatchery (in which the female is natural origin), and hatchery-natural (in which the female is hatchery origin). Since this is a small sample size, it's difficult to draw conclusions about differences in reproductive success among offspring. However, it does appear that crosses involving hatchery fish occur throughout the season, while crosses involving natural fish occur early on.  
-
+8. We ran *FRANz* again for each dataset using escapement estimates from stream walks to inform our *Nmmax* and *Nfmax* parameters (*i.e. see how sensitive parentage assignments are to our estimate of parent year escapement*). Assignments were identical for the **odd** year lineage, while the re-analysis of the **even** year lineage added three additional parent assignments (459 instead of 456).  These results indicate that our marker panel is very robust and that pedigree results are not highly sensitive to the *Nmmax* and *Nfmax* parameters. This is fantastic news given that our estimates of escapement are not very precise.
+  
 # Potential Next Steps
 
-1. Run *FRANz* again for each dataset using escapement estimates from stream walks to inform our *Nmmax* and *Nfmax* parameters (*i.e. see how sensitive parentage assignments are to our estimate of parent year escapement*).  
-  * **Note** Emily has already re-analyzed the **odd** year results with different *Nmmax* and *Nfmax* parameters and got the exact same parentage results. The results of the **even** year sensitivity analysis will be reported on Monday. The results from the **odd** year re-analysis indicate that our marker panel is very robust and that pedigree results are not sensitive to the *Nmmax* and *Nfmax* parameters. This is fantastic news given that our estimates of escapement are not very precise.
-2. Use CKMRSim to further evaluate the power of our marker set.  
-3. Validate our findings by using another parentage software package (e.g. Cervus).  
-4. Examine sibling assignments produced by *FRANz* as well as other software packages (e.g. fullsnplings).
-5. Apply the unbiased RRS calculation from Araki and Blouin (2005). 
+1. Use CKMRSim to further evaluate the power of our marker set.  
+2. Validate our findings by using another parentage software package (e.g. Cervus).  
+3. Examine sibling assignments produced by *FRANz* as well as other software packages (e.g. fullsnplings).
+4. Apply the unbiased RRS calculation from Araki and Blouin (2005). 
