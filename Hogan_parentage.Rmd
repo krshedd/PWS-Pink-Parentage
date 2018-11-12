@@ -81,7 +81,9 @@ Quick look at what our sample sizes are for potential parents (2013) and potenti
 
 ```{r odd_sample_sizes}
 paired_13_15_filter %>% 
-  count(`Sample Year`)
+  mutate(origin = recode(`Otolith Mark Present`, !!!list("YES" = "hatchery", "NO" = "natural"))) %>% 
+  count(`Sample Year`, SEX, origin) %>% 
+  spread(origin, n, fill = 0)
 ```
 
 
@@ -306,7 +308,9 @@ Quick look at what our sample sizes are for potential parents (2014) and potenti
 
 ```{r even_sample_sizes}
 paired_14_16_filter %>% 
-  count(`Sample Year`)
+  mutate(origin = recode(`Otolith Mark Present`, !!!list("YES" = "hatchery", "NO" = "natural"))) %>% 
+  count(`Sample Year`, SEX, origin) %>% 
+  spread(origin, n, fill = 0)
 ```
 
 ## Join parentage and individual data
