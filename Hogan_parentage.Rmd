@@ -203,6 +203,17 @@ Hatchery males and females are larger than natural males and females. Both hatch
 
 Run timing is also highly heritable, so we examined sample date in parents and their offspring. 
 
+```{r make Julian date column}
+
+parents_paired_13_15 <- 
+parents_paired_13_15 %>% 
+ mutate(Julian.x = yday(`Sample Date.x`), Julian.y = yday(`Sample Date.y`))
+  
+
+
+```
+
+
 ```{r Examine sample date Odd}
 parents_paired_13_15 %>% 
   ggplot(aes(x=`Sample Date.y`, y=`Sample Date.x`, colour = `Otolith Mark Present.y`, shape = SEX.x))+
@@ -216,6 +227,13 @@ parents_paired_13_15 %>%
 
 Parents collected in early August had offspring who were also collected in August. Parents collected late August-early September had offspring collected across the duration of the season. Parents sampled later in September had offspring collected in late August-September (however, this is based on an n of 2). **Note** that hatchery-origin parents were not collected until late August-early September. Males also tend to be collected earlier than females.  
 
+```{r Fit lm for parent versus offspring sample date}
+lm.date.odd <- lm(parents_paired_13_15$Julian.x ~ parents_paired_13_15$Julian.y + parents_paired_13_15$SEX.x)
+summary(lm.date.odd)
+```
+
+Offspring sample date has a significant association with parental sample date (p<0.001), but not offspring sex (p=0.248). 
+
 ### Sample date x origin
 
 Let's compare sample dates across all of the individuals collected in 2013 to examine differences in run timing between hatchery and natural origin fish. 
@@ -226,9 +244,46 @@ filter(`Sample Year`=="2013") %>%
 ggplot(aes(x=`Sample Date`, fill=`Otolith Mark Present`)) +
            geom_histogram(position=position_dodge()) +
   labs(title="Sample Date by Origin for 2013")
+
+paired_13_15_filter %>% 
+filter(`Sample Year`=="2015") %>% 
+ggplot(aes(x=`Sample Date`)) +
+           geom_histogram(position=position_dodge()) +
+  labs(title="Sample Date for 2015")
+
+paired_13_15_filter <- 
+paired_13_15_filter %>% 
+ mutate(Julian = yday(`Sample Date`))
+
+paired_13_15_filter %>% 
+  ggplot(aes(x=`Julian`, fill=`Otolith Mark Present`)) +
+           geom_histogram(position=position_dodge()) +
+  facet_wrap(~`Sample Year`, nrow=2) +
+   labs(title="Sample Date")
 ```
 
-From this histogram, we can see that natural origin fish tended to have earlier sampling dates than hatchery origin fish, which confirms what we know about differences in run timing. We can also see how sparse the field sampling was in 2013. 
+From this histogram, we can see that in the parental generation (2013), natural origin fish tended to have earlier sampling dates than hatchery origin fish, which confirms what we know about differences in run timing. We can also see how sparse the field sampling was in 2013. Offspring in 2015 were sampled throughout the run.
+
+## Length by sample date
+
+```{r Plot length by sample date odd}
+paired_13_15_filter %>% 
+  filter(`Sample Year` == "2013") %>% 
+  ggplot(aes(x = `Sample Date`, y = `Length Mm`, color = `Otolith Mark Present`)) +
+  geom_jitter() +
+  theme(axis.text=element_text(size=6)) +
+  ggtitle("Distribution of Length by Sample Date (2013)")
+```
+
+This is a plot of parental sample date by length. Note that it is a jitter plot. 
+
+```{r Fit LM for parental sample date and length}
+lm.date.length.odd <- lm(parents_paired_13_15$`Length Mm.y`~parents_paired_13_15$`Sample Date.y`)
+summary(lm.date.length.odd)
+
+```
+
+There is a significant relationship between parental sample date and length (p=0.033). 
 
 ## Summary of odd lineage results
 1. Exclusion probabilities were equal to 1, which means we can be confident in the ability of our marker set to correctly assign parents to offspring.  
@@ -631,7 +686,7 @@ parents_paired_14_16 %>%
 parents_paired_14_16_cross %>% 
   filter (SEX != "NA") %>% 
   ggplot(aes(x=`Sample Date.y`, y=`Sample Date`, colour = cross))+
-  geom_jitter(size = 2) +
+  geom_point(size = 2) +
       labs(title = "Parent 2 Date vs. Parent 1 Date",
        colour = "Cross") +
   xlab("Parent 1 Sample Date") +
@@ -641,6 +696,25 @@ parents_paired_14_16_cross %>%
 Natural origin fish appear to be sampled earlier in the season than hatchery origin fish. There is quite a bit of variation among offspring sample dates. As before, Otolith Mark Present refers to the parental generation and sex refers to offspring.  
 Parent 1 and parent 2 sample dates closely align. All of the NN crosses occur early (before September 1). Crosses including hatchery fish occur throughout the run. However, it is interesting to note than natural-hatchery crosses and hatchery-natural crosses do not overlap. Hatchery-natural crosses (in which the female is hatchery and the male is natural) only occur at the end of the run. 
 
+```{r Make Julian date column Even}
+
+
+parents_paired_14_16 <- 
+parents_paired_14_16 %>% 
+ mutate(Julian.x = yday(`Sample Date.x`), Julian.y = yday(`Sample Date.y`))
+  
+
+
+```
+
+```{r Fit lm for parent versus offspring sample date Even}
+lm.date.even <- lm(parents_paired_14_16$Julian.x ~ parents_paired_14_16$Julian.y + parents_paired_14_16$SEX.x)
+summary(lm.date.even)
+
+```
+
+Offspring sample date is significantly associated with parent sample date (p<0.001), but not sex (p=0.17). 
+
 ### Sample date x origin
 
 ```{r Plot proportion of hatchery fish by date Even}
@@ -649,15 +723,32 @@ filter(`Sample Year`=="2014") %>%
 ggplot(aes(x=`Sample Date`, fill=`Otolith Mark Present`)) +
   geom_histogram(position=position_dodge()) +
   labs(title="Sample Date by Origin for 2014")
+
+paired_14_16_filter %>% 
+filter(`Sample Year`=="2016") %>% 
+ggplot(aes(`Sample Date`, fill=`Otolith Mark Present`)) +
+  geom_histogram(position=position_dodge()) +
+  labs(title="Sample Date for 2016")
+
+paired_14_16_filter <- 
+paired_14_16_filter %>% 
+ mutate(Julian = yday(`Sample Date`))
+
+paired_14_16_filter %>% 
+  ggplot(aes(x=`Julian`, fill=`Otolith Mark Present`)) +
+           geom_histogram(position=position_dodge()) +
+  facet_wrap(~`Sample Year`, nrow=2) +
+   labs(title="Sample Date")
+
 ```
 
-These are sample dates for all of the fish in the parental generation (2014). Natural fish tended to be sampled earlier in the run and hatchery fish were more common later in the run. However, there is a high degree of overlap that facilitates the ability for natural and hatchery fish to interbreed. 
+These are sample dates for all of the fish in the parental generation (2014) and offspring generation (2016). In the parental generation, natural fish tended to be sampled earlier in the run and hatchery fish were more common later in the run. However, there is a high degree of overlap that facilitates the ability for natural and hatchery fish to interbreed. Most of the offspring were sampled in the second half of the season. 
 
 ## Summary of even lineage results
 1. Exclusion probabilities were equal to 1, which means we can be confident in the ability of our marker set to correctly assign parents to offspring.  
 2. 456 offspring were assigned to 186 parents, for an assignment rate of **11%**. 209 assignments were to natural origin parents and 269 were to hatchery origin parents. *FRANz* was able to make both 1- and 2-parent assignments.      
 3. Family size varied from 0-10 for females and 0-13 for males.  
-4. Natural origin females have significantly higher RRS than hatchery origin females, but there was not a significant difference for males.  
+4. Natural origin females have significantly higher RS than hatchery origin females, but there was not a significant difference for males.  
 5. Hatchery and natural fish interbreed (both sexes).  
 6. There was a significant relationship between parent and offspring length.  
 7. Hatchery fish appeared later in the run than natural fish.
