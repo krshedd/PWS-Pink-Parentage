@@ -9,7 +9,7 @@ editor_options:
 ---
 
 # Abstract
-We are using genetic parentage analysis to estimate the relative reproductive success (RRS) of hatchery- and natural-origin pink salmon collected in Hogan Bay, a stream Prince William Sounds Alaska with annual escapements in the tens of thousands and observed stray rates ranging from 21-92% over the study period. We genotyped 8,000 hatchery and natural origin fish collected between 2013 and 2016 at 304 SNP amplicons. Standard quality control and quality assurance were performed, which included removing duplicate individuals, those who were successfully genotyped at <80% of markers, and those with abnormally high levels of heterozygosity. Population genetics analyses revealed that most of the variation was partitioned between lineages (odd versus even), but that there was little variation within lineages and between natural and hatchery origin individuals. *FRANz*, a Bayesian pedigree reconstructure program, produced parentage assignments for 2.5% of offspring genotyped for the odd lineage and 11% for the even lineage. Offspring were assigned to both natural- and hatchery-origin parents in both lineages. There were too few parentage assignments in the odd lineage to be able to robustly calculate RRS, but we were able to determine that natural origin females in the even lineage had significantly higher RRS than hatchery origin females and that there was not a significant difference between males. 
+We are using genetic parentage analysis to estimate the relative reproductive success (RRS) of hatchery- and natural-origin pink salmon collected in Hogan Bay, a stream in Prince William Sound, Alaska with annual escapements in the tens of thousands and observed stray rates ranging from 21-92% over the study period (2013-2016). We genotyped 8,000 hatchery and natural origin fish  at 304 SNP amplicons. Standard quality control and quality assurance were performed, which included removing duplicate individuals, those who were successfully genotyped at <80% of markers, and those with abnormally high levels of heterozygosity. Population genetics analyses revealed that most of the variation was partitioned between lineages (odd versus even), but that there was little variation within lineages and between natural and hatchery origin individuals. *FRANz*, a Bayesian pedigree reconstructure program, produced parentage assignments for 2.5% of offspring genotyped for the odd lineage and 11% for the even lineage. Offspring were assigned to both natural- and hatchery-origin parents in both lineages. There were too few parentage assignments in the odd lineage to be able to robustly calculate RRS, but we were able to determine that natural origin females in the even lineage had significantly higher RRS than hatchery origin females and that there was not a significant difference between males. 
 
 ```{r setup, include=FALSE}
 library(coin)
@@ -180,9 +180,7 @@ parents_paired_13_15 %>%
   xlab("Number of Offspring")+
   ylab("Number of Parents") 
 
-# Hi Emily, I think we want to calculate proportion differently. We want to show what proportion of females produced X number of offspring. As written, based on the .html, it was the proportion of all parents (not split by sex). We want the proportions to add up to 1 for each sex.
 
-# Since we don't create `RS_combined_count` until later on in the notebook, I used what we had.
 
 # Plot histogram of proportion of parents with a given family size
 parents_paired_13_15 %>% 
@@ -201,7 +199,9 @@ parents_paired_13_15 %>%
   ylab("Proportion of Parents") 
 ```
 
-When we plot the sexes separately, we can see that most of the assigned parents are males. Female parentss produced 1-16 offspring, while male parents produced 1-4.  
+When we plot the sexes separately, we can see that most of the assigned parents are males. Female parents produced 1-16 offspring, while male parents produced 1-4.  
+
+Below, we'll calculate reproductive success of natural and hatchery females and males. 
 
 ```{r}
 (rs_13_15 <- parents_paired_13_15 %>%
@@ -279,7 +279,7 @@ paired_13_15_filter %>%
   ggtitle("Distribution of Length by Origin (2013)")
 ```
 
-Hatchery fish have a tighter length distribution than natural origin fish, particularly in males. Below is a table of average length by otolith origin and sex for 2013 (the parental generation).
+Below is a table of average length by origin and sex for 2013 (the parental generation).
 
 ```{r Calculate mean lengths of hatchery and natural origin fish}
 paired_13_15_filter %>% 
@@ -549,9 +549,7 @@ parents_paired_14_16 %>%
   xlab("Number of Offspring")+
   ylab("Number of Families") 
 
-# Hi Emily, I think we want to calculate proportion differently. We want to show what proportion of females produced X number of offspring. As written, based on the .html, it was the proportion of all parents (not split by sex). We want the proportions to add up to 1 for each sex.
 
-# Since we don't create `RS_combined_count` until later on in the notebook, I used what we had.
 
 # Plot histogram of proportion of parents with a given family size
 parents_paired_14_16 %>% 
@@ -698,7 +696,7 @@ rs_14_16_date %>%
   ylab("Reproductive Success")
 ```
 
-This is a plot of reproductive success (family size) by sample data. **Note** the points are jittered, but only by sample date.
+This is a plot of reproductive success (family size) by sample date. **Note** the points are jittered, but only by sample date.
 
 ```{r LM to associate RS with parental sample date}
 lm.rs.date <- lm(n ~ `Sample Date.y`, rs_14_16_date)
@@ -754,7 +752,7 @@ fit_F <- glm.nb(n ~ origin, data = mydata_F, init.theta = 1, link = log)
 nbGLM_1tail_pvalue_F <- round(summary(fit_F)$coefficients[2, 4], 4)
 
 RRS <- tibble(Sex = c("M", "F", "M", "F"),
-              Test = c(rep("Permuation", 2), rep("Negative Binomial GLM", 2)),
+              Test = c(rep("Permutation", 2), rep("Negative Binomial GLM", 2)),
               p_value = c(perm_1tail_pvalue_M, perm_1tail_pvalue_F, nbGLM_1tail_pvalue_M, nbGLM_1tail_pvalue_F))
 RRS %>% 
   spread(Sex, p_value)
@@ -952,7 +950,7 @@ fit_F_0 <- glm.nb(n ~ origin.x, data = mydata_F_0, init.theta = 1, link = log)
 nbGLM_1tail_pvalue_F_0 <- round(summary(fit_F_0)$coefficients[2, 4], 4)
 
 RRS_0 <- tibble(Sex = c("M", "F", "M", "F"),
-                Test = c(rep("Permuation", 2), rep("Negative Binomial GLM", 2)),
+                Test = c(rep("Permutation", 2), rep("Negative Binomial GLM", 2)),
                 p_value = c(perm_1tail_pvalue_M_0, perm_1tail_pvalue_F_0, nbGLM_1tail_pvalue_M_0, nbGLM_1tail_pvalue_F_0))
 RRS_0 %>% 
   spread(Sex, p_value)
@@ -1065,7 +1063,7 @@ paired_14_16_filter %>%
   ggtitle("Distribution of Length by Origin (2014)")
 ```
 
-Male hatchery-origin fish have a tighter length distribution than natural-origin fish. Below is a table of average length by otolith origin and sex for BY 2014.
+Below is a table of average length by otolith origin and sex for BY 2014.
 
 ```{r Calculate mean lengths of hatchery and natural origin fish Even}
 paired_14_16_filter %>% 
@@ -1074,7 +1072,7 @@ paired_14_16_filter %>%
   summarise(avg_length = round(mean(`Length Mm`, na.rm = TRUE))) %>% 
   spread(SEX, avg_length)
 ```
-As we saw in the odd lineage, hatchery origin males and females are larger than natural origin males and females. Hatchery and natural origin females are larger than males. Bear in mind that these are all of the individuals collected in 2014, not just the parents.  
+As we saw in the odd lineage, hatchery origin males and females are larger than natural origin males and females. Hatchery and natural origin females are larger than males. Bear in mind that these are all of the individuals collected in 2014, not just the parents and that the differences are just a few mm, which may not be biologically significant.  
 
 ### Sample date
 
@@ -1100,7 +1098,7 @@ parents_paired_14_16_cross %>%
   ylab("Parent 2 Sample Date")
 ```
 
-Natural origin fish appear to be sampled earlier in the season than hatchery origin fish. There is quite a bit of variation among offspring sample dates. As before, Otolith Mark Present refers to the parental generation and sex refers to offspring.  
+Natural origin fish appear to be sampled earlier in the season than hatchery origin fish. There is quite a bit of variation among offspring sample dates.   
 Parent 1 and parent 2 sample dates closely align. All of the NN crosses occur early (before September 1). Crosses including hatchery fish occur throughout the run. However, it is interesting to note than natural-hatchery crosses and hatchery-natural crosses do not overlap. Hatchery-natural crosses (in which the female is hatchery and the male is natural) only occur at the end of the run. 
 
 ```{r Make Julian date column Even}
@@ -1209,7 +1207,7 @@ None of the variables significantly influence RS on their own. Note that origin 
 5. Parent length did not have a significant effect on offspring length for the odd lineage, but did for the even lineage (albeit very small). The odd lineage did have a significant sex effect, however, with males being larger than females.  
 6. For both lineages, hatchery origin parents had a tighter distribution of length than natural origin parents. In both lineages, hatchery origin fish tended to return later than natural origin fish, which is consistent with our prior knowledge. Also in both lineages, offspring sample date varied widely by parental sample date.  
 7. For the even lineage, *FRANz* was able to assign 22 individuals to 2 parents. We observe four types of crosses: natural-natural, hatchery-hatchery, natural-hatchery (in which the female is natural origin), and hatchery-natural (in which the female is hatchery origin). Since this is a small sample size, it's difficult to draw conclusions about differences in reproductive success among offspring. However, it does appear that crosses involving hatchery fish occur throughout the season, while crosses involving natural fish occur early on.  
-8. We ran *FRANz* again for each dataset using escapement estimates from stream walks to inform our *Nmmax* and *Nfmax* parameters (*i.e. see how sensitive parentage assignments are to our estimate of parent year escapement*). Assignments were identical for the **odd** year lineage, while the re-analysis of the **even** year lineage added three additional parent assignments (459 instead of 456).  These results indicate that our marker panel is very robust and that pedigree results are not highly sensitive to the *Nmmax* and *Nfmax* parameters. This is fantastic news given that our estimates of escapement are not very precise (**odd**: run1 - Nmmax = Nfmax = 23500 vs. run 2 - Nmmax = Nfmax = 4300; **even**: run1 - Nmmax = Nfmax = 4500 vs. run 2 - Nmmax = Nfmax = 3300).
+8. We ran *FRANz* again for each dataset using escapement estimates from stream walks to inform our *Nmmax* and *Nfmax* parameters (*i.e. see how sensitive parentage assignments are to our estimate of parent year escapement*). Assignments were identical for the **odd** year lineage, while the re-analysis of the **even** year lineage added two additional parent assignments (458 in runs 2 and 3 instead of 456 in run 1).  These results indicate that our marker panel is very robust and that pedigree results are not highly sensitive to the *Nmmax* and *Nfmax* parameters. This is fantastic news given that our estimates of escapement are not very precise (**odd**: run1 - Nmmax = Nfmax = 23500 and typingerror = 0.005 vs. run 2 - Nmmax = Nfmax = 4300 and typingerror = 0.005 vs. run 3 - Nmmax = NfMax = 23500 and typingerror = 0.01; **even**: run1 - Nmmax = Nfmax = 4500  and typingerror = 0.005 vs. run 2 - Nmmax = Nfmax = 3300 and typingerror = 0.005 vs. run 3 - Nmmax = Nfmmax = 4500 and typingerror = 0.01).
 9. In order to get an idea of our false-positive rate, we attempted to analyze 2013 as parents with 2016 as offspring, however, *FRANz* ran out of memory and failed. This is likely due to the number of bogus pedigrees it had to create, since no fish would be remotely related to each other.
   
 # Potential Next Steps
