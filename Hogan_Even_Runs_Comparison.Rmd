@@ -1,0 +1,132 @@
+---
+title: "Comparison of Posterior Probabilities for the 3 Even-Year Franz Runs"
+output: html_notebook
+---
+
+Parameters:
+
+Run 1: FRANz.exe --Nmmax 4500 --Nfmax 4500 --femrepro 1:2 --malerepro 1:2 --typingerror 0.005 --updatefreqs --poutformat 2 --fullsibtest "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\hogan_postQA_2014_2016_HOGAN.dat"
+Run 2: FRANz.exe --Nmmax 3300 --Nfmax 3300 --femrepro 1:2 --malerepro 1:2 --typingerror 0.005 --updatefreqs --poutformat 2 --fullsibtest "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\hogan_postQA_2014_2016_HOGAN.dat"
+Run 3: FRANz.exe --Nmmax 4500 --Nfmax 4500 --femrepro 1:2 --malerepro 1:2 --typingerror 0.01 --updatefreqs --poutformat 2 --fullsibtest "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\hogan_postQA_2014_2016_HOGAN.dat"
+
+```{r Setup , message=FALSE, warning=FALSE}
+library(tidyverse)
+library(scales)
+parentage_14_16_r1 <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/hogan_postQA_2014_2016_HOGAN_Run 1/parentage.csv")
+parentage_14_16_r2 <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/hogan_postQA_2014_2016_HOGAN_Run2/parentage.csv")
+parentage_14_16_r3 <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/hogan_postQA_2014_2016_HOGAN_Run3/parentage.csv")
+```
+
+```{r Pair data}
+paired_14_16 <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/hogan_postQA_OceanAK_paired_2014_2016_HOGAN.csv")
+```
+
+Plot a histogram of parentage posterior probabilities to show robustness of assignments
+```{r FRANz_posterior_plot}
+parentage_14_16_r1  %>% 
+  filter(!is.na(`Parent 1`)) %>% 
+  ggplot(aes(x = Posterior)) +
+  geom_histogram(breaks = seq(0, 1, 0.01)) +
+  labs(title = "Run 1")
+
+parentage_14_16_r2  %>% 
+  filter(!is.na(`Parent 1`)) %>% 
+  ggplot(aes(x = Posterior)) +
+  geom_histogram(breaks = seq(0, 1, 0.01)) +
+  labs(title = "Run 2")
+
+parentage_14_16_r3  %>% 
+  filter(!is.na(`Parent 1`)) %>% 
+  ggplot(aes(x = Posterior)) +
+  geom_histogram(breaks = seq(0, 1, 0.01)) +
+  labs(title = "Run 3")
+```
+
+Filter Data
+```{r filter}
+# Filter for non-genotype columns
+paired_14_16_filter <- paired_14_16 %>% 
+  dplyr::select(franz_id, SILLY, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Sample Year`, `Sample Date`, SEX, `Length Mm`, `Otolith Mark Present`, `Otolith Mark ID`)
+
+# Filter for posterior > 0.9 + make tidy relative to assigment (1 row per parentage assignment)
+parentage_14_16_filter_r1 <- parentage_14_16_r1 %>% 
+  filter(Posterior > 0.9) %>% 
+  dplyr::select(Offspring, `Parent 1`, `Parent 2`) %>% 
+  gather(Parent, Parent_ID, - Offspring) %>% 
+  filter(!is.na(Parent_ID))
+
+parentage_14_16_filter_r2 <- parentage_14_16_r2 %>% 
+  filter(Posterior > 0.9) %>% 
+  dplyr::select(Offspring, `Parent 1`, `Parent 2`) %>% 
+  gather(Parent, Parent_ID, - Offspring) %>% 
+  filter(!is.na(Parent_ID))
+
+parentage_14_16_filter_r3 <- parentage_14_16_r3 %>% 
+  filter(Posterior > 0.9) %>% 
+  dplyr::select(Offspring, `Parent 1`, `Parent 2`) %>% 
+  gather(Parent, Parent_ID, - Offspring) %>% 
+  filter(!is.na(Parent_ID))
+```
+
+
+```{r Join parentage and paired objects Even}
+# Creating a single, "tidy" object where each row is a parent-offspring relationship
+# Offspring with 2 parents have 2 rows
+# .x data is offspring, .y data is parents
+(parents_paired_14_16_r1 <- parentage_14_16_filter_r1 %>% 
+   left_join(paired_14_16_filter, by=c("Offspring"="franz_id")) %>% 
+   left_join(paired_14_16_filter, by=c("Parent_ID"="franz_id")))
+
+(parents_paired_14_16_r2 <- parentage_14_16_filter_r2 %>% 
+   left_join(paired_14_16_filter, by=c("Offspring"="franz_id")) %>% 
+   left_join(paired_14_16_filter, by=c("Parent_ID"="franz_id")))
+
+(parents_paired_14_16_r3 <- parentage_14_16_filter_r3 %>% 
+   left_join(paired_14_16_filter, by=c("Offspring"="franz_id")) %>% 
+   left_join(paired_14_16_filter, by=c("Parent_ID"="franz_id")))
+
+parents_paired_14_16_r1 %>% 
+  count(Parent)
+
+parents_paired_14_16_r2 %>% 
+  count(Parent)
+
+parents_paired_14_16_r3 %>% 
+  count(Parent)
+
+```
+
+```{r count number of distinct parents for each run}
+n_distinct(parents_paired_14_16_r1$Parent_ID)
+n_distinct(parents_paired_14_16_r2$Parent_ID)
+n_distinct(parents_paired_14_16_r3$Parent_ID)
+```
+
+```{r summarize numbers of hatchery and natural origin fish assigned as parents}
+parents_paired_14_16_r1 %>% 
+  summarise(count_h = n_distinct(Parent_ID[`Otolith Mark Present.y`=="YES"]), count_n = n_distinct(Parent_ID[`Otolith Mark Present.y`=="NO"]))
+
+parents_paired_14_16_r2 %>% 
+  summarise(count_h = n_distinct(Parent_ID[`Otolith Mark Present.y`=="YES"]), count_n = n_distinct(Parent_ID[`Otolith Mark Present.y`=="NO"]))
+
+parents_paired_14_16_r3 %>% 
+  summarise(count_h = n_distinct(Parent_ID[`Otolith Mark Present.y`=="YES"]), count_n = n_distinct(Parent_ID[`Otolith Mark Present.y`=="NO"]))
+```
+
+```{r find out where hatchery origin parents originate from}
+parents_paired_14_16_r1 %>% 
+  count(`Otolith Mark Present.y`, `Otolith Mark ID.y`) %>% 
+  spread(`Otolith Mark Present.y`, n)
+
+parents_paired_14_16_r2 %>% 
+  count(`Otolith Mark Present.y`, `Otolith Mark ID.y`) %>% 
+  spread(`Otolith Mark Present.y`, n)
+
+parents_paired_14_16_r3 %>% 
+  count(`Otolith Mark Present.y`, `Otolith Mark ID.y`) %>% 
+  spread(`Otolith Mark Present.y`, n)
+```
+
+# Summary
+For runs 2 and 3, 458 individuals were assigned to parents, whereas in run 1, 456 offspring were assigned. There were 187 unique parents in runs 2 and 3 as opposed to 186 unique parents in run 1. The additional parent assigned in runs 1 and 2 was of hatchery origin (CCH). 
+
