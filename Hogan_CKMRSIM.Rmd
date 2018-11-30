@@ -1,0 +1,719 @@
+---
+title: "Hogan CKMRSIM"
+output: html_notebook
+---
+
+
+```{r load libraries}
+library(tidyverse)
+library(readxl)
+library(CKMRsim)
+library(ggplot2)
+
+source("C:/Users/ealescak/Documents/R/functions.gcl.r")
+```
+
+```{r pull data}
+load_sillys(path = "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genotypes/OceanAK_Origin_PostQA/")
+```
+
+```{r combine files for each year}
+.username <- "ealescak"
+.password <- "1234"
+markersuite <- "Pink_PWS_304"
+
+CreateLocusControl.GCL(markersuite = markersuite, username = .username, password = .password)
+loci <- LocusControl$locusnames
+nalleles <- LocusControl$nalleles
+ploidy <- LocusControl$ploidy
+alleles <- LocusControl$alleles
+
+PoolCollections.GCL(collections = c("PHOGAN13h", "PHOGAN13n"), loci = loci, newname = "PHOGAN13_postQA")
+
+PoolCollections.GCL(collections = c("PHOGAN14h", "PHOGAN14n"), loci = loci, newname = "PHOGAN14_postQA")
+```
+
+#Odd
+
+```{r make input file odd}
+dose1 <- PHOGAN13_postQA.gcl$scores[,,1] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose1, -ind)
+
+dose2 <- PHOGAN13_postQA.gcl$scores[,,2] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose2, -ind)
+
+Hogan_13_input <- left_join(dose1, dose2, by = c("ind", "locus"))
+```
+
+### Computing allele frequencies
+To compute allele freqs we need to just count up the occurrences of the different types
+amongst haplotype.1 and haplotype.2.  So, we need to get them into a single column, and
+just for the extra challenge we will keep their read depths there as well.
+```{r tidyhaps odd}
+
+haptidy_13 <- Hogan_13_input %>%
+  gather(key = gene_copy, value = H, dose1, dose2) %>%
+  separate(H, into = "Allele") %>%
+  arrange(locus, ind, gene_copy)
+
+```
+
+So, now we just need to compute the frequencies for each of the haplotypes
+
+```{r hapfreqs odd}
+hapfreqs_13 <- haptidy_13 %>%
+  group_by(locus, Allele) %>%
+  summarise(count = n()) %>%
+  mutate(Freq = count / sum(count))
+```
+
+## Do the CKMR sim analyses
+
+### Get it in the right format
+First we have to get that data frame in the right format and reindex the markers
+and make something that `CKMRsim` is expecting to be able to work with (i.e., it has 
+haplotypes in descending frequeny at each locus and it has locus and allele indices
+in there). To get loci to be ordered as they are, I have to throw `Pos` in there, even though they are not known to have a position on any Chrom.
+
+```{r prep4ckmr odd}
+mhaps_13 <- hapfreqs_13 %>%
+  ungroup() %>%
+  mutate(Chrom = "GTseq") %>%
+  rename(Locus = locus) %>%
+  select(-count) %>%
+  mutate(Pos = as.integer(factor(Locus, levels = unique(Locus)))) %>%
+  mutate(LocIdx = 0,
+         AlleIdx = 0) %>%
+  CKMRsim::reindex_markers() %>%
+  select(Chrom, Locus, Pos, Allele, LocIdx, AlleIdx, Freq)
+
+```
+
+### Make Figure 1.
+
+While we are at it, let's look at the distribution of the number of alleles across loci:
+
+```{r mhaps-dist-for-fig-1 odd}
+m_13 <- mhaps_13 %>%
+  group_by(Locus) %>%
+  summarise(num_haplotypes = n()) %>%
+  group_by(num_haplotypes) %>%
+  summarise(num_loci = n()) %>% # plot this for figure 1
+  ggplot(., aes(num_haplotypes, num_loci)) +
+  geom_histogram(stat = "identity") +
+  theme_bw() +
+  xlab("Number of Haplotypes") +
+  ylab("Number of Loci") + 
+  scale_x_continuous(breaks = c(3,6,9,12))
+
+fig1 <- m_13 + theme(
+  axis.text.x=element_text(size=14),
+  axis.title.x=element_text(size=14, face="bold"),
+  axis.text.y=element_text(size=14),
+  axis.title.y=element_text(size=14, face="bold")
+)
+
+fig1
+
+
+
+```
+
+```{r filter out Allele 0 odd}
+mhaps_13_filter <- mhaps_13 %>% 
+  filter(Allele != "0")
+```
+
+### Running through CKMRsim
+
+First we create a CKMR object. In the current version of the CKMRsim, this assumes an error model
+that is appropriate to microhaps and SNPs (0.005 per gene copy per snp, scaled by the number of SNPs).
+
+```{r create CKMR object odd}
+CK_13 <- create_ckmr(mhaps_13_filter, kappa_matrix = kappas[c("PO", "FS", "HS", "U"), ])
+```
+
+Then we can simulate some Q values:
+
+```{r simulate Q odd}
+Qs_13 <- simulate_Qij(C = CK_13, froms = c("PO", "FS", "HS", "U"), tos = c("PO", "FS", "HS", "U"), reps = 10^4)
+
+# then do the  sampling to get the FPRs
+mc_sample_simple(Qs_13, nu = "PO", de = c("U", "FS"), tr = c("U", "FS"), method = "both")
+
+```
+
+If we want to plot the actual distributions, we can extract them and plot them. For example,
+to plot the PO/U Lambdas we can do:
+
+```{r plot distributions odd}
+extract_logls(Qs_13, numer = c(PO = 1), denom = c(U = 1)) %>%
+  ggplot(aes(x = logl_ratio, fill = true_relat)) +
+  geom_density(alpha = 0.3)
+  
+```
+
+Note that FS = full siblings, HS = half siblings, PO = parent-offspring, and U = unrelated. 
+
+## Ranking and Selecting microhaps and SNPs
+
+### Getting SNP frequencies
+To find the SNP frequencies, we are going to need to explode those haplotypes into constituent SNPs and estimate their frequencies, and then take the best SNPs from each microhaplotype to then select subsets of them.  We are going to operate on `mhaps` for this, and then get a data frame called `best_snps_165` which are the SNP allele allele frequencies. We will filter that data frame later to get our different subsets of SNPs.
+
+```{r SNP freqs odd}
+# get all the SNP freqs
+snp_freqs_13 <- mhaps_13_filter %>%
+  split(f = mhaps_13_filter$Locus) %>%
+  lapply(function(x) {
+    x$exploded = sapply(strsplit(x$Allele, split = ""), function(y) paste(y, collapse = "."))
+    x
+  }) %>%
+  lapply(., function(x) {
+    separate(x, exploded, into = paste("snp", 1:nchar(x$Allele[1]), sep = "_"))
+  }) %>%
+  lapply(., function(x) {
+    gather(x, key = "SNP", value = "base", contains("snp_"))
+  }) %>%
+  bind_rows %>%
+  group_by(Chrom, Locus, Pos, LocIdx, SNP, base) %>% 
+  summarise(Freq = sum(Freq))
+
+# now, get the best (MAF closest to 0.5)
+best_snps_165_13 <- snp_freqs_13 %>%
+  group_by(Locus, SNP) %>%
+  filter(n() > 1) %>%  # toss SNPs that are monomorphic---for some reason there are some...
+  mutate(maf = min(Freq)) %>%  # since there are only two alleles, this gets the MAF at that locus
+  group_by(Locus) %>%
+  filter(near(maf, max(maf)))  %>%  # this almost does it, but some snps at a locus might have the same MAF at different snps
+  mutate(tmp = 1:n()) %>%
+  filter(tmp < 3)  %>% # this gets rid of those same MAF cases.
+  select(-tmp, -maf) %>%
+  rename(Allele = base) %>%
+  mutate(AlleIdx = 0) %>%
+  CKMRsim::reindex_markers() %>%
+  select(Chrom, Locus, Pos, Allele, LocIdx, AlleIdx, Freq)
+
+```
+
+Now, let's just make a quick plot to confirm that we have gotten the highest minor allele frequency SNPs for each locus.
+```{r MAF odd}
+all_mafs_13 <- snp_freqs_13 %>%
+  group_by(Locus, SNP) %>%
+  summarise(maf = min(Freq)) %>%
+  filter(maf <= 0.5)  # this gets rid of monomorphic ones
+best_mafs_13 <- best_snps_165_13 %>%
+  group_by(Locus) %>%
+  summarise(maf = min(Freq))
+
+ggplot(all_mafs_13, aes(y = Locus, x = maf)) +
+  geom_point() +
+  geom_point(data = best_mafs_13, colour = "red")
+```
+
+We will come back to these to grab the allele frequencies for further analysis.
+
+And using some of the results from above, get the 96 SNPs that are the best from among all 165.
+```{r top SNP odd}
+top_snps_96_all_13 <- best_mafs_13 %>%
+  arrange(desc(maf)) %>%
+  slice(1:96)
+```
+
+### Selecting the best microhaps
+
+First we are going to find the microhaps with the highest heterozygosity, and the SNPs with the high MAF
+```{r microhaps odd}
+mhap_hz_13 <- mhaps_13_filter %>%
+  group_by(Locus) %>% 
+  summarise(hz = 1 - sum(Freq^2), nHaps = n()) %>%
+  arrange(desc(hz)) 
+
+top_mhaps_13 <- mhap_hz_13 %>%
+  slice(1:96)
+```
+
+## Make Figure 2.
+
+Here we create Fig. 2 - the plot with mhap heterozygosity and best snp minor allele frequency per locus.
+```{r hz-vs-maf-per-locus odd}
+# snps = best_mafs
+# mhaps = mhap_hz
+# add a column that designates marker type
+best_snp_mafs_13 <- best_mafs_13 %>%
+  mutate(., Marker_type = "SNPs") 
+
+names(best_snp_mafs_13) <- c("Locus", "hz", "Marker_type")
+
+best_mhap_hz_13 <- mhap_hz_13 %>%
+  mutate(., Marker_type = "mhaps")
+
+# need to join these tibbles together and then sort by highest hz
+combo_hz_13 <- best_mhap_hz_13 %>%
+  bind_rows(., best_snp_mafs_13) %>% 
+  group_by(Locus) %>%
+  arrange(desc(hz))
+
+combo_hz_13$Locus <- factor(combo_hz_13$Locus, levels = combo_hz_13$Locus)
+
+combo_plot_13 <- combo_hz_13 %>%
+  ggplot(., aes(x = Locus, y = hz, color = Marker_type)) +
+  geom_point() +
+  scale_color_manual(values = c("red", "dark blue"),
+                     labels = paste(c("microhaps", "SNPs"))) +
+  theme_bw() +
+  ylab("Heterozygosity") + 
+  guides(color = guide_legend(title="Marker Type")) +
+  theme(
+    axis.text.x = element_blank()
+  )
+
+# more formatting
+combo_plot_13 <- combo_plot_13 + theme(
+  axis.text.x=element_blank(),
+  axis.title.x=element_text(size=14, face="bold"),
+  axis.text.y=element_text(size=14),
+  axis.title.y=element_text(size=14, face="bold"),
+  legend.text=element_text(size=14),
+  legend.title=element_text(size=14, face="bold"))
+
+fig2_13 <- combo_plot_13 +
+   theme(legend.position = c(0.85, 0.85))
+
+fig2_13
+```
+
+Heterozygosity of 165 microhaplotypes comprised of all SNPs in a locus compared to the single SNP with the
+highest minor allele frequency in that same locus. Bi-allelic SNPs have a maximum heterozygosity of 0.5
+
+Now, we are going to make our CKMR-ready allele frequencies for each of our 
+four data sets in a named list:
+
+### Making a list of data sets
+
+```{r lists odd}
+fourData_list_13 <- list(
+  m165_13 = mhaps_13_filter,
+  s165_13 = best_snps_165_13,
+  m96_13 = mhaps_13_filter %>% filter(Locus %in% top_mhaps_13$Locus),
+  s96_top_13 = best_snps_165_13 %>% filter(Locus %in% top_snps_96_all_13$Locus)
+)
+```
+
+## Doing CKMR calcs on each data set
+
+We can do each step, lapplying over things:
+```{r calcs odd}
+CK_list_13 <- lapply(fourData_list_13, function(x) 
+  create_ckmr(x, kappa_matrix = kappas[c("PO", "FS", "HS", "U"), ])
+)
+```
+
+And simulate the Qij values.  Do 10^5...
+```{r Qij odd, cache=TRUE}
+Qs_list_13 <- lapply(CK_list_13, function(x) 
+  simulate_Qij(C = x, froms = c("PO", "FS", "HS", "U"), tos = c("PO", "FS", "HS", "U"), reps = 10^5)
+)
+```
+
+And once that is done, we can collect samples from it:
+```{r FPR odd}
+FPRs_etc_13 <- lapply(Qs_list_13, function(x) mc_sample_simple(x, nu = c("PO", "FS", "HS"), method = "IS", FNRs = seq(0.01, 0.30, by = 0.01))) %>%
+  bind_rows(.id = "marker_set")
+         
+```
+
+And now, let us spread that into a data set that is easier to read:
+```{r reformat odd}
+FPRs_etc_13 %>%
+  rename(relationship = pstar) %>%
+  select(relationship, FNR, marker_set, FPR) %>%
+  tidyr::spread(data = ., key = marker_set, value = FPR)
+```
+
+### Make Figure 3.
+
+Let's plot the FPRs_etc:
+```{r plot_FPRs odd}
+FPR_ses_13 <- FPRs_etc_13 %>%
+  mutate(se_lo = FPR - 2 * se,
+       se_hi = FPR + 2 * se)
+
+# create a factor for ordering the relationship type
+FPRs_etc_13$pstar_f = factor(FPRs_etc_13$pstar, levels=c("PO","FS", "HS"))
+
+# remove the HS rows and then plot that
+f3_13 <- FPRs_etc_13 %>%
+  filter(., pstar_f != "HS") %>%
+  ggplot(., aes(x = FNR, y = FPR, shape = marker_set)) +
+  geom_point() +
+ #geom_segment(aes(x = FNR, y = se_lo, xend = FNR, yend = se_hi)) +  # these are basically invisible because they are so small
+  facet_grid(. ~ pstar_f) +
+  scale_y_continuous(trans = "log10") +
+  xlab("False Negative Rate") + 
+  ylab("False Positive Rate (log)") +
+  theme_bw()
+
+fig3_13 <- f3_13 +
+  guides(shape=guide_legend(title="Marker Set")) +
+  theme(
+  axis.text.x=element_text(size=5),
+  axis.title.x=element_text(size=5, face="bold"),
+  axis.text.y=element_text(size=5),
+  axis.title.y=element_text(size=5, face="bold"),
+  legend.text=element_text(size=5),
+  legend.title=element_text(size=5, face="bold"))
+
+fig3_13 <- fig3_13 +
+  theme(legend.position = c(0.6, 0.15))
+
+fig3_13
+```
+
+Simulated false-positive rates for matching (a) single parents with offspring and for (b) full-siblings at a given false-negative rate using the four sets of markers: 165 microhaplotypes (m165), 165 SNPs (s165), 96 microhaps (m96) and 96 SNPs with the highest heterozygosity (s96_top). 
+
+#Even
+
+```{r make input file even}
+dose1_14 <- PHOGAN14_postQA.gcl$scores[,,1] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose1, -ind)
+
+dose2_14 <- PHOGAN14_postQA.gcl$scores[,,2] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose2, -ind)
+
+Hogan_14_input <- left_join(dose1_14, dose2_14, by = c("ind", "locus"))
+```
+
+### Computing allele frequencies
+To compute allele freqs we need to just count up the occurrences of the different types
+amongst haplotype.1 and haplotype.2.  So, we need to get them into a single column, and
+just for the extra challenge we will keep their read depths there as well.
+```{r tidyhaps even}
+
+#haptidy <- hapkept %>%
+#  unite(col = hap1, haplotype.1, read.depth.1) %>%
+#  unite(col = hap2, haplotype.2, read.depth.2) %>%
+#  gather(key = gene_copy, value = H, hap1, hap2) %>%
+#  separate(H, into = c("Allele", "read_depth")) %>%
+#  arrange(panel, locus, Indiv.ID, gene_copy)
+
+haptidy_14 <- Hogan_14_input %>%
+  gather(key = gene_copy, value = H, dose1, dose2) %>%
+  separate(H, into = "Allele") %>%
+  arrange(locus, ind, gene_copy)
+
+```
+
+So, now we just need to compute the frequencies for each of the haplotypes
+
+```{r hapfreqs even}
+hapfreqs_14 <- haptidy_14 %>%
+  group_by(locus, Allele) %>%
+  summarise(count = n()) %>%
+  mutate(Freq = count / sum(count))
+```
+
+## Do the CKMR sim analyses
+
+### Get it in the right format
+First we have to get that data frame in the right format and reindex the markers
+and make something that `CKMRsim` is expecting to be able to work with (i.e., it has 
+haplotypes in descending frequeny at each locus and it has locus and allele indices
+in there). To get loci to be ordered as they are, I have to throw `Pos` in there, even though they are not known to have a position on any Chrom.
+
+```{r prep4ckmr even}
+mhaps_14 <- hapfreqs_14 %>%
+  ungroup() %>%
+  mutate(Chrom = "GTseq") %>%
+  rename(Locus = locus) %>%
+  select(-count) %>%
+  mutate(Pos = as.integer(factor(Locus, levels = unique(Locus)))) %>%
+  mutate(LocIdx = 0,
+         AlleIdx = 0) %>%
+  CKMRsim::reindex_markers() %>%
+  select(Chrom, Locus, Pos, Allele, LocIdx, AlleIdx, Freq)
+
+```
+
+### Make Figure 1.
+
+While we are at it, let's look at the distribution of the number of alleles across loci:
+
+```{r mhaps-dist-for-fig-1 even}
+m_14 <- mhaps_14 %>%
+  group_by(Locus) %>%
+  summarise(num_haplotypes = n()) %>%
+  group_by(num_haplotypes) %>%
+  summarise(num_loci = n()) %>% # plot this for figure 1
+  ggplot(., aes(num_haplotypes, num_loci)) +
+  geom_histogram(stat = "identity") +
+  theme_bw() +
+  xlab("Number of Haplotypes") +
+  ylab("Number of Loci") + 
+  scale_x_continuous(breaks = c(3,6,9,12))
+
+fig1_14 <- m_14 + theme(
+  axis.text.x=element_text(size=14),
+  axis.title.x=element_text(size=14, face="bold"),
+  axis.text.y=element_text(size=14),
+  axis.title.y=element_text(size=14, face="bold")
+)
+
+fig1_14
+
+
+
+```
+
+```{r filter out Allele 0 even}
+mhaps_14_filter <- mhaps_14 %>% 
+  filter(Allele != "0")
+```
+
+### Running through CKMRsim
+
+First we create a CKMR object. In the current version of the CKMRsim, this assumes an error model
+that is appropriate to microhaps and SNPs (0.005 per gene copy per snp, scaled by the number of SNPs).
+
+```{r create CKMR object even}
+CK_14 <- create_ckmr(mhaps_14_filter, kappa_matrix = kappas[c("PO", "FS", "HS", "U"), ])
+```
+
+Then we can simulate some Q values:
+
+```{r simulate Q even}
+Qs_14 <- simulate_Qij(C = CK_14, froms = c("PO", "FS", "HS", "U"), tos = c("PO", "FS", "HS", "U"), reps = 10^4)
+
+# then do the  sampling to get the FPRs
+mc_sample_simple(Qs_14, nu = "PO", de = c("U", "FS"), tr = c("U", "FS"), method = "both")
+
+```
+
+If we want to plot the actual distributions, we can extract them and plot them. For example,
+to plot the PO/U Lambdas we can do:
+
+```{r plot distributions even}
+extract_logls(Qs_14, numer = c(PO = 1), denom = c(U = 1)) %>%
+  ggplot(aes(x = logl_ratio, fill = true_relat)) +
+  geom_density(alpha = 0.3)
+  
+```
+
+## Ranking and Selecting microhaps and SNPs
+
+### Getting SNP frequencies
+To find the SNP frequencies, we are going to need to explode those haplotypes into constituent SNPs and estimate their frequencies, and then take the best SNPs from each microhaplotype to then select subsets of them.  We are going to operate on `mhaps` for this, and then get a data frame called `best_snps_165` which are the SNP allele allele frequencies. We will filter that data frame later to get our different subsets of SNPs.
+
+```{r SNP freqs even}
+# get all the SNP freqs
+snp_freqs_14 <- mhaps_14_filter %>%
+  split(f = mhaps_14_filter$Locus) %>%
+  lapply(function(x) {
+    x$exploded = sapply(strsplit(x$Allele, split = ""), function(y) paste(y, collapse = "."))
+    x
+  }) %>%
+  lapply(., function(x) {
+    separate(x, exploded, into = paste("snp", 1:nchar(x$Allele[1]), sep = "_"))
+  }) %>%
+  lapply(., function(x) {
+    gather(x, key = "SNP", value = "base", contains("snp_"))
+  }) %>%
+  bind_rows %>%
+  group_by(Chrom, Locus, Pos, LocIdx, SNP, base) %>% 
+  summarise(Freq = sum(Freq))
+
+# now, get the best (MAF closest to 0.5)
+best_snps_165_14 <- snp_freqs_14 %>%
+  group_by(Locus, SNP) %>%
+  filter(n() > 1) %>%  # toss SNPs that are monomorphic---for some reason there are some...
+  mutate(maf = min(Freq)) %>%  # since there are only two alleles, this gets the MAF at that locus
+  group_by(Locus) %>%
+  filter(near(maf, max(maf)))  %>%  # this almost does it, but some snps at a locus might have the same MAF at different snps
+  mutate(tmp = 1:n()) %>%
+  filter(tmp < 3)  %>% # this gets rid of those same MAF cases.
+  select(-tmp, -maf) %>%
+  rename(Allele = base) %>%
+  mutate(AlleIdx = 0) %>%
+  CKMRsim::reindex_markers() %>%
+  select(Chrom, Locus, Pos, Allele, LocIdx, AlleIdx, Freq)
+
+```
+
+Now, let's just make a quick plot to confirm that we have gotten the highest minor allele frequency SNPs for each locus.
+```{r MAF even}
+all_mafs_14 <- snp_freqs_14 %>%
+  group_by(Locus, SNP) %>%
+  summarise(maf = min(Freq)) %>%
+  filter(maf <= 0.5)  # this gets rid of monomorphic ones
+best_mafs_14 <- best_snps_165_14 %>%
+  group_by(Locus) %>%
+  summarise(maf = min(Freq))
+
+ggplot(all_mafs_14, aes(y = Locus, x = maf)) +
+  geom_point() +
+  geom_point(data = best_mafs_14, colour = "red")
+```
+
+We will come back to these to grab the allele frequencies for further analysis.
+
+And using some of the results from above, get the 96 SNPs that are the best from among all 165.
+```{r top SNP even}
+top_snps_96_all_14 <- best_mafs_14 %>%
+  arrange(desc(maf)) %>%
+  slice(1:96)
+```
+
+### Selecting the best microhaps
+
+First we are going to find the microhaps with the highest heterozygosity, and the SNPs with the high MAF
+```{r microhaps even}
+mhap_hz_14 <- mhaps_14_filter %>%
+  group_by(Locus) %>% 
+  summarise(hz = 1 - sum(Freq^2), nHaps = n()) %>%
+  arrange(desc(hz)) 
+
+top_mhaps_14 <- mhap_hz_14 %>%
+  slice(1:96)
+```
+
+## Make Figure 2.
+
+Here we create Fig. 2 - the plot with mhap heterozygosity and best snp minor allele frequency per locus.
+```{r hz-vs-maf-per-locus even}
+# snps = best_mafs
+# mhaps = mhap_hz
+# add a column that designates marker type
+best_snp_mafs_14 <- best_mafs_14 %>%
+  mutate(., Marker_type = "SNPs") 
+
+names(best_snp_mafs_14) <- c("Locus", "hz", "Marker_type")
+
+best_mhap_hz_14 <- mhap_hz_14 %>%
+  mutate(., Marker_type = "mhaps")
+
+# need to join these tibbles together and then sort by highest hz
+combo_hz_14 <- best_mhap_hz_14 %>%
+  bind_rows(., best_snp_mafs_14) %>% 
+  group_by(Locus) %>%
+  arrange(desc(hz))
+
+combo_hz_14$Locus <- factor(combo_hz_14$Locus, levels = combo_hz_14$Locus)
+
+combo_plot_14 <- combo_hz_14 %>%
+  ggplot(., aes(x = Locus, y = hz, color = Marker_type)) +
+  geom_point() +
+  scale_color_manual(values = c("red", "dark blue"),
+                     labels = paste(c("microhaps", "SNPs"))) +
+  theme_bw() +
+  ylab("Heterozygosity") + 
+  guides(color = guide_legend(title="Marker Type")) +
+  theme(
+    axis.text.x = element_blank()
+  )
+
+# more formatting
+combo_plot_14 <- combo_plot_14 + theme(
+  axis.text.x=element_blank(),
+  axis.title.x=element_text(size=14, face="bold"),
+  axis.text.y=element_text(size=14),
+  axis.title.y=element_text(size=14, face="bold"),
+  legend.text=element_text(size=14),
+  legend.title=element_text(size=14, face="bold"))
+
+fig2_14 <- combo_plot_14 +
+   theme(legend.position = c(0.85, 0.85))
+
+fig2_14
+```
+
+Heterozygosity of 165 microhaplotypes comprised of all SNPs in a locus compared to the single SNP with the
+highest minor allele frequency in that same locus. Bi-allelic SNPs have a maximum heterozygosity of 0.5
+
+Now, we are going to make our CKMR-ready allele frequencies for each of our 
+four data sets in a named list:
+
+### Making a list of data sets
+
+```{r lists even}
+fourData_list_14 <- list(
+  m165_14 = mhaps_14_filter,
+  s165_14 = best_snps_165_14,
+  m96_14 = mhaps_14_filter %>% filter(Locus %in% top_mhaps_14$Locus),
+  s96_top_14 = best_snps_165_14 %>% filter(Locus %in% top_snps_96_all_14$Locus)
+)
+```
+
+## Doing CKMR calcs on each data set
+
+We can do each step, lapplying over things:
+```{r calcs even}
+CK_list_14 <- lapply(fourData_list_14, function(x) 
+  create_ckmr(x, kappa_matrix = kappas[c("PO", "FS", "HS", "U"), ])
+)
+```
+
+And simulate the Qij values.  Do 10^5...
+```{r Qij even, cache=TRUE}
+Qs_list_14 <- lapply(CK_list_14, function(x) 
+  simulate_Qij(C = x, froms = c("PO", "FS", "HS", "U"), tos = c("PO", "FS", "HS", "U"), reps = 10^5)
+)
+```
+
+And once that is done, we can collect samples from it:
+```{r FPR even}
+FPRs_etc_14 <- lapply(Qs_list_14, function(x) mc_sample_simple(x, nu = c("PO", "FS", "HS"), method = "IS", FNRs = seq(0.01, 0.30, by = 0.01))) %>%
+  bind_rows(.id = "marker_set")
+         
+```
+
+And now, let us spread that into a data set that is easier to read:
+```{r reformat even}
+FPRs_etc_14 %>%
+  rename(relationship = pstar) %>%
+  select(relationship, FNR, marker_set, FPR) %>%
+  tidyr::spread(data = ., key = marker_set, value = FPR)
+```
+
+### Make Figure 3.
+
+Let's plot the FPRs_etc:
+```{r plot_FPRs even}
+FPR_ses_14 <- FPRs_etc_14 %>%
+  mutate(se_lo = FPR - 2 * se,
+       se_hi = FPR + 2 * se)
+
+# create a factor for ordering the relationship type
+FPRs_etc_14$pstar_f = factor(FPRs_etc_14$pstar, levels=c("PO","FS", "HS"))
+
+# remove the HS rows and then plot that
+f3_14 <- FPRs_etc_14 %>%
+  filter(., pstar_f != "HS") %>%
+  ggplot(., aes(x = FNR, y = FPR, shape = marker_set)) +
+  geom_point() +
+ #geom_segment(aes(x = FNR, y = se_lo, xend = FNR, yend = se_hi)) +  # these are basically invisible because they are so small
+  facet_grid(. ~ pstar_f) +
+  scale_y_continuous(trans = "log10") +
+  xlab("False Negative Rate") + 
+  ylab("False Positive Rate (log)") +
+  theme_bw()
+
+fig3_14 <- f3_14 +
+  guides(shape=guide_legend(title="Marker Set")) +
+  theme(
+  axis.text.x=element_text(size=5),
+  axis.title.x=element_text(size=5, face="bold"),
+  axis.text.y=element_text(size=5),
+  axis.title.y=element_text(size=5, face="bold"),
+  legend.text=element_text(size=5),
+  legend.title=element_text(size=5, face="bold"))
+
+fig3_14 <- fig3_14 +
+  theme(legend.position = c(0.6, 0.1))
+
+fig3_14
+```
+
+Simulated false-positive rates for matching (a) single parents with offspring and for (b) full-siblings at a given false-negative rate using the four sets of markers: 165 microhaplotypes (m165), 165 SNPs (s165), 96 microhaps (m96) and 96 SNPs with the highest heterozygosity (s96_top).
