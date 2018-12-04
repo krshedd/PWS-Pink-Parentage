@@ -13,35 +13,35 @@ library(lubridate)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # List of silly's for OceanAK filter
 streams <- c("ERB", "HOGAN", "GILMOUR", "PADDY", "STOCK")
-yrs <- 13:17
+yrs <- 13:18
 writeClipboard(paste(paste0("P", rep(streams, each = 5), yrs), collapse = ";"))
 
-oceanak <- read_csv(file = "OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017_no_otoliths.csv") %>% 
+oceanak <- read_csv(file = "OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv") %>% 
   unite(SillySource, `Silly Code`, `Fish ID`, sep = "_", remove = FALSE) %>% 
   unite(TrayCodeID, `DNA Tray Code`, `DNA Tray Well Code`, sep = "_", remove = FALSE)
 
-dups <- oceanak %>% 
-  group_by(SillySource) %>% 
-  summarise(n = n()) %>% 
-  filter(n > 1) %>% 
-  arrange(desc(n)) %>% 
-  left_join(oceanak)
-nrow(dups)
-table(dups$`Location Code`, dups$`Sample Year`)
-View(dups)
-length(unique(dups$`Sample ID`))
-
-dups_tray <- oceanak %>% 
-  group_by(TrayCodeID) %>% 
-  summarise(n = n()) %>% 
-  filter(n > 1) %>% 
-  arrange(desc(n)) %>% 
-  left_join(oceanak)
-nrow(dups_tray)
-table(dups_tray$`Location Code`, dups_tray$`Sample Year`)
-View(dups_tray)
-
-write_csv(x = dups, path = "OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017_duplicates.csv")
+# dups <- oceanak %>% 
+#   group_by(SillySource) %>% 
+#   summarise(n = n()) %>% 
+#   filter(n > 1) %>% 
+#   arrange(desc(n)) %>% 
+#   left_join(oceanak)
+# nrow(dups)
+# table(dups$`Location Code`, dups$`Sample Year`)
+# View(dups)
+# length(unique(dups$`Sample ID`))
+# 
+# dups_tray <- oceanak %>% 
+#   group_by(TrayCodeID) %>% 
+#   summarise(n = n()) %>% 
+#   filter(n > 1) %>% 
+#   arrange(desc(n)) %>% 
+#   left_join(oceanak)
+# nrow(dups_tray)
+# table(dups_tray$`Location Code`, dups_tray$`Sample Year`)
+# View(dups_tray)
+# 
+# write_csv(x = dups, path = "OceanAK/AHRP - Salmon Biological Data 2_PWS_2013-2017_duplicates.csv")
 
 # samples per stream per year
 addmargins(table(oceanak$`Location Code`, oceanak$`Sample Year`))
@@ -54,7 +54,10 @@ table(oceanak$`Location Code`, oceanak$`Otolith Mark Status Code`, oceanak$`Samp
 oceanak_mod <- oceanak %>% 
   mutate(otolith_read = !is.na(`Otolith Mark Status Code`)) %>% 
   mutate(stream = factor(x = `Location Code`, levels = c("Gilmour Creek", "Paddy Creek", "Erb Creek", "Hogan Creek", "Stockdale Creek"))) %>% 
-  rename(year = `Sample Year`)
+  rename(year = `Sample Year`) %>% 
+  mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "natural",
+                            `Otolith Mark Present` == "YES" ~ "hatchery")) %>% 
+  mutate(origin = factor(origin, levels = c("natural", "hatchery")))
 
 # table of stream, year, and otolith_read
 table(oceanak_mod$stream, oceanak_mod$otolith_read, oceanak_mod$year)
@@ -71,7 +74,7 @@ oceanak_mod %>%
 
 # table of otolith mark read by stream and year
 oceanak_mod %>%
-  filter(`Otolith Mark Present` == "NO") %>% 
+  filter(`Otolith Mark Present` == "NO") %>%  # natural-origin fish only
   group_by(stream, year) %>% 
   summarise(freq = n()) %>% 
   spread(year, freq)
@@ -91,9 +94,14 @@ oceanak_mod %>%
 # histogram of samples per date per year per stream
 oceanak_mod %>% 
   mutate(julian_date = yday(`Sample Date`)) %>% 
-  ggplot(aes(x = julian_date)) +
-  geom_histogram() +
-  facet_grid(year ~ stream)
+  ggplot(aes(x = julian_date, fill = origin)) +
+  geom_histogram(binwidth = 1) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  facet_grid(year ~ stream) +
+  labs(fill = "Origin") +
+  ylab("Number of Samples") +
+  xlab("Day of Year") +
+  ggtitle("AHRP PWS Pink - number of samples by year, stream, and origin")
 yday(Sys.Date())  # today's Julian date
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
