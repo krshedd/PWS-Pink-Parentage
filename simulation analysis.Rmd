@@ -1,0 +1,18 @@
+---
+title: "Hogan Simulation Analysis"
+output: html_notebook
+---
+
+
+
+
+```{r Convert genepop to Franz for parentage}
+source("genepop2franz.GCL.r")
+genepop2franz.GCL("../Simulated Offspring/hogan_odd_simulated2_newid.gen", "../Simulated Offspring/oceanak.csv", c(2013, 2015), "HOGAN", "../")
+genepop2franz.GCL("../Simulated Offspring/hogan_even_simulated2_newid.gen", "../Simulated Offspring/oceanak.csv", c(2014, 2016), "HOGAN", "../")
+
+
+```
+
+
+
