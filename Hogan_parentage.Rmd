@@ -330,11 +330,13 @@ paired_13_15_filter <-
 paired_13_15_filter %>% 
  mutate(Julian = yday(`Sample Date`))
 
+
 paired_13_15_filter %>% 
   ggplot(aes(x=`Julian`, fill=origin)) +
   geom_histogram(position=position_dodge(), binwidth = 1) +
   facet_grid(`Sample Year` ~ .) +
   labs(title="Number of Samples per Year by Date and Origin")
+
 ```
 
 From this histogram, we can see that in the parental generation (2013), natural origin fish tended to have earlier sampling dates than hatchery origin fish, which confirms what we know about differences in run timing. We can also see how sparse the field sampling was in 2013. Offspring in 2015 were sampled throughout the run.
