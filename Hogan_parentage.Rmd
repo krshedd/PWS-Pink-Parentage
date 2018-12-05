@@ -203,7 +203,7 @@ When we plot the sexes separately, we can see that most of the assigned parents 
 
 Below, we'll calculate reproductive success of natural and hatchery females and males. 
 
-```{r}
+```{r odd_rrs}
 (rs_13_15 <- parents_paired_13_15 %>%
   count(`Fish ID.y`, origin, SEX.y) %>%
   group_by(origin, SEX.y) %>% 
@@ -224,6 +224,212 @@ M_n_odd <- rs_13_15 %>%
   filter(origin == "Natural" & SEX.y == "M") %>% 
   pull(RS)
 ```
+
+
+#### Calculate RRS again including 0's 
+We'll calculate RRS again including sampled fish from the parental generation to which offspring were not assigned.
+
+```{r Re-calculate RRS odd}
+# Make one tibble with all assignment data
+# RS_combined <- bind_rows(parents_paired_13_15, parents_paired_14_16) 
+
+# Transform to one row per parent with n = number of offspring produced
+parents_paired_13_15_count <- parents_paired_13_15 %>% 
+  count(Parent_ID, origin, SEX.y, `Sample Year.y`, `Length Mm.y`, `Sample Date.y`) %>% 
+  mutate(lineage = dplyr::case_when(`Sample Year.y` %in% c("2013", "2015") ~ "odd",
+                                    `Sample Year.y` %in% c("2014", "2016") ~ "even"))
+
+paired_13_15_filter_parents <- paired_13_15_filter %>% 
+  filter(`Sample Year` == "2013")
+
+# Join with all parents that produced no progeny
+paired_13_15_filter_parents <- left_join(paired_13_15_filter_parents, parents_paired_13_15_count, by = c("franz_id" = "Parent_ID")) %>% 
+  mutate(n = replace_na(n, 0))
+
+# Mean RS including 0's
+rs_13_15_0 <- paired_13_15_filter_parents %>%
+  group_by(origin.x, SEX) %>% 
+  summarise(RS = mean(n, na.rm = TRUE))
+
+rs_13_15_0 %>%
+  mutate(RS = round(RS, 2)) %>% 
+  spread(SEX, RS)
+
+# Plot histogram of number of parents with a given family size
+paired_13_15_filter_parents %>% 
+  ggplot(aes(x = n, fill = origin.x)) +
+  geom_bar(position = position_dodge2(preserve = "single")) +
+  facet_grid( ~ SEX) +
+  xlab("Number of Offspring") +
+  ylab("Number of Parents") +
+  labs(title="Distribution of Family Size by Females (F) and Males (M)",
+       fill = "Parent: Origin")
+
+# Plot histogram of proportion of parents with a given family size
+paired_13_15_filter_parents %>% 
+  count(SEX, origin.x, n) %>% 
+  group_by(SEX, origin.x) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x=n, y=p, fill = origin.x)) +
+  geom_col(position = position_dodge2(preserve="single")) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  facet_grid(~ SEX) +
+  labs(title="Distribution of Family Size by Females (F) and Males (M)",
+       fill = "Parent: Origin") +
+  xlab("Number of Offspring")+
+  ylab("Proportion of Parents") 
+
+# Save RS values
+F_h_0_13_15 <- rs_13_15_0 %>% 
+  filter(origin.x == "Hatchery" & SEX == "F") %>% 
+  pull(RS)
+M_h_0_13_15 <- rs_13_15_0 %>% 
+  filter(origin.x == "Hatchery" & SEX == "M") %>% 
+  pull(RS)
+F_n_0_13_15 <- rs_13_15_0 %>% 
+  filter(origin.x == "Natural" & SEX == "F") %>% 
+  pull(RS)
+M_n_0_13_15 <- rs_13_15_0 %>% 
+  filter(origin.x == "Natural" & SEX == "M") %>% 
+  pull(RS)
+```
+
+Here are the plots again with lines showing mean reproductive success. 
+
+```{r Plots of RS by sex with mean lines odd}
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+paired_13_15_filter_parents %>% 
+  filter(SEX == "F") %>% 
+  ggplot(aes(x = n, fill = origin.x)) +
+  geom_bar(position = position_dodge2(preserve = "single")) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  xlab("Number of Offspring") +
+  ylab("Number of Females") +
+  labs(title="Number of Offspring for Females",
+       fill = "Parent: Origin") +
+  geom_vline(xintercept=F_n_0_13_15, size=2) +
+  geom_vline(xintercept=F_n_0_13_15, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=F_h_0_13_15, size=2) +
+  geom_vline(xintercept=F_h_0_13_15, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  annotate("text", x = F_n_0_13_15 + 0.5, y = 250, label = paste("F_n_0 =", round(F_n_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  annotate("text", x = F_h_0_13_15 + 0.5, y = 300, label = paste("F_h_0 =", round(F_h_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+
+paired_13_15_filter_parents %>% 
+  filter(SEX == "M") %>% 
+  ggplot(aes(x = n, fill = origin.x)) +
+  geom_bar(position = position_dodge2(preserve = "single")) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  xlab("Number of Offspring") +
+  ylab("Number of Males") +
+  labs(title="Number of Offspring for Males",
+       fill = "Parent: Origin") +
+  geom_vline(xintercept=M_n_0_13_15, size=2) +
+  geom_vline(xintercept=M_n_0_13_15, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=M_h_0_13_15, size=2) +
+  geom_vline(xintercept=M_h_0_13_15, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  annotate("text", x = M_n_0_13_15 + 0.5, y = 150, label = paste("M_n_0 =", round(M_n_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  annotate("text", x = M_h_0_13_15 + 0.5, y = 100, label = paste("M_h_0 =", round(M_h_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+
+paired_13_15_filter_parents %>% 
+  filter(SEX == "F") %>% 
+  count(origin.x, n) %>% 
+  group_by(origin.x) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x=n, y=p, fill = origin.x)) +
+  geom_col(position = position_dodge2(preserve="single")) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +xlab("Number of Offspring") +
+  ylab("Proportion of Females") +
+  labs(title="Number of Offspring for Females",
+       fill = "Parent: Origin") +
+  geom_vline(xintercept=F_n_0_13_15, size=2) +
+  geom_vline(xintercept=F_n_0_13_15, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=F_h_0_13_15, size=2) +
+  geom_vline(xintercept=F_h_0_13_15, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  annotate("text", x = F_n_0_13_15 + 0.5, y = .250, label = paste("F_n_0 =", round(F_n_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  annotate("text", x = F_h_0_13_15 + 0.5, y = .300, label = paste("F_h_0 =", round(F_h_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) 
+
+paired_13_15_filter_parents %>% 
+  filter(SEX == "M") %>% 
+  count(origin.x, n) %>% 
+  group_by(origin.x) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x=n, y=p, fill = origin.x)) +
+  geom_col(position = position_dodge2(preserve="single")) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  xlab("Number of Offspring") +
+  ylab("Proportion of Males") +
+  labs(title="Number of Offspring for Males",
+       fill = "Parent: Origin") +
+  geom_vline(xintercept=M_n_0_13_15, size=2) +
+  geom_vline(xintercept=M_n_0_13_15, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=M_h_0_13_15, size=2) +
+  geom_vline(xintercept=M_h_0_13_15, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  annotate("text", x = M_n_0_13_15 + 0.5, y = .250, label = paste("M_n_0 =", round(M_n_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  annotate("text", x = M_h_0_13_15 + 0.5, y = .300, label = paste("M_h_0 =", round(M_h_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+
+```
+
+
+```{r Calculate relative reproductive success including 0s odd}
+RRS_m_0_13_15 <- M_h_0_13_15/M_n_0_13_15
+RRS_f_0_13_15 <- F_h_0_13_15/F_n_0_13_15
+
+RRS_tibble_0_13_15 <- tibble(RRS_m_0_13_15, RRS_f_0_13_15)
+round(RRS_tibble_0_13_15, 2)
+```
+
+**RRS for males = `r round(RRS_m_0_13_15, 2)`. RRS for females = `r round(RRS_f_0_13_15, 2)`.**
+
+Let's test for significant differences in RRS between male and female hatchery and natural origin fish. We'll perform two different statistical tests:  
+
+  1. Nonparametric permutation test
+  2. Parametric negative binomial GLM  
+  
+**Note** we are only doing this for the even lineage because the sample sizes are too low in the odd lineage. 
+
+```{r RRS statistical testing including 0s odd}
+# The format of the data to test was very simple, it was a data.frame called “mydata” with 2 columns
+# 1.	nOff = number of offspring per family
+# 2.	Origin = “H” or “W” for if the parent was hatchery or natural (wild)
+# 
+
+mydata_M_0 <- paired_13_15_filter_parents %>%
+  filter(SEX == "M")
+
+mydata_F_0 <- paired_13_15_filter_parents %>%
+  filter(SEX == "F")
+
+perm_1tail_pvalue_M_0 <- round(x = as.numeric(coin::pvalue(oneway_test(n ~ origin.x, data = mydata_M_0, distribution = approximate(B = 10000), alternative = "greater"))), digits = 4)
+
+perm_1tail_pvalue_F_0 <- round(x = as.numeric(coin::pvalue(oneway_test(n ~ origin.x, data = mydata_F_0, distribution = approximate(B = 10000), alternative = "greater"))), digits = 4)
+
+#And to do a 1-tailed negative binomial GLM
+
+fit_M_0 <- glm.nb(n ~ origin.x, data = mydata_M_0, init.theta = 1, link = log)
+nbGLM_1tail_pvalue_M_0 <- round(summary(fit_M_0)$coefficients[2, 4], 4)
+
+fit_F_0 <- glm.nb(n ~ origin.x, data = mydata_F_0, init.theta = 1, link = log)
+nbGLM_1tail_pvalue_F_0 <- round(summary(fit_F_0)$coefficients[2, 4], 4)
+
+RRS_0 <- tibble(Sex = c("M", "F", "M", "F"),
+                Test = c(rep("Permutation", 2), rep("Negative Binomial GLM", 2)),
+                p_value = c(perm_1tail_pvalue_M_0, perm_1tail_pvalue_F_0, nbGLM_1tail_pvalue_M_0, nbGLM_1tail_pvalue_F_0))
+RRS_0 %>% 
+  spread(Sex, p_value)
+
+# (RRS_0 <- tibble(perm_1tail_pvalue_F_0, perm_1tail_pvalue_M_0, nbGLM_1tail_pvalue_F_0, nbGLM_1tail_pvalue_M_0))
+```
+
+There is a significant difference in RRS for females, but not males. 
 
 
 ## Associations between parents and offspring
@@ -693,7 +899,7 @@ rs_14_16_date %>%
   ggplot(aes(x=`Sample Date.y`, y=n, color=origin, shape=SEX.y))+
   geom_jitter(height = 0)+
   labs(title="Reproductive Success by Parental Sample Date",  colour = "Parent: Origin",
-       shape = "Offspring: Sex")+
+       shape = "Parent: Sex")+
   xlab("Parental Sample Date")+
   ylab("Reproductive Success")
 ```
@@ -817,16 +1023,16 @@ paired_14_16_filter_parents %>%
   ylab("Proportion of Parents") 
 
 # Save RS values
-F_h_0 <- rs_14_16_0 %>% 
+F_h_0_14_16 <- rs_14_16_0 %>% 
   filter(origin.x == "Hatchery" & SEX == "F") %>% 
   pull(RS)
-M_h_0 <- rs_14_16_0 %>% 
+M_h_0_14_16 <- rs_14_16_0 %>% 
   filter(origin.x == "Hatchery" & SEX == "M") %>% 
   pull(RS)
-F_n_0 <- rs_14_16_0 %>% 
+F_n_0_14_16 <- rs_14_16_0 %>% 
   filter(origin.x == "Natural" & SEX == "F") %>% 
   pull(RS)
-M_n_0 <- rs_14_16_0 %>% 
+M_n_0_14_16 <- rs_14_16_0 %>% 
   filter(origin.x == "Natural" & SEX == "M") %>% 
   pull(RS)
 ```
@@ -844,12 +1050,12 @@ paired_14_16_filter_parents %>%
   ylab("Number of Females") +
   labs(title="Number of Offspring for Females",
        fill = "Parent: Origin") +
-  geom_vline(xintercept=F_n_0, size=2) +
-  geom_vline(xintercept=F_n_0, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
-  geom_vline(xintercept=F_h_0, size=2) +
-  geom_vline(xintercept=F_h_0, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
-  annotate("text", x = F_n_0 + 0.5, y = 250, label = paste("F_n_0 =", round(F_n_0, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
-  annotate("text", x = F_h_0 + 0.5, y = 300, label = paste("F_h_0 =", round(F_h_0, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+  geom_vline(xintercept=F_n_0_14_16, size=2) +
+  geom_vline(xintercept=F_n_0_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=F_h_0_14_16, size=2) +
+  geom_vline(xintercept=F_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  annotate("text", x = F_n_0_14_16 + 0.5, y = 250, label = paste("F_n_0 =", round(F_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  annotate("text", x = F_h_0_14_16 + 0.5, y = 300, label = paste("F_h_0 =", round(F_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
 
 paired_14_16_filter_parents %>% 
   filter(SEX == "M") %>% 
@@ -861,12 +1067,12 @@ paired_14_16_filter_parents %>%
   ylab("Number of Males") +
   labs(title="Number of Offspring for Males",
        fill = "Parent: Origin") +
-  geom_vline(xintercept=M_n_0, size=2) +
-  geom_vline(xintercept=M_n_0, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
-  geom_vline(xintercept=M_h_0, size=2) +
-  geom_vline(xintercept=M_h_0, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
-  annotate("text", x = M_n_0 + 0.5, y = 150, label = paste("M_n_0 =", round(M_n_0, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
-  annotate("text", x = F_h_0 + 0.5, y = 100, label = paste("M_h_0 =", round(M_h_0, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+  geom_vline(xintercept=M_n_0_14_16, size=2) +
+  geom_vline(xintercept=M_n_0_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=M_h_0_14_16, size=2) +
+  geom_vline(xintercept=M_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  annotate("text", x = M_n_0_14_16 + 0.5, y = 150, label = paste("M_n_0 =", round(M_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  annotate("text", x = M_h_0_14_16 + 0.5, y = 100, label = paste("M_h_0 =", round(M_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
 
 paired_14_16_filter_parents %>% 
   filter(SEX == "F") %>% 
@@ -880,12 +1086,12 @@ paired_14_16_filter_parents %>%
   ylab("Proportion of Females") +
   labs(title="Number of Offspring for Females",
        fill = "Parent: Origin") +
-  geom_vline(xintercept=F_n_0, size=2) +
-  geom_vline(xintercept=F_n_0, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
-  geom_vline(xintercept=F_h_0, size=2) +
-  geom_vline(xintercept=F_h_0, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
-  annotate("text", x = F_n_0 + 0.5, y = .250, label = paste("F_n_0 =", round(F_n_0, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
-  annotate("text", x = F_h_0 + 0.5, y = .300, label = paste("F_h_0 =", round(F_h_0, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) 
+  geom_vline(xintercept=F_n_0_14_16, size=2) +
+  geom_vline(xintercept=F_n_0_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=F_h_0_14_16, size=2) +
+  geom_vline(xintercept=F_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  annotate("text", x = F_n_0_14_16 + 0.5, y = .250, label = paste("F_n_0 =", round(F_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  annotate("text", x = F_h_0_14_16 + 0.5, y = .300, label = paste("F_h_0 =", round(F_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) 
 
 paired_14_16_filter_parents %>% 
   filter(SEX == "M") %>% 
@@ -900,25 +1106,25 @@ paired_14_16_filter_parents %>%
   ylab("Proportion of Males") +
   labs(title="Number of Offspring for Males",
        fill = "Parent: Origin") +
-  geom_vline(xintercept=M_n_0, size=2) +
-  geom_vline(xintercept=M_n_0, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
-  geom_vline(xintercept=M_h_0, size=2) +
-  geom_vline(xintercept=M_h_0, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
-  annotate("text", x = M_n_0 + 0.5, y = .250, label = paste("M_n_0 =", round(M_n_0, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
-  annotate("text", x = M_h_0 + 0.5, y = .300, label = paste("M_h_0 =", round(M_h_0, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+  geom_vline(xintercept=M_n_0_14_16, size=2) +
+  geom_vline(xintercept=M_n_0_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=M_h_0_14_16, size=2) +
+  geom_vline(xintercept=M_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  annotate("text", x = M_n_0_14_16 + 0.5, y = .250, label = paste("M_n_0 =", round(M_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  annotate("text", x = M_h_0_14_16 + 0.5, y = .300, label = paste("M_h_0 =", round(M_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
 
 ```
 
 
 ```{r Calculate relative reproductive success including 0s}
-RRS_m_0 <- M_h_0/M_n_0
-RRS_f_0 <- F_h_0/F_n_0
+RRS_m_0_14_16 <- M_h_0_14_16/M_n_0_14_16
+RRS_f_0_14_16 <- F_h_0_14_16/F_n_0_14_16
 
-RRS_tibble_0 <- tibble(RRS_m_0, RRS_f_0)
-round(RRS_tibble_0, 2)
+RRS_tibble_0_14_16 <- tibble(RRS_m_0_14_16, RRS_f_0_14_16)
+round(RRS_tibble_0_14_16, 2)
 ```
 
-**RRS for males = `r round(RRS_m_0, 2)`. RRS for females = `r round(RRS_f_0, 2)`.**
+**RRS for males = `r round(RRS_m_0_14_16, 2)`. RRS for females = `r round(RRS_f_0_14_16, 2)`.**
 
 Let's test for significant differences in RRS between male and female hatchery and natural origin fish. We'll perform two different statistical tests:  
 
@@ -961,6 +1167,21 @@ RRS_0 %>%
 ```
 
 There is a significant difference in RRS for females, but not males. 
+
+
+```{r Examine reproductive success by sample date even with zeros}
+paired_14_16_filter_parents %>% 
+  ggplot(aes(x=`Sample Date`, y=n, color=origin.x)) +
+  geom_jitter(aes(shape=SEX), height = 0) +
+  geom_smooth() +
+  labs(title="Reproductive Success by Parental Sample Date",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Parental Sample Date") +
+  ylab("Reproductive Success")
+```
+
+This is a plot of reproductive success (family size) by sample date. **Note** the points are jittered, but only by sample date.
+
 
 #### Tables
 Of the offspring that we matched up to parents, how many went to hatchery-origin parents vs. natural-origin parents?
