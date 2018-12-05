@@ -1222,10 +1222,12 @@ parents_paired_14_16_cross %>%
   count(cross, n) %>% 
   complete(cross, n, fill = list(nn = 0)) %>% 
   ggplot(aes(x = n, y = nn, fill = cross))+
-  geom_col(position=position_dodge2(preserve = "single")) +
+  geom_col(position=position_dodge2(preserve = "single"), width = 0.5) +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
-  scale_x_continuous(breaks = c(1,2,3)) +
+  scale_x_continuous(breaks = 1:5) +
+  ylim(0, 5) +
+  xlim(0, 5) +
   labs(title="Distribution of Family Size by Cross") +
   xlab("Number of Offspring")+
   ylab("Number of Families") 
