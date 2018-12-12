@@ -913,6 +913,20 @@ summary(lm.rs.date)
 
 There is not a significant relationship between RS and sample date. 
 
+```{r Examine reproductive success by length}
+(rs_14_16_length <- parents_paired_14_16 %>%
+  count(`Fish ID.y`, origin, SEX.y, `Length Mm.y`))
+
+rs_14_16_length %>% 
+  ggplot(aes(x=`Length Mm.y`, y=n, color=origin, shape=SEX.y))+
+  geom_jitter(height=0.5)+
+  geom_smooth() +
+  labs(title="Reproductive Success by Parental Length",  colour = "Parent: Origin",
+       shape = "Parent: Sex")+
+  xlab("Parental Length")+
+  ylab("Reproductive Success")
+```
+
 #### Calculate relative reproductive success
 We'll calculate relative reproductive success (RRS) using the following equation: mean hatchery family size/mean natural family size. We'll do this separately for males and females. We can get fancy and apply the unbiased RRS from Araki and Blouin 2005 later on.  
 
@@ -1178,9 +1192,40 @@ paired_14_16_filter_parents %>%
        shape = "Parent: Sex") +
   xlab("Parental Sample Date") +
   ylab("Reproductive Success")
+
+paired_14_16_filter_parents %>% 
+  ggplot(aes(x=`Sample Date`, y=n, color=origin.x)) +
+  geom_jitter(height = 0) +
+  geom_smooth() +
+  facet_grid(~SEX)+
+  labs(title="Reproductive Success by Parental Sample Date",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Parental Sample Date") +
+  ylab("Reproductive Success")
 ```
 
 This is a plot of reproductive success (family size) by sample date. **Note** the points are jittered, but only by sample date.
+
+```{r Examine reproductive success by parent length even with zeros}
+paired_14_16_filter_parents %>% 
+  ggplot(aes(x=`Length Mm.y`, y=n, color=origin.x)) +
+  geom_jitter(aes(shape=SEX), height = 0) +
+  geom_smooth() +
+  labs(title="Reproductive Success by Parental Length (mm)",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Parental Length (mm)") +
+  ylab("Reproductive Success")
+
+paired_14_16_filter_parents %>% 
+  ggplot(aes(x=`Length Mm.y`, y=n, color=origin.x)) +
+  geom_jitter(height = 0) +
+  geom_smooth() +
+  facet_grid(~SEX) +
+  labs(title="Reproductive Success by Parental Length (mm)",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Parental Length (mm)") +
+  ylab("Reproductive Success")
+```
 
 
 #### Tables
