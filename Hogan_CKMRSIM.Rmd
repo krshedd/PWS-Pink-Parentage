@@ -160,7 +160,7 @@ Note that FS = full siblings, HS = half siblings, PO = parent-offspring, and U =
 ## Ranking and Selecting microhaps and SNPs
 
 ### Getting SNP frequencies
-To find the SNP frequencies, we are going to need to explode those haplotypes into constituent SNPs and estimate their frequencies, and then take the best SNPs from each microhaplotype to then select subsets of them.  We are going to operate on `mhaps` for this, and then get a data frame called `best_snps_165` which are the SNP allele allele frequencies. We will filter that data frame later to get our different subsets of SNPs.
+To find the SNP frequencies, we are going to need to explode those haplotypes into constituent SNPs and estimate their frequencies, and then take the best SNPs from each microhaplotype to then select subsets of them.  We are going to operate on `mhaps` for this, and then get a data frame called `best_snps_165` which are the SNP allele frequencies. We will filter that data frame later to get our different subsets of SNPs.
 
 ```{r SNP freqs odd}
 # get all the SNP freqs
@@ -284,8 +284,7 @@ fig2_13 <- combo_plot_13 +
 fig2_13
 ```
 
-Heterozygosity of 165 microhaplotypes comprised of all SNPs in a locus compared to the single SNP with the
-highest minor allele frequency in that same locus. Bi-allelic SNPs have a maximum heterozygosity of 0.5
+Heterozygosity of 165 microhaplotypes comprised of all SNPs in a locus compared to the single SNP with the highest minor allele frequency in that same locus. Bi-allelic SNPs have a maximum heterozygosity of 0.5
 
 Now, we are going to make our CKMR-ready allele frequencies for each of our 
 four data sets in a named list:
@@ -371,7 +370,7 @@ fig3_13 <- fig3_13 +
 fig3_13
 ```
 
-Simulated false-positive rates for matching (a) single parents with offspring and for (b) full-siblings at a given false-negative rate using the four sets of markers: 165 microhaplotypes (m165), 165 SNPs (s165), 96 microhaps (m96) and 96 SNPs with the highest heterozygosity (s96_top). 
+Simulated false-positive rates for matching (a) single parents with offspring and for (b) full-siblings at a given false-negative rate using the four sets of markers: 165 microhaplotypes (m165), 165 SNPs (s165), 96 microhaps (m96) and 96 SNPs with the highest heterozygosity (s96_top). False positive rates are lowest for the m165 dataset and highest for the s96_top dataset. 
 
 #Even
 
@@ -475,8 +474,7 @@ mhaps_14_filter <- mhaps_14 %>%
 
 ### Running through CKMRsim
 
-First we create a CKMR object. In the current version of the CKMRsim, this assumes an error model
-that is appropriate to microhaps and SNPs (0.005 per gene copy per snp, scaled by the number of SNPs).
+First we create a CKMR object. In the current version of the CKMRsim, this assumes an error model that is appropriate to microhaps and SNPs (0.005 per gene copy per snp, scaled by the number of SNPs).
 
 ```{r create CKMR object even}
 CK_14 <- create_ckmr(mhaps_14_filter, kappa_matrix = kappas[c("PO", "FS", "HS", "U"), ])
@@ -492,8 +490,7 @@ mc_sample_simple(Qs_14, nu = "PO", de = c("U", "FS"), tr = c("U", "FS"), method 
 
 ```
 
-If we want to plot the actual distributions, we can extract them and plot them. For example,
-to plot the PO/U Lambdas we can do:
+If we want to plot the actual distributions, we can extract them and plot them. For example, to plot the PO/U Lambdas we can do:
 
 ```{r plot distributions even}
 extract_logls(Qs_14, numer = c(PO = 1), denom = c(U = 1)) %>%
@@ -543,6 +540,7 @@ best_snps_165_14 <- snp_freqs_14 %>%
 ```
 
 Now, let's just make a quick plot to confirm that we have gotten the highest minor allele frequency SNPs for each locus.
+
 ```{r MAF even}
 all_mafs_14 <- snp_freqs_14 %>%
   group_by(Locus, SNP) %>%
@@ -629,8 +627,7 @@ fig2_14 <- combo_plot_14 +
 fig2_14
 ```
 
-Heterozygosity of 165 microhaplotypes comprised of all SNPs in a locus compared to the single SNP with the
-highest minor allele frequency in that same locus. Bi-allelic SNPs have a maximum heterozygosity of 0.5
+Heterozygosity of 165 microhaplotypes comprised of all SNPs in a locus compared to the single SNP with the highest minor allele frequency in that same locus. Bi-allelic SNPs have a maximum heterozygosity of 0.5
 
 Now, we are going to make our CKMR-ready allele frequencies for each of our 
 four data sets in a named list:
@@ -716,4 +713,4 @@ fig3_14 <- fig3_14 +
 fig3_14
 ```
 
-Simulated false-positive rates for matching (a) single parents with offspring and for (b) full-siblings at a given false-negative rate using the four sets of markers: 165 microhaplotypes (m165), 165 SNPs (s165), 96 microhaps (m96) and 96 SNPs with the highest heterozygosity (s96_top).
+Simulated false-positive rates for matching (a) single parents with offspring and for (b) full-siblings at a given false-negative rate using the four sets of markers: 165 microhaplotypes (m165), 165 SNPs (s165), 96 microhaps (m96) and 96 SNPs with the highest heterozygosity (s96_top). False positive rates are lowest for the m165 dataset and highest for the s96_top dataset. 
