@@ -420,3 +420,73 @@ extraction_eP003_fullDWP_n.df <- oceanak.df %>%
 
 # Write extraction list
 write.table(x = extraction_eP003_fullDWP_n.df, file = "Extraction/eP003_ExtractionList13022018_fullplate_n.txt", sep = "\t", row.names = FALSE)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP004: Create extraction list for ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# All Stockdale from 2017
+# 1K Hatchery and all Natural from Hogan 2017
+
+#### Read in OceanAK data ####
+require(tidyverse)
+oceanak <- read_csv("../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv")
+
+oceanak <- oceanak %>% 
+  mutate(`DNA Tray Code` = str_pad(string = `DNA Tray Code`, width = 10, pad = "0", side = "left")) %>% 
+  mutate(`DNA Tray Well Code` = str_pad(string = `DNA Tray Well Code`, width = 2, pad = "0", side = "left")) %>% 
+  mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>% 
+  filter(`Well Has More Than One Sample` != 1) %>% 
+  filter(`Is Missing Paired Data Exists` != 1) %>% 
+  filter(Sex %in% c("M", "F"))
+
+
+#### Filter for Stockdale Samples ####
+Stockdale_17 <- oceanak %>% 
+  filter(`Silly Code` == "PSTOCK17") %>% 
+  filter(!is.na(`Otolith Mark Present`))
+
+Stockdale_17 %>% 
+  count(Sex, `Otolith Mark Present`)
+
+
+#### Filter for Hogan Natural ####
+Hogan_Natural_17 <- oceanak %>% 
+  filter(`Silly Code` == "PHOGAN17") %>% 
+  filter(`Otolith Mark Present`=="NO")
+
+Hogan_Natural_17 %>% 
+  count(Sex, `Otolith Mark Present`)
+
+
+#### Filter for Hogan Hatchery ####
+Hogan_Hatchery_17 <- oceanak %>% 
+  filter(`Silly Code` == "PHOGAN17") %>% 
+  filter(`Otolith Mark Present`=="YES") %>% 
+  sample_n(size = 1000, replace = FALSE)
+
+Hogan_Hatchery_17 %>% 
+  count(Sex, `Otolith Mark Present`)
+
+
+#### Verify that Hogan Hatchery samples are distributed throughout the run ####
+
+oceanak %>% 
+  filter(`Silly Code` == "PHOGAN17") %>% 
+  filter(`Otolith Mark Present`=="YES") %>%
+  ggplot(aes(x = `Sample Date`)) +
+  geom_bar()
+
+Hogan_Hatchery_17 %>% 
+  ggplot(aes(x=`Sample Date`)) +
+  geom_bar()
+
+
+#### Combine tibbles ####
+
+extraction_eP004 <- bind_rows(Stockdale_17, Hogan_Natural_17, Hogan_Hatchery_17) %>% 
+  select(`Silly Code`, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Tissue Type`)
+
+write_csv(x = extraction_eP004, path = "../Extraction/eP004_Extraction_List_181219.csv")
+
+save.image("../Extraction/eP004_Extraction_List_181219.RData")
