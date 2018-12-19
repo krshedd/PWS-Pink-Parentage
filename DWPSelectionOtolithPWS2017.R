@@ -105,3 +105,41 @@ write.xlsx(x = Stockdale[Stockdale.ind, c("Stream", "Sample.Date", "Sample.Tray.
 write.xlsx(x = Hogan[Hogan.ind, c("Stream", "Sample.Date", "Sample.Tray.Id", "Num.Otoliths", "Shipping.Box.Number")], file = "PWS Pink Otolith Separation DWPs 2017.xlsx", sheetName = "Hogan", col.names = TRUE, row.names = FALSE, append = TRUE)
 write.xlsx(x = Hogan[Hogan.ind2, c("Stream", "Sample.Date", "Sample.Tray.Id", "Num.Otoliths", "Shipping.Box.Number")], file = "PWS Pink Otolith Separation DWPs 2017.xlsx", sheetName = "Hogan2", col.names = TRUE, row.names = FALSE, append = TRUE)
 write.xlsx(x = Stockdale[Stockdale.ind2, c("Stream", "Sample.Date", "Sample.Tray.Id", "Num.Otoliths", "Shipping.Box.Number")], file = "PWS Pink Otolith Separation DWPs 2017.xlsx", sheetName = "Stockdale2", col.names = TRUE, row.names = FALSE, append = TRUE)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### All Remaining 2017 Hogan ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Need to otolith separate all remaining 2017 Hogan (originally did every other + 10 extra)
+
+require(tidyverse)
+oceanak <- read_csv("../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv")
+oceanak %>% 
+  mutate(`DNA Tray Code` = str_pad(string = `DNA Tray Code`, width = 10, side = "left", pad = "0")) %>% 
+  filter(`Silly Code` == "PHOGAN17") %>% 
+  group_by(`DNA Tray Code`) %>% 
+  summarise(sum_na = sum(is.na(`Otolith Mark Present`)),
+            n = n()) %>% 
+  filter(sum_na == n)
+# some of the dwp's that were separated, but all the otoliths were NA are still in there...
+
+# New idea
+# Got from 
+# "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Otolith Separation/PWS Pink Otolith Separation DWPs 2017.xlsx"
+# tab Hogan and Hogan2
+hogan_1 <- as.numeric(readClipboard())
+hogan_2 <- as.numeric(readClipboard())
+
+hogan_already_separated <- c(hogan_1, hogan_2)
+
+all_hogan <- oceanak %>% 
+  filter(`Silly Code` == "PHOGAN17") %>% 
+  pull(`DNA Tray Code`)
+
+all_hogan <- unique(all_hogan)
+
+hogan_to_separate <- setdiff(all_hogan, hogan_already_separated)
+
+str_pad(string = hogan_to_separate, width = 10, side = "left", pad = "0") %>% 
+  as_tibble() %>% 
+  rename(`DNA Tray Code` = value) %>% 
+  write_csv("../Otolith Separation/PHOGAN17_remaining_to_separate_20181219.csv")
