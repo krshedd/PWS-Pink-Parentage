@@ -458,6 +458,32 @@ parents_paired_13_15 %>%
 
 Offspring lengths show a great deal of variation. Male offspring tend to be larger than female offspring, as expected.  
 
+```{r Examine body length father Odd}
+parents_paired_13_15 %>% 
+  filter(`Length Mm.y` != "NA") %>% 
+  filter(SEX.y == "M") %>% 
+  ggplot(aes(x=`Length Mm.y`, y=`Length Mm.x`, colour = SEX.x))+
+  geom_smooth(method='lm')+
+  geom_point(size = 2)+
+  labs(title = "Offspring Length vs. Father Length",
+       colour = "Offspring Sex") +
+  xlab("Father Length (mm)") +
+  ylab("Offspring Length (mm)")
+```
+
+```{r Examine body length mother Odd}
+parents_paired_13_15 %>% 
+  filter(`Length Mm.y` != "NA") %>% 
+  filter(SEX.y == "F") %>% 
+  ggplot(aes(x=`Length Mm.y`, y=`Length Mm.x`, colour = SEX.x))+
+  geom_smooth(method='lm')+
+  geom_point(size = 2)+
+  labs(title = "Offspring Length vs. Mother Length",
+       colour = "Offspring Sex") +
+  xlab("Mother Length (mm)") +
+  ylab("Offspring Length (mm)")
+```
+
 ```{r Fit a linear model between parent and offspring length Odd}
 fit.lm.length <- lm(`Length Mm.x` ~ `Length Mm.y` + SEX.x, parents_paired_13_15)  
 summary(fit.lm.length)
@@ -1304,7 +1330,33 @@ parents_paired_14_16 %>%
   ylab("Offspring Length (mm)")
 ```
 
-We fit linear models to examine relationships between offspring length and both parent length and offspring sex. 
+We fit linear models to examine relationships between offspring length and both parent length and offspring sex.
+
+```{r Examine body length fathers Even}
+parents_paired_14_16 %>% 
+  filter(`Length Mm.y` != "NA") %>% 
+  filter(SEX.y == "M") %>% 
+  ggplot(aes(x=`Length Mm.y`, y=`Length Mm.x`, colour =  SEX.x))+
+  geom_smooth(method='lm')+
+  geom_point(size = 2)+
+  labs(title = "Offspring Length vs. Father Length",
+       colour = "Offspring Sex") +
+  xlab("Father Length (mm)") +
+  ylab("Offspring Length (mm)")
+```
+
+```{r Examine body length mothers Even}
+parents_paired_14_16 %>% 
+  filter(`Length Mm.y` != "NA") %>% 
+  filter(SEX.y == "F") %>% 
+  ggplot(aes(x=`Length Mm.y`, y=`Length Mm.x`, colour =  SEX.x))+
+  geom_smooth(method='lm')+
+  geom_point(size = 2)+
+  labs(title = "Offspring Length vs. Mother Length",
+       colour = "Offspring Sex") +
+  xlab("Mother Length (mm)") +
+  ylab("Offspring Length (mm)")
+```
 
 ```{r Fit a linear model between parent and offspring length Even}
 fit.lm.length <- lm(`Length Mm.x` ~ `Length Mm.y` + SEX.x, parents_paired_14_16)  
