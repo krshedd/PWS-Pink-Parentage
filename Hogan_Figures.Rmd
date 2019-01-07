@@ -190,11 +190,14 @@ paired_14_16_filter_parents %>%
 # Figure 4: RS by length and time
 
 ```{r RS by length and time Even}
+
+paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/paired_14_16_filter_parents.csv")
+
 paired_14_16_filter_parents %>% 
   ggplot(aes(x=`Sample Date`, y=n, color=origin.x)) +
   geom_jitter(height = 0) +
   geom_smooth() +
-  facet_grid(~SEX)+
+  facet_grid(rows=vars(SEX))+
   labs(title="Reproductive Success by Parental Sample Date",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Sample Date") +
@@ -204,7 +207,7 @@ paired_14_16_filter_parents %>%
   ggplot(aes(x=`Length Mm.y`, y=n, color=origin.x)) +
   geom_jitter(height = 0) +
   geom_smooth() +
-  facet_grid(~SEX) +
+  facet_grid(rows=vars(SEX)) +
   labs(title="Reproductive Success by Parental Length (mm)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Length (mm)") +
