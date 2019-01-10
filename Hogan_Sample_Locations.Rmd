@@ -1,0 +1,49 @@
+---
+title: "Hogan Sample Locations"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+ 
+
+```{r setup, include=FALSE}
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+```
+
+```{r read in finsight data}
+finsight_hogan <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/finsight_hogan.csv")
+
+finsight_hogan$SurveyDate <- as.Date(finsight_hogan$SurveyDate, "%m/%d/%Y") 
+
+finsight_hogan <- finsight_hogan %>%  
+  mutate(year = as.numeric(format(SurveyDate, format = "%Y")),
+         month = as.numeric(format(SurveyDate, format = "%m")),
+        day = as.numeric(format(SurveyDate, format = "%d")))
+
+finsight_hogan <- finsight_hogan %>% 
+  mutate(Longitude = -abs(Longitude))
+
+finsight_hogan_filtered <- finsight_hogan %>% 
+  filter(Latitude>60.207 & Longitude < -147.758)
+
+finsight_hogan_filtered$ProcessingAreaNum <- as.factor(finsight_hogan_filtered$ProcessingAreaNum)
+
+finsight_hogan_filtered %>%
+count(year, ProcessingAreaNum, Longitude, Latitude) %>%
+ggplot(aes(x = Longitude, y = Latitude, color= ProcessingAreaNum, size = n)) +
+geom_point (alpha=0.2) +
+facet_wrap(~year)
+
+finsight_hogan %>%
+count(year, ProcessingAreaNum, Longitude, Latitude) 
+
+```
