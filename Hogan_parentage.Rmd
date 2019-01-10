@@ -959,6 +959,27 @@ rs_14_16_length %>%
   ylab("Reproductive Success")
 ```
 
+```{r plot length, time, RS even}
+rs_14_16_date_length <- left_join(rs_14_16_date, rs_14_16_length, by = "Fish ID.y")
+
+rs_14_16_date_length %>% 
+  ggplot(aes(x=`Sample Date.y`, y=`Length Mm.y`, color=origin.x, shape=SEX.y.x, size = n.x))+
+  geom_jitter(height=0.5)+
+  labs(title="Reproductive Success by Parental Length and Sample Date",  colour = "Parent: Origin",
+       shape = "Parent: Sex", size = "RS")+
+  xlab("Parental Sample Date")+
+  ylab("Parental Size")
+
+rs_14_16_date_length %>% 
+  ggplot(aes(x=`Sample Date.y`, y=`Length Mm.y`, color =SEX.y.x, size = n.x))+
+  facet_grid(origin.x ~.) +
+  geom_jitter(height=0.5)+
+  labs(title="Reproductive Success by Parental Length and Sample Date",  
+       color = "Parent: Sex", size = "RS")+
+  xlab("Parental Sample Date")+
+  ylab("Parental Size")
+```
+
 #### Calculate relative reproductive success
 We'll calculate relative reproductive success (RRS) using the following equation: mean hatchery family size/mean natural family size. We'll do this separately for males and females. We can get fancy and apply the unbiased RRS from Araki and Blouin 2005 later on.  
 
@@ -1474,6 +1495,7 @@ paired_14_16_filter %>%
   theme(axis.text=element_text(size=10)) +
   ggtitle("Distribution of Length by Sample Date (2014)")
 ```
+
 
 ```{r Fit LM for parental sample date and length even}
 lm.date.length.even <- lm(`Length Mm.y` ~ `Sample Date.y`, parents_paired_14_16)
