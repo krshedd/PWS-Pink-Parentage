@@ -1,0 +1,34 @@
+---
+title: "Hogan Parentage Figures"
+output: html_notebook:
+theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+```{r setup, include=FALSE}
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+```
+
+
+# Figure 1: Map of study area
+
+```{r map of study area, message=FALSE, warning=FALSE}
+map_data <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/map_data_Hogan.csv") 
+
+icons <- awesomeIcons(icon = 'ios-close', iconColor = 'transparent', library = 'ion', markerColor = map_data$color)
+
+map_data %>% 
+  leaflet(width = "100%") %>% 
+  addTiles() %>% 
+  addAwesomeMarkers(~ long, ~ lat, icon = icons, label = ~ name, popup = ~ type, labelOptions = labelOptions(noHide = TRUE, textOnly = TRUE, direction = "top"))  %>% 
+addLegend("bottomright", labels = unique(map_data$type), colors = unique(map_data$color), opacity = 1)
+```
+
