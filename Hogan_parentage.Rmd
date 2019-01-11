@@ -1337,6 +1337,30 @@ parents_paired_14_16_cross %>%
 
 Offspring from all four types of crosses are represented in our dataset. HH crosses produced 1-2 offspring, HN and NH crosses produced 1-3 offspring, and NN crosses produced 1-2 offspring. Note that each fish only spawned with 1 other fish. 
 
+#### Association between parent lengths
+
+```{r Association between parent lengths}
+parents_paired_14_16_cross %>% 
+  filter (SEX != "NA") %>% 
+  ggplot(aes(x=`Length Mm.y`, y=`Length Mm`, colour = cross))+
+  geom_point(size = 2) +
+      labs(title = "Parent 2 Date vs. Parent 1 Length",
+       colour = "Cross") +
+  xlab("Parent 1 Length (mm)") +
+  ylab("Parent 2 Length (mm)")
+
+
+
+```
+
+```{r mean body lengths by cross type}
+parents_paired_14_16_cross %>% 
+  #filter(cross == "HH") %>% 
+  group_by(origin, SEX, cross) %>% 
+  summarise(avg_length = round(mean(`Length Mm`, na.rm = TRUE))) %>% 
+  spread(SEX, avg_length)
+```
+
 ## Associations between parents and offspring
 Here we briefly explore the heritability of:  
 
