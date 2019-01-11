@@ -372,6 +372,114 @@ fig3_13
 
 Simulated false-positive rates for matching (a) single parents with offspring and for (b) full-siblings at a given false-negative rate using the four sets of markers: 165 microhaplotypes (m165), 165 SNPs (s165), 96 microhaps (m96) and 96 SNPs with the highest heterozygosity (s96_top). False positive rates are lowest for the m165 dataset and highest for the s96_top dataset. 
 
+## Expanding data assuming things are unlinked or linked
+
+Note: for this section, you need to download and install Mendel (Lange et al. 2013).
+
+First, we are going to need to assume a map---i.e. a collection of chromosomes and lengths.  For now, I am just going to assume 25 chromosomes that vary in length from 200 to 100 Mb, and we assume 1 cM per megabase.
+```{r}
+fakeChroms <- tibble(Chrom = 1:25,
+                     length = seq(200e06, 100e06, length.out = 25))
+```
+That is a pretty "generous" genome, in terms of chances for recombination, I think.
+
+Let's just do this as simply as possible and duplicate our data 1X, 2X, 4X, 8X, 16X, 32X, 64X.
+
+Before I required that we replicate everything contiguously, but now we want to be able to
+just go straight to 32X, or, actually, we would like to multiply things by a factor or 2 each 
+time.  
+
+Of course, before that, we want to have something that assigns chromosomes and positions to each marker. 
+```{r}
+#' @param D a data frame of Chrom Locus Pos, Allele, LocIdx, AlleIdx and Freq
+#' @param FC a data frame of fake chromosomes with chrom names and lenths
+#' @details This randomly assigns each Locus to a random position within a 
+#' randomly chosen chrom.
+sprinkle_positions <- function(D, FC) {
+  loci <- tibble::tibble(Locus = unique(D$Locus))
+  L <- nrow(loci)  # the number of loci we are doing here
+  
+  # now, choose which chroms those are on.  Weight it by their length, of course
+  # and also simulate a position in it. Then bind it to the Locus names
+  new_pos <- FC %>%
+    sample_n(size = L, replace = TRUE, weight = length) %>%
+    mutate(Pos = floor(runif(n(), min = 1, max = length))) %>%
+    mutate(Locus = loci$Locus) %>%
+    select(Chrom, Locus, Pos)
+  
+  # now, just left join that onto D by Locus.
+  # and we might as well reindex them, although if we duplicate the data 
+  # set we will have to reindex them again
+  D %>%
+    select(-Chrom, -Pos) %>%
+    left_join(new_pos, ., by = "Locus") %>%
+    reindex_markers()
+}
+```
+
+And now we just need a function that will return a set of data just like the previous,
+but with locus names that are slightly different, and with the duplicated ones having
+new positions, while the old ones keep the same old positions.
+```{r}
+data_duplicator <- function(D, FC, suffix = "_x2") {
+  D2 <- D %>%
+    mutate(Locus = paste0(Locus, suffix)) %>%
+    sprinkle_positions(., FC)
+  
+  reindex_markers(bind_rows(D, D2))
+}
+```
+
+Now, here is a function which will return a list of data sets, each one representing
+a 1X, or 2X, or 4X duplication...
+```{r}
+make_dupies <- function(D, FC) {
+  
+  ret <- list()
+  ret[[1]] <- sprinkle_positions(D, FC)
+  
+  for (i in 1:6) {
+    idx <- 1 + i
+    suff <- paste0("x", 2^i)
+    ret[[idx]] <- data_duplicator(ret[[i]], FC, suffix = suff)
+  }
+  
+  names(ret) <- paste0("x", 2 ^ (0:6))
+  ret
+}
+```
+
+And here we create duplicate versions of the 96 microhaps and the 96 SNPs.  Note that
+positions are not the same in each, but are just randomly sprinkled for each marker
+type, but that should be fine...
+```{r}
+set.seed(555)
+mhap_dupie_list <- make_dupies(fourData_list_13$m96, fakeChroms)
+snp_dupie_list <- make_dupies(fourData_list_13$s96_top, fakeChroms)
+```
+
+And, finally, all we need is a function that will do the linked and unlinked simulation for each of these.
+I am going to do it for one relationship at a time...
+```{r}
+sim_linked_and_unlinked_hs <- function(D) {
+  CK <- create_ckmr(D)
+  QU_unlinked <- simulate_Qij(CK, froms = c("U", "HS"), tos = c("U", "HS"), reps = 1e4)
+  QU_linked <- simulate_Qij(CK, froms = c("HS"), tos = c("U", "HS"), reps = 1e04, unlinked = FALSE, pedigree_list = pedigrees)
+  
+  link <- mc_sample_simple(Q = QU_unlinked, nu = "HS", de = "U", method = "IS", FNRs = seq(0.05, 0.3, by = 0.05), Q_for_fnrs = QU_linked) %>%
+    mutate(sim_type = "linked")
+  unlink <- mc_sample_simple(Q = QU_unlinked, nu = "HS", de = "U", method = "IS", FNRs = seq(0.05, 0.3, by = 0.05)) %>%
+    mutate(sim_type = "unlinked")
+  
+  bind_rows(link, unlink)
+}
+```
+
+And now, fire it up for half-sibs and SNPs:
+```{r}
+snps_hs_reslist <- lapply(snp_dupie_list, sim_linked_and_unlinked_hs)
+```
+
 #Even
 
 ```{r make input file even}
