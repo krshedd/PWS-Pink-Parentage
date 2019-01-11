@@ -19,7 +19,9 @@ library(leaflet)
 library(lubridate)
 ```
 
-```{r read in finsight data}
+# Read in, format, and filter data
+
+```{r read in and filter finsight data}
 finsight_hogan <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/finsight_hogan.csv")
 
 finsight_hogan$SurveyDate <- as.Date(finsight_hogan$SurveyDate, "%m/%d/%Y") 
@@ -36,7 +38,11 @@ finsight_hogan_filtered <- finsight_hogan %>%
   filter(Latitude>60.207 & Longitude < -147.758)
 
 finsight_hogan_filtered$ProcessingAreaNum <- as.factor(finsight_hogan_filtered$ProcessingAreaNum)
+```
 
+# Plot sample locations
+
+```{r plot sample locations}
 finsight_hogan_filtered %>%
 count(year, ProcessingAreaNum, Longitude, Latitude) %>%
 ggplot(aes(x = Longitude, y = Latitude, color= ProcessingAreaNum, size = n)) +
@@ -47,3 +53,51 @@ finsight_hogan %>%
 count(year, ProcessingAreaNum, Longitude, Latitude) 
 
 ```
+
+# Convert coordinates to distance from stream mouth
+
+```{r convert coordinates to distances}
+
+long1 <- min(finsight_hogan_filtered$Longitude)
+lat1 <- min(finsight_hogan_filtered$Latitude)
+long2 <- finsight_hogan_filtered$Longitude
+lat2 <- finsight_hogan_filtered$Latitude
+
+# Calculates the geodesic distance between two points specified by radian latitude/longitude using the
+# Haversine formula (hf)
+gcd.hf <- function(long1, lat1, long2, lat2) {
+   R <- 6371 # Earth mean radius [km]
+  delta.long <- (long2 - long1)
+  delta.lat <- (lat2 - lat1)
+  a <- sin(delta.lat/2)^2 + cos(lat1) * cos(lat2) * sin(delta.long/2)^2
+  c <- 2 * asin(min(1,sqrt(a)))
+  d = R * c
+  return(d) # Distance in km
+}
+
+distance <- apply(finsight_hogan_filtered[,c("Latitude", "Longitude")], 1, function(x) {
+  gcd.hf(long1 = min(finsight_hogan_filtered$Longitude), 
+         lat1 = min(finsight_hogan_filtered$Latitude), 
+         long2 = x["Longitude"], 
+         lat2 = x["Latitude"])
+  })
+
+finsight_hogan_filtered$Distance <- distance
+      
+
+# A function to convert degrees to radians
+deg2rad <- function(deg) return(deg*pi/180)
+
+```
+
+# Join finsight table with parentage data
+
+```{r join tables}
+paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/paired_14_16_filter_parents.csv")
+
+
+finsight_parentage_hogan <- left_join(paired_14_16_filter_parents, finsight_hogan_filtered, by = c("DNA Tray Code" = "SampleTrayId" , "DNA Tray Well Code" = "SampleCell"))
+
+
+```
+
