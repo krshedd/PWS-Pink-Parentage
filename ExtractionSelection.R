@@ -490,3 +490,6 @@ extraction_eP004 <- bind_rows(Stockdale_17, Hogan_Natural_17, Hogan_Hatchery_17)
 write_csv(x = extraction_eP004, path = "../Extraction/eP004_Extraction_List_181219.csv")
 
 save.image("../Extraction/eP004_Extraction_List_181219.RData")
+
+extraction_eP004 %>% 
+  count(`Silly Code`, `Tissue Type`)
