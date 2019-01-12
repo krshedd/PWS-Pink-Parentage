@@ -18,6 +18,8 @@ library(scales)
 library(tidyverse)
 library(leaflet)
 library(lubridate)
+
+duplicates_to_remove <- dget("../Objects/duplicates_to_remove.txt")
 ```
 
 # Map of study area
@@ -109,6 +111,23 @@ Quick look at what our sample sizes are for potential parents (2013) and potenti
 paired_13_15_filter %>% 
   count(`Sample Year`, SEX, origin) %>% 
   spread(origin, n, fill = 0)
+```
+
+## Quick check for missed duplicates
+It does not look like any of the "extra" duplicates that we needed to remove had any parent/offspring relationships.
+
+```{r dups_odd}
+duplicates_to_remove %>% 
+  dplyr::filter(SILLY_CODE %in% c("PHOGAN13", "PHOGAN15")) %>% 
+  dplyr::select(SILLY_CODE, SillySource)
+
+# Are parents in dups?
+parentage_13_15_filter %>% 
+  filter(Parent_ID %in% c("PH13_00560", "PH13_00560", "PH13_00820", "PH13_00822"))
+
+# Are offspring in dups
+parentage_13_15_filter %>% 
+  filter(Offspring %in% c("PH15_03217", "PH15_03217"))
 ```
 
 
@@ -712,6 +731,22 @@ paired_14_16_filter %>%
   spread(origin, n, fill = 0)
 ```
 
+## Quick check for missed duplicates
+It *does* look like one of the "extra" duplicate 2014 parents had 2 offspring assigned to it that we needed to remove. None of the "extra" duplicate 2016 offspring had any parent/offspring relationships.
+
+```{r dups_even}
+duplicates_to_remove %>% 
+  dplyr::filter(SILLY_CODE %in% c("PHOGAN14", "PHOGAN16")) %>% 
+  dplyr::select(SILLY_CODE, SillySource)
+
+# Are parents in dups?
+parentage_14_16_filter %>% 
+  filter(Parent_ID %in% c("PH14_01107", "PH14_01112"))
+
+# Are offspring in dups
+parentage_14_16_filter %>% 
+  filter(Offspring %in% c("PH16_03922", "PH16_03923", "PH16_05684", "PH16_05691", "PH16_09721", "PH16_10544", "PH16_10553", "PH16_11811", "PH16_11812", "PH16_12040", "PH16_12041", "PH16_12448"))
+```
 ## Join parentage and individual data
 Here, we joined parentage data from *FRANz* with individual data so that we can match data to each offspring and parent. **Note** that any column ending in .x refers to offspring and .y refers to parent.  
 
