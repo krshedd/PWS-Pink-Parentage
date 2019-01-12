@@ -1,6 +1,11 @@
 ---
 title: "NPRB - Hogan Bay Exploratory Analysis"
-output: html_notebook
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -13,10 +18,10 @@ bbind <- function(...) { abind(..., along = 3) }
 
 .username <- "ealescak"
 .password <- "1234"
-source("~/../R/Functions.GCL.R")
+source("~/R/Functions.GCL.R")
 
 load_objects(path = "../Objects/")
-load_sillys(path = "../Genotypes/Original/")
+load_sillys(path = "../Genotypes/OceanAK_Origin/")
 ```
 
 # Introduction
@@ -186,8 +191,50 @@ Remove duplicate individuals within the same collection. Typically we specify *d
 DuplicateCheck95MinProportion <- CheckDupWithinSilly.GCL(sillyvec = ProjectSillys_Origin, loci = loci, quantile = NULL, minproportion = 0.95)
 DuplicateCheckReportSummary <- sapply(ProjectSillys_Origin, function(x) DuplicateCheck95MinProportion[[x]]$report, simplify = FALSE)
 DuplicateCheckReportSummary
-RemovedDups <- RemoveDups.GCL(DuplicateCheck95MinProportion)
-save_objects("RemovedDups", path = "../Objects/")
+save_objects("DuplicateCheckReportSummary", path = "../Objects/")
+```
+
+```{r remove all duplicates}
+#RemovedDups <- RemoveDups.GCL(DuplicateCheck95MinProportion)
+#save_objects("RemovedDups", path = "../Objects/")
+
+# All duplicate IDs in to one tibble
+dups <- bind_rows(DuplicateCheckReportSummary[sapply(DuplicateCheckReportSummary, is.data.frame)], .id = "silly") %>% 
+  select(silly, ID1, ID2) %>% 
+  gather(trash, id, -silly) %>% 
+  select(-trash) %>% 
+  arrange(silly, id)
+
+# Separate vector of IDs for each silly
+dup_13h_ids <- filter(dups, silly == "PHOGAN13h") %>% pull(id)
+dup_14h_ids <- filter(dups, silly == "PHOGAN14h") %>% pull(id)
+dup_15_ids <- filter(dups, silly == "PHOGAN15") %>% pull(id)
+dup_16_ids <- filter(dups, silly == "PHOGAN16") %>% pull(id)
+
+
+# ID silly sources for duplicate individuals
+dup_13h <- PHOGAN13h.gcl$attributes %>% 
+  filter(FK_FISH_ID %in% dup_13h_ids) %>% 
+  mutate(FK_FISH_ID = as.numeric(FK_FISH_ID))
+dup_14h <- PHOGAN14h.gcl$attributes %>% 
+  filter(FK_FISH_ID %in% dup_14h_ids) %>% 
+  mutate(FK_FISH_ID = as.numeric(FK_FISH_ID))
+dup15 <- PHOGAN15.gcl$attributes %>%
+  filter(FK_FISH_ID %in% dup_15_ids)
+dup16 <- PHOGAN16.gcl$attributes %>%  
+  filter(FK_FISH_ID %in% dup_16_ids)
+
+# One tibble with all attributes for fish to remove
+duplicates_to_remove <- bind_rows(dup_14h, dup_13h, dup15, dup16)
+save_objects("duplicates_to_remove", path = "../Objects/")
+
+# Remove fish from .gcl objects
+RemoveIDs.GCL(silly = "PHOGAN13h", IDs = dup_13h_ids)
+RemoveIDs.GCL(silly = "PHOGAN14h", IDs = dup_14h_ids)
+RemoveIDs.GCL(silly = "PHOGAN15", IDs = dup_15_ids)
+RemoveIDs.GCL(silly = "PHOGAN16", IDs = dup_16_ids)
+
+# Fill in sample size matrix
 ProjectSillys_Origin_SampleSizes[, "Duplicate"] <-  ProjectSillys_Origin_SampleSizes[, "Genotyped"] - ProjectSillys_Origin_SampleSizes[, "Missing"] - sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
 ```
 
@@ -501,6 +548,7 @@ How many fish did we end up with?
 ```{r qa_final}
 ProjectSillys_Origin_SampleSizes[, "Final"] <- sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
 ProjectSillys_Origin_SampleSizes
+save_objects("ProjectSillys_Origin_SampleSizes", path = "../Objects/")
 ```
 
 Save post-QA genotypes.
