@@ -51,7 +51,20 @@ paired_14_16_filter <- read.csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hat
 paired_14_16_filter %>% 
   ggplot(aes(x=`Julian`, fill=origin)) +
   geom_histogram(position=position_dodge(), binwidth = 1) +
+  facet_grid(Sample.Year ~ .) +
+  labs(title="Number of Samples per Year by Date and Origin")
+
+#Stacked
+paired_13_15_filter %>% 
+  ggplot(aes(x=`Julian`)) +
+  geom_bar(aes(fill=origin)) +
   facet_grid(`Sample Year` ~ .) +
+  labs(title="Number of Samples per Year by Date and Origin")
+
+paired_14_16_filter %>% 
+  ggplot(aes(x=`Julian`)) +
+  geom_bar(aes(fill=origin)) +
+  facet_grid(Sample.Year ~ .) +
   labs(title="Number of Samples per Year by Date and Origin")
 ```
 
