@@ -305,7 +305,7 @@ paired_13_15_filter_parents <- left_join(paired_13_15_filter_parents, parents_pa
   rename(origin = origin.x) %>% 
   select(-origin.y, -SEX.par, -`Sample Year.par`, -`Length Mm.par`, -`Sample Date.par`)
 
-write.csv(paired_13_15_filter_parents, "paired_13_15_filter_parents.csv")
+write_csv(paired_13_15_filter_parents, "paired_13_15_filter_parents.csv")
 
 # Mean RS including 0's
 rs_13_15_0 <- paired_13_15_filter_parents %>%
