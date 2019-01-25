@@ -40,7 +40,7 @@ addLegend("bottomright", labels = unique(map_data$type), colors = unique(map_dat
 ```{r sample sizes throughout run}
 paired_13_15_filter <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/paired_13_15_filter.csv")
 
-install.packages("ggthemes") # Install 
+#install.packages("ggthemes") # Install 
 library(ggthemes) # Load
 
 paired_13_15_filter %>% 
@@ -122,7 +122,7 @@ paired_13_15_filter_parents %>%
   #geom_vline(xintercept=F_h_0_13_15, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
   #annotate("text", x = F_n_0_13_15 + 0.5, y = .250, label = paste("F_n_0 =", round(F_n_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
   #annotate("text", x = F_h_0_13_15 + 0.5, y = .300, label = paste("F_h_0 =", round(F_h_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) 
-ggsave("RS_odd_Females.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3")
+#ggsave("RS_odd_Females.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3")
 
 paired_13_15_filter_parents %>% 
   filter(SEX == "M") %>% 
@@ -144,7 +144,7 @@ paired_13_15_filter_parents %>%
   #geom_vline(xintercept=M_h_0_13_15, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
   #annotate("text", x = M_n_0_13_15 + 0.5, y = .250, label = paste("M_n_0 =", round(M_n_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
   #annotate("text", x = M_h_0_13_15 + 0.5, y = .300, label = paste("M_h_0 =", round(M_h_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
-ggsave("RS_Odd_Males.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
+#ggsave("RS_Odd_Males.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
 
 paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/paired_14_16_filter_parents.csv")
 
@@ -190,7 +190,7 @@ paired_14_16_filter_parents %>%
   #geom_vline(xintercept=F_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
   #annotate("text", x = F_n_0_14_16 + 0.5, y = .250, label = paste("F_n_0 =", round(F_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
   #annotate("text", x = F_h_0_14_16 + 0.5, y = .300, label = paste("F_h_0 =", round(F_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) 
-ggsave("RS_Even_Females.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
+#ggsave("RS_Even_Females.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
 
 paired_14_16_filter_parents %>% 
   filter(SEX == "M") %>% 
@@ -212,7 +212,7 @@ paired_14_16_filter_parents %>%
   #geom_vline(xintercept=M_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
   #annotate("text", x = M_n_0_14_16 + 0.5, y = .250, label = paste("M_n_0 =", round(M_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
   #annotate("text", x = M_h_0_14_16 + 0.5, y = .300, label = paste("M_h_0 =", round(M_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
-ggsave("RS_Even_Males.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
+#ggsave("RS_Even_Males.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
 ```
 
 # Figure 4: RS by length and time
@@ -285,7 +285,7 @@ het_tibble %>%
 ggsave("Figure_S1.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Supplemental/Figures/")
 ```
 
-# Figure S2: RS for triads 
+# Figure S2: RS for triads  
 
 ```{r RS for triads}
 
@@ -307,5 +307,4 @@ parents_paired_14_16_cross %>%
   xlab("Number of Offspring")+
   ylab("Number of Families") 
 ggsave("Figure_S2.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Supplemental/Figures/")
-```
 ```
