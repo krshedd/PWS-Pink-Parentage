@@ -653,6 +653,8 @@ mydata_F_0 <- paired_14_16_filter_parents %>%
 
 perm_1tail_pvalue_M_0 <- round(x = as.numeric(coin::pvalue(oneway_test(n ~ origin, data = mydata_M_0, distribution = approximate(B = 10000), alternative = "greater"))), digits = 4)
 
+M_0_CI <- oneway_test(n ~ origin, data = mydata_M_0, distribution = approximate(B = 10000), conf.int = 0.9)
+
 perm_1tail_pvalue_F_0 <- round(x = as.numeric(coin::pvalue(oneway_test(n ~ origin, data = mydata_F_0, distribution = approximate(B = 10000), alternative = "greater"))), digits = 4)
 
 #And to do a 1-tailed negative binomial GLM
@@ -749,7 +751,7 @@ parents_paired_14_16_cross <- parentage_14_16 %>%
                 `Otolith Mark Present.par1` == "YES" & SEX.par1 == "M" & `Otolith Mark Present` == "NO" & SEX == "F" ~ "NH",
                 `Otolith Mark Present.par1` == "NO" & SEX.par1 == "M" & `Otolith Mark Present` == "YES" & SEX == "F" ~ "HN" ))
 
-write.csv(parents_paired_14_16_cross, "parents_paired_14_16_cross.csv")
+write_csv(parents_paired_14_16_cross, "parents_paired_14_16_cross.csv")
 
 parents_paired_14_16_cross %>% 
   count(cross, `Fish ID`, `Fish ID.par1`) %>% 
@@ -760,8 +762,8 @@ parents_paired_14_16_cross %>%
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = 1:5) +
-  ylim(0, 5) +
-  xlim(0, 5) +
+  ylim(0, 3) +
+  xlim(0, 4) +
   labs(title = "Distribution of Family Size by Cross") +
   xlab("Number of Offspring")+
   ylab("Number of Families") 
@@ -922,7 +924,7 @@ paired_14_16_filter <-
   paired_14_16_filter %>% 
   mutate(Julian = yday(`Sample Date`))
 
-write.csv(paired_14_16_filter, "paired_14_16_filter.csv")
+write_csv(paired_14_16_filter, "paired_14_16_filter.csv")
 
 paired_14_16_filter %>% 
   ggplot(aes(x=`Julian`, fill=origin)) +
