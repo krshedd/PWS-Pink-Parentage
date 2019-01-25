@@ -40,6 +40,9 @@ addLegend("bottomright", labels = unique(map_data$type), colors = unique(map_dat
 ```{r sample sizes throughout run}
 paired_13_15_filter <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/paired_13_15_filter.csv")
 
+install.packages("ggthemes") # Install 
+library(ggthemes) # Load
+
 paired_13_15_filter %>% 
   ggplot(aes(x=`Julian`, fill=origin)) +
   geom_histogram(position=position_dodge(), binwidth = 1) +
@@ -57,15 +60,19 @@ paired_14_16_filter %>%
 #Stacked
 paired_13_15_filter %>% 
   ggplot(aes(x=`Julian`)) +
+  theme_bw() +
   geom_bar(aes(fill=origin)) +
   facet_grid(`Sample Year` ~ .) +
   labs(title="Number of Samples per Year by Date and Origin")
+ggsave("samples_odd.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 2/")
 
 paired_14_16_filter %>% 
   ggplot(aes(x=`Julian`)) +
+  theme_bw() +
   geom_bar(aes(fill=origin)) +
   facet_grid(Sample.Year ~ .) +
   labs(title="Number of Samples per Year by Date and Origin")
+ggsave("samples_even.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 2/")
 ```
 
 # Figure 3: Reproductive success
@@ -75,7 +82,7 @@ paired_13_15_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Al
 
 # Mean RS including 0's
 rs_13_15_0 <- paired_13_15_filter_parents %>%
-  group_by(origin.x, SEX) %>% 
+  group_by(origin, SEX) %>% 
   summarise(RS = mean(n, na.rm = TRUE))
 
 rs_13_15_0 %>%
@@ -84,62 +91,66 @@ rs_13_15_0 %>%
 
 # Save RS values
 F_h_0_13_15 <- rs_13_15_0 %>% 
-  filter(origin.x == "Hatchery" & SEX == "F") %>% 
+  filter(origin == "Hatchery" & SEX == "F") %>% 
   pull(RS)
 M_h_0_13_15 <- rs_13_15_0 %>% 
-  filter(origin.x == "Hatchery" & SEX == "M") %>% 
+  filter(origin == "Hatchery" & SEX == "M") %>% 
   pull(RS)
 F_n_0_13_15 <- rs_13_15_0 %>% 
-  filter(origin.x == "Natural" & SEX == "F") %>% 
+  filter(origin == "Natural" & SEX == "F") %>% 
   pull(RS)
 M_n_0_13_15 <- rs_13_15_0 %>% 
-  filter(origin.x == "Natural" & SEX == "M") %>% 
+  filter(origin == "Natural" & SEX == "M") %>% 
   pull(RS)
 
 paired_13_15_filter_parents %>% 
   filter(SEX == "F") %>% 
-  count(origin.x, n) %>% 
-  group_by(origin.x) %>% 
+  count(origin, n) %>% 
+  group_by(origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
-  ggplot(aes(x=n, y=p, fill = origin.x)) +
+  ggplot(aes(x=n, y=p, fill = origin)) +
+  theme_bw() +
   geom_col(position = position_dodge2(preserve="single")) +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +xlab("Number of Offspring") +
   ylab("Proportion of Females") +
-  labs(title="Number of Offspring for Females",
-       fill = "Parent: Origin") +
-  geom_vline(xintercept=F_n_0_13_15, size=2) +
-  geom_vline(xintercept=F_n_0_13_15, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
-  geom_vline(xintercept=F_h_0_13_15, size=2) +
-  geom_vline(xintercept=F_h_0_13_15, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
-  annotate("text", x = F_n_0_13_15 + 0.5, y = .250, label = paste("F_n_0 =", round(F_n_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
-  annotate("text", x = F_h_0_13_15 + 0.5, y = .300, label = paste("F_h_0 =", round(F_h_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) 
+  labs(title="Number of Offspring for Odd-Lineage Females",
+       fill = "Parent: Origin") 
+  #geom_vline(xintercept=F_n_0_13_15, size=2) +
+  #geom_vline(xintercept=F_n_0_13_15, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  #geom_vline(xintercept=F_h_0_13_15, size=2) +
+  #geom_vline(xintercept=F_h_0_13_15, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  #annotate("text", x = F_n_0_13_15 + 0.5, y = .250, label = paste("F_n_0 =", round(F_n_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  #annotate("text", x = F_h_0_13_15 + 0.5, y = .300, label = paste("F_h_0 =", round(F_h_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) 
+ggsave("RS_odd_Females.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3")
 
 paired_13_15_filter_parents %>% 
   filter(SEX == "M") %>% 
-  count(origin.x, n) %>% 
-  group_by(origin.x) %>% 
+  count(origin, n) %>% 
+  group_by(origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
-  ggplot(aes(x=n, y=p, fill = origin.x)) +
+  ggplot(aes(x=n, y=p, fill = origin)) +
+  theme_bw() +
   geom_col(position = position_dodge2(preserve="single")) +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   xlab("Number of Offspring") +
   ylab("Proportion of Males") +
-  labs(title="Number of Offspring for Males",
-       fill = "Parent: Origin") +
-  geom_vline(xintercept=M_n_0_13_15, size=2) +
-  geom_vline(xintercept=M_n_0_13_15, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
-  geom_vline(xintercept=M_h_0_13_15, size=2) +
-  geom_vline(xintercept=M_h_0_13_15, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
-  annotate("text", x = M_n_0_13_15 + 0.5, y = .250, label = paste("M_n_0 =", round(M_n_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
-  annotate("text", x = M_h_0_13_15 + 0.5, y = .300, label = paste("M_h_0 =", round(M_h_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+  labs(title="Number of Offspring for Odd-Lineage Males",
+       fill = "Parent: Origin") 
+  #geom_vline(xintercept=M_n_0_13_15, size=2) +
+  #geom_vline(xintercept=M_n_0_13_15, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  #geom_vline(xintercept=M_h_0_13_15, size=2) +
+  #geom_vline(xintercept=M_h_0_13_15, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  #annotate("text", x = M_n_0_13_15 + 0.5, y = .250, label = paste("M_n_0 =", round(M_n_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  #annotate("text", x = M_h_0_13_15 + 0.5, y = .300, label = paste("M_h_0 =", round(M_h_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+ggsave("RS_Odd_Males.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
 
 paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/paired_14_16_filter_parents.csv")
 
 # Mean RS including 0's
 rs_14_16_0 <- paired_14_16_filter_parents %>%
-  group_by(origin.x, SEX) %>% 
+  group_by(origin, SEX) %>% 
   summarise(RS = mean(n, na.rm = TRUE))
 
 rs_14_16_0 %>%
@@ -148,56 +159,60 @@ rs_14_16_0 %>%
 
 # Save RS values
 F_h_0_14_16 <- rs_14_16_0 %>% 
-  filter(origin.x == "Hatchery" & SEX == "F") %>% 
+  filter(origin == "Hatchery" & SEX == "F") %>% 
   pull(RS)
 M_h_0_14_16 <- rs_14_16_0 %>% 
-  filter(origin.x == "Hatchery" & SEX == "M") %>% 
+  filter(origin == "Hatchery" & SEX == "M") %>% 
   pull(RS)
 F_n_0_14_16 <- rs_14_16_0 %>% 
-  filter(origin.x == "Natural" & SEX == "F") %>% 
+  filter(origin == "Natural" & SEX == "F") %>% 
   pull(RS)
 M_n_0_14_16 <- rs_14_16_0 %>% 
-  filter(origin.x == "Natural" & SEX == "M") %>% 
+  filter(origin == "Natural" & SEX == "M") %>% 
   pull(RS)
 
 paired_14_16_filter_parents %>% 
   filter(SEX == "F") %>% 
-  count(origin.x, n) %>% 
-  group_by(origin.x) %>% 
+  count(origin, n) %>% 
+  group_by(origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
-  ggplot(aes(x=n, y=p, fill = origin.x)) +
+  ggplot(aes(x=n, y=p, fill = origin)) +
+  theme_bw() +
   geom_col(position = position_dodge2(preserve="single")) +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +xlab("Number of Offspring") +
   ylab("Proportion of Females") +
-  labs(title="Number of Offspring for Females",
-       fill = "Parent: Origin") +
-  geom_vline(xintercept=F_n_0_14_16, size=2) +
-  geom_vline(xintercept=F_n_0_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
-  geom_vline(xintercept=F_h_0_14_16, size=2) +
-  geom_vline(xintercept=F_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
-  annotate("text", x = F_n_0_14_16 + 0.5, y = .250, label = paste("F_n_0 =", round(F_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
-  annotate("text", x = F_h_0_14_16 + 0.5, y = .300, label = paste("F_h_0 =", round(F_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) 
+  labs(title="Number of Offspring for Even-Lineage Females",
+       fill = "Parent: Origin") 
+  #geom_vline(xintercept=F_n_0_14_16, size=2) +
+  #geom_vline(xintercept=F_n_0_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  #geom_vline(xintercept=F_h_0_14_16, size=2) +
+  #geom_vline(xintercept=F_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  #annotate("text", x = F_n_0_14_16 + 0.5, y = .250, label = paste("F_n_0 =", round(F_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  #annotate("text", x = F_h_0_14_16 + 0.5, y = .300, label = paste("F_h_0 =", round(F_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) 
+ggsave("RS_Even_Females.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
 
 paired_14_16_filter_parents %>% 
   filter(SEX == "M") %>% 
-  count(origin.x, n) %>% 
-  group_by(origin.x) %>% 
+  count(origin, n) %>% 
+  group_by(origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
-  ggplot(aes(x=n, y=p, fill = origin.x)) +
+  ggplot(aes(x=n, y=p, fill = origin)) +
+  theme_bw() +
   geom_col(position = position_dodge2(preserve="single")) +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   xlab("Number of Offspring") +
   ylab("Proportion of Males") +
-  labs(title="Number of Offspring for Males",
-       fill = "Parent: Origin") +
-  geom_vline(xintercept=M_n_0_14_16, size=2) +
-  geom_vline(xintercept=M_n_0_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
-  geom_vline(xintercept=M_h_0_14_16, size=2) +
-  geom_vline(xintercept=M_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
-  annotate("text", x = M_n_0_14_16 + 0.5, y = .250, label = paste("M_n_0 =", round(M_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
-  annotate("text", x = M_h_0_14_16 + 0.5, y = .300, label = paste("M_h_0 =", round(M_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+  labs(title="Number of Offspring for Even-Lineage Males",
+       fill = "Parent: Origin") 
+  #geom_vline(xintercept=M_n_0_14_16, size=2) +
+  #geom_vline(xintercept=M_n_0_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  #geom_vline(xintercept=M_h_0_14_16, size=2) +
+  #geom_vline(xintercept=M_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  #annotate("text", x = M_n_0_14_16 + 0.5, y = .250, label = paste("M_n_0 =", round(M_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  #annotate("text", x = M_h_0_14_16 + 0.5, y = .300, label = paste("M_h_0 =", round(M_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+ggsave("RS_Even_Males.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
 ```
 
 # Figure 4: RS by length and time
@@ -254,6 +269,7 @@ high_box_het <- het_tibble %>%
 
 het_tibble %>% 
   ggplot2::ggplot(aes(x = het)) +
+  theme_bw() +
   ggplot2::geom_histogram(binwidth = 1/304) +
   ggplot2::geom_vline(aes(xintercept = het, color = "mean"), mean_het) +
   ggplot2::geom_vline(aes(xintercept = het, color = "SD"), low_cutoff_het) +
@@ -266,6 +282,7 @@ het_tibble %>%
   ggplot2::xlab("Individual Heterozygosity") +
   ggplot2::ylab("Frequency") +
   ggplot2::ggtitle("Individual Heterozygosity By Lineage")
+ggsave("Figure_S1.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Supplemental/Figures/")
 ```
 
 # Figure S2: RS for triads 
@@ -275,17 +292,20 @@ het_tibble %>%
 parents_paired_14_16_cross <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/parents_paired_14_16_cross.csv")
 
 parents_paired_14_16_cross %>% 
-  count(cross, `Fish ID`, `Fish ID.y`) %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
   count(cross, n) %>% 
   complete(cross, n, fill = list(nn = 0)) %>% 
   ggplot(aes(x = n, y = nn, fill = cross))+
-  geom_col(position=position_dodge2(preserve = "single"), width = 0.5) +
+  theme_bw() +
+  geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = 1:5) +
-  ylim(0, 5) +
-  xlim(0, 5) +
-  labs(title="Distribution of Family Size by Cross") +
+  ylim(0, 3) +
+  xlim(0, 4) +
+  labs(title = "Distribution of Family Size by Cross") +
   xlab("Number of Offspring")+
   ylab("Number of Families") 
+ggsave("Figure_S2.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Supplemental/Figures/")
+```
 ```
