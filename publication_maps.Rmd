@@ -18,12 +18,30 @@ library(maps)
 library(mapdata)
 library(PBSmapping)
 library(grid)
+library(ggsn)
 ```
 
 # Read in, format, and filter data
 
 ```{r read_map_data}
 (dat <- read_csv("map_data.csv"))
+
+dat <- dat %>%
+  mutate(Legend = case_when(type == "Hogan" ~ "Hogan Bay",
+                            type == "Fitness Stream" ~ "Fitness Stream",
+                            type == "Hatchery" & name != "VFDA" ~ "PWSAC",
+                            name == "VFDA" ~ "VFDA")) %>% 
+  mutate(Legend = factor(x = Legend, levels = c("Hogan Bay", "Fitness Stream", "VFDA", "PWSAC"))) %>% 
+  mutate(abbr = case_when(name == "AFK" ~ "AFK",
+                          name == "WHN" ~ "WNH",
+                          name == "Cannery Creek" ~ "CCH",
+                          name == "VFDA" ~ "SGH"))
+
+x_lim <- range(dat$long) + c(-0.25, 0.25)
+y_lim <- range(dat$lat) + c(-0.25, 0.25)
+
+dat <- dat %>%
+  filter(type != "City")
 ```
 
 # Make Map
@@ -56,20 +74,29 @@ ggplot() +
 Try PBSmapping, clunky, but great basemap for AK coastlines. Got the idea from Ben Williams GitHub [link](https://ben-williams.github.io/updated_ggplot_figures.html). Still used the idea from the previous link on Quantitative Palaeoecology
 
 ```{r pbs_mapping}
-x_lim <- range(dat$long) + c(-0.25, 0.25)
-y_lim <- range(dat$lat) + c(-0.25, 0.25)
-
 data("nepacLLhigh")
 ak <- nepacLLhigh %>% 
   dplyr::select(group = PID, POS = POS,long = X, lat = Y)
 
+maptheme <- theme(
+  panel.grid = element_blank(),
+  panel.border = element_rect(fill = NA, colour = "black"),
+  panel.background = element_blank()
+)
+
 pws_map <- ggplot() + 
   geom_polygon(data = ak, aes(long, lat, group = group), fill = "grey90", color = "black", lwd = 0.3) +
-  geom_point(data = dat, aes(x = long, y = lat, colour = type), cex = 5) +
+  geom_point(data = dat, aes(x = long, y = lat, fill = Legend), shape = 21, colour = "black", stroke = 2, size = 5) +
+  geom_label(data = filter(dat, type == "Hatchery"), aes(long, lat, label = abbr), hjust = 0, nudge_x = 0.1) +
+  geom_segment(aes(x = -148.7, xend = -148.7, y = 59.85, yend = 60.02), lineend = "butt", linejoin = "round", size = 2, arrow = arrow(length = unit(0.2, "inches"))) +
   theme(panel.background = element_rect(fill = 'white')) +
+  scale_y_continuous(breaks = c(60.0, 60.5, 61.0)) +
   xlab(expression(paste(Longitude^o, ~'W'))) +
   ylab(expression(paste(Latitude^o, ~'N'))) +
-  coord_map(xlim = x_lim, ylim = y_lim)
+  coord_map(xlim = x_lim, ylim = y_lim) +
+  maptheme
+
+# north2(pws_map, symbol = 12, 0.18, 0.20)  # couldn't get this to work with the inset
 
 ak_map <- ggplot() + 
   geom_polygon(data = ak, aes(long, lat, group = group), fill = "grey90", color = "black", lwd = 0.3) +
@@ -79,18 +106,23 @@ ak_map <- ggplot() +
         axis.ticks = element_blank()) +
   coord_map(xlim = c(-170, -130), ylim = c(53, 65))
 
-maptheme <- theme(
-  panel.grid = element_blank(),
-  panel.border = element_rect(fill = NA, colour = "black"),
-  panel.background = element_blank()
-)
-
 grid.newpage()
 vp_b <- viewport(width = 1, height = 1, x = 0.5, y = 0.5)  # the larger map
 vp_a <- viewport(width = 0.23, height = 0.35, x = 0.605, y = 0.24)  # the inset in lower left
-print(pws_map + maptheme, vp = vp_b)
+print(pws_map, vp = vp_b)
 print(ak_map + maptheme, vp = vp_a)
 ```
+
+```{r save_png}
+png(filename = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 1/PWS_Hogan_map.png", width = 6.5, height = 6.5, units = "in", res = 300)
+grid.newpage()
+vp_b <- viewport(width = 1, height = 1, x = 0.5, y = 0.5)  # the larger map
+vp_a <- viewport(width = 0.23, height = 0.35, x = 0.65, y = 0.3)  # the inset in lower left
+print(pws_map, vp = vp_b)
+print(ak_map + maptheme, vp = vp_a)
+dev.off()
+```
+
 
 ## ggmp
 
