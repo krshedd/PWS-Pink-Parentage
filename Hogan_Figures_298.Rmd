@@ -9,39 +9,104 @@ editor_options:
 ---
 
 
-
+Create Figures for NPRB Publication
 
 ```{r setup, include=FALSE}
 library(coin)
 library(MASS)
 library(scales)
 library(tidyverse)
-library(leaflet)
+# library(leaflet)
 library(lubridate)
+library(PBSmapping)
+library(grid)
+library(ggthemes) # Load
 ```
 
 
 # Figure 1: Map of study area
 
+Try PBSmapping, clunky, but great basemap for AK coastlines. Got the idea from Ben Williams GitHub [link](https://ben-williams.github.io/updated_ggplot_figures.html). Still used the idea from Quantitative Palaeoecology [link](https://quantpalaeo.wordpress.com/2016/06/05/ggplot2-maps-with-inset/)
+
 ```{r map of study area, message=FALSE, warning=FALSE}
-map_data <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/map_data_Hogan.csv") 
+# Load data
+dat <- read_csv("map_data.csv")
 
-icons <- awesomeIcons(icon = 'ios-close', iconColor = 'transparent', library = 'ion', markerColor = map_data$color)
+dat <- dat %>%
+  mutate(Legend = case_when(type == "Hogan" ~ "Hogan Bay",
+                            type == "Fitness Stream" ~ "Fitness Stream",
+                            type == "Hatchery" & name != "VFDA" ~ "PWSAC",
+                            name == "VFDA" ~ "VFDA")) %>% 
+  mutate(Legend = factor(x = Legend, levels = c("Hogan Bay", "Fitness Stream", "VFDA", "PWSAC"))) %>% 
+  mutate(abbr = case_when(name == "AFK" ~ "AFK",
+                          name == "WHN" ~ "WNH",
+                          name == "Cannery Creek" ~ "CCH",
+                          name == "VFDA" ~ "SGH"))
 
-map_data %>% 
-  leaflet(width = "100%") %>% 
-  addTiles() %>% 
-  addAwesomeMarkers(~ long, ~ lat, icon = icons, label = ~ name, popup = ~ type, labelOptions = labelOptions(noHide = TRUE, textOnly = TRUE, direction = "top"))  %>% 
-addLegend("bottomright", labels = unique(map_data$type), colors = unique(map_data$color), opacity = 1)
+x_lim <- range(dat$long) + c(-0.25, 0.25)
+y_lim <- range(dat$lat) + c(-0.25, 0.25)
+
+dat <- dat %>%
+  filter(type != "City")
+
+# Plot map with PBS mapping
+data("nepacLLhigh")
+ak <- nepacLLhigh %>% 
+  dplyr::select(group = PID, POS = POS,long = X, lat = Y)
+
+maptheme <- theme(
+  panel.grid = element_blank(),
+  panel.border = element_rect(fill = NA, colour = "black"),
+  panel.background = element_blank()
+)
+
+# PWS map
+pws_map <- ggplot() + 
+  geom_polygon(data = ak, aes(long, lat, group = group), fill = "grey90", color = "black", lwd = 0.3) +
+  geom_point(data = dat, aes(x = long, y = lat, fill = Legend), shape = 21, colour = "black", stroke = 2, size = 5) +
+  geom_label(data = filter(dat, type == "Hatchery"), aes(long, lat, label = abbr), hjust = 0, nudge_x = 0.1) +
+  geom_segment(aes(x = -148.7, xend = -148.7, y = 59.85, yend = 60.02), lineend = "butt", linejoin = "round", size = 2, arrow = arrow(length = unit(0.2, "inches"))) +
+  theme(panel.background = element_rect(fill = 'white')) +
+  scale_y_continuous(breaks = c(60.0, 60.5, 61.0)) +
+  xlab(expression(paste(Longitude^o, ~'W'))) +
+  ylab(expression(paste(Latitude^o, ~'N'))) +
+  coord_map(xlim = x_lim, ylim = y_lim) +
+  maptheme
+
+# north2(pws_map, symbol = 12, 0.18, 0.20)  # couldn't get this to work with the inset
+
+# Inset map
+ak_map <- ggplot() + 
+  geom_polygon(data = ak, aes(long, lat, group = group), fill = "grey90", color = "black", lwd = 0.3) +
+  geom_rect(data = data.frame(), aes(xmin = x_lim[1], xmax = x_lim[2], ymin = y_lim[1], ymax = y_lim[2]), colour = "red", fill = NA, lwd = 1.3) +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()) +
+  coord_map(xlim = c(-170, -130), ylim = c(53, 65))
+
+# Create map with inset and North arrow
+grid.newpage()
+vp_b <- viewport(width = 1, height = 1, x = 0.5, y = 0.5)  # the larger map
+vp_a <- viewport(width = 0.23, height = 0.35, x = 0.605, y = 0.24)  # the inset in lower left
+print(pws_map, vp = vp_b)
+print(ak_map + maptheme, vp = vp_a)
+```
+
+This is the code used to actually save the map as a .png file
+```{r save_map}
+png(filename = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 1/PWS_Hogan_map.png", width = 6.5, height = 6.5, units = "in", res = 300)
+grid.newpage()
+vp_b <- viewport(width = 1, height = 1, x = 0.5, y = 0.5)  # the larger map
+vp_a <- viewport(width = 0.23, height = 0.35, x = 0.65, y = 0.3)  # the inset in lower left
+print(pws_map, vp = vp_b)
+print(ak_map + maptheme, vp = vp_a)
+dev.off()
 ```
 
 # Figure 2: Sample sizes throughout run
 
 ```{r sample sizes throughout run}
-paired_13_15_filter <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/paired_13_15_filter.csv")
-
-#install.packages("ggthemes") # Install 
-library(ggthemes) # Load
+paired_13_15_filter <- read_csv("paired_13_15_filter.csv")
 
 paired_13_15_filter %>% 
   ggplot(aes(x=`Julian`, fill=origin)) +
@@ -49,7 +114,7 @@ paired_13_15_filter %>%
   facet_grid(`Sample Year` ~ .) +
   labs(title="Number of Samples per Year by Date and Origin")
 
-paired_14_16_filter <- read.csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/paired_14_16_filter.csv")
+paired_14_16_filter <- read.csv("paired_14_16_filter.csv")
 
 paired_14_16_filter %>% 
   ggplot(aes(x=`Julian`, fill=origin)) +
@@ -75,10 +140,40 @@ paired_14_16_filter %>%
 ggsave("samples_even.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 2/")
 ```
 
+```{r odd_samp_png}
+paired_13_15_filter <- read_csv("paired_13_15_filter.csv")
+
+#Stacked
+paired_13_15_filter %>% 
+  ggplot(aes(x=`Julian`)) +
+  theme_bw() +
+  geom_bar(aes(fill=origin)) +
+  facet_grid(`Sample Year` ~ .) +
+  ylab("Count") +
+  labs(title="Number of Samples per Year by Date and Origin",
+       fill = "Origin")
+ggsave("samples_odd.png", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 2/")
+```
+
+```{r even_samp_png}
+paired_14_16_filter <- read.csv("paired_14_16_filter.csv")
+
+#Stacked
+paired_14_16_filter %>% 
+  ggplot(aes(x=`Julian`)) +
+  theme_bw() +
+  geom_bar(aes(fill=origin)) +
+  facet_grid(Sample.Year ~ .) +
+  ylab("Count") +
+  labs(title="Number of Samples per Year by Date and Origin",
+       fill = "Origin")
+ggsave("samples_even.png", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 2/")
+```
+
 # Figure 3: Reproductive success
 
 ```{r Plot RS}
-paired_13_15_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/paired_13_15_filter_parents.csv")
+paired_13_15_filter_parents <- read_csv("paired_13_15_filter_parents.csv")
 
 # Mean RS including 0's
 rs_13_15_0 <- paired_13_15_filter_parents %>%
@@ -146,7 +241,7 @@ paired_13_15_filter_parents %>%
   #annotate("text", x = M_h_0_13_15 + 0.5, y = .300, label = paste("M_h_0 =", round(M_h_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
 ggsave("RS_Odd_Males.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
 
-paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/paired_14_16_filter_parents.csv")
+paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv")
 
 # Mean RS including 0's
 rs_14_16_0 <- paired_14_16_filter_parents %>%
@@ -215,11 +310,56 @@ paired_14_16_filter_parents %>%
 ggsave("RS_Even_Males.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
 ```
 
+```{r rs_odd_png}
+paired_13_15_filter_parents <- read_csv("paired_13_15_filter_parents.csv")
+
+paired_13_15_filter_parents %>% 
+  mutate(sex = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female")) %>% 
+  count(sex, origin, n) %>% 
+  group_by(sex, origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x=n, y=p, fill = origin)) +
+  theme_bw() +
+  geom_col(position = position_dodge2(preserve="single"), width=0.8) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  xlab("Number of Offspring") +
+  ylab("Proportion of Parents") +
+  labs(title="Reproductive Success for Odd-Lineage",
+       fill = "Parent: Origin") +
+  facet_grid(. ~ sex)
+  ggsave("RS_Odd_Facet.png", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
+```
+
+
+```{r rs_even_png}
+paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv")
+
+paired_14_16_filter_parents %>% 
+  mutate(sex = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female")) %>% 
+  count(sex, origin, n) %>% 
+  group_by(sex, origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x=n, y=p, fill = origin)) +
+  theme_bw() +
+  geom_col(position = position_dodge2(preserve="single"), width=0.8) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  xlab("Number of Offspring") +
+  ylab("Proportion of Parents") +
+  labs(title="Reproductive Success for Even-Lineage",
+       fill = "Parent: Origin") +
+  facet_grid(. ~ sex)
+  ggsave("RS_Even_Facet.png", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
+```
+
 # Figure 4: RS by length and time
 
 ```{r RS by length and time Even}
 
-paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/paired_14_16_filter_parents.csv")
+paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv")
 
 paired_14_16_filter_parents %>% 
   ggplot(aes(x=`Sample Date`, y=n, color=origin.x)) +
@@ -245,7 +385,7 @@ paired_14_16_filter_parents %>%
 # Figure S1: Heterozygosity
 
 ```{r plot all of the different cutoffs on the same histogram.}
-het_tibble <- dget("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/het_tibble.txt")
+het_tibble <- dget("../Objects/het_tibble.txt")
 
 mean_het <- het_tibble %>% 
   dplyr::group_by(lineage) %>% 
@@ -289,7 +429,7 @@ ggsave("Figure_S1.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manus
 
 ```{r RS for triads}
 
-parents_paired_14_16_cross <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/parents_paired_14_16_cross.csv")
+parents_paired_14_16_cross <- read_csv("parents_paired_14_16_cross.csv")
 
 parents_paired_14_16_cross %>% 
   count(cross, `Fish ID`, `Fish ID.par1`) %>% 
