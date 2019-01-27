@@ -23,10 +23,10 @@ sillyvec <- c("PHOGAN13", "PHOGAN14", "PHOGAN15", "PHOGAN16")  # collections to 
 # List the output.csv for each lab Project, P012-P016 from LOKI (conflicts + agreements)
 # Kyle had to open the "original" files and save as .csv files
 QC_concordance_files_all <- c(
-  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P012 AHRP Parentage GTSeq Part 1/QC/Conflict Reports/Concordance Tables Loki/", pattern = "_csv", full.names = TRUE),
-  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P014 AHRP Parentage GTSeq Part 2/QC/Conflict Reports/Concordance Tables Loki/", pattern = "_csv", full.names = TRUE),
-  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P015 AHRP Parentage GTSeq Part 3/QC/Conflict Reports/Concordance Tables Loki/", pattern = "_csv", full.names = TRUE),
-  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P016 AHRP Parentage GTSeq Part 4/QC/Conflict Reports/Concordance Tables Loki/", pattern = "_csv", full.names = TRUE)
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P012 AHRP Parentage GTSeq Part 1/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P014 AHRP Parentage GTSeq Part 2/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P015 AHRP Parentage GTSeq Part 3/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P016 AHRP Parentage GTSeq Part 4/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE)
 )
 
 # Read in concordance files as one filtered tibble
@@ -57,8 +57,8 @@ concordance_all %>%
   filter(concordance == "Conflict" & is.na(concordance_type))
 
 # Fill NA values as Het-Het
-concordance_all <- concordance_all %>% 
-  tidyr::replace_na(list(concordance_type = "Het-Het"))
+# concordance_all <- concordance_all %>% 
+#   tidyr::replace_na(list(concordance_type = "Het-Het"))
 
 # Table to make sure no NA values
 concordance_all %>% 
