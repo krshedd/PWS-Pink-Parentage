@@ -106,7 +106,9 @@ dev.off()
 # Figure 2: Sample sizes throughout run
 
 ```{r sample sizes throughout run}
-paired_13_15_filter <- read_csv("paired_13_15_filter.csv")
+paired_13_15_filter <- read_csv("paired_13_15_filter.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
+
 
 paired_13_15_filter %>% 
   ggplot(aes(x=`Julian`, fill=origin)) +
@@ -114,7 +116,8 @@ paired_13_15_filter %>%
   facet_grid(`Sample Year` ~ .) +
   labs(title="Number of Samples per Year by Date and Origin")
 
-paired_14_16_filter <- read.csv("paired_14_16_filter.csv")
+paired_14_16_filter <- read.csv("paired_14_16_filter.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
 paired_14_16_filter %>% 
   ggplot(aes(x=`Julian`, fill=origin)) +
@@ -141,7 +144,8 @@ ggsave("samples_even.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Ma
 ```
 
 ```{r odd_samp_png}
-paired_13_15_filter <- read_csv("paired_13_15_filter.csv")
+paired_13_15_filter <- read_csv("paired_13_15_filter.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
 #Stacked
 paired_13_15_filter %>% 
@@ -156,7 +160,8 @@ ggsave("samples_odd.png", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Man
 ```
 
 ```{r even_samp_png}
-paired_14_16_filter <- read.csv("paired_14_16_filter.csv")
+paired_14_16_filter <- read.csv("paired_14_16_filter.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
 #Stacked
 paired_14_16_filter %>% 
@@ -173,7 +178,8 @@ ggsave("samples_even.png", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Ma
 # Figure 3: Reproductive success
 
 ```{r Plot RS}
-paired_13_15_filter_parents <- read_csv("paired_13_15_filter_parents.csv")
+paired_13_15_filter_parents <- read_csv("paired_13_15_filter_parents.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
 # Mean RS including 0's
 rs_13_15_0 <- paired_13_15_filter_parents %>%
@@ -241,7 +247,8 @@ paired_13_15_filter_parents %>%
   #annotate("text", x = M_h_0_13_15 + 0.5, y = .300, label = paste("M_h_0 =", round(M_h_0_13_15, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
 ggsave("RS_Odd_Males.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
 
-paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv")
+paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
 # Mean RS including 0's
 rs_14_16_0 <- paired_14_16_filter_parents %>%
@@ -311,7 +318,8 @@ ggsave("RS_Even_Males.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/M
 ```
 
 ```{r rs_odd_png}
-paired_13_15_filter_parents <- read_csv("paired_13_15_filter_parents.csv")
+paired_13_15_filter_parents <- read_csv("paired_13_15_filter_parents.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
 paired_13_15_filter_parents %>% 
   mutate(sex = case_when(SEX == "M" ~ "Male",
@@ -334,7 +342,8 @@ paired_13_15_filter_parents %>%
 
 
 ```{r rs_even_png}
-paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv")
+paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
 paired_14_16_filter_parents %>% 
   mutate(sex = case_when(SEX == "M" ~ "Male",
@@ -359,10 +368,11 @@ paired_14_16_filter_parents %>%
 
 ```{r RS by length and time Even}
 
-paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv")
+paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
 paired_14_16_filter_parents %>% 
-  ggplot(aes(x=`Sample Date`, y=n, color=origin.x)) +
+  ggplot(aes(x=`Sample Date`, y=n, color=origin)) +
   geom_jitter(height = 0) +
   geom_smooth() +
   facet_grid(rows=vars(SEX))+
@@ -372,7 +382,7 @@ paired_14_16_filter_parents %>%
   ylab("Reproductive Success")
 
 paired_14_16_filter_parents %>% 
-  ggplot(aes(x=`Length Mm.y`, y=n, color=origin.x)) +
+  ggplot(aes(x=`Length Mm`, y=n, color=origin)) +
   geom_jitter(height = 0) +
   geom_smooth() +
   facet_grid(rows=vars(SEX)) +
