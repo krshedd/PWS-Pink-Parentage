@@ -143,37 +143,95 @@ paired_14_16_filter %>%
 ggsave("samples_even.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 2/")
 ```
 
+Create blank bar plot of even-year sampling, for use as builder slide.
+```{r blank_samp_png}
+paired_14_16_filter <- read_csv("paired_14_16_filter.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
+
+#Stacked
+paired_14_16_filter %>% 
+  count(`Sample Year`, Julian, origin) %>% 
+  mutate(n = 0) %>%  # make 0 for blank plot
+  ggplot(aes(x = `Julian`, y = n, fill = origin)) +
+  theme_bw() +
+  ylim(c(0, 265)) +
+  geom_col(colour = "black") +
+  geom_hline(yintercept = 0, colour = "black") +
+  facet_grid(`Sample Year` ~ .) +
+  ylab("Count") +
+  xlab("Julian Date") +
+  labs(title="",  # Number of Samples per Year by Date and Origin
+       fill = "Origin") +
+  theme(text = element_text(size = 20))  # strip.text = element_text(size = 12)
+ggsave("samples_blank.png", path = "V:/Presentations/Science/AMSS/2019/Figures/")
+```
+
+Create bar plot of even-year sampling with only 2014 data, for use as builder slide.
+```{r even_2014_samp_png}
+paired_14_16_filter <- read_csv("paired_14_16_filter.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
+
+#Stacked
+paired_14_16_filter %>% 
+  count(`Sample Year`, Julian, origin) %>% 
+  mutate(nn = case_when(`Sample Year` == 2014 ~ n,
+                        `Sample Year` == 2016 ~ as.integer(0))) %>%  # make 0 for blank plot
+  ggplot(aes(x = `Julian`, y = nn, fill = origin)) +
+  theme_bw() +
+  ylim(c(0, 265)) +
+  geom_col(colour = "black") +
+  geom_hline(yintercept = 0, colour = "black") +
+  facet_grid(`Sample Year` ~ .) +
+  ylab("Count") +
+  xlab("Julian Date") +
+  labs(title="",  # Number of Samples per Year by Date and Origin
+       fill = "Origin") +
+  theme(text = element_text(size = 20))  # strip.text = element_text(size = 12)
+ggsave("samples_even_2014.png", path = "V:/Presentations/Science/AMSS/2019/Figures/")
+```
+
+Create bar plot of odd-year sampling.
+```{r even_samp_png}
+paired_14_16_filter <- read_csv("paired_14_16_filter.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
+
+#Stacked
+paired_14_16_filter %>% 
+  count(`Sample Year`, Julian, origin) %>% 
+  ggplot(aes(x = `Julian`, y = n, fill = origin)) +
+  theme_bw() +
+  ylim(c(0, 265)) +
+  geom_col(colour = "black") +
+  geom_hline(yintercept = 0, colour = "black") +
+  facet_grid(`Sample Year` ~ .) +
+  ylab("Count") +
+  xlab("Julian Date") +
+  labs(title="",  # Number of Samples per Year by Date and Origin
+       fill = "Origin") +
+  theme(text = element_text(size = 20))  # strip.text = element_text(size = 12)
+ggsave("samples_even.png", path = "V:/Presentations/Science/AMSS/2019/Figures/")
+```
+
+Create bar plot of odd-year sampling.
 ```{r odd_samp_png}
 paired_13_15_filter <- read_csv("paired_13_15_filter.csv") %>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
 #Stacked
 paired_13_15_filter %>% 
-  ggplot(aes(x=`Julian`)) +
+  ggplot(aes(x = `Julian`)) +
   theme_bw() +
-  geom_bar(aes(fill=origin)) +
+  geom_bar(aes(fill = origin), colour = "black") +
   facet_grid(`Sample Year` ~ .) +
+  geom_hline(yintercept = 0, colour = "black") +
   ylab("Count") +
-  labs(title="Number of Samples per Year by Date and Origin",
-       fill = "Origin")
-ggsave("samples_odd.png", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 2/")
+  xlab("Julian Date") +
+  labs(title="",  # Number of Samples per Year by Date and Origin
+       fill = "Origin") +
+  theme(text = element_text(size = 20))  # strip.text = element_text(size = 12)
+ggsave("samples_odd.png", path = "V:/Presentations/Science/AMSS/2019/Figures/")
 ```
 
-```{r even_samp_png}
-paired_14_16_filter <- read.csv("paired_14_16_filter.csv") %>% 
-  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
-
-#Stacked
-paired_14_16_filter %>% 
-  ggplot(aes(x=`Julian`)) +
-  theme_bw() +
-  geom_bar(aes(fill=origin)) +
-  facet_grid(Sample.Year ~ .) +
-  ylab("Count") +
-  labs(title="Number of Samples per Year by Date and Origin",
-       fill = "Origin")
-ggsave("samples_even.png", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 2/")
-```
 
 # Figure 3: Reproductive success
 
@@ -317,30 +375,64 @@ paired_14_16_filter_parents %>%
 ggsave("RS_Even_Males.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
 ```
 
-```{r rs_odd_png}
-paired_13_15_filter_parents <- read_csv("paired_13_15_filter_parents.csv") %>% 
+Create blank even-year figure as .png.
+```{r rs_even_blank_png}
+paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv") %>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
-paired_13_15_filter_parents %>% 
+paired_14_16_filter_parents %>% 
   mutate(sex = case_when(SEX == "M" ~ "Male",
                          SEX == "F" ~ "Female")) %>% 
   count(sex, origin, n) %>% 
   group_by(sex, origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
+  mutate(p = 0) %>% 
   ggplot(aes(x=n, y=p, fill = origin)) +
   theme_bw() +
-  geom_col(position = position_dodge2(preserve="single"), width=0.8) +
-  scale_y_continuous(breaks = pretty_breaks()) +
+  geom_col(position = position_dodge2(preserve="single"), width=0.8, colour = "black") +
+  geom_hline(yintercept = 0, colour = "black") +
+  ylim(c(0, 0.77)) +
+  # scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   xlab("Number of Offspring") +
   ylab("Proportion of Parents") +
-  labs(title="Reproductive Success for Odd-Lineage",
-       fill = "Parent: Origin") +
-  facet_grid(. ~ sex)
-  ggsave("RS_Odd_Facet.png", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
+  labs(title="",
+       fill = "Parent\nOrigin") +
+  facet_grid(. ~ sex) +
+  theme(text = element_text(size = 20))
+  ggsave("RS_Blank_Facet.png", path = "V:/Presentations/Science/AMSS/2019/Figures/")
 ```
 
+Create blank even-year figure as .png.
+```{r rs_even_female_png}
+paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
+paired_14_16_filter_parents %>% 
+  mutate(sex = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female")) %>% 
+  count(sex, origin, n) %>% 
+  group_by(sex, origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  mutate(p = case_when(sex == "Male" ~ 0,
+                       sex == "Female" ~ p)) %>% 
+  ggplot(aes(x=n, y=p, fill = origin)) +
+  theme_bw() +
+  geom_col(position = position_dodge2(preserve="single"), width=0.8, colour = "black") +
+  geom_hline(yintercept = 0, colour = "black") +
+  ylim(c(0, 0.77)) +
+  # scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  xlab("Number of Offspring") +
+  ylab("Proportion of Parents") +
+  labs(title="",
+       fill = "Parent\nOrigin") +
+  facet_grid(. ~ sex) +
+  theme(text = element_text(size = 20))
+  ggsave("RS_Even_Female_Facet.png", path = "V:/Presentations/Science/AMSS/2019/Figures/")
+```
+
+Create even-year figure as .png.
 ```{r rs_even_png}
 paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv") %>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
@@ -353,15 +445,43 @@ paired_14_16_filter_parents %>%
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x=n, y=p, fill = origin)) +
   theme_bw() +
-  geom_col(position = position_dodge2(preserve="single"), width=0.8) +
+  geom_col(position = position_dodge2(preserve="single"), width=0.8, colour = "black") +
+  geom_hline(yintercept = 0, colour = "black") +
+  ylim(c(0, 0.77)) +
+  # scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  xlab("Number of Offspring") +
+  ylab("Proportion of Parents") +
+  labs(title="",
+       fill = "Parent\nOrigin") +
+  facet_grid(. ~ sex) +
+  theme(text = element_text(size = 20))
+  ggsave("RS_Even_Facet.png", path = "V:/Presentations/Science/AMSS/2019/Figures/")
+```
+
+Create odd-year figure as .png.
+```{r rs_odd_png}
+paired_13_15_filter_parents <- read_csv("paired_13_15_filter_parents.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
+
+paired_13_15_filter_parents %>% 
+  mutate(sex = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female")) %>% 
+  count(sex, origin, n) %>% 
+  group_by(sex, origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x=n, y=p, fill = origin)) +
+  theme_bw() +
+  geom_col(position = position_dodge2(preserve="single"), width=0.8, colour = "black") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   xlab("Number of Offspring") +
   ylab("Proportion of Parents") +
-  labs(title="Reproductive Success for Even-Lineage",
-       fill = "Parent: Origin") +
-  facet_grid(. ~ sex)
-  ggsave("RS_Even_Facet.png", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Figure 3/")
+  labs(title="",
+       fill = "Parent\nOrigin") +
+  facet_grid(. ~ sex) +
+  theme(text = element_text(size = 20))
+  ggsave("RS_Odd_Facet.png", path = "V:/Presentations/Science/AMSS/2019/Figures/")
 ```
 
 # Figure 4: RS by length and time
