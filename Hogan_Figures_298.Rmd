@@ -403,7 +403,37 @@ paired_14_16_filter_parents %>%
   ggsave("RS_Blank_Facet.png", path = "V:/Presentations/Science/AMSS/2019/Figures/")
 ```
 
-Create blank even-year figure as .png.
+Create even-year figure with just hatchery females as .png.
+```{r rs_even_female_hatchery_png}
+paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
+
+paired_14_16_filter_parents %>% 
+  mutate(sex = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female")) %>% 
+  count(sex, origin, n) %>% 
+  group_by(sex, origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  mutate(p = case_when(sex == "Male" ~ 0,
+                       origin == "Natural" & sex == "Female" ~ 0,
+                       origin == "Hatchery" & sex == "Female" ~ p)) %>% 
+  ggplot(aes(x=n, y=p, fill = origin)) +
+  theme_bw() +
+  geom_col(position = position_dodge2(preserve="single"), width=0.8, colour = "black") +
+  geom_hline(yintercept = 0, colour = "black") +
+  ylim(c(0, 0.77)) +
+  # scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  xlab("Number of Offspring") +
+  ylab("Proportion of Parents") +
+  labs(title="",
+       fill = "Parent\nOrigin") +
+  facet_grid(. ~ sex) +
+  theme(text = element_text(size = 20))
+  ggsave("RS_Even_Female_Hatchery_Facet.png", path = "V:/Presentations/Science/AMSS/2019/Figures/")
+```
+
+Create even-year figure with just females as .png.
 ```{r rs_even_female_png}
 paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv") %>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
