@@ -517,29 +517,36 @@ paired_13_15_filter_parents %>%
 # Figure 4: RS by length and time
 
 ```{r RS by length and time Even}
-
 paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv") %>% 
-  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+  mutate(sex = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female"))
 
 paired_14_16_filter_parents %>% 
   ggplot(aes(x=`Sample Date`, y=n, color=origin)) +
   geom_jitter(height = 0) +
   geom_smooth() +
-  facet_grid(rows=vars(SEX))+
-  labs(title="Reproductive Success by Parental Sample Date",  colour = "Parent: Origin",
+  facet_grid(rows=vars(sex))+
+  labs(title="",  colour = "Parent\nOrigin",
        shape = "Parent: Sex") +
   xlab("Parental Sample Date") +
-  ylab("Reproductive Success")
+  ylab("Reproductive Success") +
+  ylim(c(0,15)) +
+  theme(text = element_text(size = 20))
+  ggsave("RS_Even_Date.png", path = "V:/Presentations/Science/AMSS/2019/Figures/")
 
 paired_14_16_filter_parents %>% 
   ggplot(aes(x=`Length Mm`, y=n, color=origin)) +
   geom_jitter(height = 0) +
   geom_smooth() +
-  facet_grid(rows=vars(SEX)) +
-  labs(title="Reproductive Success by Parental Length (mm)",  colour = "Parent: Origin",
+  facet_grid(rows=vars(sex)) +
+  labs(title="",  colour = "Parent\nOrigin",
        shape = "Parent: Sex") +
+  ylim(c(0,15)) +
   xlab("Parental Length (mm)") +
-  ylab("Reproductive Success")
+  ylab("Reproductive Success") +
+  theme(text = element_text(size = 20))
+  ggsave("RS_Even_Length.png", path = "V:/Presentations/Science/AMSS/2019/Figures/")
 ```
 
 # Figure S1: Heterozygosity
