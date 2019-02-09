@@ -577,7 +577,7 @@ high_box_het <- het_tibble %>%
 het_tibble %>% 
   ggplot2::ggplot(aes(x = het)) +
   theme_bw() +
-  ggplot2::geom_histogram(binwidth = 1/304) +
+  ggplot2::geom_histogram(binwidth = 1/298) +
   ggplot2::geom_vline(aes(xintercept = het, color = "mean"), mean_het) +
   ggplot2::geom_vline(aes(xintercept = het, color = "SD"), low_cutoff_het) +
   ggplot2::geom_vline(aes(xintercept = het, color = "SD"), high_cutoff_het) +
@@ -589,7 +589,7 @@ het_tibble %>%
   ggplot2::xlab("Individual Heterozygosity") +
   ggplot2::ylab("Frequency") +
   ggplot2::ggtitle("Individual Heterozygosity By Lineage")
-ggsave("Figure_S1.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Supplemental/Figures/")
+ggsave("190208.Figure_S1.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Supplemental/Figures/")
 ```
 
 # Figure S2: RS for triads  
