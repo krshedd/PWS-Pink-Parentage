@@ -50,8 +50,8 @@ According to the FRANz manual, marker sets are not considered powerful if these 
 The first step is to read in .csv files for parentage assignments produced by *FRANz* as well as paired genotype and OceanAK data.
 
 ```{r Setup Even, message=FALSE, warning=FALSE}
-parentage_14_16 <- read_csv("../Franz/2014_2016_Hogan/parentage.csv")
-paired_14_16 <- read_csv("../Franz/2014_2016_Hogan/hogan_postQA_OceanAK_paired_2014_2016_HOGAN.csv")
+parentage_14_16 <- read_csv("../Franz/2014_2016_Hogan_Run1_298/parentage.csv")
+paired_14_16 <- read_csv("../Franz/2014_2016_Hogan_Run1_298/hogan_postQA_OceanAK_paired_2014_2016_HOGAN.csv")
 ```
 
 Plot a histogram of *FRANz* parentage posterior probabilities to show robustness of assignments
@@ -503,15 +503,6 @@ paired_14_16_filter_parents <- left_join(paired_14_16_filter_parents, RS_combine
 
 write_csv(paired_14_16_filter_parents, "paired_14_16_filter_parents.csv")
 
-# Mean RS including 0's
-rs_14_16_0 <- paired_14_16_filter_parents %>%
-  group_by(origin, SEX) %>% 
-  summarise(RS = mean(n, na.rm = TRUE))
-
-rs_14_16_0 %>%
-  mutate(RS = round(RS, 2)) %>% 
-  spread(SEX, RS)
-
 # Plot histogram of number of parents with a given family size
 paired_14_16_filter_parents %>% 
   ggplot(aes(x = n, fill = origin)) +
@@ -536,6 +527,18 @@ paired_14_16_filter_parents %>%
        fill = "Parent: Origin") +
   xlab("Number of Offspring")+
   ylab("Proportion of Parents") 
+```
+Here are the plots again with lines showing mean reproductive success. 
+
+```{r save_rs_values}
+# Mean RS including 0's
+rs_14_16_0 <- paired_14_16_filter_parents %>%
+  group_by(origin, SEX) %>% 
+  summarise(RS = mean(n, na.rm = TRUE))
+
+rs_14_16_0 %>%
+  mutate(RS = round(RS, 2)) %>% 
+  spread(SEX, RS)
 
 # Save RS values
 F_h_0_14_16 <- rs_14_16_0 %>% 
@@ -551,7 +554,7 @@ M_n_0_14_16 <- rs_14_16_0 %>%
   filter(origin == "Natural" & SEX == "M") %>% 
   pull(RS)
 ```
-Here are the plots again with lines showing mean reproductive success. 
+
 
 ```{r Plots of RS by sex with mean lines}
 paired_14_16_filter_parents %>% 
@@ -740,6 +743,8 @@ rrs_ci_kalinowski <- function(n_h_off, n_w_off, n_h_par, n_w_par, alpha){
 }
 ```
 
+##### Even 2014/2016
+
 Calculate 95% CIs for Hogan 14-16 females. Female RRS = 0.47 (0.37-0.62).
 
 ```{r RRS_confidence_intervals_female}
@@ -778,6 +783,48 @@ paired_14_16_filter_parents %>%
   spread(origin, n_off)
 
 rrs_ci_kalinowski(n_h_off = 140, n_w_off = 106, n_h_par = 166, n_w_par = 109, alpha = 0.05)
+```
+
+##### Odd 2013/2015
+
+Calculate 95% CIs for Hogan 13-15 females. Female RRS = 0.02 (0.01-0.09).
+
+```{r RRS_confidence_intervals_female_13_15}
+# Females
+# Get parent sample sizes
+paired_13_15_filter_parents %>% 
+  filter(SEX == "F") %>% 
+  count(SEX, origin) %>% 
+  spread(origin, nn)
+
+# Get offspring sample sizes
+paired_13_15_filter_parents %>% 
+  filter(SEX == "F") %>% 
+  group_by(SEX, origin) %>% 
+  summarise(n_off = sum(n)) %>% 
+  spread(origin, n_off)
+
+rrs_ci_kalinowski(n_h_off = 1, n_w_off = 25, n_h_par = 281, n_w_par = 131, alpha = 0.05)
+```
+
+Calculate 95% CIs for Hogan 13-15 males. Male RRS = 0.12 (0.02-0.40).
+
+```{r RRS_confidence_intervals_male_13_15}
+# Males
+# Get parent sample sizes
+paired_13_15_filter_parents %>% 
+  filter(SEX == "M") %>% 
+  count(SEX, origin) %>% 
+  spread(origin, nn)
+
+# Get offspring sample sizes
+paired_13_15_filter_parents %>% 
+  filter(SEX == "M") %>% 
+  group_by(SEX, origin) %>% 
+  summarise(n_off = sum(n)) %>% 
+  spread(origin, n_off)
+
+rrs_ci_kalinowski(n_h_off = 2, n_w_off = 20, n_h_par = 162, n_w_par = 191, alpha = 0.05)
 ```
 
 #### RS vs. field data plots
