@@ -1,0 +1,589 @@
+---
+title: "Stockdale Exploratory Analysis with 298 Markers"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(DT)
+library(abind)
+bbind <- function(...) { abind(..., along = 3) }
+
+.username <- "ealescak"
+.password <- "1234"
+source("~/R/Functions.GCL.R")
+
+
+
+```
+
+# Introduction
+
+This is a quick exploratory analysis of the Stockdale 2013-2016 genotype data. Here we will:
+
+  * Create *LocusControl*
+  * Read in all project genotypes
+  * Remove the 6 problematic loci Tyler identified
+  * Read in paired field/otoltih data from [OceanAK](http://www.oceanak.adfg.alaska.gov/)
+  * Join paired data from OceanAK
+    + Will need to create data key for join (DWP barcode + "_" + DWP position number)
+  * Determine *FailureRate*
+  * Perform QA on project gentoypes
+    + Removing fish missing >= 20% of genotypes
+    + Remove within collection duplicates
+    + Explore the use of a **heterozygosity** filter to remove individuals with bogus genotype calls
+    + Save final, post-QA genotypes with paired data
+    * Export genotypes as a *Genepop* file to feed in to *genepop2franz.GCL.r*
+  
+# Read in genotypes
+
+Create *LocusControl* and read in genotypes by *silly*
+```{r loki}
+sillyvec <- ProjectSillys <- c("PSTOCK13", "PSTOCK14", "PSTOCK15", "PSTOCK16") 
+markersuite <- "Pink_PWS_304"
+
+CreateLocusControl.GCL(markersuite = markersuite, username = .username, password = .password)
+loci304 <- LocusControl$locusnames
+loci6_remove <- c("Ogo_RAD8604", "Ogo_RAD25769", "Ogo_RAD25777", "Ogo_RAD42336", "Ogo_RAD75881", "Ogo_RAD9934")
+loci298 <- sort(setdiff(loci304, loci6_remove))
+rm(LocusControl)
+CreateLocusControl.GCL(locusnames = loci298, username = .username, password = .password)
+loci <- LocusControl$locusnames
+nalleles <- LocusControl$nalleles
+ploidy <- LocusControl$ploidy
+alleles <- LocusControl$alleles
+
+LOKI2R.GCL(sillyvec = sillyvec, username = .username, password = .password)
+
+rm(.username, .password)
+```
+
+
+Save objects
+```{r save_locus_control_sillys}
+save_objects(objects = c("LocusControl", "loci", "sillyvec", "ProjectSillys"), path = "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Stockdale/")
+save_sillys(sillyvec = sillyvec, path = "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genotypes/Stockdale/")
+save_objects(objects = c("loci304", "loci298", "loci6_remove"), path = "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Stockdale/")
+```
+# OceanAK
+
+## Read data
+Read in paired field and otolith data from *OceanAK*, join that data to the attributes table of each silly object.
+```{r read_oceanak, message=FALSE}
+AHRP_oceanak <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv")
+stock_oceanak <- AHRP_oceanak %>% 
+  dplyr::filter(`Location Code` == "Stockdale Creek") %>% 
+  tidyr::unite(silly_source, c("Silly Code", "Fish ID"), sep = "_", remove = FALSE)
+```
+
+## Join attributes table
+Join *stock_oceanak* data to the attributes table of each silly. Already looked to verify that no tissues were missing or duplicated, this makes sense because the lab can't genotype tissue that aren't there and they never genotype two samples in a well.
+```{r join_oceanak_stock}
+PSTOCK13.gcl$attributes <- PSTOCK13.gcl$attributes %>% 
+  dplyr::left_join(stock_oceanak, by = c("SillySource" = "silly_source")) %>% 
+  dplyr::select(FK_FISH_ID, SILLY_CODE, PLATE_ID, DNA_TRAY_CODE, DNA_TRAY_WELL_CODE, SillySource, `Sample Date`, Sex, `Length Mm`, `Location Code`, `Otolith Mark Present`, `Otolith Mark ID`, `Sample Year`)
+
+PSTOCK14.gcl$attributes <- PSTOCK14.gcl$attributes %>% 
+  dplyr::left_join(stock_oceanak, by = c("SillySource" = "silly_source")) %>% 
+  dplyr::select(FK_FISH_ID, SILLY_CODE, PLATE_ID, DNA_TRAY_CODE, DNA_TRAY_WELL_CODE, SillySource, `Sample Date`, Sex, `Length Mm`, `Location Code`, `Otolith Mark Present`, `Otolith Mark ID`, `Sample Year`)
+
+PSTOCK15.gcl$attributes <- PSTOCK15.gcl$attributes %>% 
+  dplyr::left_join(stock_oceanak, by = c("SillySource" = "silly_source")) %>% 
+  dplyr::select(FK_FISH_ID, SILLY_CODE, PLATE_ID, DNA_TRAY_CODE, DNA_TRAY_WELL_CODE, SillySource, `Sample Date`, Sex, `Length Mm`, `Location Code`, `Otolith Mark Present`, `Otolith Mark ID`, `Sample Year`)
+
+PSTOCK16.gcl$attributes <- PSTOCK16.gcl$attributes %>% 
+  dplyr::left_join(stock_oceanak, by = c("SillySource" = "silly_source")) %>% 
+  dplyr::select(FK_FISH_ID, SILLY_CODE, PLATE_ID, DNA_TRAY_CODE, DNA_TRAY_WELL_CODE, SillySource, `Sample Date`, Sex, `Length Mm`, `Location Code`, `Otolith Mark Present`, `Otolith Mark ID`, `Sample Year`)
+
+save_sillys(sillyvec = sillyvec, path = "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genotypes/Stockdale/OceanAK/")
+```
+
+## Split by otolith-origin
+
+First we need to verify that we only have hatchery and natural-origin fish for the **F0** years (2013 & 2014), and only natural-origin fish for the **F1** years (2015 & 2016).
+```{r verify_origin}
+dplyr::bind_rows(PSTOCK13.gcl$attributes, 
+                 PSTOCK14.gcl$attributes, 
+                 PSTOCK15.gcl$attributes, 
+                 PSTOCK16.gcl$attributes) %>% 
+  count(SILLY_CODE, `Otolith Mark Present`) %>% 
+  spread(`Otolith Mark Present`, n, fill = 0)
+```
+
+Ruh-roh, looks like we ended up with some hatchery-origin fish and some unknown origin fish (NA) in 2015, when they all should have been natural-origin. This is likely due to a discrepancy between first otolith reads and second otolith reads (i.e. fish were picked for extraction after first reads when all were thought to be natural-origin, but the second read overwrote). We will want to remove those fish (43 total) from PSTOCK15.
+
+```{r remove_stock_hatchery}
+PSTOCK15_ids_remove <- PSTOCK15.gcl$attributes %>% 
+  filter(`Otolith Mark Present` == "YES" | is.na(`Otolith Mark Present`)) %>% 
+  mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PSTOCK15", IDs = PSTOCK15_ids_remove)
+```
+
+Now that we have removed those fish that we did not want due to their otolith status, we will split 2013 & 2014 by otolith-origin. Also create a new *sillyvec*.
+```{r split_stock13-14}
+PSTOCK13_ids_natural <- list("PSTOCK13" = PSTOCK13.gcl$attributes %>% 
+  filter(`Otolith Mark Present` == "NO") %>% 
+  mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  pull(FK_FISH_ID))
+PoolCollections.GCL(collections = "PSTOCK13", loci = loci, IDs = PSTOCK13_ids_natural, newname = "PSTOCK13n")
+
+PSTOCK13_ids_hatchery <- list("PSTOCK13" = PSTOCK13.gcl$attributes %>% 
+  filter(`Otolith Mark Present` == "YES") %>% 
+  mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  pull(FK_FISH_ID))
+PoolCollections.GCL(collections = "PSTOCK13", loci = loci, IDs = PSTOCK13_ids_hatchery, newname = "PSTOCK13h")
+
+PSTOCK14_ids_natural <- list("PSTOCK14" = PSTOCK14.gcl$attributes %>% 
+  filter(`Otolith Mark Present` == "NO") %>% 
+  mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  pull(FK_FISH_ID))
+PoolCollections.GCL(collections = "PSTOCK14", loci = loci, IDs = PSTOCK14_ids_natural, newname = "PSTOCK14n")
+
+PSTOCK14_ids_hatchery <- list("PSTOCK14" = PSTOCK14.gcl$attributes %>% 
+  filter(`Otolith Mark Present` == "YES") %>% 
+  mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  pull(FK_FISH_ID))
+PoolCollections.GCL(collections = "PSTOCK14", loci = loci, IDs = PSTOCK14_ids_hatchery, newname = "PSTOCK14h")
+
+ProjectSillys_Origin <- c("PSTOCK13n", "PSTOCK13h", "PSTOCK14n", "PSTOCK14h", "PSTOCK15", "PSTOCK16")
+save_sillys(ProjectSillys_Origin, "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genotypes/Stockdale/OceanAK_Origin/")
+```
+
+
+# Failure rate
+
+Calculate and view the failure rate by silly, locus, and plate.
+```{r failure_rate}
+project <- "Stockdale" #this is required of the function; can be any name 
+failure_rate <- FailureRate.GCL(sillyvec = ProjectSillys_Origin)
+failure_rate_noplots <- failure_rate[1:4]
+save_objects("failure_rate_noplots", "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Stockdale")
+failure_rate
+```
+We can see some very specific plate effects, we tried to address some of these QC re-runs project, but clearly some just have bad tissues. It also appears that there are a few markers that consistently fail. Also of note, 2016 had a higher failure rate that other years, I suspect that this is due to some field sampling issues from that year (i.e. evaporation of ethanol from DWPs).
+
+# QA
+
+Go through our standard Quality Assurance (QA) process, then explore heterozygosity. Produce a matrix with sample sizes.
+```{r qa_setup}
+ProjectSillys_Origin_SampleSizes <- matrix(data = NA, nrow = length(ProjectSillys_Origin), ncol = 5, dimnames = list(ProjectSillys_Origin, c("Genotyped", "Missing", "Duplicate", "Heterozygosity", "Final")))
+ProjectSillys_Origin_SampleSizes[, "Genotyped"] <- sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
+```
+
+## Missing
+
+Remove individuals missing >=20% of genotypes (i.e. the 80% rule).
+```{r qa_missing}
+MissLoci <- RemoveIndMissLoci.GCL(sillyvec = ProjectSillys_Origin, proportion = 0.8) 
+MissLoci  # character vector of fish removed
+save_objects("MissLoci", path = "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Stockdale")
+ProjectSillys_Origin_SampleSizes[, "Missing"] <-  ProjectSillys_Origin_SampleSizes[, "Genotyped"] - sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
+```
+
+## Duplicate
+
+Remove duplicate individuals within the same collection. Typically we specify *duplicates* as a pair of individuals that share >=95% of genotypes. Once a pair of *duplicates* is identified, we keep the individual with the most genotypes and remove the other.
+```{r qa_duplicate}
+DuplicateCheck95MinProportion <- CheckDupWithinSilly.GCL(sillyvec = ProjectSillys_Origin, loci = loci, quantile = NULL, minproportion = 0.95)
+DuplicateCheckReportSummary <- sapply(ProjectSillys_Origin, function(x) DuplicateCheck95MinProportion[[x]]$report, simplify = FALSE)
+DuplicateCheckReportSummary
+save_objects("DuplicateCheckReportSummary", path = "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Stockdale")
+```
+
+```{r remove all duplicates}
+#RemovedDups <- RemoveDups.GCL(DuplicateCheck95MinProportion)
+#save_objects("RemovedDups", path = "../Objects/")
+
+# All duplicate IDs in to one tibble
+dups <- bind_rows(DuplicateCheckReportSummary[sapply(DuplicateCheckReportSummary, is.data.frame)], .id = "silly") %>% 
+  select(silly, ID1, ID2) %>% 
+  gather(trash, id, -silly) %>% 
+  select(-trash) %>% 
+  arrange(silly, id)
+
+##UPDATE##
+
+# Separate vector of IDs for each silly
+dup_14n_ids <- filter(dups, silly == "PSTOCK14n") %>% pull(id)
+dup_15_ids <- filter(dups, silly == "PSTOCK15") %>% pull(id)
+dup_16_ids <- filter(dups, silly == "PSTOCK16") %>% pull(id)
+
+
+# ID silly sources for duplicate individuals
+dup_14n <- PSTOCK14n.gcl$attributes %>% 
+  filter(FK_FISH_ID %in% dup_14n_ids) %>% 
+  mutate(FK_FISH_ID = as.numeric(FK_FISH_ID))
+dup15 <- PSTOCK15.gcl$attributes %>%
+  filter(FK_FISH_ID %in% dup_15_ids)
+dup16 <- PSTOCK16.gcl$attributes %>%  
+  filter(FK_FISH_ID %in% dup_16_ids)
+
+# One tibble with all attributes for fish to remove
+duplicates_to_remove <- bind_rows(dup_14n, dup15, dup16)
+save_objects("duplicates_to_remove", path = "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/")
+
+# Remove fish from .gcl objects
+RemoveIDs.GCL(silly = "PSTOCK14n", IDs = dup_14n_ids)
+RemoveIDs.GCL(silly = "PSTOCK15", IDs = dup_15_ids)
+RemoveIDs.GCL(silly = "PSTOCK16", IDs = dup_16_ids)
+
+# Fill in sample size matrix
+ProjectSillys_Origin_SampleSizes[, "Duplicate"] <-  ProjectSillys_Origin_SampleSizes[, "Genotyped"] - ProjectSillys_Origin_SampleSizes[, "Missing"] - sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
+```
+
+## Heterozygosity
+
+We know from the QC work that the **GTscore** genotyping pipeline can sometimes result in individuals with an overabundance of heterozygous calls (perhaps from contamination?). We want to remove individuals with untrustworth genotypes. In order to explore the utility of some sort of *heterozygosity filter*, we should first plot a histogram of heterozygosity per individual to see what the problem looks like. From there we can set a threshold or range of acceptable heterozygosities.
+```{r heterozygosity_calculations}
+#genotype.counts <- apply(PHOGAN13.gcl$scores, MARGIN=1, table) #provides counts of each genotype/individual
+
+#calculate heterozygosity by individual :-) 
+PSTOCK13n_ind_het <- apply(PSTOCK13n.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/298} ) 
+PSTOCK13h_ind_het <- apply(PSTOCK13h.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/298} ) 
+PSTOCK14n_ind_het <- apply(PSTOCK14n.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/298} )
+PSTOCK14h_ind_het <- apply(PSTOCK14h.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/298} )
+PSTOCK15_ind_het <- apply(PSTOCK15.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/298} )
+PSTOCK16_ind_het <- apply(PSTOCK16.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/298} )
+```
+
+### Plot by silly
+Plot with *tidyverse* for ease of use/visualization. Add +- 3SD cutoff from literature (Anderson et al. 2010).
+```{r visualize heterozygosity by silly}
+# Convert to tibbles
+tibble_PSTOCK13n <- tibble(silly=PSTOCK13n.gcl$attributes$SILLY_CODE, sillysource=PSTOCK13n.gcl$attributes$SillySource, het=PSTOCK13n_ind_het)
+tibble_PSTOCK13h <- tibble(silly=PSTOCK13h.gcl$attributes$SILLY_CODE, sillysource=PSTOCK13h.gcl$attributes$SillySource, het=PSTOCK13h_ind_het)
+tibble_PSTOCK14n <- tibble(silly=PSTOCK14n.gcl$attributes$SILLY_CODE, sillysource=PSTOCK14n.gcl$attributes$SillySource, het=PSTOCK14n_ind_het)
+tibble_PSTOCK14h <- tibble(silly=PSTOCK14h.gcl$attributes$SILLY_CODE, sillysource=PSTOCK14h.gcl$attributes$SillySource, het=PSTOCK14h_ind_het)
+tibble_PSTOCK15 <- tibble(silly=PSTOCK15.gcl$attributes$SILLY_CODE, sillysource=PSTOCK15.gcl$attributes$SillySource, het=PSTOCK15_ind_het)
+tibble_PSTOCK16 <- tibble(silly=PSTOCK16.gcl$attributes$SILLY_CODE, sillysource=PSTOCK16.gcl$attributes$SillySource, het=PSTOCK16_ind_het)
+
+# Create a single tibble
+het_tibble <- bind_rows(tibble_PSTOCK13n, tibble_PSTOCK13h, tibble_PSTOCK14n, tibble_PSTOCK14h, tibble_PSTOCK15, tibble_PSTOCK16)  
+ 
+#make het mean and lower and upper bounds (+/-3SD) tibbles
+mean_het <- het_tibble %>% 
+  dplyr::group_by(silly) %>% 
+  dplyr::summarise(het=mean(het))
+low_cutoff_het <- het_tibble %>% 
+  dplyr::group_by(silly) %>% 
+  summarise(het=mean(het)-3*sd(het))
+high_cutoff_het <- het_tibble %>% 
+  dplyr::group_by(silly) %>% 
+  summarise(het=mean(het)+3*sd(het))
+#plot individual heterozygosity by silly:
+het_tibble %>% 
+    ggplot2::ggplot(aes(x = het)) +
+    ggplot2::geom_histogram(binwidth = 1/298) +
+    ggplot2::geom_vline(aes(xintercept = het), mean_het) +
+    ggplot2::geom_vline(aes(xintercept = het), low_cutoff_het) +
+    ggplot2::geom_vline(aes(xintercept = het), high_cutoff_het) +
+    ggplot2::facet_grid(rows=vars(silly), scales = "free_y") +
+    ggplot2::xlim(0.15, 0.85) +
+    ggplot2::xlab("Individual Heterozygosity") +
+    ggplot2::ylab("Frequency") +
+    ggplot2::ggtitle("Individual Heterozygosity By Silly")
+```
+After discussions with Chris, Tyler, and Dan, we decided that it would be more appropriate to examine heterozygosity by lineage (even versus odd) instead of year. Additionally, we all agreed that the +-3SD cutoff was not restrictive enough, the upper bound for the cutoff should be closer to the main distribution.
+
+### Plot by lineage
+```{r visualize heterozygosity by lineage}
+#combine tibbles and add lineage as grouping variable
+het_tibble <- het_tibble %>% 
+  dplyr::mutate(lineage = dplyr::case_when(silly %in% c("PSTOCK13", "PSTOCK15") ~ "odd",
+                           silly %in% c("PSTOCK14", "PSTOCK16") ~ "even"))
+save_objects("het_tibble", "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Stockdale")
+
+#make het mean and lower and upper bounds (+/-3SD) tibbles
+mean_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het=mean(het))
+low_cutoff_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  summarise(het=mean(het)-3*sd(het))
+high_cutoff_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  summarise(het=mean(het)+3*sd(het))
+
+#plot individual heterozygosity by lineage:
+het_tibble %>% 
+    ggplot2::ggplot(aes(x = het)) +
+    ggplot2::geom_histogram(binwidth = 1/298) +
+    ggplot2::geom_vline(aes(xintercept = het), mean_het) +
+    ggplot2::geom_vline(aes(xintercept = het), low_cutoff_het) +
+    ggplot2::geom_vline(aes(xintercept = het), high_cutoff_het) +
+    ggplot2::facet_grid(rows=vars(lineage), scales = "free_y") +
+    ggplot2::xlim(0.15, 0.85) +
+    ggplot2::xlab("Individual Heterozygosity") +
+    ggplot2::ylab("Frequency") +
+    ggplot2::ggtitle("Individual Heterozygosity By Lineage")
+```
+
+How many fish would we lose if we went with these cutoffs?
+```{r calculate how many individuals we would lose if we go with the 3SD cutoff}
+
+# Upper cutoff only, lower doesn't apply
+het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(upper = mean(het) + 3* sd(het)) %>% 
+  dplyr::right_join(het_tibble) %>% 
+  dplyr::filter(het >= upper) %>% 
+  dplyr::count(lineage)
+```
+### Cutoffs to remove outliers
+If we went with the 3SD cutoff, we would lose 78 samples from the odd lineage and 158 from the even. Still, this +-3SD by lineage approach does not seem ideal given the large number of outliers that **pull** the SD. We can see this long right tail with a qqplot.
+
+```{r make qq plots to visualize outliers}
+#qq plot of heterozygosity by lineage:
+het_tibble %>% 
+    ggplot2::ggplot(aes(sample = het)) +
+    ggplot2::stat_qq() +
+    ggplot2::stat_qq_line() +
+    ggplot2::facet_grid(rows = vars(lineage)) #+
+    #ggplot2::coord_flip()
+```
+Same idea, but with a boxplot. **Note** all points are 1.5 IQR +- upper/lower boxplot. Perhaps we could use this 1.5 IQR approach for removing outliers?
+```{r boxplots}
+het_tibble %>% 
+  ggplot2::ggplot(aes(x = lineage, y = het)) + 
+  ggplot2::stat_boxplot(geom = "errorbar", width = 0.5) + 
+  ggplot2::geom_boxplot(outlier.colour = "red", notch = FALSE, varwidth = FALSE, coef = 1.5) + 
+  ggplot2::ggtitle("Boxplot of individual heterozygosity by lineage\noutliers are in red (1.5 IQR)")
+
+# Calculate 1.5 IQR
+het_IQR_cutoffs <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(low_1.5_IQR = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))),
+            high_1.5_IQR = quantile(het, probs = 0.75) + 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
+
+```
+Chris suggested that we stick with the +-3SD approach, however, before calculating the SD, we mirror the left hand side of the distribution to the right (assuming the **mode** should be the **mean**).
+```{r another way to visualize outliers (from Chris)}
+# Calculate mode of each distribution
+mode_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::count(het) %>% 
+  dplyr::slice(which.max(n))
+
+
+# Chris wants to assume the mode is the mean, mirror the lower half of the dist, calculate SD and use that for +-3SD
+# Odd mirror lower bounds +-3sd
+het_tibble %>% 
+  dplyr::filter(lineage == "odd", het < 0.4078947) %>% 
+  dplyr::mutate(het = 0.4078947 - het + 0.4078947) %>% 
+  dplyr::bind_rows(het_tibble %>% 
+              filter(lineage == "odd", het <= 0.4078948)  # floating point error
+           ) %>% 
+  # ggplot(aes(x = het)) +
+  # geom_histogram(binwidth = 1/304)
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het_mean = mean(het), 
+            het_lower_3sd = mean(het) - 3 * sd(het),
+            het_upper_3sd = mean(het) + 3 * sd(het))
+
+
+# Even mirror lower bounds +-3sd
+het_tibble %>% 
+  dplyr::filter(lineage == "even", het < 0.4177631) %>% 
+  dplyr::mutate(het = 0.4177631 - het + 0.4177631) %>% 
+  dplyr::bind_rows(het_tibble %>% 
+              filter(lineage == "even", het <= 0.4177633)  # floating point error
+  ) %>% 
+  # ggplot(aes(x = het)) +
+  # geom_histogram(binwidth = 1/304)
+  dplyr::group_by(lineage) %>%
+  dplyr::summarise(het_mean = mean(het),
+            het_lower_3sd = mean(het) - 3 * sd(het),
+            het_upper_3sd = mean(het) + 3 * sd(het))
+
+```
+
+Now lets look at all three of these approaches on the original histograms.
+
+1. +-3SD by lineage
+2. 1.5 IQR +- 75% and 25% quartiles
+3. Chris' +-3SD by lineage only using the left hand side of the distribution.
+```{r plot all of the different cutoffs on the same histogram.}
+mean_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het=mean(het))
+
+low_cutoff_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het=mean(het)-3*sd(het))
+
+high_cutoff_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het=mean(het)+3*sd(het))
+
+low_box_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
+
+high_box_het <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het = quantile(het, probs = 0.75) + 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
+
+odd_chris_het <- het_tibble %>% 
+  dplyr::filter(lineage == "odd", het < 0.4078947) %>% 
+  dplyr::mutate(het = 0.4078947 - het + 0.4078947) %>% 
+  dplyr::bind_rows(het_tibble %>% 
+              filter(lineage == "odd", het <= 0.4078948)  # floating point error
+           ) %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het_mean = mean(het), 
+            het_lower_3sd = mean(het) - 3 * sd(het),
+            het_upper_3sd = mean(het) + 3 * sd(het))
+
+even_chris_het <-
+  het_tibble %>% 
+  dplyr::filter(lineage == "even", het < 0.4177631) %>% 
+  dplyr::mutate(het = 0.4177631 - het + 0.4177631) %>% 
+  dplyr::bind_rows(het_tibble %>% 
+              filter(lineage == "even", het <= 0.4177633)  # floating point error
+  ) %>% 
+  dplyr::group_by(lineage) %>%
+  dplyr::summarise(het_mean = mean(het),
+            het_lower_3sd = mean(het) - 3 * sd(het),
+            het_upper_3sd = mean(het) + 3 * sd(het))
+
+chris_het_tibble <- dplyr::bind_rows(odd_chris_het, even_chris_het)
+
+low_chris_het <- tibble(lineage=chris_het_tibble$lineage, het=chris_het_tibble$het_lower_3sd)
+
+high_chris_het <- tibble(lineage=chris_het_tibble$lineage, het=chris_het_tibble$het_upper_3sd)
+
+het_tibble %>% 
+  ggplot2::ggplot(aes(x = het)) +
+  ggplot2::geom_histogram(binwidth = 1/298) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "mean"), mean_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "SD"), low_cutoff_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "SD"), high_cutoff_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "IQR"), low_box_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "IQR"), high_box_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "Chris"), low_chris_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "Chris"), high_chris_het) +
+  ggplot2::facet_grid(rows=vars(lineage), scales = "free_y") +
+  ggplot2::scale_color_manual(name="statistics", values=c(mean="blue", SD="red", IQR="black", Chris="orange")) +
+  ggplot2::xlim(0.15, 0.85) +
+  ggplot2::xlab("Individual Heterozygosity") +
+  ggplot2::ylab("Frequency") +
+  ggplot2::ggtitle("Individual Heterozygosity By Lineage")
+
+```
+ 
+We can see that the upper bound is virtually identical for both Chris' method and IQR. We proposed that we go with the 1.5 IQR method given that it is well known and well documented. All agreed.
+
+### Remove fish with IQR cutoff
+
+Now that we've decided to use the 1.5IQR, how many fish are we going to remove from each silly?
+```{r table_het_cutoff}
+# Get list of fish to remove
+het_tibble %>% 
+  dplyr::left_join(het_IQR_cutoffs, by = "lineage") %>% 
+  dplyr::filter(het < low_1.5_IQR | het > high_1.5_IQR) %>% 
+  dplyr::count(silly)
+```
+
+Now remove those fish. Figure out which ones they are, convert *SillySource* to *FK_FISH_ID* (**note**: the values for *FK_FISH_ID* got reassigned after pooling), remove them.
+```{r remove_het_cutoff}
+removed_hets <- het_tibble %>% 
+  dplyr::left_join(het_IQR_cutoffs, by = "lineage") %>% 
+  dplyr::filter(het < low_1.5_IQR | het > high_1.5_IQR) %>% 
+  dplyr::pull(sillysource)
+save_objects("removed_hets", "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Stockdale")
+
+PSTOCK13h_hets_remove <- PSTOCK13h.gcl$attributes %>% 
+  dplyr::filter(SillySource %in% removed_hets) %>% 
+  dplyr::mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  dplyr::pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PSTOCK13h", IDs = PSTOCK13h_hets_remove)
+
+PSTOCK13n_hets_remove <- PSTOCK13n.gcl$attributes %>% 
+  dplyr::filter(SillySource %in% removed_hets) %>% 
+  dplyr::mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  dplyr::pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PSTOCK13n", IDs = PSTOCK13n_hets_remove)
+
+PSTOCK14h_hets_remove <- PSTOCK14h.gcl$attributes %>% 
+  dplyr::filter(SillySource %in% removed_hets) %>% 
+  dplyr::mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  dplyr::pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PSTOCK14h", IDs = PSTOCK14h_hets_remove)
+
+PSTOCK14n_hets_remove <- PSTOCK14n.gcl$attributes %>% 
+  dplyr::filter(SillySource %in% removed_hets) %>% 
+  dplyr::mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  dplyr::pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PSTOCK14n", IDs = PSTOCK14n_hets_remove)
+
+PSTOCK15_hets_remove <- PSTOCK15.gcl$attributes %>% 
+  dplyr::filter(SillySource %in% removed_hets) %>% 
+  dplyr::mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  dplyr::pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PSTOCK15", IDs = PSTOCK15_hets_remove)
+
+PSTOCK16_hets_remove <- PSTOCK16.gcl$attributes %>% 
+  dplyr::filter(SillySource %in% removed_hets) %>% 
+  dplyr::mutate(FK_FISH_ID = as.character(FK_FISH_ID)) %>% 
+  dplyr::pull(FK_FISH_ID)
+RemoveIDs.GCL(silly = "PSTOCK16", IDs = PSTOCK16_hets_remove)
+
+ProjectSillys_Origin_SampleSizes[, "Heterozygosity"] <-  ProjectSillys_Origin_SampleSizes[, "Genotyped"] - ProjectSillys_Origin_SampleSizes[, "Missing"] - ProjectSillys_Origin_SampleSizes[, "Duplicate"] - sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
+```
+
+
+## Final
+How many fish did we end up with?
+```{r qa_final}
+ProjectSillys_Origin_SampleSizes[, "Final"] <- sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
+ProjectSillys_Origin_SampleSizes
+save_objects("ProjectSillys_Origin_SampleSizes", path = "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Stockdale")
+```
+
+Save post-QA genotypes.
+```{r save_postQA_genotypes}
+save_sillys(ProjectSillys_Origin, "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genotypes/Stockdale/OceanAK_Origin_PostQA/")
+```
+
+
+# Export genepop file
+
+Now that we have final, post QA/QC genotypes, we want to save our work by exporting the genotypes as a **Genepeop** file. That **Genepop** file will then feed in to Chase's *genepop2franz.GCL.r* script to create a **FRANz** input file for parentage analysis!
+
+Create a *genepop* using `gcl2Genepop.GCL`, individuals are named by *SillySource*.
+```{r genepop}
+gcl2Genepop.GCL(sillyvec = c("PSTOCK13n", "PSTOCK13h", "PSTOCK14n", "PSTOCK14h", "PSTOCK15", "PSTOCK16"), 
+                loci = loci, 
+                path = "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genepop/Stockdale/stockdale_postQA.gen", 
+                VialNums = TRUE, 
+                usat = FALSE)
+
+gcl2Genepop.GCL(sillyvec = c("PSTOCK13n", "PSTOCK13h", "PSTOCK15"), 
+                loci = loci, 
+                path = "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genepop/Stockdale/stockdale_odd_postQA.gen", 
+                VialNums = TRUE, 
+                usat = FALSE)
+
+gcl2Genepop.GCL(sillyvec = c("PSTOCK14n", "PSTOCK14h", "PSTOCK16"), 
+                loci = loci, 
+                path = "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genepop/stockdale/stockdale_even_postQA.gen", 
+                VialNums = TRUE, 
+                usat = FALSE)
+```
+
+#Convert genepop to Franz
+```{r Convert genepop to Franz for parentage}
+detach(package:reshape, unload=TRUE)
+source("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/genepop2franz.GCL.r")
+genepop2franz.GCL("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genepop/Stockdale/stockdale_postQA.gen", "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", c(2013, 2015), "STOCK", "../")
+genepop2franz.GCL("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genepop/Stockdale/stockdale_postQA.gen", "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", c(2014, 2016), "STOCK", "../")
+
+```
