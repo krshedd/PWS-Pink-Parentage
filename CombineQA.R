@@ -1,8 +1,8 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# This script is intended for quality assurance across all Hogan samples for
-# the NPRB project. The 2 desired outputs are:
+# This script is intended for quality assurance across all Stockdale samples for
+# the SK + AHRP project. The 2 desired outputs are:
 # 1) QC publication table (discrepancy + error rate by year)
-# 2) Error rate by locus (FRANz input parameter)
+# 2) Error rate by locus (FRANz input parameter) FALSE, FRANz just takes a global error rate
 #
 # Output will be saved as separate .csv files in the QC folder of this project
 #
@@ -18,7 +18,7 @@ rm(list = ls(all.names = TRUE))  # clear workspace
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 library(tidyverse)
 
-sillyvec <- c("PHOGAN13", "PHOGAN14", "PHOGAN15", "PHOGAN16")  # collections to read in
+sillyvec <- c("PSTOCK13", "PSTOCK14", "PSTOCK15", "PSTOCK16")  # collections to read in
 
 # List the output.csv for each lab Project, P012-P016 from LOKI (conflicts + agreements)
 # Kyle had to open the "original" files and save as .csv files
@@ -26,8 +26,12 @@ QC_concordance_files_all <- c(
   list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P012 AHRP Parentage GTSeq Part 1/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
   list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P014 AHRP Parentage GTSeq Part 2/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
   list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P015 AHRP Parentage GTSeq Part 3/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
-  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P016 AHRP Parentage GTSeq Part 4/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE)
-)
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P016 AHRP Parentage GTSeq Part 4/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P017 AHRP Parentage GTSeq Part 5/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P018 AHRP Parentage GTSeq Part 6/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
+  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P019 AHRP Parentage GTSeq Part 7/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE)
+  
+  )
 
 # Read in concordance files as one filtered tibble
 concordance_all <- QC_concordance_files_all %>%  # loop over each file
@@ -44,8 +48,8 @@ concordance_all <- QC_concordance_files_all %>%  # loop over each file
                 concordance_type = `Concordance Type`) %>%  # rename for convenience
   dplyr::select(silly, fish_id, locus, file_allele_1, file_allele_2, db_allele_1, db_allele_2, concordance, concordance_type) %>%  # only keep fields we need
   dplyr::filter(silly %in% sillyvec) %>%  # filter for only sillys in sillyvec
-  tidyr::unite(silly_source, c(silly, fish_id), sep = "_", remove = FALSE) %>%  # create silly_source
-  dplyr::filter(silly_source != "PHOGAN15_4424")  # remove PHOGAN15_4424, catastrophic conflict indiv from P014
+  tidyr::unite(silly_source, c(silly, fish_id), sep = "_", remove = FALSE) # %>%  # create silly_source
+  # dplyr::filter(silly_source != "PHOGAN15_4424")  # remove PHOGAN15_4424, catastrophic conflict indiv from P014
 
 # Table to make sure no NA values
 concordance_all %>% 
@@ -92,7 +96,7 @@ conflict_rate_by_silly <- concordance_all %>%
 
 # Write out conflict (discrepancy) rate table
 write_csv(x = conflict_rate_by_silly,
-          path = "../QC/discrepancy_rate_by_silly.csv")
+          path = "../QC/Stockdale/discrepancy_rate_by_silly.csv")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Genotyping Error by Locus ####
@@ -120,7 +124,7 @@ error_rate_by_locus_FRANz <- conflicts_by_locus %>%
 
 # Write out locus-specific error rate (conflict rate / 2) table
 write_csv(x = error_rate_by_locus_FRANz,
-          path = "../QC/error_rate_by_locus.csv")
+          path = "../QC/Stockdale/error_rate_by_locus.csv")
 
 # Histogram of locus-specific error rates
 conflicts_by_locus_FRANz %>% 
