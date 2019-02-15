@@ -15,6 +15,7 @@ library(scales)
 library(tidyverse)
 library(leaflet)
 library(lubridate)
+library(ggExtra)
 ```
 
 Below are analyses of parentage results calculated separately for Odd (2013-2015) and Even (2014-2016) lineages using *FRANz*. 
@@ -22,18 +23,18 @@ Below are analyses of parentage results calculated separately for Odd (2013-2015
 # Odd lineage (2013/2015)
 
 ## *FRANz* parameters
-*FRANz* was run at 8:20AM on November 6, 2018. We used the following parameters:
-FRANz.exe --Nmmax 2900 --Nfmax 2900 --femrepro 1:2 --malerepro 1:2 --typingerror 0.005 --updatefreqs --poutformat 2 --fullsibtest "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\stock_postQA_2013_2015_STOCK.dat"
+*FRANz* was run at 15:35 on February 12, 2019. We used the following parameters:
+FRANz.exe --Nmmax 4150 --Nfmax 4150 --femrepro 1:2 --malerepro 1:2 --typingerror 0.005 --updatefreqs --poutformat 2 --fullsibtest "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\stock_postQA_2013_2015_STOCK.dat"
 
 The parameters are defined as follows:
---Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 47000 and divided by 2. This escapement number came from the larger of the two estimates (aerial survey AUC and stream walk AUC). This estimate is listed under 'pop est aerial' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx"   
+--Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 4,150 and divided by 2 (*note: above we forgot to divide by 2*). This escapement number came from the smaller of the two estimates (aerial survey AUC and stream walk AUC). This estimate is listed under 'pop est aerial' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx"   
 --femrepro and --malerepro specify the age range in which an individual can reproduce  
---typingerror refers to the overall genotyping error rate. Ours was ~0.005  
+--typingerror refers to the overall genotyping error rate. Ours was ~0.005 (for Stockdale was actually 0.006, from QC)
 --updatefreqs specifies that *FRANz* should update allele frequencies using MCMC sampling  
 --poutformat specifies that all potential parents should be listed, not just the most likely  
 --fullsibtest tests for full siblings among offspring   
 
-All output files can be found here: "v:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\stock_postQA_2013_2015_STOCK_Run1"  
+All output files can be found here: "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\Stockdale\Odd_Run 1"  
 
 The summary file provides information about the power of our marker suite:   
 Cumulative exclusion probability when 1 to 7 fullsibs are genotyped  
@@ -41,7 +42,7 @@ Cumulative exclusion probability when 1 to 7 fullsibs are genotyped
   Second Parent             : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000   
   Parent Pair               : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000
   
-According to the FRANz manual, marker sets are not considered powerful if these cumulative exclusion probabilities are less than 0.95, which indicates that the probability that a random pair of individuals in the population has a 5% chance of having a genotype pair compatible to an offspring genotype. Since all of our probabilities are 1, we can be **confident** in the power of our 304 amplicons to make parent assignments.  
+According to the FRANz manual, marker sets are not considered powerful if these cumulative exclusion probabilities are less than 0.95, which indicates that the probability that a random pair of individuals in the population has a 5% chance of having a genotype pair compatible to an offspring genotype. Since all of our probabilities are 1, we can be **confident** in the power of our 298 amplicons to make parent assignments.  
 
 ## Import data
 The first step is to read in .csv files for parentage assignments produced by *FRANz* as well as paired genotype and OceanAK data. 
@@ -123,7 +124,7 @@ parents_paired_13_15 %>%
   spread(origin, n)
 ```
 
-**Note** that *FRANz* assigned 72 offspring to 54 parents. 69 of these parents are natural origin and 3 are hatchery origin. The hatchery origin fish are from AFK11A and AFK11B.
+**Note** that *FRANz* assigned 72 offspring to 54 parents. 69 of these offspring have natural-origin parents and 3 offspring have hatchery-origin parents. The hatchery origin fish are from AFK11A and AFK11B.
 
 ## Proportion test
 Let's use a Chi-Square test to determine whether the proportions of offspring assigned to hatchery- and natural-origin parents significantly differ from the proportions of hatchery- and natural-origin parents sampled. 
@@ -392,8 +393,6 @@ Let's test for significant differences in RRS between male and female hatchery a
   1. Nonparametric permutation test
   2. Parametric negative binomial GLM  
   
-**Note** we are only doing this for the even lineage because the sample sizes are too low in the odd lineage. 
-
 ```{r RRS statistical testing including 0s odd}
 # The format of the data to test was very simple, it was a data.frame called “mydata” with 2 columns
 # 1.	nOff = number of offspring per family
@@ -491,7 +490,7 @@ rrs_ci_kalinowski <- function(n_h_off, n_w_off, n_h_par, n_w_par, alpha){
 
 ##### Odd 2013/2015
 
-Calculate 95% CIs for Stockdale 13-15 females. RRS = 0.02 (0.01-0.09)
+Calculate 95% CIs for Stockdale 13-15 females. RRS = 0.13 (0.01-0.59)
 
 ```{r RRS_confidence_intervals_female_13_15}
 # Females
@@ -508,10 +507,10 @@ paired_13_15_filter_parents %>%
   summarise(n_off = sum(n)) %>% 
   spread(origin, n_off)
 
-rrs_ci_kalinowski(n_h_off = 1, n_w_off = 25, n_h_par = 281, n_w_par = 131, alpha = 0.05)
+rrs_ci_kalinowski(n_h_off = 1, n_w_off = 33, n_h_par = 94, n_w_par = 393, alpha = 0.05)
 ```
 
-Calculate 95% CIs for Hogan 13-15 males. RRS = 0.12 (0.02-0.4)
+Calculate 95% CIs for Hogan 13-15 males. RRS = 0.34 (0.05-1.10)
 
 ```{r RRS_confidence_intervals_male_13_15}
 # Males
@@ -528,7 +527,7 @@ paired_13_15_filter_parents %>%
   summarise(n_off = sum(n)) %>% 
   spread(origin, n_off)
 
-rrs_ci_kalinowski(n_h_off = 2, n_w_off = 20, n_h_par = 162, n_w_par = 191, alpha = 0.05)
+rrs_ci_kalinowski(n_h_off = 2, n_w_off = 36, n_h_par = 69, n_w_par = 418, alpha = 0.05)
 ```
 
 #### RS vs. field data plots
@@ -669,7 +668,7 @@ paired_13_15_filter %>%
 
 Below is a table of average length by origin and sex for 2013 (the parental generation).
 
-```{r Calculate mean lengths of hatchery and natural origin fish}
+```{r Calculate mean lengths of hatchery and natural origin fish odd}
 paired_13_15_filter %>% 
   filter(`Sample Year` == 2013) %>% 
   group_by(origin, SEX) %>% 
@@ -683,7 +682,7 @@ Hatchery males and females are smaller than natural males and females. Both hatc
 
 Run timing is also highly heritable, so we compared sample date in parents and their offspring. 
 
-```{r make Julian date column}
+```{r make Julian date column odd}
 parents_paired_13_15 <- 
   parents_paired_13_15 %>% 
   mutate(Julian.off = yday(`Sample Date.off`), Julian.par = yday(`Sample Date.par`))
@@ -705,7 +704,7 @@ parents_paired_13_15 %>%
 
 There appears to be a positive association between parent and offspring sample dates. Note that the hatchery parents were collected at the end of the season.  This plot also shows the huge gaps in sampling in 2013. 
 
-```{r Fit lm for parent versus offspring sample date}
+```{r Fit lm for parent versus offspring sample date odd}
 lm.date.odd <- lm(parents_paired_13_15$Julian.off ~ parents_paired_13_15$Julian.par + parents_paired_13_15$SEX.off)
 summary(lm.date.odd)
 ```
@@ -748,14 +747,14 @@ paired_13_15_filter %>%
 
 This is a plot of parental sample date by length. Note that it is a jitter plot. 
 
-```{r Fit LM for parental sample date and length}
+```{r Fit LM for parental sample date and length odd}
 lm.date.length.odd <- lm(`Length Mm.par`~ `Sample Date.par`, parents_paired_13_15)
 summary(lm.date.length.odd)
 ```
 
 There is a significant relationship between parental sample date and length (p = 0.001). 
 
-```{r Fit LM for parental sample date and length + sex + origin}
+```{r Fit LM for parental sample date and length + sex + origin odd}
 lm.date.length.odd <- lm(`Length Mm.par`~ `Sample Date.par` + SEX.par + origin, parents_paired_13_15)
 summary(lm.date.length.odd)
 ```
@@ -787,3 +786,1000 @@ These are mean lengths by sample date with all individuals pooled. Again, larger
 2. 72 offspring were assigned to 54 parents (3 of which were hatchery-origin), for an assignment rate of **2.3%**.  
 3. Family size varied from 0-2 for females and 0-4 for males.  
 4. Hatchery fish appeared later in the run than natural fish. 
+
+
+# Even lineage (2014/2016)
+
+## *FRANz* parameters
+*FRANz* was run at 11:00 on February 13, 2019. We used the following parameters:
+FRANz.exe --Nmmax 4150 --Nfmax 4150 --femrepro 1:2 --malerepro 1:2 --typingerror 0.005 --updatefreqs --poutformat 2 --fullsibtest "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\stock_postQA_2014_2016_STOCK.dat"
+
+The parameters are defined as follows:
+--Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 4,150 and divided by 2 (*note: above we forgot to divide by 2 AND this is the odd-year parameter, not the even-year*). This escapement number came from the smaller of the two estimates (aerial survey AUC and stream walk AUC). This estimate is listed under 'pop est aerial' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx"   
+--femrepro and --malerepro specify the age range in which an individual can reproduce  
+--typingerror refers to the overall genotyping error rate. Ours was ~0.005 (for Stockdale was actually 0.006, from QC)
+--updatefreqs specifies that *FRANz* should update allele frequencies using MCMC sampling  
+--poutformat specifies that all potential parents should be listed, not just the most likely  
+--fullsibtest tests for full siblings among offspring   
+
+All output files can be found here: "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\Stockdale\Even_Run 1"  
+
+The summary file provides information about the power of our marker suite:   
+Cumulative exclusion probability when 1 to 7 fullsibs are genotyped  
+  First Parent              : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000   
+  Second Parent             : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000   
+  Parent Pair               : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000
+  
+According to the FRANz manual, marker sets are not considered powerful if these cumulative exclusion probabilities are less than 0.95, which indicates that the probability that a random pair of individuals in the population has a 5% chance of having a genotype pair compatible to an offspring genotype. Since all of our probabilities are 1, we can be **confident** in the power of our 298 amplicons to make parent assignments.  
+
+## Import data
+The first step is to read in .csv files for parentage assignments produced by *FRANz* as well as paired genotype and OceanAK data. 
+
+```{r Setup Even, message=FALSE, warning=FALSE}
+parentage_14_16 <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/Stockdale/Even_Run 1/parentage.csv")
+paired_14_16 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv")
+```
+
+Plot a histogram of *FRANz* parentage posterior probabilities to show robustness of assignments
+```{r FRANz_posterior_plot_even}
+parentage_14_16  %>% 
+  filter(!is.na(`Parent 1`)) %>% 
+  ggplot(aes(x = Posterior)) +
+  geom_histogram(breaks = seq(0, 1, 0.01)) +
+  ggtitle("Histogram of FRANz posterior probabilities for parentage assignments")
+```
+
+All parentage assigments have a posterior probability of 1, which is very robust.  
+
+## Filter paired data
+The file containing paired genotype and OceanAK data has a lot of information that we do not need at this time (e.g. genotypes for each marker). We therefore separate out only the columns that contain identifying information for each individual.
+
+```{r Filter paired data Even}
+# What are the non-genotype columns
+grep(pattern = "RAD", x = colnames(paired_14_16), value = TRUE, invert = TRUE)
+
+# Filter for non-genotype columns
+paired_14_16_filter <- paired_14_16 %>% 
+  dplyr::select(franz_id, SILLY, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Sample Year`, `Sample Date`, SEX, `Length Mm`, `Otolith Mark Present`, `Otolith Mark ID`) %>% 
+  mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "Natural",
+                            `Otolith Mark Present` == "YES" ~ "Hatchery")) %>%  # add origin variable
+  mutate(origin = factor(origin, c("Natural", "Hatchery")))  # make factor to ensure hatchery != red
+```
+
+```{r Filter parentage data Even}
+# Filter for posterior > 0.9 + make tidy relative to assigment (1 row per parentage assignment)
+parentage_14_16_filter <- parentage_14_16 %>% 
+  filter(Posterior > 0.9) %>% 
+  dplyr::select(Offspring, `Parent 1`, `Parent 2`) %>% 
+  gather(Parent, Parent_ID, - Offspring) %>% 
+  filter(!is.na(Parent_ID))
+```
+
+## Sample sizes
+Quick look at what our sample sizes are for potential parents (2014) and potential offspring (2016).
+
+```{r even_sample_sizes}
+paired_14_16_filter %>% 
+  count(`Sample Year`, SEX, origin) %>% 
+  spread(origin, n, fill = 0)
+```
+
+
+## Join parentage and individual data
+Here, we joined parentage data from *FRANz* with individual data so that we can match data to each offspring and parent. **Note** that any column ending in `.off` refers to offspring and `.par` refers to parent.  
+
+```{r Join parentage and paired objects Even}
+# Creating a single, "tidy" object where each row is a parent-offspring relationship
+# Offspring with 2 parents have 2 rows
+# .off data is offspring, .par data is parents
+(parents_paired_14_16 <- parentage_14_16_filter %>% 
+   left_join(paired_14_16_filter, by = c("Offspring" = "franz_id")) %>% 
+   left_join(paired_14_16_filter, by = c("Parent_ID" = "franz_id"), suffix = c(".off", ".par")) %>% 
+   mutate(origin = case_when(`Otolith Mark Present.par` == "NO" ~ "Natural",
+                             `Otolith Mark Present.par` == "YES" ~ "Hatchery")) %>% 
+   mutate(origin = factor(origin, c("Natural", "Hatchery"))))  # added hatchery/natural variable
+
+# How many single-parent offspring pair assignments?
+parents_paired_14_16 %>% 
+  count(Parent)
+
+# How many unique parents had offspring assigned?
+n_distinct(parents_paired_14_16$Parent_ID)
+
+# For each offspring assigment, what was the parent's origin?
+parents_paired_14_16 %>% 
+  count(origin, `Otolith Mark ID.par`) %>% 
+  spread(origin, n)
+```
+
+**Note** that *FRANz* assigned 1054 offspring to 405 parents. 864 of these offsrping have natural-origin parents and 373 offspring have hatchery-origin parents. The hatchery origin fish are from AFK12B, CCH12, and WNH12PINKB.
+
+## Proportion test
+Let's use a Chi-Square test to determine whether the proportions of offspring assigned to hatchery- and natural-origin parents significantly differ from the proportions of hatchery- and natural-origin parents sampled. 
+
+```{r proportion_even_data}
+# How many spawners from each origin?
+paired_14_16_filter %>% 
+  filter(`Sample Year` == 2014) %>% 
+  count(origin)
+
+# How many offspring from each origin?
+parents_paired_14_16 %>% 
+  count(origin)
+```
+
+```{r Chi square test even}
+O.even <- c("H", "N")
+Spawners.even <- c(436, 358) #  number of hatchery- and natural-origin parents
+Offspring.even <- c(373, 864)  # number of offspring assigned to hatchery- and natural-origin parents
+
+df.even <- data.frame(Spawners.even, Offspring.even)  # made a data.frame because tibbles don't like rownames
+row.names(df.even) <- O.even
+
+df.even
+chisq.test(df.even)
+```
+
+There is a highly significant difference in the proportions of offspring assigned to hatchery- and natural-origin parents relative to the proportions of potential parents sampled, indicating an under-representation of offspring assigning to hatchery-origin parents. We see that although **`r round(df.even["H", "Spawners.even"] / sum(df.even[, "Spawners.even"]), 2) * 100`%** of parents genotyped were of hatchery-origin, only **`r round(df.even["H", "Offspring.even"] / sum(df.even[, "Offspring.even"]), 2) * 100`%** of offspring assigned to hatchery-origin parents.
+
+## Family size
+Here, we calculate and plot family size for both natural and hatchery parents.  Family size ranges from 1-19. Most assignments were to 1 parent (*single parent-offspring duos*) - there were 183 2 parent assignments (*parent pair-offspring trios*). 
+
+Of the 5,199 offspring collected in 2016, 1,054 were assigned to parents, for an overall offspring assignment rate of **20.3%**. 
+
+### Single parent-offspring pairs
+This plot shows the distribution of family size by sex (number of offspring assigned to a female parent or a male parent) for both hatchery and natural parents.  
+
+```{r Family size by sex Even}
+#parents_paired_14_16 %>% 
+  #count(`Fish ID.par`, origin, SEX.par) %>% 
+  #count(origin, SEX.par, n) %>% 
+  #complete(origin, SEX.par, n, fill = list(nn = 0)) %>% 
+  #ggplot(aes(x=n, y = nn, fill=origin)) +
+  #geom_col(position = position_dodge2(preserve = "single")) +
+  #scale_y_continuous(breaks = pretty_breaks()) +
+  #scale_x_continuous(breaks = pretty_breaks()) +
+  #facet_grid(~ SEX.par) +
+  #labs(title="Distribution of Family Size by Females (F) and Males (M)\nNumber of Families",
+  #     fill = "Parent: Origin") +
+  #xlab("Number of Offspring")+
+  #ylab("Number of Parents") 
+
+
+
+# Plot histogram of proportion of parents with a given family size
+parents_paired_14_16 %>% 
+  count(`Fish ID.par`, origin, SEX.par) %>% 
+  count(SEX.par, origin, n) %>% 
+  group_by(SEX.par, origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x=n, y=p, fill = origin)) +
+  geom_col(position = position_dodge2(preserve="single")) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  facet_grid(~ SEX.par) +
+  labs(title="Distribution of Family Size by Females (F) and Males (M)\nProportion of Families",
+       fill = "Parent: Origin") +
+  xlab("Number of Offspring")+
+  ylab("Proportion of Parents") 
+```
+
+When we plot the sexes separately, we can see that most of the assigned parents are males. Female parents produced 1-12 offspring, while male parents produced 1-19.  
+
+Below, we'll calculate reproductive success of natural and hatchery females and males. 
+
+```{r even_rrs}
+(rs_14_16 <- parents_paired_14_16 %>%
+  count(`Fish ID.par`, origin, SEX.par) %>%
+  group_by(origin, SEX.par) %>% 
+  summarise(RS = mean(n))) %>% 
+  spread(SEX.par, RS)
+  
+
+F_h_even <- rs_14_16 %>% 
+  filter(origin == "Hatchery" & SEX.par == "F") %>% 
+  pull(RS)
+M_h_even <- rs_14_16 %>% 
+  filter(origin == "Hatchery" & SEX.par == "M") %>% 
+  pull(RS)
+F_n_even <- rs_14_16 %>% 
+  filter(origin == "Natural" & SEX.par == "F") %>% 
+  pull(RS)
+M_n_even <- rs_14_16 %>% 
+  filter(origin == "Natural" & SEX.par == "M") %>% 
+  pull(RS)
+```
+
+#### Calculate RRS again including 0's 
+We'll calculate RRS again including sampled fish from the parental generation to which offspring were not assigned.
+
+```{r Re-calculate RRS even}
+# Make one tibble with all assignment data
+# RS_combined <- bind_rows(parents_paired_14_16, parents_paired_14_16) 
+
+# Transform to one row per parent with n = number of offspring produced
+parents_paired_14_16_count <- parents_paired_14_16 %>% 
+  count(Parent_ID, origin, SEX.par, `Sample Year.par`, `Length Mm.par`, `Sample Date.par`) %>% 
+  mutate(lineage = dplyr::case_when(`Sample Year.par` %in% c("2013", "2015") ~ "odd",
+                                    `Sample Year.par` %in% c("2014", "2016") ~ "even"))
+
+paired_14_16_filter_parents <- paired_14_16_filter %>% 
+  filter(`Sample Year` == "2014")
+
+# Join with all parents that produced no progeny
+paired_14_16_filter_parents <- left_join(paired_14_16_filter_parents, parents_paired_14_16_count, by = c("franz_id" = "Parent_ID")) %>% 
+  mutate(n = replace_na(n, 0)) %>% 
+  rename(origin = origin.x) %>% 
+  select(-origin.y, -SEX.par, -`Sample Year.par`, -`Length Mm.par`, -`Sample Date.par`)
+
+write_csv(paired_14_16_filter_parents, "stock_paired_14_16_filter_parents.csv")
+
+# Mean RS including 0's
+rs_14_16_0 <- paired_14_16_filter_parents %>%
+  group_by(origin, SEX) %>% 
+  summarise(RS = mean(n, na.rm = TRUE))
+
+rs_14_16_0 %>%
+  mutate(RS = round(RS, 2)) %>% 
+  spread(SEX, RS)
+
+# Plot histogram of number of parents with a given family size
+#paired_14_16_filter_parents %>% 
+#  ggplot(aes(x = n, fill = origin)) +
+#  geom_bar(position = position_dodge2(preserve = "single")) +
+#  facet_grid( ~ SEX) +
+#  xlab("Number of Offspring") +
+#  ylab("Number of Parents") +
+#  labs(title = "Distribution of Family Size by Females (F) and Males (M)\nNumber of Families",
+#       fill = "Parent: Origin")
+
+# Plot histogram of proportion of parents with a given family size
+paired_14_16_filter_parents %>% 
+  count(SEX, origin, n) %>% 
+  group_by(SEX, origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x = n, y = p, fill = origin)) +
+  geom_col(position = position_dodge2(preserve="single")) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  facet_grid(~ SEX) +
+  labs(title="Distribution of Family Size by Females (F) and Males (M)\nProportion of Families",
+       fill = "Parent: Origin") +
+  xlab("Number of Offspring")+
+  ylab("Proportion of Parents") 
+
+# Save RS values
+F_h_0_14_16 <- rs_14_16_0 %>% 
+  filter(origin == "Hatchery" & SEX == "F") %>% 
+  pull(RS)
+M_h_0_14_16 <- rs_14_16_0 %>% 
+  filter(origin == "Hatchery" & SEX == "M") %>% 
+  pull(RS)
+F_n_0_14_16 <- rs_14_16_0 %>% 
+  filter(origin == "Natural" & SEX == "F") %>% 
+  pull(RS)
+M_n_0_14_16 <- rs_14_16_0 %>% 
+  filter(origin == "Natural" & SEX == "M") %>% 
+  pull(RS)
+```
+
+Here are the plots again with lines showing mean reproductive success. 
+
+```{r Plots of RS by sex with mean lines even}
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+#paired_14_16_filter_parents %>% 
+#  filter(SEX == "F") %>% 
+#  ggplot(aes(x = n, fill = origin)) +
+#  geom_bar(position = position_dodge2(preserve = "single")) +
+#  scale_y_continuous(breaks = pretty_breaks()) +
+#  scale_x_continuous(breaks = pretty_breaks()) +
+#  xlab("Number of Offspring") +
+#  ylab("Number of Females") +
+#  labs(title="Number of Offspring for Females",
+#      fill = "Parent: Origin") +
+#  geom_vline(xintercept=F_n_0_14_16, size=2) +
+#  geom_vline(xintercept=F_n_0_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+#  geom_vline(xintercept=F_h_0_14_16, size=2) +
+#  geom_vline(xintercept=F_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+#  annotate("text", x = F_n_0_14_16 + 0.5, y = 250, label = paste("F_n_0 =", round(F_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+#  annotate("text", x = F_h_0_14_16 + 0.5, y = 300, label = paste("F_h_0 =", round(F_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+
+#paired_14_16_filter_parents %>% 
+#  filter(SEX == "M") %>% 
+#  ggplot(aes(x = n, fill = origin)) +
+#  geom_bar(position = position_dodge2(preserve = "single")) +
+#  scale_y_continuous(breaks = pretty_breaks()) +
+#  scale_x_continuous(breaks = pretty_breaks()) +
+#  xlab("Number of Offspring") +
+#  ylab("Number of Males") +
+#  labs(title="Number of Offspring for Males",
+#       fill = "Parent: Origin") +
+#  geom_vline(xintercept=M_n_0_14_16, size=2) +
+#  geom_vline(xintercept=M_n_0_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+#  geom_vline(xintercept=M_h_0_14_16, size=2) +
+#  geom_vline(xintercept=M_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+#  annotate("text", x = M_n_0_14_16 + 0.5, y = 150, label = paste("M_n_0 =", round(M_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+#  annotate("text", x = M_h_0_14_16 + 0.5, y = 100, label = paste("M_h_0 =", round(M_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+
+paired_14_16_filter_parents %>% 
+  filter(SEX == "F") %>% 
+  count(origin, n) %>% 
+  group_by(origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x=n, y=p, fill = origin)) +
+  geom_col(position = position_dodge2(preserve="single")) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +xlab("Number of Offspring") +
+  ylab("Proportion of Females") +
+  labs(title="Number of Offspring for Females",
+       fill = "Parent: Origin") +
+  geom_vline(xintercept=F_n_0_14_16, size=2) +
+  geom_vline(xintercept=F_n_0_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=F_h_0_14_16, size=2) +
+  geom_vline(xintercept=F_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  annotate("text", x = F_n_0_14_16 + 0.5, y = .250, label = paste("F_n_0 =", round(F_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  annotate("text", x = F_h_0_14_16 + 0.5, y = .300, label = paste("F_h_0 =", round(F_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) 
+
+paired_14_16_filter_parents %>% 
+  filter(SEX == "M") %>% 
+  count(origin, n) %>% 
+  group_by(origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x=n, y=p, fill = origin)) +
+  geom_col(position = position_dodge2(preserve="single")) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  xlab("Number of Offspring") +
+  ylab("Proportion of Males") +
+  labs(title="Number of Offspring for Males",
+       fill = "Parent: Origin") +
+  geom_vline(xintercept=M_n_0_14_16, size=2) +
+  geom_vline(xintercept=M_n_0_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=M_h_0_14_16, size=2) +
+  geom_vline(xintercept=M_h_0_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
+  annotate("text", x = M_n_0_14_16 + 0.5, y = .250, label = paste("M_n_0 =", round(M_n_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
+  annotate("text", x = M_h_0_14_16 + 0.5, y = .300, label = paste("M_h_0 =", round(M_h_0_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+
+```
+
+```{r Calculate relative reproductive success including 0s even}
+RRS_m_0_14_16 <- M_h_0_14_16/M_n_0_14_16
+RRS_f_0_14_16 <- F_h_0_14_16/F_n_0_14_16
+
+RRS_tibble_0_14_16 <- tibble(RRS_m_0_14_16, RRS_f_0_14_16)
+round(RRS_tibble_0_14_16, 2)
+```
+
+**RRS for males = `r round(RRS_m_0_14_16, 2)`. RRS for females = `r round(RRS_f_0_14_16, 2)`.**
+
+Let's test for significant differences in RRS between male and female hatchery and natural origin fish. We'll perform two different statistical tests:  
+
+  1. Nonparametric permutation test
+  2. Parametric negative binomial GLM  
+  
+**Note** we are only doing this for the even lineage because the sample sizes are too low in the even lineage. 
+
+```{r RRS statistical testing including 0s even}
+# The format of the data to test was very simple, it was a data.frame called “mydata” with 2 columns
+# 1.	nOff = number of offspring per family
+# 2.	Origin = “H” or “W” for if the parent was hatchery or natural (wild)
+# 
+
+mydata_M_0 <- paired_14_16_filter_parents %>%
+  filter(SEX == "M")
+
+mydata_F_0 <- paired_14_16_filter_parents %>%
+  filter(SEX == "F")
+
+perm_1tail_pvalue_M_0 <- round(x = as.numeric(coin::pvalue(oneway_test(n ~ origin, data = mydata_M_0, distribution = approximate(B = 10000), alternative = "greater"))), digits = 4)
+
+perm_1tail_pvalue_F_0 <- round(x = as.numeric(coin::pvalue(oneway_test(n ~ origin, data = mydata_F_0, distribution = approximate(B = 10000), alternative = "greater"))), digits = 4)
+
+#And to do a 1-tailed negative binomial GLM
+
+fit_M_0 <- glm.nb(n ~ origin, data = mydata_M_0, init.theta = 1, link = log)
+nbGLM_1tail_pvalue_M_0 <- round(summary(fit_M_0)$coefficients[2, 4], 4)
+
+fit_F_0 <- glm.nb(n ~ origin, data = mydata_F_0, init.theta = 1, link = log)
+nbGLM_1tail_pvalue_F_0 <- round(summary(fit_F_0)$coefficients[2, 4], 4)
+
+RRS_0 <- tibble(Sex = c("M", "F", "M", "F"),
+                Test = c(rep("Permutation", 2), rep("Negative Binomial GLM", 2)),
+                p_value = c(perm_1tail_pvalue_M_0, perm_1tail_pvalue_F_0, nbGLM_1tail_pvalue_M_0, nbGLM_1tail_pvalue_F_0))
+RRS_0 %>% 
+  spread(Sex, p_value)
+
+# (RRS_0 <- tibble(perm_1tail_pvalue_F_0, perm_1tail_pvalue_M_0, nbGLM_1tail_pvalue_F_0, nbGLM_1tail_pvalue_M_0))
+```
+
+There is a significant difference in RRS for both males and females. 
+
+#### Calculate CI's for RRS
+
+We will calculate 95% CI's for RRS based on Kalinowski and Taper 2005 [link] (http://www.nrcresearchpress.com/doi/10.1139/f04-239). This is a maximum likelihood estimate based off of Hinrichsen 2003. This method has been used in other peer reviewed papers such as Ford et al. 2016 [link] (https://www.researchgate.net/publication/309147116_Broodstock_History_Strongly_Influences_Natural_Spawning_Success_in_Hatchery_Steelhead_Oncorhynchus_mykiss#pf14).
+
+```{r RRS_confidence_intervals_function_even}
+rrs_ci_kalinowski <- function(n_h_off, n_w_off, n_h_par, n_w_par, alpha){
+  chi_alpha <- qchisq(p = (1 - alpha), df = 1)
+  n_off <- sum(c(n_h_off, n_w_off))
+  n_par <- sum(c(n_h_par, n_w_par))
+  
+  rs_h <- n_h_off / n_h_par
+  rs_w <- n_w_off / n_w_par
+  
+  p_h_par <- n_h_par / n_par
+  p_w_par <- n_w_par / n_par
+  
+  rrs_h <- rs_h / rs_w
+  rrs_w <- rs_w / rs_w
+  rrs_avg <- (rrs_h * p_h_par) + (rrs_w * p_w_par)
+  
+  rrs_ml <- (n_h_off * log(p_h_par * rrs_h / rrs_avg)) + (n_w_off * log(p_w_par * rrs_w / rrs_avg))
+  
+  xi_dist <- bind_rows(
+    lapply(seq(0.01, 5, by = 0.01), function(rrs_h_xi) {
+      rrs_avg_xi <- (rrs_h_xi * p_h_par) + (rrs_w * p_w_par)
+      tibble(rrs_crit = rrs_h_xi,
+             logl = (n_h_off * log(p_h_par * rrs_h_xi / rrs_avg_xi)) + (n_w_off * log(p_w_par * rrs_w / rrs_avg_xi)) - (rrs_ml - chi_alpha / 2)
+      )
+    } )
+  )
+  
+  rrs_min <- xi_dist %>% 
+    mutate(abs_logl = abs(logl)) %>% 
+    filter(rrs_crit < rrs_h) %>% 
+    top_n(-1, abs_logl) %>% 
+    pull(rrs_crit)
+  
+  rrs_max <- xi_dist %>% 
+    mutate(abs_logl = abs(logl)) %>% 
+    filter(rrs_crit > rrs_h) %>% 
+    top_n(-1, abs_logl) %>% 
+    pull(rrs_crit)
+  
+  xi_plot <- xi_dist %>% 
+    ggplot(aes(x = rrs_crit, y = logl)) +
+    geom_line() +
+    geom_hline(yintercept = 0, colour = "red", lwd = 2) +
+    geom_vline(xintercept = c(rrs_h, rrs_min, rrs_max), colour = "blue") +
+    ylim(c(-5, 5)) +
+    xlim(c(0, 2)) +
+    ylab("Log Likelihood - Chi Sq Value") +
+    annotate("text", x = rrs_h + 0.1, y = xi_dist %>% filter(rrs_crit == xi_dist$rrs_crit[which.min(abs(xi_dist$rrs_crit  - rrs_h))]) %>% pull(logl) + 0.4, label = round(rrs_h, 2)) +
+    annotate("text", x = rrs_min - 0.1, y = xi_dist %>% filter(rrs_crit == rrs_min) %>% pull(logl) + 0.4, label = rrs_min) +
+    annotate("text", x = rrs_max + 0.1, y = xi_dist %>% filter(rrs_crit == rrs_max) %>% pull(logl) + 0.4, label = rrs_max)
+  
+  print(xi_plot)
+  return(c(rrs_min, rrs_h, rrs_max))
+}
+```
+
+##### Even 2014/2016
+
+Calculate 95% CIs for Stockdale 14-16 females. RRS = 0.42 (0.36-0.50)
+
+```{r RRS_confidence_intervals_female_14_16}
+# Females
+# Get parent sample sizes
+paired_14_16_filter_parents %>% 
+  filter(SEX == "F") %>% 
+  count(SEX, origin) %>% 
+  spread(origin, nn)
+
+# Get offspring sample sizes
+paired_14_16_filter_parents %>% 
+  filter(SEX == "F") %>% 
+  group_by(SEX, origin) %>% 
+  summarise(n_off = sum(n)) %>% 
+  spread(origin, n_off)
+
+rrs_ci_kalinowski(n_h_off = 196, n_w_off = 447, n_h_par = 230, n_w_par = 221, alpha = 0.05)
+```
+
+Calculate 95% CIs for Hogan 14-16 males. RRS = 0.28 (0.24-0.34)
+
+```{r RRS_confidence_intervals_male_14_16}
+# Males
+# Get parent sample sizes
+paired_14_16_filter_parents %>% 
+  filter(SEX == "M") %>% 
+  count(SEX, origin) %>% 
+  spread(origin, nn)
+
+# Get offspring sample sizes
+paired_14_16_filter_parents %>% 
+  filter(SEX == "M") %>% 
+  group_by(SEX, origin) %>% 
+  summarise(n_off = sum(n)) %>% 
+  spread(origin, n_off)
+
+rrs_ci_kalinowski(n_h_off = 177, n_w_off = 417, n_h_par = 206, n_w_par = 137, alpha = 0.05)
+```
+
+#### RS vs. field data plots
+
+```{r paired_14_16_filter_parents_sex_even}
+paired_14_16_filter_parents <- paired_14_16_filter_parents %>% 
+  mutate(sex = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female"))
+```
+
+Natural-origin males and females both do better early in the season (density-dependence or increased fishing pressure later in the season?).
+```{r Examine reproductive success by sample date even with zeros}
+paired_14_16_filter_parents %>% 
+  ggplot(aes(x = `Sample Date`, y = n, color = origin)) +
+  geom_jitter(aes(shape = sex), height = 0) +
+  geom_smooth() +
+  labs(title = "Reproductive Success by Parental Sample Date",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Parental Sample Date") +
+  ylab("Reproductive Success")
+
+paired_14_16_filter_parents %>% 
+  ggplot(aes(x = `Sample Date`, y = n, color = origin)) +
+  geom_jitter(height = 0) +
+  geom_smooth() +
+  facet_grid(sex ~ .)+
+  labs(title = "Reproductive Success by Parental Sample Date",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Parental Sample Date") +
+  ylab("Reproductive Success")
+```
+
+Larger males are much more successful (but only natural-origin males).
+```{r Examine reproductive success by parent length even with zeros}
+paired_14_16_filter_parents %>% 
+  filter(`Length Mm` > 300) %>% 
+  ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
+  geom_jitter(aes(shape = sex), height = 0) +
+  geom_smooth() +
+  labs(title = "Reproductive Success by Parental Length (mm)",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Parental Length (mm)") +
+  ylab("Reproductive Success")
+
+paired_14_16_filter_parents %>% 
+  filter(`Length Mm` > 300) %>% 
+  ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
+  geom_jitter(height = 0) +
+  geom_smooth() +
+  facet_grid(sex ~ .) +
+  labs(title = "Reproductive Success by Parental Length (mm)",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Parental Length (mm)") +
+  ylab("Reproductive Success")
+```
+
+### Parent pair-offspring trios
+
+Because we have 183 individuals who were assigned to 2 parents, we are able to examine instances of crosses between hatchery fish, between natural fish, and between natural and hatchery fish. **Note** that we have divided natural-hatchery crosses into "HN", which indicates a hatchery origin mother and natural origin father and "NH", which indicates a natural origin mother and hatchery origin father. 
+
+```{r Create cross as new grouping variable even, message=FALSE}
+# Which offspring have 2 parents?
+offspring_trio_14_16 <- parents_paired_14_16 %>% 
+  filter(Parent == "Parent 2") %>% 
+  pull(Offspring)
+
+parents_paired_14_16_cross <- parentage_14_16 %>% 
+  filter(Posterior > 0.9) %>% 
+  dplyr::select(Offspring, `Parent 1`, `Parent 2`) %>% 
+  filter(Offspring %in% offspring_trio_14_16) %>% 
+  left_join(paired_14_16_filter, by = c("Offspring" = "franz_id")) %>% 
+  left_join(paired_14_16_filter, by = c("Parent 1" = "franz_id"), suffix = c(".off", ".par1")) %>% 
+  left_join(paired_14_16_filter, by = c("Parent 2" = "franz_id")) %>% 
+  dplyr::mutate(cross = dplyr::case_when(
+                `Otolith Mark Present.par1` == "NO" & `Otolith Mark Present` == "NO" ~ "NN",
+                `Otolith Mark Present.par1`== "YES" & `Otolith Mark Present` == "YES" ~ "HH",
+                `Otolith Mark Present.par1` == "YES" & SEX.par1 == "F" & `Otolith Mark Present` == "NO" & SEX == "M" ~ "HN",
+                `Otolith Mark Present.par1` == "NO" & SEX.par1 == "F" & `Otolith Mark Present` == "YES" & SEX == "M" ~ "NH",
+                `Otolith Mark Present.par1` == "YES" & SEX.par1 == "M" & `Otolith Mark Present` == "NO" & SEX == "F" ~ "NH",
+                `Otolith Mark Present.par1` == "NO" & SEX.par1 == "M" & `Otolith Mark Present` == "YES" & SEX == "F" ~ "HN" ))
+
+write_csv(parents_paired_14_16_cross, "stock_parents_paired_14_16_cross.csv")
+
+parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
+  count(cross, n) %>% 
+  complete(cross, n, fill = list(nn = 0)) %>% 
+  ggplot(aes(x = n, y = nn, fill = cross))+
+  geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = 1:5) +
+  # ylim(0, 40) +
+  # xlim(0, 5) +
+  labs(title = "Distribution of Family Size by Cross") +
+  xlab("Number of Offspring")+
+  ylab("Number of Families") 
+```
+Offspring from all four types of crosses are represented in our dataset. HH crosses produced 1-2 offspring, HN crosses produced 1-5 offspring, NH crosses produced 1-3 offspring, and NN crosses produced 1-5 offspring.
+
+Calculate RS of cross types
+```{r cross_rs_even}
+parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
+  group_by(cross) %>% 
+  summarise(rs = mean(n))
+```
+
+Is this significant?
+```{r RRS_confidence_intervals_14_16_setup}
+# How many matings by cross type?
+parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
+  count(cross)
+
+# Get offspring sample sizes
+parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
+  group_by(cross) %>% 
+  summarise(nn = sum(n))
+```
+
+```{r RRS_confidence_intervals_14_16}
+# HH vs. NN
+rrs_ci_kalinowski(n_h_off = 16, n_w_off = 109, n_h_par = 15, n_w_par = 62, alpha = 0.05) # Significant!
+
+# HN vs. NN
+rrs_ci_kalinowski(n_h_off = 31, n_w_off = 109, n_h_par = 20, n_w_par = 62, alpha = 0.05) # NS
+
+# NH vs. NN
+rrs_ci_kalinowski(n_h_off = 27, n_w_off = 109, n_h_par = 18, n_w_par = 62, alpha = 0.05) # NS
+```
+
+Investigate the potential for multiple matings
+```{r multiple_matings_even}
+parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
+  group_by(`Fish ID`) %>% 
+  summarise(n_mates = n_distinct(`Fish ID.par1`)) %>% 
+  count(n_mates)
+
+parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
+  group_by(`Fish ID.par1`) %>% 
+  summarise(n_mates = n_distinct(`Fish ID`)) %>% 
+  count(n_mates)
+
+```
+
+Multiple matings clearly occur, however, the way we have our data set up it is hard to ask whether it is males that have multiple partners or females.
+```{r cross_dam_sire_even}
+(parents_paired_14_16_cross_dam_sire <- parents_paired_14_16_cross %>% 
+  select(Offspring, `Parent 1`, `Parent 2`, cross, SEX.par1, origin.par1, SEX, origin) %>% 
+  mutate(Sire = case_when(SEX.par1 == "M" ~ `Parent 1`,
+                          SEX == "M" ~ `Parent 2`)) %>% 
+  mutate(Dam = case_when(SEX.par1 == "F" ~ `Parent 1`,
+                         SEX == "F" ~ `Parent 2`)) %>% 
+  select(Offspring, Dam, Sire, cross) %>% 
+  left_join(paired_14_16_filter, by = c("Dam" = "franz_id")) %>% 
+  left_join(paired_14_16_filter, by = c("Sire" = "franz_id"), suffix = c("_dam", "_sire")))
+```
+
+There were 115 unique matings.
+```{r unique_matings_even}
+parents_paired_14_16_cross_dam_sire %>% 
+  count(Dam, Sire)
+```
+
+Do our sample dates for cross type make sense?
+```{r cross_sample_date_even}
+parents_paired_14_16_cross_dam_sire %>% 
+  group_by(Dam, Sire, `Sample Date_dam`, `Sample Date_sire`, cross) %>% 
+  summarise(n = n_distinct(Offspring)) %>% 
+  ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, colour = cross)) +
+  geom_jitter(size = 2)
+```
+
+How many Dams had multiple Sires?
+```{r dams_with_mult_sires_even}
+# How many Dams had multiple Sires
+parents_paired_14_16_cross_dam_sire %>% 
+  group_by(Dam) %>% 
+  summarise(n_sires = n_distinct(Sire)) %>% 
+  count(n_sires)
+```
+
+How many Sires had multiple Dams?
+```{r sires_with_mult_dams_even}
+# How many Dams had multiple Sires
+parents_paired_14_16_cross_dam_sire %>% 
+  group_by(Sire) %>% 
+  summarise(n_dams = n_distinct(Dam)) %>% 
+  count(n_dams)
+```
+
+How many Dams had multiple Sires of differing origin? What was their reproductive success?
+```{r rs_dams_mult_sire_even}
+# How many Dams had multiple Sires of differing origin
+dams_with_mult_sire <- parents_paired_14_16_cross_dam_sire %>% 
+  group_by(Dam) %>% 
+  summarise(n_cross = n_distinct(cross)) %>% 
+  filter(n_cross > 1) %>% 
+  pull(Dam)
+
+parents_paired_14_16_cross_dam_sire %>% 
+  filter(Dam %in% dams_with_mult_sire) %>% 
+  group_by(Dam, Sire, cross) %>% 
+  summarise(n = n_distinct(Offspring)) %>% 
+  spread(cross, n)
+
+parents_paired_14_16_cross_dam_sire %>% 
+  filter(Dam %in% dams_with_mult_sire) %>% 
+  group_by(Dam, Sire, cross) %>% 
+  summarise(n = n_distinct(Offspring)) %>% 
+  ggplot(aes(x = Dam, y = n, colour = cross)) +
+  geom_jitter(size = 2, width = 0.2, height = 0.2) +
+  ylab("Number of offspring") +
+  ggtitle("Reproductive success of Dams with Sires\nof a different origin")
+```
+
+How many Sires had multiple Dams of differing origin? What was their reproductive success?
+```{r rs_sires_mult_dam_even}
+# How many Sires had multiple Dams of differing origin
+sires_with_mult_dam <- parents_paired_14_16_cross_dam_sire %>% 
+  group_by(Sire) %>% 
+  summarise(n_cross = n_distinct(cross)) %>% 
+  filter(n_cross > 1) %>% 
+  pull(Sire)
+
+parents_paired_14_16_cross_dam_sire %>% 
+  filter(Sire %in% sires_with_mult_dam) %>% 
+  group_by(Dam, Sire, cross) %>% 
+  summarise(n = n_distinct(Offspring)) %>% 
+  spread(cross, n)
+
+parents_paired_14_16_cross_dam_sire %>% 
+  filter(Sire %in% sires_with_mult_dam) %>% 
+  group_by(Dam, Sire, cross) %>% 
+  summarise(n = n_distinct(Offspring)) %>% 
+  ggplot(aes(x = Sire, y = n, colour = cross)) +
+  geom_jitter(size = 2, width = 0.2, height = 0.2) +
+  ylab("Number of offspring") +
+  ggtitle("Reproductive success of Sires with Dams\nof a different origin")
+```
+
+Holy cow, did hatchery-origin males not have multiple matings? Or did they just only mate with other hatchery-origin females?
+```{r rs_male_mult_dam_even}
+parents_paired_14_16_cross_dam_sire %>% 
+  group_by(Sire, origin_sire) %>% 
+  summarise(n_dam = n_distinct(Dam)) %>% 
+  filter(n_dam > 1) %>%
+  filter(origin_sire == "Hatchery")
+```
+
+No way, just one hatchery-origin male mated multiple times (with two hatchery-origin females).
+
+## Associations between parents and offspring
+Here we briefly explore the heritability of:  
+
+  * Body size
+  * Body size x origin
+  * Return timing
+  * Return timing x origin
+
+### Body size
+
+Because body size is heritable, we compared length between parents and offspring.  
+
+```{r Examine body length Even}
+parents_paired_14_16 %>% 
+  filter(`Length Mm.par` != "NA") %>% 
+  filter(`Length Mm.par` > 300) %>%  # remove outliers
+  ggplot(aes(x = `Length Mm.par`, y = `Length Mm.off`, colour = origin, shape = SEX.off))+
+  geom_point(size = 2)+
+  labs(title = "Offspring Length vs. Parent Length",
+       colour = "Parent: Origin",
+       shape = "Offspring: Sex") +
+  xlab("Parent Length (mm)") +
+  ylab("Offspring Length (mm)")
+```
+
+Offspring lengths show a great deal of variation. Male offspring tend to be larger than female offspring, as expected.  
+
+```{r Examine body length father Even}
+parents_paired_14_16 %>% 
+  filter(`Length Mm.par` != "NA") %>% 
+  filter(`Length Mm.par` > 300) %>%  # remove outliers
+  filter(SEX.par == "M") %>% 
+  ggplot(aes(x = `Length Mm.par`, y = `Length Mm.off`, colour = SEX.off))+
+  geom_smooth(method = 'lm')+
+  geom_point(size = 2)+
+  labs(title = "Offspring Length vs. Father Length",
+       colour = "Offspring Sex") +
+  xlab("Father Length (mm)") +
+  ylab("Offspring Length (mm)")
+```
+
+```{r Examine body length mother Even}
+parents_paired_14_16 %>% 
+  filter(`Length Mm.par` != "NA") %>% 
+  filter(`Length Mm.par` > 300) %>%  # remove outliers
+  filter(SEX.par == "F") %>% 
+  ggplot(aes(x = `Length Mm.par`, y = `Length Mm.off`, colour = SEX.off))+
+  geom_smooth(method = 'lm')+
+  geom_point(size = 2)+
+  labs(title = "Offspring Length vs. Mother Length",
+       colour = "Offspring Sex") +
+  xlab("Mother Length (mm)") +
+  ylab("Offspring Length (mm)")
+```
+
+```{r Examine body length faceted by sex even}
+parents_paired_14_16 %>% 
+  filter(`Length Mm.par` != "NA") %>% 
+  filter(`Length Mm.par` > 300) %>%  # remove outliers
+  ggplot(aes(x = `Length Mm.par`, y = `Length Mm.off`, colour =  SEX.off))+
+  facet_grid(~ SEX.par) + 
+  geom_smooth(method = 'lm')+
+  geom_point(size = 2)+
+  labs(title = "Offspring Length vs. Parent Length",
+       colour = "Offspring Sex") +
+  xlab("Parent Length (mm)") +
+  ylab("Offspring Length (mm)")
+```
+
+```{r Fit a linear model between parent and offspring length Even}
+parents_paired_14_16_no_outliers <- parents_paired_14_16 %>% 
+    filter(`Length Mm.par` > 300)  # remove outliers
+
+fit.lm.length <- lm(`Length Mm.off` ~ `Length Mm.par` + SEX.off, parents_paired_14_16_no_outliers)  
+summary(fit.lm.length)
+```
+
+There is a statistically significant relationship between parent and offspring length, and there is a significant effect of sex (p=0.0002), which is what we observe in the scatterplot above, with males being larger on average than females. 
+
+### Body size x origin
+
+*Need to filter out all lenghts below 300mm first, as they are clearly outliers*
+
+Let's examine the relationship between length and origin in the parent generation to see if there is a size difference between natural and hatchery origin fish. 
+
+```{r Fit a linear model between parent length and origin Even}
+fit.lm.length.origin <- lm(`Length Mm` ~ origin + SEX, paired_14_16_filter %>% filter(`Sample Year` == "2014", `Length Mm` > 300))
+summary(fit.lm.length.origin)
+```
+
+Length does significantly differ due to origin (p << 0.001) and differs by sex (p=0.008) in the parental generation (2014).
+
+```{r Plot relationship between length and origin Even}
+paired_14_16_filter %>% 
+  filter(`Sample Year` == "2014", `Length Mm` > 300) %>% 
+  ggplot(aes(x = SEX, y = `Length Mm`, fill = origin)) +
+  geom_violin() +
+  theme(axis.text = element_text(size = 10)) +
+  ggtitle("Distribution of Length by Origin (2014)")
+```
+
+Below is a table of average length by origin and sex for 2014 (the parental generation).
+
+```{r Calculate mean lengths of hatchery and natural origin fish even}
+paired_14_16_filter %>% 
+  filter(`Sample Year` == 2014, `Length Mm` > 300) %>% 
+  group_by(origin, SEX) %>% 
+  summarise(avg_length = round(mean(`Length Mm`, na.rm = TRUE))) %>% 
+  spread(SEX, avg_length)
+```
+
+Hatchery males and females are smaller than natural males and females. Both hatchery and natural females are larger than males, but just by a few mm. This is probably not a biologically significant difference.  
+
+### Sample date
+
+Run timing is also highly heritable, so we compared sample date in parents and their offspring. 
+
+```{r make Julian date column even}
+parents_paired_14_16 <- 
+  parents_paired_14_16 %>% 
+  mutate(Julian.off = yday(`Sample Date.off`), Julian.par = yday(`Sample Date.par`))
+
+write.csv(parents_paired_14_16, "stock_parents_paired_14_16.csv")
+```
+
+
+```{r Examine sample date Even}
+parents_paired_14_16 %>% 
+  ggplot(aes(x = `Sample Date.par`, y = `Sample Date.off`, colour = origin))+
+  geom_jitter(aes(shape = SEX.off), height = 0, size = 2) +
+    geom_smooth(method = 'lm') +
+    labs(title = "Offspring Date vs. Parent Date",
+       colour = "Parent: Origin",
+       shape = "Offspring: Sex") +
+  xlab("Parent Sample Date") +
+  ylab("Offspring Sample Date") 
+```
+
+There appears to be a positive association between parent and offspring sample dates, but moreso for natural-origin parents. Note that the hatchery parents were collected at the end of the season.  This plot also shows the gaps in sampling in 2014. 
+
+```{r Fit lm for parent versus offspring sample date even}
+lm.date.even <- lm(parents_paired_14_16$Julian.off ~ parents_paired_14_16$Julian.par + parents_paired_14_16$SEX.off)
+summary(lm.date.even)
+```
+
+Offspring sample date has a significant association with parental sample date (p < 0.001), and offspring sex (p = 0.01). 
+
+### Sample date x origin
+
+Let's compare sample dates across all of the individuals collected in 2014 and 2016 to examine differences in run timing between hatchery and natural origin fish in the parental generation (2014) and look for completeness of sampling throughout the run. 
+
+```{r Compare sample dates by origin for 2014}
+paired_14_16_filter <- 
+  paired_14_16_filter %>% 
+  mutate(Julian = yday(`Sample Date`))
+
+write.csv(paired_14_16_filter, "stock_paired_14_16_filter.csv")
+
+
+paired_14_16_filter %>% 
+  ggplot(aes(x=`Julian`, fill=origin)) +
+  geom_histogram(position=position_dodge(), binwidth = 1) +
+  facet_grid(`Sample Year` ~ .) +
+  labs(title="Number of Samples per Year by Date and Origin")
+```
+
+From this histogram, we can see that in the parental generation (2014), natural origin fish tended to have earlier sampling dates than hatchery origin fish, which confirms what we know about differences in run timing. We can also see how sparse the field sampling was in 2014. Offspring in 2016 were sampled throughout the run.
+
+### Length by sample date
+
+We also examined length by sample date for the parental (2014) generation to see if size differences are associated with run timing. 
+
+```{r Plot length by sample date even}
+paired_14_16_filter %>% 
+  filter(`Sample Year` == "2014") %>% 
+  filter(`Length Mm` > 300) %>%  # filter outliers
+  ggplot(aes(x = `Sample Date`, y = `Length Mm`, color = origin, shape = SEX)) +
+  geom_jitter(height = 0) +
+  theme(axis.text = element_text(size = 10)) +
+  ggtitle("Distribution of Length by Sample Date (2014)")
+```
+
+This is a plot of parental sample date by length. Note that it is a jitter plot. 
+
+```{r Fit LM for parental sample date and length}
+lm.date.length.even <- lm(`Length Mm.par`~ `Sample Date.par`, parents_paired_14_16_no_outliers)
+summary(lm.date.length.even)
+```
+
+There is a significant relationship between parental sample date and length (p = 0.03). 
+
+```{r Fit LM for parental sample date and length + sex + origin even}
+lm.date.length.even <- lm(`Length Mm.par`~ `Sample Date.par` + SEX.par + origin, parents_paired_14_16_no_outliers)
+summary(lm.date.length.even)
+```
+
+Sample date and length are significantly associated but moreso with sex and origin. 
+
+```{r Calculate mean length by sample date even}
+parents_paired_14_16_no_outliers %>% 
+  filter(`Sample Year.par` == 2014) %>% 
+  group_by(origin, SEX.par, `Sample Date.par`) %>% 
+  summarise(avg_length = round(mean(`Length Mm.par`, na.rm = TRUE))) %>% 
+  spread(origin, avg_length)
+```
+
+These are mean lengths by sex and origin for each sample date. Bigger fish seem to return sooner than smaller fish.  
+
+```{r Length by sample date pooled even}
+parents_paired_14_16_no_outliers %>% 
+  filter(`Sample Year.par` == 2014) %>% 
+  group_by(`Sample Date.par`) %>% 
+  summarise(avg_length = round(mean(`Length Mm.par`, na.rm = TRUE)))
+```
+
+
+These are mean lengths by sample date with all individuals pooled. Again, larger fish seem to return earlier. 
+
+## Summary of even lineage results
+1. Exclusion probabilities were equal to 1, which means we can be confident in the ability of our marker set to correctly assign parents to offspring.  
+2. 1,059 offspring were assigned to 405 parents, for an assignment rate of **20.3%**. 
+3. 183 offspring assigned to 2 parents (triads).
+4. RRS was significant for both males (0.28) and females (0.42).
+5. RRS was significant for HH vs. NN crosses (0.61).
+6. Hybrids (HN and NH) were intermediate between HH and NN crosses.
+7. RS significantly varied with parent sample date (early fish do best, middle fish worst, late returning okay).
+8. Rs significantly varied with parent size (large males had more offspring than smaller males).
+9. Family size varied from 0-12 for females and 0-19 for males.  
+10. Hatchery fish appeared later in the run than natural fish. 
