@@ -24,7 +24,7 @@ Below are analyses of parentage results calculated separately for Odd (2013-2015
 
 ## *FRANz* parameters
 *FRANz* was run at 15:35 on February 12, 2019. We used the following parameters:
-FRANz.exe --Nmmax 4150 --Nfmax 4150 --femrepro 1:2 --malerepro 1:2 --typingerror 0.005 --updatefreqs --poutformat 2 --fullsibtest "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\stock_postQA_2013_2015_STOCK.dat"
+FRANz.exe --Nmmax 5659 --Nfmax 5659 --femrepro 1:2 --malerepro 1:2 --typingerror 0.005 --updatefreqs --poutformat 2 --fullsibtest "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\stock_postQA_2013_2015_STOCK.dat"
 
 The parameters are defined as follows:
 --Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 4,150 and divided by 2 (*note: above we forgot to divide by 2*). This escapement number came from the smaller of the two estimates (aerial survey AUC and stream walk AUC). This estimate is listed under 'pop est aerial' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx"   
@@ -34,7 +34,7 @@ The parameters are defined as follows:
 --poutformat specifies that all potential parents should be listed, not just the most likely  
 --fullsibtest tests for full siblings among offspring   
 
-All output files can be found here: "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\Stockdale\Odd_Run 1"  
+All output files can be found here: "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\Stockdale\Odd_Run 2"  
 
 The summary file provides information about the power of our marker suite:   
 Cumulative exclusion probability when 1 to 7 fullsibs are genotyped  
@@ -48,7 +48,7 @@ According to the FRANz manual, marker sets are not considered powerful if these 
 The first step is to read in .csv files for parentage assignments produced by *FRANz* as well as paired genotype and OceanAK data. 
 
 ```{r Setup Odd, message=FALSE, warning=FALSE}
-parentage_13_15 <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/Stockdale/Odd_Run 1/parentage.csv")
+parentage_13_15 <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/Stockdale/Odd_Run 2/parentage.csv")
 paired_13_15 <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Franz/stockdale_postQA_OceanAK_paired_2013_2015_STOCK.csv")
 ```
 
@@ -510,7 +510,7 @@ paired_13_15_filter_parents %>%
 rrs_ci_kalinowski(n_h_off = 1, n_w_off = 33, n_h_par = 94, n_w_par = 393, alpha = 0.05)
 ```
 
-Calculate 95% CIs for Hogan 13-15 males. RRS = 0.34 (0.05-1.10)
+Calculate 95% CIs for Stockdale 13-15 males. RRS = 0.34 (0.05-1.10)
 
 ```{r RRS_confidence_intervals_male_13_15}
 # Males
@@ -792,7 +792,7 @@ These are mean lengths by sample date with all individuals pooled. Again, larger
 
 ## *FRANz* parameters
 *FRANz* was run at 11:00 on February 13, 2019. We used the following parameters:
-FRANz.exe --Nmmax 4150 --Nfmax 4150 --femrepro 1:2 --malerepro 1:2 --typingerror 0.005 --updatefreqs --poutformat 2 --fullsibtest "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\stock_postQA_2014_2016_STOCK.dat"
+FRANz.exe --Nmmax 2019 --Nfmax 2019 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2 --fullsibtest "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\stock_postQA_2014_2016_STOCK.dat"
 
 The parameters are defined as follows:
 --Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 4,150 and divided by 2 (*note: above we forgot to divide by 2 AND this is the odd-year parameter, not the even-year*). This escapement number came from the smaller of the two estimates (aerial survey AUC and stream walk AUC). This estimate is listed under 'pop est aerial' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx"   
@@ -802,7 +802,7 @@ The parameters are defined as follows:
 --poutformat specifies that all potential parents should be listed, not just the most likely  
 --fullsibtest tests for full siblings among offspring   
 
-All output files can be found here: "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\Stockdale\Even_Run 1"  
+All output files can be found here: "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\Stockdale\Even_Run 2"  
 
 The summary file provides information about the power of our marker suite:   
 Cumulative exclusion probability when 1 to 7 fullsibs are genotyped  
@@ -816,7 +816,7 @@ According to the FRANz manual, marker sets are not considered powerful if these 
 The first step is to read in .csv files for parentage assignments produced by *FRANz* as well as paired genotype and OceanAK data. 
 
 ```{r Setup Even, message=FALSE, warning=FALSE}
-parentage_14_16 <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/Stockdale/Even_Run 1/parentage.csv")
+parentage_14_16 <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/Stockdale/Even_Run 2/parentage.csv")
 paired_14_16 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv")
 ```
 
@@ -892,7 +892,7 @@ parents_paired_14_16 %>%
   spread(origin, n)
 ```
 
-**Note** that *FRANz* assigned 1054 offspring to 405 parents. 864 of these offsrping have natural-origin parents and 373 offspring have hatchery-origin parents. The hatchery origin fish are from AFK12B, CCH12, and WNH12PINKB.
+**Note** that *FRANz* assigned 1054 offspring to 405 parents. 865 of these offsrping have natural-origin parents and 373 offspring have hatchery-origin parents. The hatchery origin fish are from AFK12B, CCH12, and WNH12PINKB.
 
 ## Proportion test
 Let's use a Chi-Square test to determine whether the proportions of offspring assigned to hatchery- and natural-origin parents significantly differ from the proportions of hatchery- and natural-origin parents sampled. 
@@ -911,7 +911,7 @@ parents_paired_14_16 %>%
 ```{r Chi square test even}
 O.even <- c("H", "N")
 Spawners.even <- c(436, 358) #  number of hatchery- and natural-origin parents
-Offspring.even <- c(373, 864)  # number of offspring assigned to hatchery- and natural-origin parents
+Offspring.even <- c(373, 865)  # number of offspring assigned to hatchery- and natural-origin parents
 
 df.even <- data.frame(Spawners.even, Offspring.even)  # made a data.frame because tibbles don't like rownames
 row.names(df.even) <- O.even
@@ -1260,7 +1260,7 @@ rrs_ci_kalinowski <- function(n_h_off, n_w_off, n_h_par, n_w_par, alpha){
 
 ##### Even 2014/2016
 
-Calculate 95% CIs for Stockdale 14-16 females. RRS = 0.42 (0.36-0.50)
+Calculate 95% CIs for Stockdale 14-16 females. RRS = 0.42 (0.35-0.50)
 
 ```{r RRS_confidence_intervals_female_14_16}
 # Females
@@ -1277,7 +1277,7 @@ paired_14_16_filter_parents %>%
   summarise(n_off = sum(n)) %>% 
   spread(origin, n_off)
 
-rrs_ci_kalinowski(n_h_off = 196, n_w_off = 447, n_h_par = 230, n_w_par = 221, alpha = 0.05)
+rrs_ci_kalinowski(n_h_off = 196, n_w_off = 448, n_h_par = 230, n_w_par = 221, alpha = 0.05)
 ```
 
 Calculate 95% CIs for Hogan 14-16 males. RRS = 0.28 (0.24-0.34)
@@ -1635,7 +1635,7 @@ There is a statistically significant relationship between parent and offspring l
 
 ### Body size x origin
 
-*Need to filter out all lenghts below 300mm first, as they are clearly outliers*
+*Need to filter out all lengths below 300mm first, as they are clearly outliers*
 
 Let's examine the relationship between length and origin in the parent generation to see if there is a size difference between natural and hatchery origin fish. 
 
@@ -1743,7 +1743,7 @@ lm.date.length.even <- lm(`Length Mm.par`~ `Sample Date.par`, parents_paired_14_
 summary(lm.date.length.even)
 ```
 
-There is a significant relationship between parental sample date and length (p = 0.03). 
+There is a significant relationship between parental sample date and length (p = 0.04). 
 
 ```{r Fit LM for parental sample date and length + sex + origin even}
 lm.date.length.even <- lm(`Length Mm.par`~ `Sample Date.par` + SEX.par + origin, parents_paired_14_16_no_outliers)
