@@ -490,7 +490,7 @@ RRS_0 %>%
 # (RRS_0 <- tibble(perm_1tail_pvalue_F_0, perm_1tail_pvalue_M_0, nbGLM_1tail_pvalue_F_0, nbGLM_1tail_pvalue_M_0))
 ```
 
-There is a significant difference in RRS for females, but not males. 
+There is a significant difference in RRS for females and males. 
 
 
 ## Associations between parents and offspring
