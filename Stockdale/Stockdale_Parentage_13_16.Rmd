@@ -687,7 +687,7 @@ parents_paired_13_15 <-
   parents_paired_13_15 %>% 
   mutate(Julian.off = yday(`Sample Date.off`), Julian.par = yday(`Sample Date.par`))
 
-write.csv(parents_paired_13_15, "stock_parents_paired_13_15.csv")
+write_csv(parents_paired_13_15, "stock_parents_paired_13_15.csv")
 ```
 
 
@@ -720,7 +720,7 @@ paired_13_15_filter <-
   paired_13_15_filter %>% 
   mutate(Julian = yday(`Sample Date`))
 
-write.csv(paired_13_15_filter, "stock_paired_13_15_filter.csv")
+write_csv(paired_13_15_filter, "stock_paired_13_15_filter.csv")
 
 
 paired_13_15_filter %>% 
@@ -1676,7 +1676,7 @@ parents_paired_14_16 <-
   parents_paired_14_16 %>% 
   mutate(Julian.off = yday(`Sample Date.off`), Julian.par = yday(`Sample Date.par`))
 
-write.csv(parents_paired_14_16, "stock_parents_paired_14_16.csv")
+write_csv(parents_paired_14_16, "stock_parents_paired_14_16.csv")
 ```
 
 
@@ -1710,7 +1710,7 @@ paired_14_16_filter <-
   paired_14_16_filter %>% 
   mutate(Julian = yday(`Sample Date`))
 
-write.csv(paired_14_16_filter, "stock_paired_14_16_filter.csv")
+write_csv(paired_14_16_filter, "stock_paired_14_16_filter.csv")
 
 
 paired_14_16_filter %>% 
