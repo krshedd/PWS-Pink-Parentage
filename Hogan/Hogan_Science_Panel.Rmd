@@ -383,8 +383,9 @@ The above plot show RS by parent body length, separately for females (top) and m
 ## Summary of odd lineage results
 1. Exclusion probabilities were equal to 1.00, which means we can be confident in the ability of our marker set to correctly assign parents to offspring.  
 2. 48 offspring were assigned to 20 parents (3 of which were hatchery-origin), for an assignment rate of **2.5%**. This is in line with our expectation given the depth of parental sampling.  
-3. Family size varied from 0-16 for females and 0-4 for males.  
-4. It is difficult to draw clear conclusions about relationships between RS and either sample date or parental size due to the low offspring assignment rate.   
+3. Female RRS was 0.02 (0.01-0.09). Male RRS was 0.12 (0.02-0.40). Both male and female hatchery-origin fish produced significantly fewer offspring than natural-origin fish.  
+4. Family size varied from 0-16 for females and 0-4 for males.  
+5. It is difficult to draw clear conclusions about relationships between RS and either sample date or parental size due to the low offspring assignment rate.   
 
 
 
@@ -815,11 +816,10 @@ Hogan 2014/2016 **NH/NN** RRS with 95% CI = **`r paste0(even_NH_NN_rrs_CI[2], " 
 
 ## Summary of even lineage results
 1. Exclusion probabilities were equal to 1.00, which means we can be confident in the ability of our marker set to correctly assign parents to offspring.  
-2. 1,059 offspring were assigned to 405 parents, for an assignment rate of **20.3%**. This is in line with our expectations based on depth of parental sampling.  
-3. 183 offspring assigned to 2 parents (triads).
-4. RRS was significant for both males (0.28) and females (0.42).
-5. RRS was significant for HH vs. NN crosses (0.61).
-6. RS varied with parent sample date (early fish do best, middle fish worst, late returning okay).
-7. RS varied with parent size (larger fish had more offspring than smaller fish).
-8. Family size varied from 0-10 for females and 0-13 for males.  
+2. 451 offspring were assigned to 184 parents, for an assignment rate of **11%**. This is in line with our expectations based on parental depth of sampling. 208 assignments were to natural origin parents and 265 were to hatchery origin parents. *FRANz* was able to make both 1- and 2-parent assignments.
+3. Family size varied from 0-10 for females and 0-13 for males.  
+4. Natural origin females had significantly higher RS than hatchery origin females, but there was not a significant difference for males. Female RRS was 0.47(0.37-0.62) and male RRS was 0.87(0.67-1.12).   
+5. Hatchery and natural fish interbreed (both sexes).  
+6. For the most part, natural-origin fish had higher RS earlier than later in the run.  
+7. Larger male and female fish appear to have higher RS than smaller fish. 
 
