@@ -24,7 +24,7 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, out.width = "100
 ```
 
 # Introduction
-This is a summary of parentage analysis and relative reproductive success (RRS) results from Stockdale Creek 2013-2016 for the Science Panel. Similar to the Hogan Bay results, the even year lineage had many more parentage assignments than the odd year lineage due to the higher sampling rates in 2014 compared to 2013 and the smaller escapements in 2014/2016 than in 2013/2015. While this does not mean that the odd lineage results are not valid, they are certainly less robust than the even lineage results. These results will be used to inform additional analyses  (e.g. investigating the impact of spawning location on reproductive success). We intend to present these results at both the March 7th AHRP Informational Meeting and at the Alaska Chapter of the American Fisheries Society meeting in Sitka March 19-22. Note that while the odd year Stockdale analyses were fully funded by the AHRP, the even year genetic analyses were funded by a Saltonstall-Kennedy grant which ends June 30, 2019.
+This is a summary of parentage analysis and relative reproductive success (RRS) results from Stockdale Creek 2013-2016 for the Science Panel. Similar to the Hogan Bay results, the even year lineage had many more parentage assignments than the odd year lineage due to the higher sampling rates in 2014 compared to 2013 and the smaller escapements in 2014/2016 than in 2013/2015. While this does not mean that the odd lineage results are not valid, they are certainly less robust than the even lineage results. These results will be used to inform additional, future analyses  (e.g. investigating the impact of spawning location upstream/intertidal on reproductive success). We intend to present these results at both the March 7th AHRP Informational Meeting and at the Alaska Chapter of the American Fisheries Society meeting in Sitka March 19-22. Note that while the odd year Stockdale analyses were fully funded by the AHRP, the even year genetic analyses were funded by a Saltonstall-Kennedy grant which ends June 30, 2019.
 
 # Odd lineage (2013/2015)
 
@@ -194,7 +194,7 @@ We calculate RRS as mean Hatchery RS divided by mean Natural RS.
 
 **RRS for females = `r round(Female_RRS_odd, 2)`**
 
-**RRS for males = `r round(Male_RRS_odd, 2)`.**
+**RRS for males = `r round(Male_RRS_odd, 2)`**
 
 #### Statistical testing
 We tested for statistically significant differences in RS between male and female hatchery- and natural-origin fish using two different statistical tests:  
@@ -234,7 +234,7 @@ RRS_0 %>%
   spread(Sex, p_value)  
 ```
 
-The above table shows the *p-values* for each test and sex. We use a *p-value* cut-off of 0.05. Female hatchery-origin fish produced significantly fewer offspring than natural-origin females, but there is not a significant diference in RS between hatchery- and natural-origin parents. 
+The above table shows the *p-values* for each test and sex. We use a *p-value* cut-off of 0.05. Female hatchery-origin fish produced significantly fewer offspring than natural-origin females, but there is not a significant diference in RS between hatchery- and natural-origin males. 
 
 #### Confidence intervals
 
@@ -338,9 +338,9 @@ odd_male_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_13_15_filter_parents %>%
                                      alpha = 0.05)
 ```
 
-Stockdale 2013/2015 **female** RRS with 95% CI = **`r paste0(odd_female_rrs_CI[2], " (", odd_female_rrs_CI[1], "-", odd_female_rrs_CI[3], ")")`**
+Stockdale 2013/2015 **female** RRS with 95% CI = **`r paste0(formatC(odd_female_rrs_CI[2], format = "f", digits = 2), " (", formatC(odd_female_rrs_CI[1], format = "f", digits = 2), "-", formatC(odd_female_rrs_CI[3], format = "f", digits = 2), ")")`**
 
-Stockdale 2013/2015 **male** RRS with 95% CI = **`r paste0(odd_male_rrs_CI[2], " (", odd_male_rrs_CI[1], "-", odd_male_rrs_CI[3], ")")`**
+Stockdale 2013/2015 **male** RRS with 95% CI = **`r paste0(formatC(odd_male_rrs_CI[2], format = "f", digits = 2), " (", formatC(odd_male_rrs_CI[1], format = "f", digits = 2), "-", formatC(odd_male_rrs_CI[3], format = "f", digits = 2), ")")`**
 
 **Note** that the confidence intervals for both males and females are large due to the small numbers of offspring assigned to hatchery-origin parents. 
 
@@ -361,7 +361,7 @@ paired_13_15_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
-The above plot show RS by parent sample date, separately for females (top) and males (bottom). We see that there were no hatchery-origin fish sampled in the first event. RS for natural-origin females appears consistent throughout the season, whereas male natural-origin fish appear to be more productive early in the season than later on. Note that points are jittered by sample date (x-axis) to avoid overplotting. 
+The above plot show RS by parent sample date, separately for females (top) and males (bottom). We see that there were no hatchery-origin fish sampled in the first event. RS appears to be more productive early in the season than later on, and this pattern is more pronounced in males than in females. Note that points are jittered by sample date (x-axis) to avoid overplotting. 
 
 ```{r Examine reproductive success by parent length odd with zeros}
 paired_13_15_filter_parents %>% 
@@ -377,7 +377,7 @@ paired_13_15_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
-The above plot show RS by parent body length, separately for females (top) and males (bottom). It is difficult to draw conclusions about this relationship for hatchery-origin parents since there were so few assignments. Smaller to intermediate-sized females may have higher RS than larger females. Larger natural-origin males may have higher RS than smaller males. Again, sample sizes are small, which makes it difficult to draw robust conclusions.
+The above plot show RS by parent body length, separately for females (top) and males (bottom). It is difficult to draw conclusions about this relationship for hatchery-origin parents since there were so few assignments. Sample sizes are small, which makes it difficult to draw robust conclusions.
 
 ## Summary of odd lineage results
 1. Exclusion probabilities were equal to 1.00, which means we can be confident in the ability of our marker set to correctly assign parents to offspring. 
@@ -557,7 +557,7 @@ We calculate RRS as mean Hatchery RS divided by mean Natural RS.
 
 **RRS for females = `r round(Female_RRS_even, 2)`**
 
-**RRS for males = `r round(Male_RRS_even, 2)`.**
+**RRS for males = `r round(Male_RRS_even, 2)`**
 
 #### Statistical testing
 We tested for significant differences in RS between male and female hatchery- and natural-origin fish using two different statistical tests:  
@@ -645,9 +645,9 @@ even_male_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_14_16_filter_parents %>%
                                      alpha = 0.05)
 ```
 
-Stockdale 2014/2016 **female** RRS with 95% CI = **`r paste0(even_female_rrs_CI[2], " (", even_female_rrs_CI[1], "-", even_female_rrs_CI[3], ")")`**
+Stockdale 2014/2016 **female** RRS with 95% CI = **`r paste0(formatC(even_female_rrs_CI[2], format = "f", digits = 2), " (", formatC(even_female_rrs_CI[1], format = "f", digits = 2), "-", formatC(even_female_rrs_CI[3], format = "f", digits = 2), ")")`**
 
-Stockdale 2014/2016 **male** RRS with 95% CI = **`r paste0(even_male_rrs_CI[2], " (", even_male_rrs_CI[1], "-", even_male_rrs_CI[3], ")")`**
+Stockdale 2014/2016 **male** RRS with 95% CI = **`r paste0(formatC(even_male_rrs_CI[2], format = "f", digits = 2), " (", formatC(even_male_rrs_CI[1], format = "f", digits = 2), "-", formatC(even_male_rrs_CI[3], format = "f", digits = 2), ")")`**
 
 **Note** that the confidence intervals for both males and females are much smaller than in the odd lineage due to much higher number of parent-offpsring assignments (more data = smaller confidence intervals). 
 
@@ -668,7 +668,7 @@ paired_14_16_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
-The above plot shows RS by parent sample date, separately for females (top) and males (bottom). We see that RS does vary due to sample date, with the lowest RS values in the middle of the season (perhaps due to increased fishing pressure or density dependence on the spawning grounds). However, both early and late in the season natural-origin fish have higher RS than hatchery-origin fish in both sexes. This suggests that our measured difference in RRS is not due solely to differences in run timing (sample date) between hatchery- and natural-origin fish. Note that points are jittered by sample date (x-axis) to avoid overplotting).
+The above plot shows RS by parent sample date, separately for females (top) and males (bottom). We see that RS does vary due to sample date. For natural-origin fish, the lowest RS values are in the middle of the season (perhaps due to density dependence on the spawning grounds). For hatchery-origin fish, there is less of a relationship between RS and sample date, however, it appears that hatchery-origin fish RS is slightly higher in the middle of the season. Regardless, both early and late in the season natural-origin fish have higher RS than hatchery-origin fish in both sexes. This suggests that our measured difference in RRS is not due solely to differences in run timing (sample date) between hatchery- and natural-origin fish. Note that points are jittered by sample date (x-axis) to avoid overplotting.
 
 ```{r Examine reproductive success by parent length even with zeros}
 paired_14_16_filter_parents %>% 
@@ -685,7 +685,7 @@ paired_14_16_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
-The above plot show RS by parent body length, separately for females (top) and males (bottom). Larger males are much more successful (but only natural-origin males). Again, we see at most size classes that natural-origin fish have higher RS than hatchery-origin fish. Size alone, therefore, doesn't explain differences in RS.
+The above plot show RS by parent body length, separately for females (top) and males (bottom). Larger males are more successful (but only natural-origin males). Again, we see at most size classes that natural-origin fish have higher RS than hatchery-origin fish. Size alone, therefore, doesn't explain differences in RS.
 
 ## Parent pair-offspring trios
 Because we have 183 individuals who were assigned to 115 different sets of two parent matings (families), we are able to examine instances of crosses between hatchery fish, between natural fish, and between natural and hatchery fish. **Note** that we have divided natural-hatchery crosses into "HN", which indicates a hatchery-origin dam and natural-origin sire and "NH", which indicates a natural-origin dam and hatchery-origin sire. 
@@ -808,11 +808,11 @@ even_NH_NN_rrs_CI <- rrs_ci_kalinowski(n_h_off = parents_paired_14_16_cross %>%
                                        alpha = 0.05)
 ```
 
-Stockdale 2014/2016 **HH/NN** RRS with 95% CI = **`r paste0(even_HH_NN_rrs_CI[2], " (", even_HH_NN_rrs_CI[1], "-", even_HH_NN_rrs_CI[3], ")")`**
+Stockdale 2014/2016 **HH/NN** RRS with 95% CI = **`r paste0(formatC(even_HH_NN_rrs_CI[2], format = "f", digits = 2), " (", formatC(even_HH_NN_rrs_CI[1], format = "f", digits = 2), "-", formatC(even_HH_NN_rrs_CI[3], format = "f", digits = 2), ")")`**
 
-Stockdale 2014/2016 **HN/NN** RRS with 95% CI = **`r paste0(even_HN_NN_rrs_CI[2], " (", even_HN_NN_rrs_CI[1], "-", even_HN_NN_rrs_CI[3], ")")`**
+Stockdale 2014/2016 **HN/NN** RRS with 95% CI = **`r paste0(formatC(even_HN_NN_rrs_CI[2], format = "f", digits = 2), " (", formatC(even_HN_NN_rrs_CI[1], format = "f", digits = 2), "-", formatC(even_HN_NN_rrs_CI[3], format = "f", digits = 2), ")")`**
 
-Stockdale 2014/2016 **NH/NN** RRS with 95% CI = **`r paste0(even_NH_NN_rrs_CI[2], " (", even_NH_NN_rrs_CI[1], "-", even_NH_NN_rrs_CI[3], ")")`**
+Stockdale 2014/2016 **NH/NN** RRS with 95% CI = **`r paste0(formatC(even_NH_NN_rrs_CI[2], format = "f", digits = 2), " (", formatC(even_NH_NN_rrs_CI[1], format = "f", digits = 2), "-", formatC(even_NH_NN_rrs_CI[3], format = "f", digits = 2), ")")`**
 
 The only significant difference in RRS (upper bound of 95% CI < 1.00) is between HH and NN matings.
 
@@ -822,8 +822,8 @@ The only significant difference in RRS (upper bound of 95% CI < 1.00) is between
 3. Given the larger sample size of parent-offspring relationships, the even lineage results are much more robust than the odd lineage results.
 4. The number of offspring assigned to parents varied from 0-12 for females and 0-19 for males. 
 5. RRS was significant for both males (0.28 [CI's 0.24-0.34]) and females (0.42 [CI's 0.35-0.50]). 
-6. RS significantly varied with parent sample date (early fish had the highest RS, middle fish had the lowest RS, late returning fish had intermediate RS). Across most of the season (particularly the tails), regardless of sample date, natural-origin fish had higher RS than hatchery-origin fish. Differences in overall RRS do not appear to be solely due to differences in run timing.
-7. RS significantly varied with parent size (large males had more offspring than smaller males). However, regardless of size, natural-origin males had higher RS.
+6. RS for natural-origin fish significantly varied with parent sample date (early fish had the highest RS, middle fish had the lowest RS, late returning fish had intermediate RS). Across most of the season (particularly the tails), regardless of sample date, natural-origin fish had higher RS than hatchery-origin fish. Differences in overall RRS do not appear to be solely due to differences in run timing.
+7. Large natural-origin males had significantly higher RS than smaller ones, but this pattern was not present for hatchery-origin males or females from either origin. However, regardless of size, natural-origin fish had higher RS than hatchery-origin fish.
 8. 183 offspring assigned to two parents (trios).
-9. RRS was significant for HH vs. NN crosses (0.61 [CI's 0.35-0.99]). There was no significant difference between RRS of either hybrid type (HN or NH) versus NN. 
+9. RRS was significantly different for HH vs. NN crosses (0.61 [CI's 0.35-0.99]). There was no significant difference between RRS of either hybrid type (HN or NH) versus NN. 
 10. Hybrids (HN and NH) had RS values that were intermediate between HH and NN crosses.

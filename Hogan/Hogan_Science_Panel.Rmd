@@ -24,7 +24,7 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, out.width = "100
 ```
 
 # Introduction
-This is a summary of parentage analysis and relative reproductive success (RRS) results from Hogan Bay 2013-2016 for the Science Panel. The even year lineage had many more parentage assignments than the odd year lineage due to the higher sampling rates in 2014 compared to 2013 and the smaller escapements in 2014/2016 than in 2013/2015. While this does not mean that the odd lineage results are not valid, they are certainly not as robust as the even lineage results. These results will be used to inform additional analyses  (e.g. investigating the impact of spawning location on reproductive success). We intend to present these results at both the March 7th AHRP Informational Meeting and at the Alaska Chapter of the American Fisheries Society meeting in Sitka March 19-22. These analyses were funded by the North Pacific Research Board. 
+This is a summary of parentage analysis and relative reproductive success (RRS) results from Hogan Bay 2013-2016 for the Science Panel. The even year lineage had many more parentage assignments than the odd year lineage due to the higher sampling rates in 2014 compared to 2013 and the smaller escapements in 2014/2016 than in 2013/2015. While this does not mean that the odd lineage results are not valid, they are certainly not as robust as the even lineage results. These results will be used to inform additional, future analyses  (e.g. investigating the impact of spawning location upstream/intertidal on reproductive success). We intend to present these results at both the March 7th AHRP Informational Meeting and at the Alaska Chapter of the American Fisheries Society meeting in Sitka March 19-22. These analyses were funded by the North Pacific Research Board. 
 
 # Odd lineage (2013/2015)
 
@@ -194,7 +194,7 @@ We calculate RRS as mean Hatchery RS divided by mean Natural RS. **Note** this a
 
 **RRS for females = `r round(Female_RRS_odd, 2)`**
 
-**RRS for males = `r round(Male_RRS_odd, 2)`.**
+**RRS for males = `r round(Male_RRS_odd, 2)`**
 
 #### Statistical testing
 We tested for statistically significant differences in RS between male and female hatchery- and natural-origin fish using two different statistical tests:  
@@ -338,9 +338,9 @@ odd_male_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_13_15_filter_parents %>%
                                      alpha = 0.05)
 ```
 
-Hogan 2013/2015 **female** RRS with 95% CI = **`r paste0(odd_female_rrs_CI[2], " (", odd_female_rrs_CI[1], "-", odd_female_rrs_CI[3], ")")`**
+Hogan 2013/2015 **female** RRS with 95% CI = **`r paste0(formatC(odd_female_rrs_CI[2], format = "f", digits = 2), " (", formatC(odd_female_rrs_CI[1], format = "f", digits = 2), "-", formatC(odd_female_rrs_CI[3], format = "f", digits = 2), ")")`**
 
-Hogan 2013/2015 **male** RRS with 95% CI = **`r paste0(odd_male_rrs_CI[2], " (", odd_male_rrs_CI[1], "-", odd_male_rrs_CI[3], ")")`**
+Hogan 2013/2015 **male** RRS with 95% CI = **`r paste0(formatC(odd_male_rrs_CI[2], format = "f", digits = 2), " (", formatC(odd_male_rrs_CI[1], format = "f", digits = 2), "-", formatC(odd_male_rrs_CI[3], format = "f", digits = 2), ")")`**
 
 ### Plots of RS vs. field data
 We examined associations between two potential explanatory variables (sample date and body size) and RS. These plots include LOESS (locally weighted smoothing) lines with 95% confidence intervals to help illustrate trends. We use LOESS rather than linear models because our data violate assumptions of linear regression (normality, homoscedasticity, etc.). 
@@ -558,7 +558,7 @@ We calcualte RRS as mean Hatchery RS divided by mean Natural RS.
 
 **RRS for females = `r round(Female_RRS_even, 2)`**
 
-**RRS for males = `r round(Male_RRS_even, 2)`.**
+**RRS for males = `r round(Male_RRS_even, 2)`**
 
 #### Statistical testing
 We tested for significant differences in RS between male and female hatchery- and natural-origin fish using two different statistical tests:  
@@ -646,9 +646,9 @@ even_male_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_14_16_filter_parents %>%
                                      alpha = 0.05)
 ```
 
-Hogan 2014/2016 **female** RRS with 95% CI = **`r paste0(even_female_rrs_CI[2], " (", even_female_rrs_CI[1], "-", even_female_rrs_CI[3], ")")`**
+Hogan 2014/2016 **female** RRS with 95% CI = **`r paste0(formatC(even_female_rrs_CI[2], format = "f", digits = 2), " (", formatC(even_female_rrs_CI[1], format = "f", digits = 2), "-", formatC(even_female_rrs_CI[3], format = "f", digits = 2), ")")`**
 
-Hogan 2014/2016 **male** RRS with 95% CI = **`r paste0(even_male_rrs_CI[2], " (", even_male_rrs_CI[1], "-", even_male_rrs_CI[3], ")")`**
+Hogan 2014/2016 **male** RRS with 95% CI = **`r paste0(formatC(even_male_rrs_CI[2], format = "f", digits = 2), " (", formatC(even_male_rrs_CI[1], format = "f", digits = 2), "-", formatC(even_male_rrs_CI[3], format = "f", digits = 2), ")")`**
 
 ### Plots of RS vs. field data
 As in the odd-lineage above, we examined associations between two potential explanatory variables (sample date and body size) and RS. Since we have many more offspring assignments, we can more clearly visualize these relationships. These plots include LOESS lines with 95% confidence intervals to help illustrate trends. We use LOESS rather than linear models because our data violate assumptions of linear regression.
@@ -806,11 +806,11 @@ even_NH_NN_rrs_CI <- rrs_ci_kalinowski(n_h_off = parents_paired_14_16_cross %>%
                                        alpha = 0.05)
 ```
 
-Hogan 2014/2016 **HH/NN** RRS with 95% CI = **`r paste0(even_HH_NN_rrs_CI[2], " (", even_HH_NN_rrs_CI[1], "-", even_HH_NN_rrs_CI[3], ")")`**
+Hogan 2014/2016 **HH/NN** RRS with 95% CI = **`r paste0(formatC(even_HH_NN_rrs_CI[2], format = "f", digits = 2), " (", formatC(even_HH_NN_rrs_CI[1], format = "f", digits = 2), "-", formatC(even_HH_NN_rrs_CI[3], format = "f", digits = 2), ")")`**
 
-Hogan 2014/2016 **HN/NN** RRS with 95% CI = **`r paste0(even_HN_NN_rrs_CI[2], " (", even_HN_NN_rrs_CI[1], "-", even_HN_NN_rrs_CI[3], ")")`**
+Hogan 2014/2016 **HN/NN** RRS with 95% CI = **`r paste0(formatC(even_HN_NN_rrs_CI[2], format = "f", digits = 2), " (", formatC(even_HN_NN_rrs_CI[1], format = "f", digits = 2), "-", formatC(even_HN_NN_rrs_CI[3], format = "f", digits = 2), ")")`**
 
-Hogan 2014/2016 **NH/NN** RRS with 95% CI = **`r paste0(even_NH_NN_rrs_CI[2], " (", even_NH_NN_rrs_CI[1], "-", even_NH_NN_rrs_CI[3], ")")`**
+Hogan 2014/2016 **NH/NN** RRS with 95% CI = **`r paste0(formatC(even_NH_NN_rrs_CI[2], format = "f", digits = 2), " (", formatC(even_NH_NN_rrs_CI[1], format = "f", digits = 2), "-", formatC(even_NH_NN_rrs_CI[3], format = "f", digits = 2), ")")`**
 
 **Note** that the confidence intervals for both cross type RRS are large due to the small numbers of offspring assigned to two parents and the small sample size of families. 
 
@@ -822,5 +822,3 @@ Hogan 2014/2016 **NH/NN** RRS with 95% CI = **`r paste0(even_NH_NN_rrs_CI[2], " 
 5. RRS was significant for females (0.47 [CI's 0.37-0.62]), but not for males (0.87 [CI's 0.67-1.12]).  
 5. Hatchery and natural fish interbreed (both sexes).  
 6. For the most part, natural-origin fish had higher RS earlier than later in the run.  
-
-
