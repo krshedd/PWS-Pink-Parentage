@@ -51,7 +51,7 @@ paired_13_15_filter %>%
   theme(text = element_text(size = 20))
 ```
 
-Here are our sample sizes are for potential parents (2013) and potential offspring (2015) by sex and origin.
+Here are our sample sizes for potential parents (2013) and potential offspring (2015) by sex and origin.
 
 ```{r odd_sample_sizes}
 paired_13_15_filter %>% 
@@ -83,7 +83,7 @@ Cumulative exclusion probability when 1 to 7 fullsibs are genotyped
   
 According to the *FRANz* manual, marker sets are not considered powerful if these cumulative exclusion probabilities are less than 0.95, which indicates that the probability that a random pair of individuals in the population has a 5% chance of having a genotype pair compatible to an offspring genotype. Since all of our probabilities are 1, we can be **confident** in the power of our 298 amplicons to make parent assignments. 
 
-Below is a histogram of *FRANz* parentage posterior probabilities to show robustness of assignments
+Below is a histogram of *FRANz* parentage posterior probabilities to show robustness of assignments.
 ```{r FRANz_posterior_plot_odd}
 parentage_13_15 <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/304/hogan_postQA_2013_2015_HOGAN_Run1/parentage_304.csv")
 
@@ -96,7 +96,7 @@ parentage_13_15  %>%
   ggtitle("Histogram of FRANz posterior probabilities for parentage assignments")
 ```
 
-All parentage assigments have a posterior probability of 1.00, which means that no offspring assignments were split among multiple potential parents. 
+All parentage assigments have a posterior probability of 1.00, which means that no offspring assignments were split among multiple potential parents. (All assignments were unequivocal). 
 
 Of the 1,919 offspring collected in 2015, 48 were assigned to parents, for an overall offspring assignment rate of **2.5%**. This assignment rate is in line with expectations based on the sampling rate of the parent year escapement in 2013. All assignments were to one parent (*single parent-offpsring duos*) - there were no two-parent assignments (*parents pair-offspring trios*).
 
@@ -132,7 +132,7 @@ There is a significant difference in the proportions of offspring assigned to ha
 Here, we calculate and plot reproductive success (RS; number of offspring assigned to parents) for both natural- and hatchery-origin parents. The number of offspring assigned ranges from 0-4. 
 
 ### Calculate mean RS
-We calculated the mean RS by origin and sex including sampled fish from the parental generation to which offspring were not assigned.
+We calculated the mean RS by origin and sex including sampled fish from the parental generation to which offspring were not assigned.**Note** this analysis was not presented at the December meeting. In the table below (and across all analyses), we round to 2 decimal places. Female hatchery RS below is therefore 0.00, but there was actually one offspring assigned to a hatchery-origin female. 
 
 ```{r calculate RS odd}
 # Mean RS including 0's
@@ -190,7 +190,7 @@ Female_RRS_odd <- F_h_0_13_15/F_n_0_13_15
 # round(RRS_tibble_0_13_15, 2)
 ```
 
-We calculate RRS as mean Hatchery RS divided by mean Natural RS. 
+We calculate RRS as mean Hatchery RS divided by mean Natural RS. **Note** this analysis was not presented at the December meeting. 
 
 **RRS for females = `r round(Female_RRS_odd, 2)`**
 
@@ -238,7 +238,7 @@ The above table shows the *p-values* for each test and sex. We use a *p-value* c
 
 #### Confidence intervals
 
-We calculated 95% CI's for RRS based on [Kalinowski and Taper 2005](http://www.nrcresearchpress.com/doi/10.1139/f04-239). This is a maximum likelihood estimate based off of Hinrichsen 2003. This method has been used in other peer reviewed papers such as [Ford et al. 2016](https://www.researchgate.net/publication/309147116_Broodstock_History_Strongly_Influences_Natural_Spawning_Success_in_Hatchery_Steelhead_Oncorhynchus_mykiss#pf14).
+We calculated 95% CI's for RRS based on [Kalinowski and Taper 2005](http://www.nrcresearchpress.com/doi/10.1139/f04-239). This is a maximum likelihood estimate based off of Hinrichsen 2003. This method has been used in other peer reviewed papers such as [Ford et al. 2016](https://www.researchgate.net/publication/309147116_Broodstock_History_Strongly_Influences_Natural_Spawning_Success_in_Hatchery_Steelhead_Oncorhynchus_mykiss#pf14). **Note** this analysis was not included in the December presentation. 
 
 ```{r RRS_confidence_intervals_function}
 rrs_ci_kalinowski <- function(n_h_off, n_w_off, n_h_par, n_w_par, alpha){
@@ -343,7 +343,7 @@ Hogan 2013/2015 **female** RRS with 95% CI = **`r paste0(odd_female_rrs_CI[2], "
 Hogan 2013/2015 **male** RRS with 95% CI = **`r paste0(odd_male_rrs_CI[2], " (", odd_male_rrs_CI[1], "-", odd_male_rrs_CI[3], ")")`**
 
 ### Plots of RS vs. field data
-We examined associations between two potential explanatory variables (sample date and body size) and RS. These plots include LOESS (locally weighted smoothing) lines with 95% confidence intervals to help illustrate trends. We use LOESS rather than linear models because our data violate assumptions of linear regression (normality, homoscedasticityc, etc.). 
+We examined associations between two potential explanatory variables (sample date and body size) and RS. These plots include LOESS (locally weighted smoothing) lines with 95% confidence intervals to help illustrate trends. We use LOESS rather than linear models because our data violate assumptions of linear regression (normality, homoscedasticity, etc.). 
 
 ```{r Examine reproductive success by sample date odd with zeros}
 paired_13_15_filter_parents %>%
@@ -359,7 +359,7 @@ paired_13_15_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
-The above plot show RS by parent sample date, separately for females (top) and males (bottom). We see that there were no hatchery-origin fish sampled in the first event. RS for natural-origin males appears consistent throughout the season, whereas female natural-origin fish appear to be more productive early in the season than later on. Note that points are jittered by sample date (x-axis) to avoid overplotting. Not enough offspring were assigned to hatchery-origin parents to draw conclusions about RS and sample date. 
+The above plot show RS by parent sample date, separately for females (top) and males (bottom). We see that there were no hatchery-origin fish sampled in the first event. RS for natural-origin males and females appear consistent throughout the season. Note that points are jittered by sample date (x-axis) to avoid overplotting. Not enough offspring were assigned to hatchery-origin parents to draw conclusions about RS and sample date. 
 
 ```{r Examine reproductive success by parent length odd with zeros}
 paired_13_15_filter_parents %>% 
@@ -375,7 +375,7 @@ paired_13_15_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
-The above plot show RS by parent body length, separately for females (top) and males (bottom). It is difficult to draw conclusions about this relationship for hatchery-origin parents since there were so few assignments, which makes it difficult to draw robust conclusions.
+The above plot show RS by parent body length, separately for females (top) and males (bottom). It is difficult to draw conclusions about this relationship for hatchery-origin parents since there were so few assignments.
 
 ## Summary of odd lineage results
 1. Exclusion probabilities were equal to 1.00, which means we can be confident in the ability of our marker set to correctly assign parents to offspring.  
@@ -443,7 +443,7 @@ Cumulative exclusion probability when 1 to 7 fullsibs are genotyped
   
 According to the FRANz manual, marker sets are not considered powerful if these cumulative exclusion probabilities are less than 0.95, which indicates that the probability that a random pair of individuals in the population has a 5% chance of having a genotype pair compatible to an offspring genotype. Since all of our probabilities are 1, we can be **confident** in the power of our 298 amplicons to make parent assignments. 
 
-Below is a histogram of *FRANz* parentage posterior probabilities to show robustness of assignments
+Below is a histogram of *FRANz* parentage posterior probabilities to show robustness of assignments.
 ```{r FRANz_posterior_plot_even}
 parentage_14_16 <- read_csv("v:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/2014_2016_Hogan_Run1_298/parentage.csv")
 
@@ -460,7 +460,7 @@ All parentage assigments have a posterior probability of 1.00, which is very rob
 
 Of the 4,020 offspring collected in 2016, 451 were assigned to at least one parent, for an an overall offspring assignment rate of **11.2%**. This is in line with expectations based on parent sampling depth
 
-**Note** that *FRANz* assigned 451 offspring to 184 parents in single parent assignments (*single parent-offspring duos*). 208 of these assignments are to natural origin parents and 265 assignments were to hatchery origin parents. Hatchery origin parents are from AFK12B, CCH12, and WNH12PINKB, none are from Solomon Gulch (VFDA).  
+**Note** that *FRANz* assigned 451 offspring to 184 parents in single parent assignments (*single parent-offspring duos*). 208 of these assignments are to natural origin parents and 265 assignments were to hatchery origin parents. Hatchery origin parents are from AFK, CCH, and WNH; none are from Solomon Gulch (VFDA).  
 
 Additionally, *FRANz* made two parent assignments (*parent pair-offspring trios*) for 22 offspring.
 
@@ -493,7 +493,7 @@ chisq.test(df.even)
 There is a significant difference in the proportions of offspring assigned to hatchery- and natural-origin parents relative to the proportions of potential parents sampled, indicating an under-representation of offspring assigning to hatchery-origin parents. We see that although **`r round(df.even["H", "Spawners.even"] / sum(df.even[, "Spawners.even"]), 2) * 100`%** of parents genotyped were of hatchery-origin, only **`r round(df.even["H", "Offspring.even"] / sum(df.even[, "Offspring.even"]), 2) * 100`%** of offspring assigned to hatchery-origin parents.
 
 ## Reproductive success
-Here, we calculate and plot reproductive success (RS; number of offspring assigned to parents) for both natural and hatchery parents. The number of offspring assigned ranges from 0-13. 
+Here, we calculate and plot reproductive success (RS; number of offspring assigned to parents) for both natural and hatchery parents. The number of offspring assigned ranges from 0-13 for males and 0-10 for females. 
 
 ### Calculate mean RS
 We'll calculate the mean RS by origin and sex including sampled fish from the parental generation to which offspring were not assigned.
@@ -602,7 +602,7 @@ The above table shows the *p-values* for each test and sex. We use a *p-value* c
 
 #### Confidence intervals
 
-We will calculate 95% CI's for RRS based on [Kalinowski and Taper 2005](http://www.nrcresearchpress.com/doi/10.1139/f04-239). This is a maximum likelihood estimate based off of Hinrichsen 2003. This method has been used in other peer reviewed papers such as [Ford et al. 2016](https://www.researchgate.net/publication/309147116_Broodstock_History_Strongly_Influences_Natural_Spawning_Success_in_Hatchery_Steelhead_Oncorhynchus_mykiss#pf14).
+We will calculate 95% CI's for RRS based on [Kalinowski and Taper 2005](http://www.nrcresearchpress.com/doi/10.1139/f04-239). This is a maximum likelihood estimate based off of Hinrichsen 2003. This method has been used in other peer reviewed papers such as [Ford et al. 2016](https://www.researchgate.net/publication/309147116_Broodstock_History_Strongly_Influences_Natural_Spawning_Success_in_Hatchery_Steelhead_Oncorhynchus_mykiss#pf14). **Note** these confidence intervals were not presented at the December meeting. 
 
 ```{r RRS_confidence_intervals_14_16}
 even_female_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_14_16_filter_parents %>% 
@@ -667,7 +667,7 @@ paired_14_16_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
-The above plot shows RS by parent sample date, separately for females (top) and males (bottom). We see that RS does vary due to sample date, with the lowest RS values in the middle of the season (perhaps due to increased fishing pressure or density dependence on the spawning grounds). There do appear to be some differences in RS between natural- and hatchery-origin fish early in the season for females and later in the season for males.
+The above plot shows RS by parent sample date, separately for females (top) and males (bottom). We see that RS does vary due to sample date, with the lowest RS values in the middle of the season (perhaps due to density dependence on the spawning grounds). There do appear to be some differences in RS between natural- and hatchery-origin fish early in the season for females and later in the season for males.
 
 ```{r Examine reproductive success by parent length even with zeros}
 paired_14_16_filter_parents %>% 
@@ -684,7 +684,7 @@ paired_14_16_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
-The above plot show RS by parent body length, separately for females (top) and males (bottom). Larger males and females appear more successful than smaller individuals. 
+The above plot show RS by parent body length, separately for females (top) and males (bottom). No clear pattern is apparent for either sex.  
 
 ## Parent pair-offspring trios
 Because we have 22 individuals who were assigned to two parents (families), we are able to examine instances of crosses between hatchery fish, between natural fish, and between natural and hatchery fish. **Note** that we have divided natural-hatchery crosses into "HN", which indicates a hatchery-origin dam and natural-origin sire and "NH", which indicates a natural-origin dam and hatchery-origin sire. 
@@ -727,7 +727,7 @@ parents_paired_14_16_cross %>%
   theme(text = element_text(size = 20))
 ```
 
-Offspring from all four types of crosses are represented in our dataset. HH crosses produced 1-2 offspring, HN and NH crosses produced 1-3 offspring, and NN crosses produced 1-2 offspring. Note that analyses of trios do not include matings with RS = 0 because it is not possible for us to collect this information (we only know a mating between two fish ocurred if we assign offspring to those two fish). 
+Offspring from all four types of crosses are represented in our dataset. HH crosses produced 1-2 offspring, HN and NH crosses produced 1-3 offspring, and NN crosses produced 1-2 offspring. Note that analyses of trios do not include matings with RS = 0 because it is not possible for us to collect this information (we only know a mating between two fish ocurred if we assign offspring to those two fish). Due to small family sizes, calculations of RRS should be interpreted with caution. The main take-home is that we were able to document instances of matings between natural- and hatchery-origin fish. 
 
 ### Calculate mean RS
 Here we calculated the mean RS for each cross type. Note that sample sizes of families for each cross type are very small.
@@ -822,5 +822,5 @@ Hogan 2014/2016 **NH/NN** RRS with 95% CI = **`r paste0(even_NH_NN_rrs_CI[2], " 
 5. RRS was significant for females (0.47 [CI's 0.37-0.62]), but not for males (0.87 [CI's 0.67-1.12]).  
 5. Hatchery and natural fish interbreed (both sexes).  
 6. For the most part, natural-origin fish had higher RS earlier than later in the run.  
-7. Larger male and female fish appear to have higher RS than smaller fish. 
+
 
