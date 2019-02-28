@@ -361,7 +361,7 @@ paired_13_15_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
-The above plot show RS by parent sample date, separately for females (top) and males (bottom). We see that there were no hatchery-origin fish sampled in the first event. RS appears to be more productive early in the season than later on, and this pattern is more pronounced in males than in females. Note that points are jittered by sample date (x-axis) to avoid overplotting. 
+The above plot show RS by parent sample date, separately for females (top) and males (bottom). We see that there were no hatchery-origin fish sampled in the first event. RS appears to be higher early in the season than later on, and this pattern is more pronounced in males than in females. Note that points are jittered by sample date (x-axis) to avoid overplotting. 
 
 ```{r Examine reproductive success by parent length odd with zeros}
 paired_13_15_filter_parents %>% 
@@ -377,7 +377,7 @@ paired_13_15_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
-The above plot show RS by parent body length, separately for females (top) and males (bottom). It is difficult to draw conclusions about this relationship for hatchery-origin parents since there were so few assignments. Sample sizes are small, which makes it difficult to draw robust conclusions.
+The above plot show RS by parent body length, separately for females (top) and males (bottom). Sample sizes are small, particularly for hatchery-origin parents, which makes it difficult to visualize relationships and draw robust conclusions. 
 
 ## Summary of odd lineage results
 1. Exclusion probabilities were equal to 1.00, which means we can be confident in the ability of our marker set to correctly assign parents to offspring. 
@@ -668,7 +668,7 @@ paired_14_16_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
-The above plot shows RS by parent sample date, separately for females (top) and males (bottom). We see that RS does vary due to sample date. For natural-origin fish, the lowest RS values are in the middle of the season (perhaps due to density dependence on the spawning grounds). For hatchery-origin fish, there is less of a relationship between RS and sample date, however, it appears that hatchery-origin fish RS is slightly higher in the middle of the season. Regardless, both early and late in the season natural-origin fish have higher RS than hatchery-origin fish in both sexes. This suggests that our measured difference in RRS is not due solely to differences in run timing (sample date) between hatchery- and natural-origin fish. Note that points are jittered by sample date (x-axis) to avoid overplotting.
+The above plot shows RS by parent sample date, separately for females (top) and males (bottom). We see that RS does vary due to sample date. For natural-origin fish, the lowest RS values are in the middle of the season (perhaps due to density dependence on the spawning grounds). For hatchery-origin fish, there is less of a relationship between RS and sample date. However, it appears that hatchery-origin RS is slightly higher in the middle of the season. Regardless, both early and late in the season natural-origin fish have higher RS than hatchery-origin fish in both sexes. This suggests that our measured difference in RRS is not due solely to differences in run timing (sample date) between hatchery- and natural-origin fish. Note that points are jittered by sample date (x-axis) to avoid overplotting.
 
 ```{r Examine reproductive success by parent length even with zeros}
 paired_14_16_filter_parents %>% 
@@ -691,7 +691,7 @@ The above plot show RS by parent body length, separately for females (top) and m
 Because we have 183 individuals who were assigned to 115 different sets of two parent matings (families), we are able to examine instances of crosses between hatchery fish, between natural fish, and between natural and hatchery fish. **Note** that we have divided natural-hatchery crosses into "HN", which indicates a hatchery-origin dam and natural-origin sire and "NH", which indicates a natural-origin dam and hatchery-origin sire. 
 
 ### Sample sizes
-These are our sample sizes are for the number of families by cross type.
+These are our sample sizes for the number of families by cross type.
 
 ```{r even_cross_type}
 parents_paired_14_16_cross <- read_csv("stock_parents_paired_14_16_cross.csv") %>% 
