@@ -100,15 +100,15 @@ oceanak_mod %>%
   facet_grid(year ~ stream) +
   labs(fill = "Origin") +
   ylab("Number of Samples") +
-  xlab("Day of Year") +
-  ggtitle("AHRP PWS Pink - number of samples by year, stream, and origin")
+  xlab("Day of Year") 
+  #ggtitle("AHRP PWS Pink - number of samples by year, stream, and origin")
 yday(Sys.Date())  # today's Julian date
 
 # just hogan bay 2013
 oceanak_mod %>% 
   mutate(julian_date = yday(`Sample Date`)) %>% 
   filter(!is.na(origin) & Sex != "U") %>% 
-  filter(stream == "Hogan Creek" & year == 2013) %>% 
+  filter(stream == "Hogan Creek"& year == 2013) %>% 
   ggplot(aes(x = julian_date, fill = origin)) +
   geom_histogram(binwidth = 1) +
   theme_bw() +
@@ -128,7 +128,7 @@ oceanak_mod %>%
   filter(!is.na(origin) & Sex != "U") %>% 
   group_by(year, stream, origin, julian_date) %>% 
   summarise(n = n()) %>% 
-  mutate(n = case_when(stream == "Hogan Creek" & year == 2013 ~ as.double(n),
+  mutate(n = case_when(stream == "Hogan Creek" ~ as.double(n),
                        TRUE ~ 0)) %>% 
   ggplot(aes(x = julian_date, y = n, fill = origin)) +
   geom_col() +
