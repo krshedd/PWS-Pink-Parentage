@@ -104,6 +104,44 @@ oceanak_mod %>%
   ggtitle("AHRP PWS Pink - number of samples by year, stream, and origin")
 yday(Sys.Date())  # today's Julian date
 
+# just hogan bay 2013
+oceanak_mod %>% 
+  mutate(julian_date = yday(`Sample Date`)) %>% 
+  filter(!is.na(origin) & Sex != "U") %>% 
+  filter(stream == "Hogan Creek" & year == 2013) %>% 
+  ggplot(aes(x = julian_date, fill = origin)) +
+  geom_histogram(binwidth = 1) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  ylim(0, 1500) +
+  xlim(210, 260) +
+  facet_grid(year ~ stream) +
+  labs(fill = "Origin") +
+  ylab("Number of Samples") +
+  xlab("Day of Year") +
+  theme(text = element_text(size = 20)) #+
+ggtitle("AHRP PWS Pink Salmon - number of samples") 
+
+# blank
+oceanak_mod %>% 
+  mutate(julian_date = yday(`Sample Date`)) %>% 
+  filter(!is.na(origin) & Sex != "U") %>% 
+  group_by(year, stream, origin, julian_date) %>% 
+  summarise(n = n()) %>% 
+  mutate(n = case_when(stream == "Hogan Creek" & year == 2013 ~ as.double(n),
+                       TRUE ~ 0)) %>% 
+  ggplot(aes(x = julian_date, y = n, fill = origin)) +
+  geom_col() +
+  # geom_histogram(binwidth = 1) +
+  ylim(0, 1500) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  facet_grid(year ~ stream) +
+  labs(fill = "Origin") +
+  ylab("Number of Samples") +
+  xlab("Day of Year") +
+  theme(text = element_text(size = 20)) 
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Stream Specimens ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
