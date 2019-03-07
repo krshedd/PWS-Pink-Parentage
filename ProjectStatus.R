@@ -96,12 +96,16 @@ oceanak_mod %>%
   mutate(julian_date = yday(`Sample Date`)) %>% 
   ggplot(aes(x = julian_date, fill = origin)) +
   geom_histogram(binwidth = 1) +
+  theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  ylim(0, 1500) +
+  xlim(210, 260) +
   facet_grid(year ~ stream) +
   labs(fill = "Origin") +
   ylab("Number of Samples") +
-  xlab("Day of Year") 
-  #ggtitle("AHRP PWS Pink - number of samples by year, stream, and origin")
+  xlab("Day of Year") +
+  theme(text = element_text(size = 20)) #+
+ggtitle("AHRP PWS Pink Salmon - number of samples")
 yday(Sys.Date())  # today's Julian date
 
 # just hogan bay 2013
