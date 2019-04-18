@@ -687,6 +687,34 @@ paired_14_16_filter_parents %>%
 
 The above plot show RS by parent body length, separately for females (top) and males (bottom). Larger males are more successful (but only natural-origin males). Again, we see at most size classes that natural-origin fish have higher RS than hatchery-origin fish. Size alone, therefore, doesn't explain differences in RS.
 
+Following Janowitz-Koch et al. (2018), we used a negative binomial distribution model and log-linked function to evaluation associations between RS and origin, length, and sample date separately for females and males. 
+
+```{r Female Even GLM}
+Female.even <-  
+  paired_14_16_filter_parents %>% 
+  filter(SEX == "F")
+  
+RS.glm.F <- glm.nb(Female.even$n ~ Female.even$`Sample Date` + Female.even$`Length Mm` + Female.even$origin, link=log) 
+RS.glm.F
+summary(RS.glm.F)
+
+```
+
+For females, sample date (p = 0.013) and origin (p < 0.001) were significantly associated with RS, but length was not (p = 0.508).
+
+```{r Male Even GLM}
+Male.even <-  
+  paired_14_16_filter_parents %>% 
+  filter(SEX == "M")
+  
+RS.glm.M <- glm.nb(Male.even$n ~ Male.even$`Sample Date` + Male.even$`Length Mm` + Male.even$origin, link=log) 
+RS.glm.M
+summary(RS.glm.M)
+
+```
+
+For males, sample date, length, and origin were all significantly associated with RS (all p < 0.001). 
+
 ## Parent pair-offspring trios
 Because we have 183 individuals who were assigned to 115 different sets of two parent matings (families), we are able to examine instances of crosses between hatchery fish, between natural fish, and between natural and hatchery fish. **Note** that we have divided natural-hatchery crosses into "HN", which indicates a hatchery-origin dam and natural-origin sire and "NH", which indicates a natural-origin dam and hatchery-origin sire. 
 
