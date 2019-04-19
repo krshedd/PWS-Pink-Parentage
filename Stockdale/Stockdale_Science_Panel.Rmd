@@ -24,7 +24,9 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, out.width = "100
 ```
 
 # Introduction
-This is a summary of parentage analysis and relative reproductive success (RRS) results from Stockdale Creek 2013-2016 for the Science Panel. Similar to the Hogan Bay results, the even year lineage had many more parentage assignments than the odd year lineage due to the higher sampling rates in 2014 compared to 2013 and the smaller escapements in 2014/2016 than in 2013/2015. While this does not mean that the odd lineage results are not valid, they are certainly less robust than the even lineage results. These results will be used to inform additional, future analyses  (e.g. investigating the impact of spawning location upstream/intertidal on reproductive success). We intend to present these results at both the March 7th AHRP Informational Meeting and at the Alaska Chapter of the American Fisheries Society meeting in Sitka March 19-22. Note that while the odd year Stockdale analyses were fully funded by the AHRP, the even year genetic analyses were funded by a Saltonstall-Kennedy grant which ends June 30, 2019.
+This is a summary of parentage analysis and relative reproductive success (RRS) results from Stockdale Creek 2013-2016 for the Science Panel. Similar to the Hogan Bay results, the even year lineage had many more parentage assignments than the odd year lineage due to the higher sampling rates in 2014 compared to 2013 and the smaller escapements in 2014/2016 than in 2013/2015. While this does not mean that the odd lineage results are not valid, they are certainly less robust than the even lineage results. These results will be used to inform additional, future analyses  (e.g. investigating the impact of spawning location upstream/intertidal on reproductive success).  
+
+We had intended to present these results at both the March 7th AHRP Informational Meeting and at the Alaska Chapter of the American Fisheries Society meeting in Sitka March 19-22, but did not receive approval to do so. **Note** that while the odd year Stockdale analyses were fully funded by the AHRP, the even year genetic analyses were funded by a Saltonstall-Kennedy (S/K) grant which ends June 30, 2019. Part of the study plan for the S/K grant included using negative binomial general linear models to investigate the effects of covariates such as length, timing, and origin, on individual reproductive success (Ford et al. 2012). We've updated this notebook to include those analyses here (even-year only), as they will be included in our final report to S/K.  
 
 # Odd lineage (2013/2015)
 
@@ -310,11 +312,11 @@ odd_female_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_13_15_filter_parents %>%
                                        n_h_par = paired_13_15_filter_parents %>% 
                                          filter(SEX == "F", origin == "Hatchery") %>% 
                                          count(SEX, origin) %>% 
-                                         pull(nn), 
+                                         pull(n), 
                                        n_w_par = paired_13_15_filter_parents %>% 
                                          filter(SEX == "F", origin == "Natural") %>% 
                                          count(SEX, origin) %>% 
-                                         pull(nn),
+                                         pull(n),
                                        alpha = 0.05)
 
 odd_male_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_13_15_filter_parents %>% 
@@ -330,11 +332,11 @@ odd_male_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_13_15_filter_parents %>%
                                      n_h_par = paired_13_15_filter_parents %>% 
                                        filter(SEX == "M", origin == "Hatchery") %>% 
                                        count(SEX, origin) %>% 
-                                       pull(nn), 
+                                       pull(n), 
                                      n_w_par = paired_13_15_filter_parents %>% 
                                        filter(SEX == "M", origin == "Natural") %>% 
                                        count(SEX, origin) %>% 
-                                       pull(nn),
+                                       pull(n),
                                      alpha = 0.05)
 ```
 
@@ -617,11 +619,11 @@ even_female_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_14_16_filter_parents %>
                                        n_h_par = paired_14_16_filter_parents %>% 
                                          filter(SEX == "F", origin == "Hatchery") %>% 
                                          count(SEX, origin) %>% 
-                                         pull(nn), 
+                                         pull(n), 
                                        n_w_par = paired_14_16_filter_parents %>% 
                                          filter(SEX == "F", origin == "Natural") %>% 
                                          count(SEX, origin) %>% 
-                                         pull(nn),
+                                         pull(n),
                                        alpha = 0.05)
 
 even_male_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_14_16_filter_parents %>% 
@@ -637,11 +639,11 @@ even_male_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_14_16_filter_parents %>%
                                      n_h_par = paired_14_16_filter_parents %>% 
                                        filter(SEX == "M", origin == "Hatchery") %>% 
                                        count(SEX, origin) %>% 
-                                       pull(nn), 
+                                       pull(n), 
                                      n_w_par = paired_14_16_filter_parents %>% 
                                        filter(SEX == "M", origin == "Natural") %>% 
                                        count(SEX, origin) %>% 
-                                       pull(nn),
+                                       pull(n),
                                      alpha = 0.05)
 ```
 
@@ -687,17 +689,17 @@ paired_14_16_filter_parents %>%
 
 The above plot show RS by parent body length, separately for females (top) and males (bottom). Larger males are more successful (but only natural-origin males). Again, we see at most size classes that natural-origin fish have higher RS than hatchery-origin fish. Size alone, therefore, doesn't explain differences in RS.
 
-Following Janowitz-Koch et al. (2018), we used a negative binomial distribution model and log-linked function to evaluation associations between RS and origin, length, and sample date separately for females and males. 
+### Modeling RS (negative binomial GLM)
+
+Following Janowitz-Koch et al. (2018) and Ford et al. (2012), we used a negative binomial distribution model and log-linked function to evaluation associations between RS and origin, length, and sample date separately for females and males. 
 
 ```{r Female Even GLM}
 Female.even <-  
   paired_14_16_filter_parents %>% 
   filter(SEX == "F")
   
-RS.glm.F <- glm.nb(Female.even$n ~ Female.even$`Sample Date` + Female.even$`Length Mm` + Female.even$origin, link=log) 
-RS.glm.F
+(RS.glm.F <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin, data = Female.even, link = log))
 summary(RS.glm.F)
-
 ```
 
 For females, sample date (p = 0.013) and origin (p < 0.001) were significantly associated with RS, but length was not (p = 0.508).
@@ -707,10 +709,8 @@ Male.even <-
   paired_14_16_filter_parents %>% 
   filter(SEX == "M")
   
-RS.glm.M <- glm.nb(Male.even$n ~ Male.even$`Sample Date` + Male.even$`Length Mm` + Male.even$origin, link=log) 
-RS.glm.M
+(RS.glm.M <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin, data = Male.even, link = log))
 summary(RS.glm.M)
-
 ```
 
 For males, sample date, length, and origin were all significantly associated with RS (all p < 0.001). 
@@ -729,7 +729,7 @@ parents_paired_14_16_cross %>%
   mutate(`Cross Type` = cross) %>% 
   count(`Cross Type`, `Fish ID`, `Fish ID.par1`) %>% 
   count(`Cross Type`) %>% 
-  rename(`Number of Families` = nn)
+  rename(`Number of Families` = n)
 ```
 
 ### Distribution of RS
@@ -787,12 +787,12 @@ even_HH_NN_rrs_CI <- rrs_ci_kalinowski(n_h_off = parents_paired_14_16_cross %>%
                                          filter(cross == "HH") %>% 
                                          count(cross, `Fish ID`, `Fish ID.par1`) %>% 
                                          count(cross) %>% 
-                                         pull(nn), 
+                                         pull(n), 
                                        n_w_par = parents_paired_14_16_cross %>% 
                                          filter(cross == "NN") %>% 
                                          count(cross, `Fish ID`, `Fish ID.par1`) %>% 
                                          count(cross) %>% 
-                                         pull(nn),
+                                         pull(n),
                                        alpha = 0.05)
 
 even_HN_NN_rrs_CI <- rrs_ci_kalinowski(n_h_off = parents_paired_14_16_cross %>% 
@@ -807,12 +807,12 @@ even_HN_NN_rrs_CI <- rrs_ci_kalinowski(n_h_off = parents_paired_14_16_cross %>%
                                          filter(cross == "HN") %>% 
                                          count(cross, `Fish ID`, `Fish ID.par1`) %>% 
                                          count(cross) %>% 
-                                         pull(nn), 
+                                         pull(n), 
                                        n_w_par = parents_paired_14_16_cross %>% 
                                          filter(cross == "NN") %>% 
                                          count(cross, `Fish ID`, `Fish ID.par1`) %>% 
                                          count(cross) %>% 
-                                         pull(nn),
+                                         pull(n),
                                        alpha = 0.05)
 
 even_NH_NN_rrs_CI <- rrs_ci_kalinowski(n_h_off = parents_paired_14_16_cross %>% 
@@ -827,12 +827,12 @@ even_NH_NN_rrs_CI <- rrs_ci_kalinowski(n_h_off = parents_paired_14_16_cross %>%
                                          filter(cross == "NH") %>% 
                                          count(cross, `Fish ID`, `Fish ID.par1`) %>% 
                                          count(cross) %>% 
-                                         pull(nn), 
+                                         pull(n), 
                                        n_w_par = parents_paired_14_16_cross %>% 
                                          filter(cross == "NN") %>% 
                                          count(cross, `Fish ID`, `Fish ID.par1`) %>% 
                                          count(cross) %>% 
-                                         pull(nn),
+                                         pull(n),
                                        alpha = 0.05)
 ```
 
