@@ -8,7 +8,7 @@ editor_options:
   chunk_output_type: inline
 ---
 
- 
+The purpose of these analyses is to relate spatial information with RS, with origin and sex as interactions. Note that we are only doing this for the even-year lineage (2014-2016).  
 
 ```{r setup, include=FALSE}
 library(coin)
@@ -22,7 +22,7 @@ library(lubridate)
 # Read in, format, and filter data
 
 ```{r read in and filter finsight data}
-finsight_hogan <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/finsight_hogan.csv")
+finsight_hogan <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/finsight_hogan.csv")
 
 finsight_hogan$SurveyDate <- as.Date(finsight_hogan$SurveyDate, "%m/%d/%Y") 
 
@@ -93,11 +93,165 @@ deg2rad <- function(deg) return(deg*pi/180)
 # Join finsight table with parentage data
 
 ```{r join tables}
-paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/paired_14_16_filter_parents.csv")
+paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/paired_14_16_filter_parents.csv")
 
 
-finsight_parentage_hogan <- left_join(paired_14_16_filter_parents, finsight_hogan_filtered, by = c("DNA Tray Code" = "SampleTrayId" , "DNA Tray Well Code" = "SampleCell"))
+finsight_parentage_hogan <- left_join(paired_14_16_filter_parents, finsight_hogan_filtered, by = c("DNA Tray Code" = "SampleTrayId" , "DNA Tray Well Code" = "SampleCell")) %>% 
+ mutate(origin = factor(origin, c("Natural", "Hatchery")))  # make factor to ensure hatchery != red
+
+
+write_csv(finsight_parentage_hogan, "finsight_parentage_hogan.csv")
+```
+
+# Plot RS by distance
+
+```{r exploratory plot of RS by distance}
+finsight_parentage_hogan %>% 
+  ggplot(aes(x = Distance, y = n, color= origin)) +
+  geom_point () +
+  geom_smooth() +
+  geom_jitter(height = 0.5) +
+  facet_grid(Sex ~.) +
+  labs(title = "Reproductive Success by Parental Sample Location",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Distance from Stream Mouth (m)") +
+  ylab("Reproductive Success")
+```
+
+```{r exploratory plot of RS by size}
+finsight_parentage_hogan %>% 
+  ggplot(aes(x = Distance, y = `Length Mm`, color= origin)) +
+  geom_point () +
+  geom_smooth() +
+  geom_jitter(height = 0.5) +
+  facet_grid(Sex ~.) +
+  labs(title = "Distance from Stream Mouth by Parental Length",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Distance from Stream Mouth (m)") +
+  ylab("Parental Length (mm)")
+```
+
+# Plot sample location by sample date 
+
+```{r plot location by date}
+finsight_parentage_hogan %>% 
+  ggplot(aes(x = `Sample Date`, y = Distance, color= origin, shape = Sex, size = n)) +
+  geom_point (alpha = 0.2) +
+  geom_jitter(height = 2, size = 2) +
+  labs(title = "Parental Sample Location by Date",  colour = "Parent: Origin",
+       shape = "Parent: Sex", size = "Reproductive Success") +
+  xlab("Parental Sample Date") +
+  ylab("Distance from Stream Mouth (m)")
+```
+
+```{r plot location by date for origin}
+finsight_parentage_hogan %>% 
+  ggplot(aes(x = `Sample Date`, y = Distance, color = origin)) +
+  geom_point () +
+  geom_jitter(height = 2, size = 2) +
+  geom_smooth() +
+  labs(title = "Parental Sample Location by Date",  colour = "Parent: Origin",
+       shape = "Parent: Sex", size = "Reproductive Success") +
+  xlab("Parental Sample Date") +
+  ylab("Distance from Stream Mouth (m)")
+```
+
+# Check for multi-collinearity
+
+```{r multi-collinearity}
+panel.hist <- function(x, ...)
+{
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(usr[1:2], 0, 1.5) )
+    h <- hist(x, plot = FALSE)
+    breaks <- h$breaks; nB <- length(breaks)
+    y <- h$counts; y <- y/max(y)
+    rect(breaks[-nB], 0, breaks[-1], y, col="cyan", ...)
+}
+panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
+{
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- cor(x, y)
+    txt <- format(c(r, 0.123456789), digits=digits)[1]
+    txt <- paste0(prefix, txt, sep="")
+    if(missing(cex.cor)) cex.cor <- 1/strwidth(txt)
+    text(0.5, 0.5, txt, cex = cex.cor * r)
+}
+
+pairs(finsight_parentage_hogan[, c(7,9,13,57)], diag.panel = panel.hist, lower.panel=panel.smooth, 
+upper.panel=panel.cor, main = "All individuals pooled")
+
 
 
 ```
 
+# Check for multi-collinearity separately for males and females
+
+```{r MC males}
+
+Male.even <-  
+  finsight_parentage_hogan %>% 
+  filter(SEX == "M")
+ 
+pairs(Male.even[, c(7,9,13,57)], diag.panel = panel.hist, lower.panel=panel.smooth, 
+upper.panel=panel.cor, main = "Males")
+```
+
+```{r MC females}
+
+Female.even <-  
+  finsight_parentage_hogan %>% 
+  filter(SEX == "F")
+ 
+pairs(Female.even[, c(7,9,13,57)], diag.panel = panel.hist, lower.panel=panel.smooth, 
+upper.panel=panel.cor, main = "Females")
+```
+
+# Test for multi-collinearity by origin
+
+```{r MC hatchery}
+
+Hatchery.even <-  
+  finsight_parentage_hogan %>% 
+  filter(origin == "Hatchery")
+ 
+pairs(Hatchery.even[, c(7,9,13,57)], diag.panel = panel.hist, lower.panel=panel.smooth, 
+upper.panel=panel.cor, main = "Hatchery")
+```
+
+```{r MC natural}
+
+Natural.even <-  
+  finsight_parentage_hogan %>% 
+  filter(origin == "Natural")
+ 
+pairs(Natural.even[, c(7,9,13,57)], diag.panel = panel.hist, lower.panel=panel.smooth, 
+upper.panel=panel.cor, main = "Natural")
+```
+
+# Use GLM's to associate RS with sample location, date, origin, and length by sex
+
+Following Janowitz-Koch et al. (2018) and Ford et al. (2012), we used a negative binomial distribution model and log-linked function to evaluation associations between RS and origin, length, and sample date separately for females and males. 
+
+```{r Female Even GLM}
+Female.even <-  
+  finsight_parentage_hogan %>% 
+  filter(SEX == "F")
+  
+(RS.glm.F <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Female.even, link = log))
+summary(RS.glm.F)
+```
+
+For females, origin (p < 0.001) was significantly associated with RS.
+
+```{r Male Even GLM}
+Male.even <-  
+  finsight_parentage_hogan %>% 
+  filter(SEX == "M")
+  
+(RS.glm.M <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Male.even, link = log))
+summary(RS.glm.M)
+```
+
+For males, length is the only statistically significant factor (p=0.018), but distance is almost significant (0.088).
