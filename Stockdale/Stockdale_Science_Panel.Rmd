@@ -312,11 +312,11 @@ odd_female_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_13_15_filter_parents %>%
                                        n_h_par = paired_13_15_filter_parents %>% 
                                          filter(SEX == "F", origin == "Hatchery") %>% 
                                          count(SEX, origin) %>% 
-                                         pull(n), 
+                                         pull(nn), 
                                        n_w_par = paired_13_15_filter_parents %>% 
                                          filter(SEX == "F", origin == "Natural") %>% 
                                          count(SEX, origin) %>% 
-                                         pull(n),
+                                         pull(nn),
                                        alpha = 0.05)
 
 odd_male_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_13_15_filter_parents %>% 
@@ -332,11 +332,11 @@ odd_male_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_13_15_filter_parents %>%
                                      n_h_par = paired_13_15_filter_parents %>% 
                                        filter(SEX == "M", origin == "Hatchery") %>% 
                                        count(SEX, origin) %>% 
-                                       pull(n), 
+                                       pull(nn), 
                                      n_w_par = paired_13_15_filter_parents %>% 
                                        filter(SEX == "M", origin == "Natural") %>% 
                                        count(SEX, origin) %>% 
-                                       pull(n),
+                                       pull(nn),
                                      alpha = 0.05)
 ```
 
@@ -619,11 +619,11 @@ even_female_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_14_16_filter_parents %>
                                        n_h_par = paired_14_16_filter_parents %>% 
                                          filter(SEX == "F", origin == "Hatchery") %>% 
                                          count(SEX, origin) %>% 
-                                         pull(n), 
+                                         pull(nn), 
                                        n_w_par = paired_14_16_filter_parents %>% 
                                          filter(SEX == "F", origin == "Natural") %>% 
                                          count(SEX, origin) %>% 
-                                         pull(n),
+                                         pull(nn),
                                        alpha = 0.05)
 
 even_male_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_14_16_filter_parents %>% 
@@ -639,11 +639,11 @@ even_male_rrs_CI <- rrs_ci_kalinowski(n_h_off = paired_14_16_filter_parents %>%
                                      n_h_par = paired_14_16_filter_parents %>% 
                                        filter(SEX == "M", origin == "Hatchery") %>% 
                                        count(SEX, origin) %>% 
-                                       pull(n), 
+                                       pull(nn), 
                                      n_w_par = paired_14_16_filter_parents %>% 
                                        filter(SEX == "M", origin == "Natural") %>% 
                                        count(SEX, origin) %>% 
-                                       pull(n),
+                                       pull(nn),
                                      alpha = 0.05)
 ```
 
@@ -729,7 +729,7 @@ parents_paired_14_16_cross %>%
   mutate(`Cross Type` = cross) %>% 
   count(`Cross Type`, `Fish ID`, `Fish ID.par1`) %>% 
   count(`Cross Type`) %>% 
-  rename(`Number of Families` = n)
+  rename(`Number of Families` = nn)
 ```
 
 ### Distribution of RS
@@ -751,7 +751,7 @@ parents_paired_14_16_cross %>%
   labs(title = "Distribution of Reproductive Success by Cross Type",
        fill = "Cross Type") +
   xlab("Number of Offspring")+
-  ylab("Proportion of Families") +
+  ylab("Proportion of Families of Each Cross Type") +
   theme_bw() +
   theme(text = element_text(size = 20))
 ```
@@ -787,12 +787,12 @@ even_HH_NN_rrs_CI <- rrs_ci_kalinowski(n_h_off = parents_paired_14_16_cross %>%
                                          filter(cross == "HH") %>% 
                                          count(cross, `Fish ID`, `Fish ID.par1`) %>% 
                                          count(cross) %>% 
-                                         pull(n), 
+                                         pull(nn), 
                                        n_w_par = parents_paired_14_16_cross %>% 
                                          filter(cross == "NN") %>% 
                                          count(cross, `Fish ID`, `Fish ID.par1`) %>% 
                                          count(cross) %>% 
-                                         pull(n),
+                                         pull(nn),
                                        alpha = 0.05)
 
 even_HN_NN_rrs_CI <- rrs_ci_kalinowski(n_h_off = parents_paired_14_16_cross %>% 
@@ -807,12 +807,12 @@ even_HN_NN_rrs_CI <- rrs_ci_kalinowski(n_h_off = parents_paired_14_16_cross %>%
                                          filter(cross == "HN") %>% 
                                          count(cross, `Fish ID`, `Fish ID.par1`) %>% 
                                          count(cross) %>% 
-                                         pull(n), 
+                                         pull(nn), 
                                        n_w_par = parents_paired_14_16_cross %>% 
                                          filter(cross == "NN") %>% 
                                          count(cross, `Fish ID`, `Fish ID.par1`) %>% 
                                          count(cross) %>% 
-                                         pull(n),
+                                         pull(nn),
                                        alpha = 0.05)
 
 even_NH_NN_rrs_CI <- rrs_ci_kalinowski(n_h_off = parents_paired_14_16_cross %>% 
@@ -827,12 +827,12 @@ even_NH_NN_rrs_CI <- rrs_ci_kalinowski(n_h_off = parents_paired_14_16_cross %>%
                                          filter(cross == "NH") %>% 
                                          count(cross, `Fish ID`, `Fish ID.par1`) %>% 
                                          count(cross) %>% 
-                                         pull(n), 
+                                         pull(nn), 
                                        n_w_par = parents_paired_14_16_cross %>% 
                                          filter(cross == "NN") %>% 
                                          count(cross, `Fish ID`, `Fish ID.par1`) %>% 
                                          count(cross) %>% 
-                                         pull(n),
+                                         pull(nn),
                                        alpha = 0.05)
 ```
 
