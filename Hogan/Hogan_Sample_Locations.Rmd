@@ -8,7 +8,7 @@ editor_options:
   chunk_output_type: inline
 ---
 
-The purpose of these analyses is to relate spatial information with reproductive success (RS), with origin and sex as interactions. Note that we are only doing this for the even-year lineage (2014-2016) because there are not enough parent-offspring assignments from the odd lineage (2013-2015) to draw firm conclusions.
+The purpose of these analyses is to relate spatial information with reproductive success (RS), with origin date, and sex as interactions. Note that we are only doing this for the even-year lineage (2014-2016) because there are not enough parent-offspring assignments from the odd lineage (2013-2015) to draw firm conclusions.
 
 Our hypothesis is that there will be spatial separation between hatchery- and natural-origin Pink Salmon and that this separation may account for observed differences in RS. Spatial separation in spawning location has been observed in farmed- versus wild- Atlantic salmon, with farmed salmon more often found upriver of wild salmon (Moe et al. 2016; Okland et al. 1995; Thorstad et al. 1998). In contrast, wild Chinook from the Wenatchee River (WA) were found upstream of hatchery fish and had higher RS (Williamson et al. 2010). Additionally, spawning location may be influenced by return time if late-returning females have to choose less desirable locations (Fleming and Reynolds 2003). 
 
@@ -53,6 +53,7 @@ finsight_hogan_filtered %>%
 count(year, ProcessingAreaNum, Longitude, Latitude) %>%
 ggplot(aes(x = Longitude, y = Latitude, color= ProcessingAreaNum, size = n)) +
 geom_point (alpha=0.2) +
+  theme_bw() +
 facet_wrap(~year)
 
 finsight_hogan %>%
@@ -120,9 +121,10 @@ write_csv(finsight_parentage_hogan, "finsight_parentage_hogan.csv")
 ```{r exploratory plot of RS by distance}
 finsight_parentage_hogan %>% 
   ggplot(aes(x = Distance, y = n, color= origin)) +
-  geom_point () +
+  geom_point (alpha=0.2) +
   geom_smooth() +
   geom_jitter(height = 0.5) +
+  theme_bw() +
   facet_grid(Sex ~.) +
   labs(title = "Reproductive Success by Parental Sample Location",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
@@ -135,7 +137,8 @@ These plots show RS (number of offspring) by distance from stream mouth (m), fac
 ```{r exploratory plot of RS by size}
 finsight_parentage_hogan %>% 
   ggplot(aes(x = Distance, y = `Length Mm`, color= origin)) +
-  geom_point () +
+  geom_point (alpha = 0.2) +
+  theme_bw()+
   geom_smooth() +
   geom_jitter(height = 0.5) +
   facet_grid(Sex ~.) +
@@ -152,6 +155,7 @@ These plots show the relationship between parent length (mm) and distance from t
 ```{r plot location by date}
 finsight_parentage_hogan %>% 
   ggplot(aes(x = `Sample Date`, y = Distance, color= origin)) +
+  theme_bw() +
   geom_point (alpha = 0.2) +
   geom_jitter(height = 2, size = 2) +
   geom_smooth() +
@@ -163,6 +167,43 @@ finsight_parentage_hogan %>%
 ```
 
 This plot shows the relationship between stream distance (m) and parental sample date, faceted by sex. Natural-origin fish, on average, arrive earlier than hatchery-origin. For both sexes, hatchery-origin fish tended to be sampled further upstream than natural-origin fish throughout the season, with a couple of exceptions (late August for females and early September for males). After ~ September 6, the majority of the fish were sampled within ~20m from the stream mouth. Gray bars represent loess smoothing and points are jittered to avoid overplotting. 
+
+# Plot by statistical week
+
+```{r make new stat week variable}
+finsight_parentage_hogan_sw <- finsight_parentage_hogan %>% 
+  dplyr::mutate(statweek = dplyr::case_when(
+    `Sample Date` == "2014-08-16" ~ "33",
+    `Sample Date` == "2014-08-20" | `Sample Date` == "2014-08-22" ~ "34",
+    `Sample Date` == "2014-08-25" | `Sample Date` == "2014-08-27" | `Sample Date` == "2014-08-28" | `Sample Date` == "2014-08-31" ~ "35",
+    `Sample Date` == "2014-09-03" | `Sample Date` == "2014-09-6" ~ "36",
+    `Sample Date` == "2014-09-10" | `Sample Date` == "2014-09-11" | `Sample Date` == "2014-09-14" ~ "37"))
+
+finsight_parentage_hogan_sw %>% 
+  ggplot(aes(x = Distance, y = n, color= origin, shape = SEX)) +
+  theme_bw() +
+  geom_point (alpha = 0.2) +
+  geom_jitter() +
+  facet_grid(statweek ~.) +
+  labs(title = "Reproductive Success by Parental Sample Location",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Distance from Stream Mouth (m)") +
+  ylab("Reproductive Success")
+
+finsight_parentage_hogan_sw %>% 
+  ggplot(aes(x = Distance, y = n, color= origin)) +
+  theme_bw() +
+  geom_point (alpha = 0.2) +
+  geom_jitter() +
+  geom_smooth() +
+  facet_grid(vars(statweek), vars(SEX)) +
+  labs(title = "Reproductive Success by Parental Sample Location",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Distance from Stream Mouth (m)") +
+  ylab("Reproductive Success")
+```
+
+This plot shows distance from the stream mouth (m) by RS (number of offspring), faceted by sex and statistical week. Natural-origin fish of box sexes are more abundant earlier in the season than later. Fish sampled closer to the stream mouth appear to have higher RS than those sampled further upstream - this is particularly true for natural-origin. At the end of the season, most individuals were sampled closer to the stream mouth. Gray bars represent loess smoothing and points are jittered to reduce overplotting. 
 
 # Check for multi-collinearity
 
@@ -189,8 +230,7 @@ panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
     text(0.5, 0.5, txt, cex = cex.cor * r)
 }
 
-pairs(finsight_parentage_hogan[, c(7,9,13,57)], diag.panel = panel.hist, lower.panel=panel.smooth, 
-upper.panel=panel.cor, main = "All individuals pooled")
+pairs(finsight_parentage_hogan[, c(7,9,13,57)], diag.panel = panel.hist, lower.panel=panel.smooth, upper.panel=panel.cor,main = "All individuals pooled")
 
 
 
@@ -257,62 +297,117 @@ The most striking differences are the differences in correlations between distan
 
 # Use GLM's to associate RS with sample location, date, origin, and length by sex
 
-Following Janowitz-Koch et al. (2018) and Ford et al. (2012), we used a negative binomial distribution model and log-linked function to evaluation associations between RS and origin, length, and sample date separately for females and males. 
+we used a negative binomial distribution model and log-linked function to evaluation associations between RS and origin, length, and sample date separately for females and males. We ran 16 models for each sex, identified statistically significant variables, and selected the best model based on AIC and model complexity. The first 13 models included various combinations of the four independent variables (date, length, origin, distance). For both sexes, only one variable was significant in these models: origin for females and length for males. In the last 3 models, we included the significant variable and interactions with the remaining 3 variables. 
 
 ```{r Female Even GLM}
 Female.even <-  
   finsight_parentage_hogan %>% 
   filter(SEX == "F")
   
-(RS.glm.F.full <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Female.even, link = log))
+(RS.glm.full <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Female.even, link = log))
 summary(RS.glm.full)
 
-(RS.glm.F.2 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin, data = Female.even, link = log))
+(RS.glm.2 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin, data = Female.even, link = log))
 summary(RS.glm.2)
 
-(RS.glm.F.3 <- glm.nb(n ~ `Length Mm` + origin, data = Female.even, link = log))
+(RS.glm.3 <- glm.nb(n ~ `Length Mm` + origin, data = Female.even, link = log))
 summary(RS.glm.3)
 
-(RS.glm.F.4 <- glm.nb(n ~ origin, data = Female.even, link = log))
+(RS.glm.4 <- glm.nb(n ~ origin, data = Female.even, link = log))
 summary(RS.glm.4)
 
-(RS.glm.F.5 <- glm.nb(n ~ `Length Mm`, data = Female.even, link = log))
+(RS.glm.5 <- glm.nb(n ~ `Length Mm`, data = Female.even, link = log))
 summary(RS.glm.5)
 
-(RS.glm.F.6 <- glm.nb(n ~ `Sample Date`, data = Female.even, link = log))
+(RS.glm.6 <- glm.nb(n ~ `Sample Date`, data = Female.even, link = log))
 summary(RS.glm.6)
 
-(RS.glm.F.7 <- glm.nb(n ~ Distance, data = Female.even, link = log))
+(RS.glm.7 <- glm.nb(n ~ Distance, data = Female.even, link = log))
 summary(RS.glm.7)
 
-(RS.glm.F.8 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Distance, data = Female.even, link = log))
+(RS.glm.8 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Distance, data = Female.even, link = log))
 summary(RS.glm.8)
 
-(RS.glm.F.9 <- glm.nb(n ~ `Length Mm` + Distance, data = Female.even, link = log))
+(RS.glm.9 <- glm.nb(n ~ `Length Mm` + Distance, data = Female.even, link = log))
 summary(RS.glm.9)
 
-(RS.glm.F.10 <- glm.nb(n ~ `Sample Date` + origin, data = Female.even, link = log))
+(RS.glm.10 <- glm.nb(n ~ `Sample Date` + origin, data = Female.even, link = log))
 summary(RS.glm.10)
 
-(RS.glm.F.11 <- glm.nb(n ~ `Sample Date` + Distance, data = Female.even, link = log))
+(RS.glm.11 <- glm.nb(n ~ `Sample Date` + Distance, data = Female.even, link = log))
 summary(RS.glm.11)
 
-(RS.glm.F.12 <- glm.nb(n ~ `Sample Date` + Distance + origin, data = Female.even, link = log))
+(RS.glm.12 <- glm.nb(n ~ `Sample Date` + Distance + origin, data = Female.even, link = log))
 summary(RS.glm.12)
 
-(RS.glm.F.13 <- glm.nb(n ~ Distance + origin, data = Female.even, link = log))
+(RS.glm.13 <- glm.nb(n ~ Distance + origin, data = Female.even, link = log))
 summary(RS.glm.13)
+
+(RS.glm.14 <- glm.nb(n ~ Distance * origin, data = Female.even, link = log))
+summary(RS.glm.14)
+
+(RS.glm.15 <- glm.nb(n ~ `Sample Date` * origin, data = Female.even, link = log))
+summary(RS.glm.15)
+
+(RS.glm.16 <- glm.nb(n ~ `Length Mm` * origin, data = Female.even, link = log))
+summary(RS.glm.16)
 ```
 
-For females, origin (p < 0.001) was significantly associated with RS.
+For females, origin was significantly associated with RS. The model with the best fit included both length and origin.  
 
 ```{r Male Even GLM}
 Male.even <-  
   finsight_parentage_hogan %>% 
   filter(SEX == "M")
   
-(RS.glm.M <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Male.even, link = log))
-summary(RS.glm.M)
+(RS.glm.full <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Male.even, link = log))
+summary(RS.glm.full)
+
+(RS.glm.2 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin, data = Male.even, link = log))
+summary(RS.glm.2)
+
+(RS.glm.3 <- glm.nb(n ~ `Length Mm` + origin, data = Male.even, link = log))
+summary(RS.glm.3)
+
+(RS.glm.4 <- glm.nb(n ~ origin, data = Male.even, link = log))
+summary(RS.glm.4)
+
+(RS.glm.5 <- glm.nb(n ~ `Length Mm`, data = Male.even, link = log))
+summary(RS.glm.5)
+
+(RS.glm.6 <- glm.nb(n ~ `Sample Date`, data = Male.even, link = log))
+summary(RS.glm.6)
+
+(RS.glm.7 <- glm.nb(n ~ Distance, data = Male.even, link = log))
+summary(RS.glm.7)
+
+(RS.glm.8 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Distance, data = Male.even, link = log))
+summary(RS.glm.8)
+
+(RS.glm.9 <- glm.nb(n ~ `Length Mm` + Distance, data = Male.even, link = log))
+summary(RS.glm.9)
+
+(RS.glm.10 <- glm.nb(n ~ `Sample Date` + origin, data = Male.even, link = log))
+summary(RS.glm.10)
+
+(RS.glm.11 <- glm.nb(n ~ `Sample Date` + Distance, data = Male.even, link = log))
+summary(RS.glm.11)
+
+(RS.glm.12 <- glm.nb(n ~ `Sample Date` + Distance + origin, data = Male.even, link = log))
+summary(RS.glm.12)
+
+(RS.glm.13 <- glm.nb(n ~ Distance + origin, data = Male.even, link = log))
+summary(RS.glm.13)
+
+(RS.glm.14 <- glm.nb(n ~ Distance * `Length Mm`, data = Male.even, link = log))
+summary(RS.glm.14)
+
+(RS.glm.15 <- glm.nb(n ~ `Sample Date` * `Length Mm`, data = Male.even, link = log))
+summary(RS.glm.15)
+
+(RS.glm.16 <- glm.nb(n ~ origin * `Length Mm`, data = Male.even, link = log))
+summary(RS.glm.16)
+```
 ```
 
-For males, length is the only statistically significant factor (p=0.018), but distance is almost significant (0.088).
+For males, length was the only statistically significant factor across models. The model with the best fit included length and distance. 
