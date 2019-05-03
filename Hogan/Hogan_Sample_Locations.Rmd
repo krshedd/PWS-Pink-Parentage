@@ -8,7 +8,7 @@ editor_options:
   chunk_output_type: inline
 ---
 
-The purpose of these analyses is to relate spatial information with reproductive success (RS), with origin date, and sex as interactions. Note that we are only doing this for the even-year lineage (2014-2016) because there are not enough parent-offspring assignments from the odd lineage (2013-2015) to draw firm conclusions.
+The purpose of these analyses is to relate spatial information with reproductive success (RS), with origin date, and sex as interactions. Note that we are only doing this for the even-year lineage (2014-2016) because there are not enough parent-offspring assignments from the odd lineage (2013-2015) to draw firm conclusions. Also note that Hogan is a short stream (~30m) and we assume that the entire stream was sampled each day. 
 
 Our hypothesis is that there will be spatial separation between hatchery- and natural-origin Pink Salmon and that this separation may account for observed differences in RS. Spatial separation in spawning location has been observed in farmed- versus wild- Atlantic salmon, with farmed salmon more often found upriver of wild salmon (Moe et al. 2016; Okland et al. 1995; Thorstad et al. 1998). In contrast, wild Chinook from the Wenatchee River (WA) were found upstream of hatchery fish and had higher RS (Williamson et al. 2010). Additionally, spawning location may be influenced by return time if late-returning females have to choose less desirable locations (Fleming and Reynolds 2003). 
 
@@ -116,39 +116,7 @@ finsight_parentage_hogan <- left_join(paired_14_16_filter_parents, finsight_hoga
 write_csv(finsight_parentage_hogan, "finsight_parentage_hogan.csv")
 ```
 
-# Plot RS by distance
-
-```{r exploratory plot of RS by distance}
-finsight_parentage_hogan %>% 
-  ggplot(aes(x = Distance, y = n, color= origin)) +
-  geom_point (alpha=0.2) +
-  geom_smooth() +
-  geom_jitter(height = 0.5) +
-  theme_bw() +
-  facet_grid(Sex ~.) +
-  labs(title = "Reproductive Success by Parental Sample Location",  colour = "Parent: Origin",
-       shape = "Parent: Sex") +
-  xlab("Distance from Stream Mouth (m)") +
-  ylab("Reproductive Success")
-```
-
-These plots show RS (number of offspring) by distance from stream mouth (m), faceted by sex. For both sexes, natural-origin individuals had higher RS closer to the stream mouth than hatchery-origin individuals. Hatchery-origin individuals tended to have higher RS further from the mouth and were more commonly sampled further upstream than natural-origin individuals. Gray bars represent loess smoothing. Note that plots are jittered to prevent overplotting. 
-
-```{r exploratory plot of RS by size}
-finsight_parentage_hogan %>% 
-  ggplot(aes(x = Distance, y = `Length Mm`, color= origin)) +
-  geom_point (alpha = 0.2) +
-  theme_bw()+
-  geom_smooth() +
-  geom_jitter(height = 0.5) +
-  facet_grid(Sex ~.) +
-  labs(title = "Distance from Stream Mouth by Parental Length",  colour = "Parent: Origin",
-       shape = "Parent: Sex") +
-  xlab("Distance from Stream Mouth (m)") +
-  ylab("Parental Length (mm)")
-```
-
-These plots show the relationship between parent length (mm) and distance from the stream mouth (m), faceted by sex. Overall, for both sexes, there were large size ranges at each sampling location. Smaller natural-origin females and males appear further upstream than larger individuals, perhaps indicating an inability to compete downstream. There is also a strong dip in the size of natural-origin males compared to hatchery-origin at about 10-15m from the stream mouth. Gray bars represent loess smoothing and points are jittered to prevent overplotting.   
+   
 
 # Plot sample location by sample date 
 
@@ -168,42 +136,7 @@ finsight_parentage_hogan %>%
 
 This plot shows the relationship between stream distance (m) and parental sample date, faceted by sex. Natural-origin fish, on average, arrive earlier than hatchery-origin. For both sexes, hatchery-origin fish tended to be sampled further upstream than natural-origin fish throughout the season, with a couple of exceptions (late August for females and early September for males). After ~ September 6, the majority of the fish were sampled within ~20m from the stream mouth. Gray bars represent loess smoothing and points are jittered to avoid overplotting. 
 
-# Plot by statistical week
 
-```{r make new stat week variable}
-finsight_parentage_hogan_sw <- finsight_parentage_hogan %>% 
-  dplyr::mutate(statweek = dplyr::case_when(
-    `Sample Date` == "2014-08-16" ~ "33",
-    `Sample Date` == "2014-08-20" | `Sample Date` == "2014-08-22" ~ "34",
-    `Sample Date` == "2014-08-25" | `Sample Date` == "2014-08-27" | `Sample Date` == "2014-08-28" | `Sample Date` == "2014-08-31" ~ "35",
-    `Sample Date` == "2014-09-03" | `Sample Date` == "2014-09-6" ~ "36",
-    `Sample Date` == "2014-09-10" | `Sample Date` == "2014-09-11" | `Sample Date` == "2014-09-14" ~ "37"))
-
-finsight_parentage_hogan_sw %>% 
-  ggplot(aes(x = Distance, y = n, color= origin, shape = SEX)) +
-  theme_bw() +
-  geom_point (alpha = 0.2) +
-  geom_jitter() +
-  facet_grid(statweek ~.) +
-  labs(title = "Reproductive Success by Parental Sample Location",  colour = "Parent: Origin",
-       shape = "Parent: Sex") +
-  xlab("Distance from Stream Mouth (m)") +
-  ylab("Reproductive Success")
-
-finsight_parentage_hogan_sw %>% 
-  ggplot(aes(x = Distance, y = n, color= origin)) +
-  theme_bw() +
-  geom_point (alpha = 0.2) +
-  geom_jitter() +
-  geom_smooth() +
-  facet_grid(vars(statweek), vars(SEX)) +
-  labs(title = "Reproductive Success by Parental Sample Location",  colour = "Parent: Origin",
-       shape = "Parent: Sex") +
-  xlab("Distance from Stream Mouth (m)") +
-  ylab("Reproductive Success")
-```
-
-This plot shows distance from the stream mouth (m) by RS (number of offspring), faceted by sex and statistical week. Natural-origin fish of box sexes are more abundant earlier in the season than later. Fish sampled closer to the stream mouth appear to have higher RS than those sampled further upstream - this is particularly true for natural-origin. At the end of the season, most individuals were sampled closer to the stream mouth. Gray bars represent loess smoothing and points are jittered to reduce overplotting. 
 
 # Check for multi-collinearity
 
@@ -294,6 +227,78 @@ upper.panel=panel.cor, main = "Natural")
 For natural-origin individuals, distance was negatively correlated with RS (n; -0.17) and sample date (-0.023). 
 
 The most striking differences are the differences in correlations between distance and sample date and RS for hatchery- and natural-origin individuals. Distance and sample date were strongly negatively correlated for hatchery-origin fish (-0.15), but not natural-origin (-0.023) and distance was strongly correlated with RS for natural-origin fish (-0.17), but not hatchery-origin (-0.042).  
+
+# Plot RS by distance
+
+```{r exploratory plot of RS by distance}
+finsight_parentage_hogan %>% 
+  ggplot(aes(x = Distance, y = n, color= origin)) +
+  geom_point (alpha=0.2) +
+  geom_smooth() +
+  geom_jitter(height = 0.5) +
+  theme_bw() +
+  facet_grid(Sex ~.) +
+  labs(title = "Reproductive Success by Parental Sample Location",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Distance from Stream Mouth (m)") +
+  ylab("Reproductive Success")
+```
+
+These plots show RS (number of offspring) by distance from stream mouth (m), faceted by sex. For both sexes, natural-origin individuals had higher RS closer to the stream mouth than hatchery-origin individuals. Hatchery-origin individuals tended to have higher RS further from the mouth and were more commonly sampled further upstream than natural-origin individuals. Gray bars represent loess smoothing. Note that plots are jittered to prevent overplotting. 
+
+```{r exploratory plot of RS by size}
+finsight_parentage_hogan %>% 
+  ggplot(aes(x = Distance, y = `Length Mm`, color= origin)) +
+  geom_point (alpha = 0.2) +
+  theme_bw()+
+  geom_smooth() +
+  geom_jitter(height = 0.5) +
+  facet_grid(Sex ~.) +
+  labs(title = "Distance from Stream Mouth by Parental Length",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Distance from Stream Mouth (m)") +
+  ylab("Parental Length (mm)")
+```
+
+These plots show the relationship between parent length (mm) and distance from the stream mouth (m), faceted by sex. Overall, for both sexes, there were large size ranges at each sampling location. Smaller natural-origin females and males appear further upstream than larger individuals, perhaps indicating an inability to compete downstream. There is also a strong dip in the size of natural-origin males compared to hatchery-origin at about 10-15m from the stream mouth. Gray bars represent loess smoothing and points are jittered to prevent overplotting.
+
+
+# Plot by statistical week
+
+```{r make new stat week variable}
+finsight_parentage_hogan_sw <- finsight_parentage_hogan %>% 
+  dplyr::mutate(statweek = dplyr::case_when(
+    `Sample Date` == "2014-08-16" ~ "33",
+    `Sample Date` == "2014-08-20" | `Sample Date` == "2014-08-22" ~ "34",
+    `Sample Date` == "2014-08-25" | `Sample Date` == "2014-08-27" | `Sample Date` == "2014-08-28" | `Sample Date` == "2014-08-31" ~ "35",
+    `Sample Date` == "2014-09-03" | `Sample Date` == "2014-09-6" ~ "36",
+    `Sample Date` == "2014-09-10" | `Sample Date` == "2014-09-11" | `Sample Date` == "2014-09-14" ~ "37"))
+
+finsight_parentage_hogan_sw %>% 
+  ggplot(aes(x = Distance, y = n, color= origin, shape = SEX)) +
+  theme_bw() +
+  geom_point (alpha = 0.2) +
+  geom_jitter() +
+  facet_grid(statweek ~.) +
+  labs(title = "Reproductive Success by Parental Sample Location",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Distance from Stream Mouth (m)") +
+  ylab("Reproductive Success")
+
+finsight_parentage_hogan_sw %>% 
+  ggplot(aes(x = Distance, y = n, color= origin)) +
+  theme_bw() +
+  geom_point (alpha = 0.2) +
+  geom_jitter() +
+  geom_smooth() +
+  facet_grid(vars(statweek), vars(SEX)) +
+  labs(title = "Reproductive Success by Parental Sample Location",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Distance from Stream Mouth (m)") +
+  ylab("Reproductive Success")
+```
+
+This plot shows distance from the stream mouth (m) by RS (number of offspring), faceted by sex and statistical week. Natural-origin fish of box sexes are more abundant earlier in the season than later. Fish sampled closer to the stream mouth appear to have higher RS than those sampled further upstream - this is particularly true for natural-origin. At the end of the season, most individuals were sampled closer to the stream mouth. Gray bars represent loess smoothing and points are jittered to reduce overplotting. 
 
 # Use GLM's to associate RS with sample location, date, origin, and length by sex
 
