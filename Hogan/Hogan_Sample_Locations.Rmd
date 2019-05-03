@@ -21,6 +21,9 @@ library(scales)
 library(tidyverse)
 library(leaflet)
 library(lubridate)
+library(ggExtra)
+library(gridExtra)
+library(MuMIn)
 ```
 
 # Read in, format, and filter data
@@ -121,17 +124,35 @@ write_csv(finsight_parentage_hogan, "finsight_parentage_hogan.csv")
 # Plot sample location by sample date 
 
 ```{r plot location by date}
-finsight_parentage_hogan %>% 
-  ggplot(aes(x = `Sample Date`, y = Distance, color= origin)) +
+
+
+  pMain <- ggplot(finsight_parentage_hogan, aes(x = `Sample Date`, y = Distance, color= origin)) +
   theme_bw() +
+  theme(legend.position = "bottom") +
   geom_point (alpha = 0.2) +
   geom_jitter(height = 2, size = 2) +
   geom_smooth() +
   facet_grid(Sex ~.) +
-  labs(title = "Parental Sample Location by Date",  colour = "Parent: Origin",
+  labs(colour = "Parent: Origin",
        shape = "Parent: Sex", size = "Reproductive Success") +
   xlab("Parental Sample Date") +
   ylab("Distance from Stream Mouth (m)")
+
+pTop <- ggplot(finsight_parentage_hogan, aes(x = `Sample Date`)) + 
+                 geom_histogram()
+pRight <- ggplot(finsight_parentage_hogan, aes(x = Distance)) +
+                   geom_histogram() +
+                   coord_flip()
+pEmpty <- ggplot(finsight_parentage_hogan, aes(x = `Sample Date`, y = Distance)) + 
+  geom_blank() +
+  theme(axis.text = element_blank(),
+        axis.title = element_blank(),
+        line = element_blank(),
+        panel.background = element_blank())
+grid.arrange(pTop, pEmpty, pMain, pRight, ncol = 2, nrow = 2, widths = c(3,1), heights = c(1,3))
+
+#ggExtra::ggMarginal(p, type = "histogram")
+
 ```
 
 This plot shows the relationship between stream distance (m) and parental sample date, faceted by sex. Natural-origin fish, on average, arrive earlier than hatchery-origin. For both sexes, hatchery-origin fish tended to be sampled further upstream than natural-origin fish throughout the season, with a couple of exceptions (late August for females and early September for males). After ~ September 6, the majority of the fish were sampled within ~20m from the stream mouth. Gray bars represent loess smoothing and points are jittered to avoid overplotting. 
@@ -140,7 +161,7 @@ This plot shows the relationship between stream distance (m) and parental sample
 
 # Check for multi-collinearity
 
-We checked for multi-collinearity among variables because we assumed that there would be some degree of non-independence. 
+We checked for multi-collinearity among variables because we assumed that there would be some degree of non-independence. Note that these plots exclude individuals with missing data. 
 
 ```{r multi-collinearity}
 panel.hist <- function(x, ...)
@@ -163,13 +184,18 @@ panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
     text(0.5, 0.5, txt, cex = cex.cor * r)
 }
 
-pairs(finsight_parentage_hogan[, c(7,9,13,57)], diag.panel = panel.hist, lower.panel=panel.smooth, upper.panel=panel.cor,main = "All individuals pooled")
+reduced <- na.omit(finsight_parentage_hogan[,c(7,8,9,12,13,57)]) %>% 
+  rename(RS = n)
+
+pairs(reduced[, c(1,3,5,6)], diag.panel = panel.hist, lower.panel = panel.smooth, upper.panel = panel.cor, main = "All Individuals Pooled")
+                   
+
 
 
 
 ```
 
-These plots show males and females of both origins pooled. Histograms of each variable's distribution appear on the diagonal. The lower panels show scatterplots with smoothed averages. The upper panels show correlations. Distance was negatively correlated with sample date (-0.071) and RS (indicated by n; -0.10).
+These plots show males and females of both origins pooled. Histograms of each variable's distribution appear on the diagonal. The lower panels show scatterplots with smoothed averages. The upper panels show correlations, with the size of the number representing the strength of the correlation. The strongest correlation is between sample date and length (0.28), indicating that on average larger individuals were sampled later. 
 
 # Check for multi-collinearity separately for males and females
 
@@ -177,26 +203,26 @@ We then checked for multi-collinearity separately for males and females.
 ```{r MC males}
 
 Male.even <-  
-  finsight_parentage_hogan %>% 
+  reduced %>% 
   filter(SEX == "M")
  
-pairs(Male.even[, c(7,9,13,57)], diag.panel = panel.hist, lower.panel=panel.smooth, 
+pairs(Male.even[, c(1,3,5,6)], diag.panel = panel.hist, lower.panel=panel.smooth, 
 upper.panel=panel.cor, main = "Males")
 ```
 
-For males, distance was negatively correlated with RS (n; -0.012) and sample date (-0.063). 
+For males, the strongest correlation was between length and sample date (0.43), indicating that larger individuals were sampled later. 
 
 ```{r MC females}
 
 Female.even <-  
-  finsight_parentage_hogan %>% 
+  reduced %>% 
   filter(SEX == "F")
  
-pairs(Female.even[, c(7,9,13,57)], diag.panel = panel.hist, lower.panel=panel.smooth, 
+pairs(Female.even[, c(1,3,5,6)], diag.panel = panel.hist, lower.panel=panel.smooth, 
 upper.panel=panel.cor, main = "Females")
 ```
 
-For females, distance was negatively correlated with RS (n; -0.077) and sample date (-0.094). 
+For females, distance was negatively correlated with RS (n; -0.074) and sample date (-0.10), indicating that females were sampled closer to the mouth of the stream later in the season and that RS was lower later in the season. 
 
 # Test for multi-collinearity by origin
 
@@ -205,43 +231,51 @@ We then tested for multi-collinearity by origin.
 ```{r MC hatchery}
 
 Hatchery.even <-  
-  finsight_parentage_hogan %>% 
+  reduced %>% 
   filter(origin == "Hatchery")
  
-pairs(Hatchery.even[, c(7,9,13,57)], diag.panel = panel.hist, lower.panel=panel.smooth, 
+pairs(Hatchery.even[, c(1,3,5,6)], diag.panel = panel.hist, lower.panel=panel.smooth, 
 upper.panel=panel.cor, main = "Hatchery")
 ```
 
-For hatchery-origin individuals, distance was negatively correlated with RS (n; -0.042) and sample date (-0.15).
+For hatchery-origin individuals, the strongest relationships were between sample date and length (0.17) and distance (-0.16). Larger hatchery-origin fish were sampled later in the season and more samples were collected near the mouth of the stream later in the season. 
 
 ```{r MC natural}
 
 Natural.even <-  
-  finsight_parentage_hogan %>% 
+  reduced %>% 
   filter(origin == "Natural")
  
-pairs(Natural.even[, c(7,9,13,57)], diag.panel = panel.hist, lower.panel=panel.smooth, 
+pairs(Natural.even[, c(1,3,5,6)], diag.panel = panel.hist, lower.panel=panel.smooth, 
 upper.panel=panel.cor, main = "Natural")
 ```
 
-For natural-origin individuals, distance was negatively correlated with RS (n; -0.17) and sample date (-0.023). 
+For natural-origin individuals, the strongest relationship was between sample date and length (0.31), with larger individuals sampled later in the season.  
 
-The most striking differences are the differences in correlations between distance and sample date and RS for hatchery- and natural-origin individuals. Distance and sample date were strongly negatively correlated for hatchery-origin fish (-0.15), but not natural-origin (-0.023) and distance was strongly correlated with RS for natural-origin fish (-0.17), but not hatchery-origin (-0.042).  
+ 
 
 # Plot RS by distance
 
 ```{r exploratory plot of RS by distance}
-finsight_parentage_hogan %>% 
+pMain <- finsight_parentage_hogan %>% 
   ggplot(aes(x = Distance, y = n, color= origin)) +
   geom_point (alpha=0.2) +
   geom_smooth() +
   geom_jitter(height = 0.5) +
   theme_bw() +
+  theme(legend.position = "bottom") +
   facet_grid(Sex ~.) +
-  labs(title = "Reproductive Success by Parental Sample Location",  colour = "Parent: Origin",
+  labs(colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Distance from Stream Mouth (m)") +
   ylab("Reproductive Success")
+
+pTop <- ggplot(finsight_parentage_hogan, aes(x = Distance)) +
+                   theme_bw() +
+  geom_histogram(aes(fill = origin)) +
+theme(legend.position = "none")
+
+grid.arrange(pTop, pMain, ncol = 1, nrow = 2, heights = c(1,3))
 ```
 
 These plots show RS (number of offspring) by distance from stream mouth (m), faceted by sex. For both sexes, natural-origin individuals had higher RS closer to the stream mouth than hatchery-origin individuals. Hatchery-origin individuals tended to have higher RS further from the mouth and were more commonly sampled further upstream than natural-origin individuals. Gray bars represent loess smoothing. Note that plots are jittered to prevent overplotting. 
@@ -359,6 +393,16 @@ summary(RS.glm.16)
 ```
 
 For females, origin was significantly associated with RS. The model with the best fit included both length and origin.  
+
+# Extract Akaike Weights
+
+```{r Extract Akaike weights for females}
+Female.Weights <- round(Weights(AICc(RS.glm.full, RS.glm.2, RS.glm.3, RS.glm.4, RS.glm.5, RS.glm.6, RS.glm.7, RS.glm.8, RS.glm.9, RS.glm.10, RS.glm.11, RS.glm.12, RS.glm.13, RS.glm.14, RS.glm.15, RS.glm.16)),3)
+
+Female.Weights
+
+```
+
 
 ```{r Male Even GLM}
 Male.even <-  
