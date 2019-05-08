@@ -24,6 +24,7 @@ library(lubridate)
 library(ggExtra)
 library(gridExtra)
 library(MuMIn)
+library(GGally)
 ```
 
 # Read in, format, and filter data
@@ -162,6 +163,13 @@ This plot shows the relationship between stream distance (m) and parental sample
 # Check for multi-collinearity
 
 We checked for multi-collinearity among variables because we assumed that there would be some degree of non-independence. Note that these plots exclude individuals with missing data. 
+
+```{r try ggpairs}
+ggpairs(reduced, diag = list(continuous="density", discrete="bar"), axisLabels = "show")
+
+ggpairs(reduced, columns=c("Sample Date", "Length Mm", "RS", "Distance"), ggplot2::aes(colour = origin, shape = SEX))
+```
+
 
 ```{r multi-collinearity}
 panel.hist <- function(x, ...)
@@ -392,9 +400,11 @@ summary(RS.glm.15)
 summary(RS.glm.16)
 ```
 
-For females, origin was significantly associated with RS. The model with the best fit included both length and origin.  
+For females, origin was consistently significantly associated with RS. The model with the lowest AIC included date, length, and origin (AIC = 736.2). The next best model included only length and origin (Delta AIC = 0.1).  
 
 # Extract Akaike Weights
+
+Akaike weights are another way of determining which model has the best fit, by calculating their conditional probabilities. 
 
 ```{r Extract Akaike weights for females}
 Female.Weights <- round(Weights(AICc(RS.glm.full, RS.glm.2, RS.glm.3, RS.glm.4, RS.glm.5, RS.glm.6, RS.glm.7, RS.glm.8, RS.glm.9, RS.glm.10, RS.glm.11, RS.glm.12, RS.glm.13, RS.glm.14, RS.glm.15, RS.glm.16)),3)
@@ -403,6 +413,7 @@ Female.Weights
 
 ```
 
+The model with the highest weight (0.231) included both length and origin. 
 
 ```{r Male Even GLM}
 Male.even <-  
@@ -457,6 +468,15 @@ summary(RS.glm.15)
 (RS.glm.16 <- glm.nb(n ~ origin * `Length Mm`, data = Male.even, link = log))
 summary(RS.glm.16)
 ```
+
+
+For males, length was the only statistically significant factor across models. The model with the best fit included length and distance (AIC = 651.7).  
+
+```{r Extract Akaike weights for males}
+Male.Weights <- round(Weights(AICc(RS.glm.full, RS.glm.2, RS.glm.3, RS.glm.4, RS.glm.5, RS.glm.6, RS.glm.7, RS.glm.8, RS.glm.9, RS.glm.10, RS.glm.11, RS.glm.12, RS.glm.13, RS.glm.14, RS.glm.15, RS.glm.16)),3)
+
+Male.Weights
+
 ```
 
-For males, length was the only statistically significant factor across models. The model with the best fit included length and distance. 
+The model with the highest weight was also the one with the lowest AIC (weight = 0.333). The model includes length and distance. 
