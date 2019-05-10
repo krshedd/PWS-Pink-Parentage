@@ -25,6 +25,8 @@ library(ggExtra)
 library(gridExtra)
 library(MuMIn)
 library(GGally)
+
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
 ```
 
 # Read in, format, and filter data
@@ -32,20 +34,20 @@ library(GGally)
 Spatial data are saved in finsight in two ways: sample processing area and GPS coordinates. 
 
 ```{r read in and filter finsight data}
-finsight_hogan <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/finsight_hogan.csv")
+finsight_hogan <- read_csv("finsight_hogan.csv")
 
 finsight_hogan$SurveyDate <- as.Date(finsight_hogan$SurveyDate, "%m/%d/%Y") 
 
 finsight_hogan <- finsight_hogan %>%  
   mutate(year = as.numeric(format(SurveyDate, format = "%Y")),
          month = as.numeric(format(SurveyDate, format = "%m")),
-        day = as.numeric(format(SurveyDate, format = "%d")))
+         day = as.numeric(format(SurveyDate, format = "%d")))
 
 finsight_hogan <- finsight_hogan %>% 
   mutate(Longitude = -abs(Longitude))
 
 finsight_hogan_filtered <- finsight_hogan %>% 
-  filter(Latitude>60.207 & Longitude < -147.758)
+  filter(Latitude > 60.207 & Longitude < -147.758)
 
 finsight_hogan_filtered$ProcessingAreaNum <- as.factor(finsight_hogan_filtered$ProcessingAreaNum)
 ```
@@ -54,15 +56,14 @@ finsight_hogan_filtered$ProcessingAreaNum <- as.factor(finsight_hogan_filtered$P
 
 ```{r plot sample locations}
 finsight_hogan_filtered %>%
-count(year, ProcessingAreaNum, Longitude, Latitude) %>%
-ggplot(aes(x = Longitude, y = Latitude, color= ProcessingAreaNum, size = n)) +
-geom_point (alpha=0.2) +
+  count(year, ProcessingAreaNum, Longitude, Latitude) %>%
+  ggplot(aes(x = Longitude, y = Latitude, color = ProcessingAreaNum, size = n)) +
+  geom_point(alpha = 0.2) +
   theme_bw() +
-facet_wrap(~year)
+  facet_wrap(~ year)
 
 finsight_hogan %>%
-count(year, ProcessingAreaNum, Longitude, Latitude) 
-
+  count(year, ProcessingAreaNum, Longitude, Latitude) 
 ```
 
 Seven processing areas were identified each year of sampling. These plots show the locations of the processing areas, with the size of the dot representing the number of individuals sampled. We plotted these locations to determine whether we could use this variable as a proxy for sample location. However, these plots reveal that processing areas are not discrete (they overlap) and that their locations are not consistent across years. 
@@ -81,28 +82,27 @@ lat2 <- finsight_hogan_filtered$Latitude
 # Calculates the geodesic distance between two points specified by radian latitude/longitude using the
 # Haversine formula (hf)
 gcd.hf <- function(long1, lat1, long2, lat2) {
-   R <- 6371 # Earth mean radius [km]
+  R <- 6371 # Earth mean radius [km]
   delta.long <- (long2 - long1)
   delta.lat <- (lat2 - lat1)
   a <- sin(delta.lat/2)^2 + cos(lat1) * cos(lat2) * sin(delta.long/2)^2
-  c <- 2 * asin(min(1,sqrt(a)))
+  c <- 2 * asin(min(1, sqrt(a)))
   d = R * c
   return(d) # Distance in km
 }
 
-distance <- apply(finsight_hogan_filtered[,c("Latitude", "Longitude")], 1, function(x) {
+distance <- apply(finsight_hogan_filtered[, c("Latitude", "Longitude")], 1, function(x) {
   gcd.hf(long1 = min(finsight_hogan_filtered$Longitude), 
          lat1 = min(finsight_hogan_filtered$Latitude), 
          long2 = x["Longitude"], 
          lat2 = x["Latitude"])
-  })
+})
 
 finsight_hogan_filtered$Distance <- distance
-      
+
 
 # A function to convert degrees to radians
 deg2rad <- function(deg) return(deg*pi/180)
-
 ```
 
 # Join finsight table with parentage data
@@ -110,50 +110,58 @@ deg2rad <- function(deg) return(deg*pi/180)
 We joined spatial data from finsight with parentage data.
 
 ```{r join tables}
-paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/paired_14_16_filter_parents.csv")
+paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv")
 
-
-finsight_parentage_hogan <- left_join(paired_14_16_filter_parents, finsight_hogan_filtered, by = c("DNA Tray Code" = "SampleTrayId" , "DNA Tray Well Code" = "SampleCell")) %>% 
- mutate(origin = factor(origin, c("Natural", "Hatchery")))  # make factor to ensure hatchery != red
-
+finsight_parentage_hogan <- left_join(paired_14_16_filter_parents, finsight_hogan_filtered, 
+                                      by = c("DNA Tray Code" = "SampleTrayId" , "DNA Tray Well Code" = "SampleCell")) %>% 
+  mutate(origin = factor(origin, c("Natural", "Hatchery")))  # make factor to ensure hatchery != red
 
 write_csv(finsight_parentage_hogan, "finsight_parentage_hogan.csv")
 ```
 
-   
+
 
 # Plot sample location by sample date 
 
 ```{r plot location by date}
-
-
-  pMain <- ggplot(finsight_parentage_hogan, aes(x = `Sample Date`, y = Distance, color= origin)) +
+pMain <- ggplot(finsight_parentage_hogan, aes(x = `Sample Date`, y = Distance, color = origin)) +
   theme_bw() +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "none") +
   geom_point (alpha = 0.2) +
   geom_jitter(height = 2, size = 2) +
   geom_smooth() +
-  facet_grid(Sex ~.) +
+  facet_grid(Sex ~ .) +
   labs(colour = "Parent: Origin",
        shape = "Parent: Sex", size = "Reproductive Success") +
   xlab("Parental Sample Date") +
   ylab("Distance from Stream Mouth (m)")
 
-pTop <- ggplot(finsight_parentage_hogan, aes(x = `Sample Date`)) + 
-                 geom_histogram()
-pRight <- ggplot(finsight_parentage_hogan, aes(x = Distance)) +
-                   geom_histogram() +
-                   coord_flip()
-pEmpty <- ggplot(finsight_parentage_hogan, aes(x = `Sample Date`, y = Distance)) + 
-  geom_blank() +
-  theme(axis.text = element_blank(),
-        axis.title = element_blank(),
-        line = element_blank(),
-        panel.background = element_blank())
-grid.arrange(pTop, pEmpty, pMain, pRight, ncol = 2, nrow = 2, widths = c(3,1), heights = c(1,3))
+pTop <- ggplot(finsight_parentage_hogan, aes(x = `Sample Date`, fill = origin)) + 
+  geom_histogram(position = "dodge2") +
+  theme(legend.position = "none")
 
-#ggExtra::ggMarginal(p, type = "histogram")
+pRight <- ggplot(finsight_parentage_hogan, aes(x = Distance, fill = origin)) +
+  geom_histogram(position = "dodge2") +
+  theme(legend.position = "none") +
+  coord_flip() +
+  facet_grid(SEX ~ . )
 
+g_legend <- function(a.gplot){ 
+    tmp <- ggplot_gtable(ggplot_build(a.gplot)) 
+    leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box") 
+    legend <- tmp$grobs[[leg]] 
+    legend
+} 
+
+pEmpty <- ggplot(finsight_parentage_hogan, aes(x = `Sample Date`, fill = origin)) + 
+  geom_histogram(position = "dodge2") +
+  theme_bw()
+
+legend <- g_legend(pEmpty) 
+
+grid.arrange(pTop, legend, pMain, pRight, ncol = 2, nrow = 2, widths = c(3,1), heights = c(1,3))
+
+# ggExtra::ggMarginal(pMain, type = "histogram")
 ```
 
 This plot shows the relationship between stream distance (m) and parental sample date, faceted by sex. Natural-origin fish, on average, arrive earlier than hatchery-origin. For both sexes, hatchery-origin fish tended to be sampled further upstream than natural-origin fish throughout the season, with a couple of exceptions (late August for females and early September for males). After ~ September 6, the majority of the fish were sampled within ~20m from the stream mouth. Gray bars represent loess smoothing and points are jittered to avoid overplotting. 
@@ -168,7 +176,7 @@ We checked for multi-collinearity among variables because we assumed that there 
 
 ```{r try ggpairs, fig.width=10, fig.height=10, warning=FALSE, message=FALSE}
 reduced <- na.omit(finsight_parentage_hogan[,c(7,8,9,12,13,57)]) %>% 
- rename(RS = n, Sex = SEX) %>% 
+  rename(RS = n, Sex = SEX) %>% 
   mutate(Origin = case_when(origin == "Natural" ~ "N", 
                             origin == "Hatchery" ~ "H")) %>% 
   mutate(Origin = factor(Origin, levels = c("N", "H")))
@@ -177,15 +185,30 @@ reduced <- na.omit(finsight_parentage_hogan[,c(7,8,9,12,13,57)]) %>%
 
 #ggpairs(reduced, columns=c("Sample Date", "Length Mm", "RS", "Distance"), diag = list(continous="points", discrete = "bar"), ggplot2::aes(colour = origin, shape = SEX, alpha = SEX))
 
+# ggpairs(reduced, 
+#         mapping = aes(color = Origin, alpha = 0.5), 
+#         columns = c("Sample Date", "Length Mm", "Distance","RS", "Sex"), 
+#         columnLabels = c("Sample Date", "Length (mm)", "Distance (m)", "RS", "Sex"), 
+#         progress = FALSE, 
+#         lower = list(continuous = "smooth_loess", combo = "facethist"),
+#         upper = list(continuous = wrap("cor", size = 4, hjust = 0.8), combo = "box")
+#         ) + 
+#   theme_bw() +
+#   theme(axis.text.x  = element_text(angle = 45, hjust = 1), 
+#         text = element_text(size = 16))
 
-
-ggpairs(reduced, mapping = aes(color = Origin, alpha = 0.5), columns = c( "Sample Date", "Length Mm",  "Distance","RS","Sex"), columnLabels = c("Sample Date", "Length (mm)", "Distance (m)", "RS","Sex"), 
+ggpairs(reduced, 
+        mapping = aes(color = Origin, alpha = 0.5), 
+        columns = c("Sample Date", "Length Mm", "Distance","RS", "Sex"), 
+        columnLabels = c("Sample Date", "Length (mm)", "Distance (m)", "RS", "Sex"), 
         progress = FALSE, 
-        lower = list(continuous = "smooth_loess", combo = "facethist", discrete = "facetbar", na = "na"),
-        upper = list(continuous = wrap("cor", size = 4, hjust=0.8), combo = "box")) + 
+        lower = list(continuous = "smooth_loess", combo = wrap(ggally_facethist, position = "dodge2")),
+        upper = list(continuous = wrap("cor", size = 4, hjust = 0.8), combo = "box"),
+        diag = list(discrete = wrap(ggally_barDiag, position = "dodge2"))
+        ) + 
   theme_bw() +
-  theme(axis.text.x  = element_text(angle = 45, hjust = 1), text = element_text(size = 16))
-  
+  theme(axis.text.x  = element_text(angle = 45, hjust = 1), 
+        text = element_text(size = 16))
 ```
 
 
@@ -195,37 +218,38 @@ Overall, correlations are pretty weak. Positive correlations were found between 
 
 ```{r exploratory plot of RS by distance}
 pMain <- finsight_parentage_hogan %>% 
-  ggplot(aes(x = Distance, y = n, color= origin)) +
-  geom_point (alpha=0.2) +
+  ggplot(aes(x = Distance, y = n, color = origin)) +
+  geom_point(alpha = 0.2) +
   geom_smooth() +
   geom_jitter(height = 0.5) +
   theme_bw() +
   theme(legend.position = "bottom") +
-  facet_grid(Sex ~.) +
+  facet_grid(Sex ~ .) +
   labs(colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Distance from Stream Mouth (m)") +
   ylab("Reproductive Success")
 
 pTop <- ggplot(finsight_parentage_hogan, aes(x = Distance)) +
-                   theme_bw() +
+  theme_bw() +
   geom_histogram(aes(fill = origin)) +
-theme(legend.position = "none")
+  theme(legend.position = "none")
 
-grid.arrange(pTop, pMain, ncol = 1, nrow = 2, heights = c(1,3))
+grid.arrange(pTop, pMain, ncol = 1, nrow = 2, heights = c(1, 3))
 ```
 
 These plots show RS (number of offspring) by distance from stream mouth (m), faceted by sex. For both sexes, natural-origin individuals had higher RS closer to the stream mouth than hatchery-origin individuals. Hatchery-origin individuals tended to have higher RS further from the mouth and were more commonly sampled further upstream than natural-origin individuals. Gray bars represent loess smoothing. Note that plots are jittered to prevent overplotting. 
 
 ```{r exploratory plot of RS by size}
 finsight_parentage_hogan %>% 
-  ggplot(aes(x = Distance, y = `Length Mm`, color= origin)) +
-  geom_point (alpha = 0.2) +
-  theme_bw()+
+  ggplot(aes(x = Distance, y = `Length Mm`, color = origin)) +
+  geom_point(alpha = 0.2) +
+  theme_bw() +
   geom_smooth() +
   geom_jitter(height = 0.5) +
-  facet_grid(Sex ~.) +
-  labs(title = "Distance from Stream Mouth by Parental Length",  colour = "Parent: Origin",
+  facet_grid(Sex ~ .) +
+  labs(title = "Distance from Stream Mouth by Parental Length", 
+       colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Distance from Stream Mouth (m)") +
   ylab("Parental Length (mm)")
@@ -241,29 +265,31 @@ finsight_parentage_hogan_sw <- finsight_parentage_hogan %>%
   dplyr::mutate(statweek = dplyr::case_when(
     `Sample Date` == "2014-08-16" ~ "33",
     `Sample Date` == "2014-08-20" | `Sample Date` == "2014-08-22" ~ "34",
-    `Sample Date` == "2014-08-25" | `Sample Date` == "2014-08-27" | `Sample Date` == "2014-08-28" | `Sample Date` == "2014-08-31" ~ "35",
-    `Sample Date` == "2014-09-03" | `Sample Date` == "2014-09-6" ~ "36",
-    `Sample Date` == "2014-09-10" | `Sample Date` == "2014-09-11" | `Sample Date` == "2014-09-14" ~ "37"))
+    `Sample Date` >= "2014-08-25" & `Sample Date` <= "2014-08-31" ~ "35",
+    `Sample Date` >= "2014-09-03" & `Sample Date` <= "2014-09-06" ~ "36",
+    `Sample Date` >= "2014-09-10" & `Sample Date` <= "2014-09-14" ~ "37"))
 
 finsight_parentage_hogan_sw %>% 
-  ggplot(aes(x = Distance, y = n, color= origin, shape = SEX)) +
+  ggplot(aes(x = Distance, y = n, color = origin, shape = SEX)) +
   theme_bw() +
-  geom_point (alpha = 0.2) +
+  geom_point(alpha = 0.2) +
   geom_jitter() +
-  facet_grid(statweek ~.) +
-  labs(title = "Reproductive Success by Parental Sample Location",  colour = "Parent: Origin",
+  facet_grid(statweek ~ . ) +
+  labs(title = "Reproductive Success by Parental Sample Location",
+       colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Distance from Stream Mouth (m)") +
   ylab("Reproductive Success")
 
 finsight_parentage_hogan_sw %>% 
-  ggplot(aes(x = Distance, y = n, color= origin)) +
+  ggplot(aes(x = Distance, y = n, color = origin)) +
   theme_bw() +
-  geom_point (alpha = 0.2) +
+  geom_point(alpha = 0.2) +
   geom_jitter() +
   geom_smooth() +
-  facet_grid(vars(statweek), vars(SEX)) +
-  labs(title = "Reproductive Success by Parental Sample Location",  colour = "Parent: Origin",
+  facet_grid(statweek ~ SEX) +
+  labs(title = "Reproductive Success by Parental Sample Location",
+       colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Distance from Stream Mouth (m)") +
   ylab("Reproductive Success")
@@ -279,7 +305,7 @@ we used a negative binomial distribution model and log-linked function to evalua
 Female.even <-  
   finsight_parentage_hogan %>% 
   filter(SEX == "F")
-  
+
 (RS.glm.full <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Female.even, link = log))
 summary(RS.glm.full)
 
@@ -336,10 +362,12 @@ For females, origin was consistently significantly associated with RS. The model
 Akaike weights are another way of determining which model has the best fit, by calculating their conditional probabilities. 
 
 ```{r Extract Akaike weights for females}
-Female.Weights <- round(Weights(AICc(RS.glm.full, RS.glm.2, RS.glm.3, RS.glm.4, RS.glm.5, RS.glm.6, RS.glm.7, RS.glm.8, RS.glm.9, RS.glm.10, RS.glm.11, RS.glm.12, RS.glm.13, RS.glm.14, RS.glm.15, RS.glm.16)),3)
+Female.Weights <- round(
+  Weights(
+    AICc(RS.glm.full, RS.glm.2, RS.glm.3, RS.glm.4, RS.glm.5, RS.glm.6, RS.glm.7, RS.glm.8, RS.glm.9, RS.glm.10, RS.glm.11, RS.glm.12, RS.glm.13, RS.glm.14, RS.glm.15, RS.glm.16)
+    ), 3)
 
 Female.Weights
-
 ```
 
 The model with the highest weight (0.231) included both length and origin. 
@@ -348,7 +376,7 @@ The model with the highest weight (0.231) included both length and origin.
 Male.even <-  
   finsight_parentage_hogan %>% 
   filter(SEX == "M")
-  
+
 (RS.glm.full <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Male.even, link = log))
 summary(RS.glm.full)
 
@@ -402,10 +430,12 @@ summary(RS.glm.16)
 For males, length was the only statistically significant factor across models. The model with the best fit included length and distance (AIC = 651.7).  
 
 ```{r Extract Akaike weights for males}
-Male.Weights <- round(Weights(AICc(RS.glm.full, RS.glm.2, RS.glm.3, RS.glm.4, RS.glm.5, RS.glm.6, RS.glm.7, RS.glm.8, RS.glm.9, RS.glm.10, RS.glm.11, RS.glm.12, RS.glm.13, RS.glm.14, RS.glm.15, RS.glm.16)),3)
+Male.Weights <- round(
+  Weights(
+    AICc(RS.glm.full, RS.glm.2, RS.glm.3, RS.glm.4, RS.glm.5, RS.glm.6, RS.glm.7, RS.glm.8, RS.glm.9, RS.glm.10, RS.glm.11, RS.glm.12, RS.glm.13, RS.glm.14, RS.glm.15, RS.glm.16)
+    ), 3)
 
 Male.Weights
-
 ```
 
 The model with the highest weight was also the one with the lowest AIC (weight = 0.333). The model includes length and distance. 
