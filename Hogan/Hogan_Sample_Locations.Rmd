@@ -276,53 +276,53 @@ Female.even <-
   finsight_parentage_hogan %>% 
   filter(SEX == "F")
 
-(RS.glm.full <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Female.even, link = log))
-summary(RS.glm.full)
+RS.glm.full <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Female.even, link = log)
 
-(RS.glm.2 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin, data = Female.even, link = log))
-summary(RS.glm.2)
+RS.glm.2 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin, data = Female.even, link = log)
 
-(RS.glm.3 <- glm.nb(n ~ `Length Mm` + origin, data = Female.even, link = log))
-summary(RS.glm.3)
+RS.glm.3 <- glm.nb(n ~ `Length Mm` + origin, data = Female.even, link = log)
 
-(RS.glm.4 <- glm.nb(n ~ origin, data = Female.even, link = log))
-summary(RS.glm.4)
+RS.glm.4 <- glm.nb(n ~ origin, data = Female.even, link = log)
 
-(RS.glm.5 <- glm.nb(n ~ `Length Mm`, data = Female.even, link = log))
-summary(RS.glm.5)
+RS.glm.5 <- glm.nb(n ~ `Length Mm`, data = Female.even, link = log)
 
-(RS.glm.6 <- glm.nb(n ~ `Sample Date`, data = Female.even, link = log))
-summary(RS.glm.6)
+RS.glm.6 <- glm.nb(n ~ `Sample Date`, data = Female.even, link = log)
 
-(RS.glm.7 <- glm.nb(n ~ Distance, data = Female.even, link = log))
-summary(RS.glm.7)
+RS.glm.7 <- glm.nb(n ~ Distance, data = Female.even, link = log)
 
-(RS.glm.8 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Distance, data = Female.even, link = log))
-summary(RS.glm.8)
+RS.glm.8 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Distance, data = Female.even, link = log)
 
-(RS.glm.9 <- glm.nb(n ~ `Length Mm` + Distance, data = Female.even, link = log))
-summary(RS.glm.9)
+RS.glm.9 <- glm.nb(n ~ `Length Mm` + Distance, data = Female.even, link = log)
 
-(RS.glm.10 <- glm.nb(n ~ `Sample Date` + origin, data = Female.even, link = log))
-summary(RS.glm.10)
+RS.glm.10 <- glm.nb(n ~ `Sample Date` + origin, data = Female.even, link = log)
 
-(RS.glm.11 <- glm.nb(n ~ `Sample Date` + Distance, data = Female.even, link = log))
-summary(RS.glm.11)
+RS.glm.11 <- glm.nb(n ~ `Sample Date` + Distance, data = Female.even, link = log)
 
-(RS.glm.12 <- glm.nb(n ~ `Sample Date` + Distance + origin, data = Female.even, link = log))
-summary(RS.glm.12)
+RS.glm.12 <- glm.nb(n ~ `Sample Date` + Distance + origin, data = Female.even, link = log)
 
-(RS.glm.13 <- glm.nb(n ~ Distance + origin, data = Female.even, link = log))
-summary(RS.glm.13)
+RS.glm.13 <- glm.nb(n ~ Distance + origin, data = Female.even, link = log)
 
-(RS.glm.14 <- glm.nb(n ~ Distance * origin, data = Female.even, link = log))
-summary(RS.glm.14)
+RS.glm.14 <- glm.nb(n ~ Distance * origin, data = Female.even, link = log)
 
-(RS.glm.15 <- glm.nb(n ~ `Sample Date` * origin, data = Female.even, link = log))
-summary(RS.glm.15)
+RS.glm.15 <- glm.nb(n ~ `Sample Date` * origin, data = Female.even, link = log)
 
-(RS.glm.16 <- glm.nb(n ~ `Length Mm` * origin, data = Female.even, link = log))
-summary(RS.glm.16)
+RS.glm.16 <- glm.nb(n ~ `Length Mm` * origin, data = Female.even, link = log)
+
+RS.glm.17 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Intertidal, data = Female.even, link = log)
+
+RS.glm.18 <- glm.nb(n ~ Intertidal, data = Female.even, link = log)
+
+RS.glm.19 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Intertidal, data = Female.even, link = log)
+
+RS.glm.20 <- glm.nb(n ~ `Length Mm` + Intertidal, data = Female.even, link = log)
+
+RS.glm.21 <- glm.nb(n ~ `Sample Date` + Intertidal, data = Female.even, link = log)
+
+RS.glm.22 <- glm.nb(n ~ `Sample Date` + Intertidal + origin, data = Female.even, link = log)
+
+RS.glm.23 <- glm.nb(n ~ Intertidal + origin, data = Female.even, link = log)
+
+RS.glm.24 <- glm.nb(n ~ Intertidal * origin, data = Female.even, link = log)
 ```
 
 For females, origin was consistently significantly associated with RS. The model with the lowest AIC included date, length, and origin (AIC = 736.2). The next best model included only length and origin (Delta AIC = 0.1).  
@@ -331,16 +331,47 @@ For females, origin was consistently significantly associated with RS. The model
 
 Akaike weights are another way of determining which model has the best fit, by calculating their conditional probabilities. 
 
-```{r Extract Akaike weights for females}
-Female.Weights <- round(
-  Weights(
-    AICc(RS.glm.full, RS.glm.2, RS.glm.3, RS.glm.4, RS.glm.5, RS.glm.6, RS.glm.7, RS.glm.8, RS.glm.9, RS.glm.10, RS.glm.11, RS.glm.12, RS.glm.13, RS.glm.14, RS.glm.15, RS.glm.16)
-    ), 3)
+The model with the highest weight (0.231) included both length and origin. 
 
-Female.Weights
+```{r female_glm_summary}
+female_model_summary <- bind_rows(
+  lapply(c("full", 2:24), function(i) {
+    fit <- get(paste0("RS.glm.", i))
+    summary(fit)$coefficients %>% 
+      as_tibble(rownames = "variable") %>% 
+      mutate(name = paste0("RS.glm.", i)) %>% 
+      mutate(model = as.character(fit$call)[2]) %>% 
+      mutate(AIC = fit$aic) %>% 
+      mutate(residual_deviance = fit$deviance) %>% 
+      mutate(residual_df = fit$df.residual) %>% 
+      mutate(null_deviance = fit$null.deviance) %>% 
+      mutate(null_df = fit$df.null)
+  } )
+)
+
+female_aic <- AIC(RS.glm.full, RS.glm.2, RS.glm.3, RS.glm.4, RS.glm.5, RS.glm.6, RS.glm.7, RS.glm.8, RS.glm.9, RS.glm.10, RS.glm.11, RS.glm.12, RS.glm.13, RS.glm.14, RS.glm.15, RS.glm.16, RS.glm.17, RS.glm.18, RS.glm.19, RS.glm.20, RS.glm.21, RS.glm.22, RS.glm.23, RS.glm.24)
+
+female_aic <- female_aic %>% 
+  mutate(AIC_weight = as.numeric(Weights(female_aic))) %>% 
+  mutate(name = rownames(female_aic)) %>% 
+  arrange(AIC) %>% 
+  mutate(delta_AIC = AIC - min(AIC))
+
+(female_model_summary <- female_model_summary %>% 
+  left_join(female_aic, by = c("name", "AIC")) %>% 
+  arrange(AIC)) %>% 
+  select(name, model, df, AIC, delta_AIC, AIC_weight, variable, Estimate, `Std. Error`, residual_deviance, residual_df, null_deviance, null_df)
+
+female_model_summary %>% 
+  group_by(name) %>% 
+  summarise(AIC_weight = max(AIC_weight), model = unique(model)) %>% 
+  arrange(desc(AIC_weight))
+
+female_model_summary %>% 
+  select(-`Std. Error`, -`z value`, -`Pr(>|z|)`) %>% 
+  spread(variable, Estimate, fill = NA)
 ```
 
-The model with the highest weight (0.231) included both length and origin. 
 
 ## Male
 
@@ -349,66 +380,96 @@ Male.even <-
   finsight_parentage_hogan %>% 
   filter(SEX == "M")
 
-(RS.glm.full <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Male.even, link = log))
-summary(RS.glm.full)
+RS.glm.full <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Male.even, link = log)
 
-(RS.glm.2 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin, data = Male.even, link = log))
-summary(RS.glm.2)
+RS.glm.2 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin, data = Male.even, link = log)
 
-(RS.glm.3 <- glm.nb(n ~ `Length Mm` + origin, data = Male.even, link = log))
-summary(RS.glm.3)
+RS.glm.3 <- glm.nb(n ~ `Length Mm` + origin, data = Male.even, link = log)
 
-(RS.glm.4 <- glm.nb(n ~ origin, data = Male.even, link = log))
-summary(RS.glm.4)
+RS.glm.4 <- glm.nb(n ~ origin, data = Male.even, link = log)
 
-(RS.glm.5 <- glm.nb(n ~ `Length Mm`, data = Male.even, link = log))
-summary(RS.glm.5)
+RS.glm.5 <- glm.nb(n ~ `Length Mm`, data = Male.even, link = log)
 
-(RS.glm.6 <- glm.nb(n ~ `Sample Date`, data = Male.even, link = log))
-summary(RS.glm.6)
+RS.glm.6 <- glm.nb(n ~ `Sample Date`, data = Male.even, link = log)
 
-(RS.glm.7 <- glm.nb(n ~ Distance, data = Male.even, link = log))
-summary(RS.glm.7)
+RS.glm.7 <- glm.nb(n ~ Distance, data = Male.even, link = log)
 
-(RS.glm.8 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Distance, data = Male.even, link = log))
-summary(RS.glm.8)
+RS.glm.8 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Distance, data = Male.even, link = log)
 
-(RS.glm.9 <- glm.nb(n ~ `Length Mm` + Distance, data = Male.even, link = log))
-summary(RS.glm.9)
+RS.glm.9 <- glm.nb(n ~ `Length Mm` + Distance, data = Male.even, link = log)
 
-(RS.glm.10 <- glm.nb(n ~ `Sample Date` + origin, data = Male.even, link = log))
-summary(RS.glm.10)
+RS.glm.10 <- glm.nb(n ~ `Sample Date` + origin, data = Male.even, link = log)
 
-(RS.glm.11 <- glm.nb(n ~ `Sample Date` + Distance, data = Male.even, link = log))
-summary(RS.glm.11)
+RS.glm.11 <- glm.nb(n ~ `Sample Date` + Distance, data = Male.even, link = log)
 
-(RS.glm.12 <- glm.nb(n ~ `Sample Date` + Distance + origin, data = Male.even, link = log))
-summary(RS.glm.12)
+RS.glm.12 <- glm.nb(n ~ `Sample Date` + Distance + origin, data = Male.even, link = log)
 
-(RS.glm.13 <- glm.nb(n ~ Distance + origin, data = Male.even, link = log))
-summary(RS.glm.13)
+RS.glm.13 <- glm.nb(n ~ Distance + origin, data = Male.even, link = log)
 
-(RS.glm.14 <- glm.nb(n ~ Distance * `Length Mm`, data = Male.even, link = log))
-summary(RS.glm.14)
+RS.glm.14 <- glm.nb(n ~ Distance * origin, data = Male.even, link = log)
 
-(RS.glm.15 <- glm.nb(n ~ `Sample Date` * `Length Mm`, data = Male.even, link = log))
-summary(RS.glm.15)
+RS.glm.15 <- glm.nb(n ~ `Sample Date` * origin, data = Male.even, link = log)
 
-(RS.glm.16 <- glm.nb(n ~ origin * `Length Mm`, data = Male.even, link = log))
-summary(RS.glm.16)
+RS.glm.16 <- glm.nb(n ~ `Length Mm` * origin, data = Male.even, link = log)
+
+RS.glm.17 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Intertidal, data = Male.even, link = log)
+
+RS.glm.18 <- glm.nb(n ~ Intertidal, data = Male.even, link = log)
+
+RS.glm.19 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Intertidal, data = Male.even, link = log)
+
+RS.glm.20 <- glm.nb(n ~ `Length Mm` + Intertidal, data = Male.even, link = log)
+
+RS.glm.21 <- glm.nb(n ~ `Sample Date` + Intertidal, data = Male.even, link = log)
+
+RS.glm.22 <- glm.nb(n ~ `Sample Date` + Intertidal + origin, data = Male.even, link = log)
+
+RS.glm.23 <- glm.nb(n ~ Intertidal + origin, data = Male.even, link = log)
+
+RS.glm.24 <- glm.nb(n ~ Intertidal * origin, data = Male.even, link = log)
 ```
 
 For males, length was the only statistically significant factor across models. The model with the best fit included length and distance (AIC = 651.7).  
 
 ### Extract Akaike Weights
 
-```{r Extract Akaike weights for males}
-Male.Weights <- round(
-  Weights(
-    AICc(RS.glm.full, RS.glm.2, RS.glm.3, RS.glm.4, RS.glm.5, RS.glm.6, RS.glm.7, RS.glm.8, RS.glm.9, RS.glm.10, RS.glm.11, RS.glm.12, RS.glm.13, RS.glm.14, RS.glm.15, RS.glm.16)
-    ), 3)
+```{r male_glm_summary}
+male_model_summary <- bind_rows(
+  lapply(c("full", 2:24), function(i) {
+    fit <- get(paste0("RS.glm.", i))
+    summary(fit)$coefficients %>% 
+      as_tibble(rownames = "variable") %>% 
+      mutate(name = paste0("RS.glm.", i)) %>% 
+      mutate(model = as.character(fit$call)[2]) %>% 
+      mutate(AIC = fit$aic) %>% 
+      mutate(residual_deviance = fit$deviance) %>% 
+      mutate(residual_df = fit$df.residual) %>% 
+      mutate(null_deviance = fit$null.deviance) %>% 
+      mutate(null_df = fit$df.null)
+  } )
+)
 
-Male.Weights
+male_aic <- AIC(RS.glm.full, RS.glm.2, RS.glm.3, RS.glm.4, RS.glm.5, RS.glm.6, RS.glm.7, RS.glm.8, RS.glm.9, RS.glm.10, RS.glm.11, RS.glm.12, RS.glm.13, RS.glm.14, RS.glm.15, RS.glm.16, RS.glm.17, RS.glm.18, RS.glm.19, RS.glm.20, RS.glm.21, RS.glm.22, RS.glm.23, RS.glm.24)
+
+male_aic <- male_aic %>% 
+  mutate(AIC_weight = as.numeric(Weights(male_aic))) %>% 
+  mutate(name = rownames(male_aic)) %>% 
+  arrange(AIC) %>% 
+  mutate(delta_AIC = AIC - min(AIC))
+
+(male_model_summary <- male_model_summary %>% 
+  left_join(male_aic, by = c("name", "AIC")) %>% 
+  arrange(AIC)) %>% 
+  select(name, model, df, AIC, delta_AIC, AIC_weight, variable, Estimate, `Std. Error`, residual_deviance, residual_df, null_deviance, null_df)
+
+male_model_summary %>% 
+  group_by(name) %>% 
+  summarise(AIC_weight = max(AIC_weight), model = unique(model)) %>% 
+  arrange(desc(AIC_weight))
+
+male_model_summary %>% 
+  select(-`Std. Error`, -`z value`, -`Pr(>|z|)`) %>% 
+  spread(variable, Estimate, fill = NA)
 ```
 
 The model with the highest weight was also the one with the lowest AIC (weight = 0.333). The model includes length and distance. 
