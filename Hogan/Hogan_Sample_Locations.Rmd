@@ -10,17 +10,17 @@ editor_options:
 
 # Pro Tips {#protip}
 
-Anlything in [red](#protip) is a hyperlink that will either take you to the relevant location in this R Notebook .html file, or will link to an external referent (i.e. a publication we cite). If you just want to see the text and figures and **do not** want to see any of the `code` used to generate this R Notebook, click on the grey box in the upper right corner that says "Code" and select "Hide All Code". Happy data exploring!
+Anything in [red](#protip) is a hyperlink that will either take you to the relevant location in this R Notebook .html file, or will link to an external reference (i.e. a publication we cite). If you just want to see the text and figures and **do not** want to see any of the `code` used to generate this R Notebook, click on the grey box in the upper right corner that says "Code" and select "Hide All Code". Happy data exploring!
 
 # Introduction
 
-The purpose of these analyses is to relate reproductive success (RS) with spatial information from fish sampling areas (new information), origin, date, sex, and length. 
+The purpose of these analyses is to relate reproductive success (RS) with spatial information from fish sampling areas (new information), origin, date, sex, and length. We associate these variables using generalized linear models (GLM's). 
 
-**Note** that we are only doing this for the even-year lineage (2014-2016) because there are not enough parent-offspring assignments from the odd lineage (2013-2015) to draw robust conclusions. Also **note that Hogan is a short stream (~30m)** and we assume that the entire stream was sampled each day. 
+**Note** that we are only doing these analyses for the Hogan even-year lineage (2014-2016) because there are not enough parent-offspring assignments from the odd lineage (2013-2015) to draw robust conclusions. Also **note that Hogan is a short stream (~30m)** and we assume that the entire stream was sampled each day. 
 
 Our prior is that there may be spatial separation between hatchery- and natural-origin Pink Salmon and that this separation may help account for observed differences in RS. Spatial separation in spawning location has been observed in farmed- versus wild- Atlantic salmon, with farmed salmon more often found upriver of wild salmon (see [Moe et al. 2016](https://www.int-res.com/abstracts/aei/v8/p77-88/); [Okland et al. 1995](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1095-8649.1995.tb05942.x); [Thorstad et al. 1998](https://onlinelibrary.wiley.com/doi/abs/10.1046/j.1365-2109.1998.00218.x)). In contrast, wild Chinook from the Wenatchee River (WA) were found upstream of hatchery fish and had higher RS (see [Williamson et al. 2010](https://www.nrcresearchpress.com/doi/abs/10.1139/F10-099)). Additionally, spawning location may be influenced by return time if late-returning females have to choose less desirable locations (see [Fleming and Reynolds 2003](https://onlinelibrary.wiley.com/doi/pdf/10.1046/j.1365-2656.2003.00752.x)). 
 
-To test this spatial-separation hypothesis, we obtained sample location information from the contractor's Finsight database, which included both processing area number and GPS coordinates [[link](#read_data)]. Because processing areas overlapped and were inconsistent among years, we decided we couldn't use this variable as a proxy for sample location. Instead, we used an R script developed by Pete Rand at PWSSC that allowed us to convert GPS coordinates to distance from the mouth of the stream [[link](#convert_GPS)]. We did this transformation and then combined this new variable with origin, date, and length from our RS analyses. We did exploratory plotting to examine relationships among RS, date, length, stream distance, and sex and test for multicollinearity among our variables [[link](#multi-collinearity)]. Following [Bernston et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), and [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725), we used generalized linear models (GLM's) to evaluate relationships among RS, stream distance, length, origin and run timing separately for each sex [[link](#glm)].
+To test this spatial-separation hypothesis, we obtained sample location information from the contractor's Finsight database, which included both processing area number and GPS coordinates [[link](#read_data)]. Because processing areas overlapped and were inconsistent among years, we decided we couldn't use this variable as a proxy for sample location. Instead, we used an R script developed by Pete Rand at PWSSC that allowed us to convert GPS coordinates to distance from the mouth of the stream [[link](#convert_GPS)]. We did this transformation and then combined this new variable with origin, date, and length from our RS analyses. We did exploratory plotting to examine relationships among RS, date, length, stream distance, and sex and tested for multicollinearity among our variables [[link](#multi-collinearity)]. Following [Bernston et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), and [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725), we used GLM's to evaluate relationships among RS, stream distance, length, origin and run timing separately for each sex [[link](#glm)].
 
 ```{r setup, include=FALSE}
 library(coin)
@@ -80,7 +80,7 @@ Seven processing areas were identified each year of sampling. These plots show t
 
 Because we were not able to use processing area as a proxy for sample location, we used a script from Pete Rand (PWSSC) to transform GPS coordinates into a more meaningful measure: distance from the mouth of the stream. This allowed us to derive two variables relative to sample location:  
     1) 'Distance' - distance in meters from the mouth of the stream (lowest sampled point)  
-    2) 'Intertidal' - categorical variable [intertidal/upstream] based on being below or above extent of high tide (GPS provided by Pete Rand)  
+    2) 'Intertidal' - categorical variable [intertidal/upstream] based on being below or above extent of high tide (GPS of high tide provided by Pete Rand)  
 
 ```{r convert coordinates to distances}
 # Calculates the geodesic distance between two points specified by radian latitude/longitude using the
@@ -196,11 +196,11 @@ grid.arrange(pTop, g_legend(pEmpty), pMain, pRight, ncol = 2, nrow = 2, widths =
 # ggExtra::ggMarginal(pMain, type = "histogram")
 ```
 
-This plot shows the relationship between stream distance (m) and parental sample date, faceted by sex. Natural-origin fish, on average, arrive earlier than hatchery-origin (top plot). For both sexes, hatchery-origin fish tended to be sampled further upstream than natural-origin fish throughout the season, with a couple of exceptions (late August for females and early September for males). After ~ September 6, the majority of the fish were sampled within ~20m from the stream mouth. Gray bars represent loess smoothing CIs and points are jittered and partially transparent to avoid overplotting.
+This plot shows the relationship between stream distance (m) and parental sample date, faceted by sex. Natural-origin fish, on average, arrived earlier than hatchery-origin (top plot). For both sexes, hatchery-origin fish tended to be sampled further upstream than natural-origin fish throughout the season, with a couple of exceptions (late August for females and early September for males). After ~ September 6, the majority of the fish were sampled within ~20m from the stream mouth. Gray bars represent loess smoothing CI's and points are jittered and partially transparent to avoid overplotting.
 
 ## Plot RS by distance {#rs_v_distance}
 
-For a better look at the relationship between RS and distance, we can plot RS by distance separately by sex.
+For a better look at the relationship between RS and distance, we plotted RS by distance separately by sex.
 ```{r exploratory plot of RS by distance, fig.width=10, fig.height=8}
 pMain <- finsight_parentage_hogan %>% 
   ggplot(aes(x = Distance, y = n, color = origin)) +
@@ -225,7 +225,7 @@ pTop <- ggplot(finsight_parentage_hogan, aes(x = Distance, fill = origin)) +
 grid.arrange(pTop, pMain, ncol = 1, nrow = 2, heights = c(1, 3))
 ```
 
-These plots show RS (number of offspring) by distance from stream mouth (m), faceted by sex. For both sexes, natural-origin individuals had higher RS closer to the stream mouth than hatchery-origin individuals. Hatchery-origin individuals tended to consistent RS throught the stream and were more commonly sampled further upstream than natural-origin individuals. Gray bars represent loess smoothing CIs. Note that plots are jittered and points are partially transparent to prevent overplotting.
+These plots show RS (number of offspring) by distance from stream mouth (m), faceted by sex. For both sexes, natural-origin individuals had higher RS closer to the stream mouth than hatchery-origin individuals. Hatchery-origin individuals tended to have consistent RS throught the stream and were more commonly sampled further upstream than natural-origin individuals. Gray bars represent loess smoothing CI's. Note that plots are jittered and points are partially transparent to prevent overplotting.
 
 ## Plot length by distance {#length_v_distance}
 
@@ -499,8 +499,8 @@ The model with the highest weight (0.35) included length and distance. Length wa
 
 # Summary
 
-In summary, we see that while Hogan Bay is a very short stream (only ~30m of spawning habitat), there are some spatial patterns in RS, with higher average RS in the intertidal than upstream, particularly with natural-origin fish [[link](#rs_v_distance)]. Natural-origin fish tended to spawn lower down in the stream for most sample dates [[link](#distance_v_date)]. When controlling for sample date and intertidal vs. upstream, natural-origin females have a higher RS than hatchery-origin females early in the season in the intertidal [[link](#rs_v_date_intertidal_sex)]. Thus spawning location did not change the previously found relationship that female natural-origin fish have a higher RS than hatchery-origin fish early in the season [[link](#rs_v_date_intertidal_sex)].
+In summary, we see that while Hogan Bay is a short stream (only ~30m of spawning habitat), there are some spatial patterns in RS, with higher average RS in the intertidal than upstream, particularly with natural-origin fish [[link](#rs_v_distance)]. Natural-origin fish tended to spawn lower down in the stream for most sample dates [[link](#distance_v_date)]. When controlling for sample date and intertidal vs. upstream, natural-origin females have a higher RS than hatchery-origin females early in the season in the intertidal [[link](#rs_v_date_intertidal_sex)]. Thus spawning location did not change the previously found relationship that female natural-origin fish have a higher RS than hatchery-origin fish early in the season [[link](#rs_v_date_intertidal_sex)].
 
 Hower, negative binomial GLMs did not explain very much of the variance in RS for either [females](#female_glm) or [males](#male_glm) (*note* the small difference between residual deviance and null deviance). With that said, the highest ranked models for females always included origin, often included sample date and length, and occasionally included one of the location variables (Intertidal[categorical] or Distance[continuous]). For males, the highest ranked models always included length.
 
-We will use this R Notebook as a template to explore Stockdale Creek even-lineage (2014/2016). Stockdale should be a much more interesting analysis given both the higher sample size of parent/offspring relationships and the longer stream length.
+We will use this R Notebook as a template to explore Stockdale Creek even-lineage (2014/2016). Stockdale should provide greater insight into the variables underlying variation in RS given both the higher sample size of parent/offspring relationships and the longer stream length than Hogan.
