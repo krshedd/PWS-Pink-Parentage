@@ -53,8 +53,8 @@ finsight_stockdale <- finsight_stockdale %>%
 finsight_stockdale <- finsight_stockdale %>% 
   mutate(Longitude = -abs(Longitude))
 
-#finsight_stockdale_filtered <- finsight_stockdale %>% 
-  #filter(Latitude > 60.207 & Longitude < -147.758)
+finsight_stockdale_filtered <- finsight_stockdale %>% 
+  filter(Latitude > 60.298)
 
 finsight_stockdale$ProcessingAreaNum <- as.factor(finsight_stockdale$ProcessingAreaNum)
 ```
@@ -101,11 +101,17 @@ gcd.hf <- function(long1, lat1, long2, lat2) {
   return(d) # Distance in km
 }
 
-# From Pete Rand on 1/14, high tide extent is 60.209, -147.761
-finsight_stockdale <- finsight_stockdale %>% 
-  mutate(Distance = unlist(pmap(list(long1 = min(Longitude), lat1 = min(Latitude), long2 = Longitude, lat2 = Latitude), gcd.hf))) 
- # mutate(Intertidal = case_when(Distance <= gcd.hf(long1 = min(Longitude), lat1 = min(Latitude), long2 = -147.761, lat2 = 60.209) ~ "Intertidal",
-                                #Distance > gcd.hf(long1 = min(Longitude), lat1 = min(Latitude), long2 = -147.761, lat2 = 60.209) ~ "Upstream"))
+# From Pete Rand on 5/16, high tide extent is estimated to be 60.303, -147.183
+finsight_stockdale_filtered <- finsight_stockdale_filtered %>% 
+  mutate(Distance = unlist(pmap(list(long1 = min(Longitude), lat1 = min(Latitude), long2 = Longitude, lat2 = Latitude), gcd.hf))) %>% 
+  mutate(Intertidal = case_when(Distance <= gcd.hf(long1 = min(Longitude), lat1 = min(Latitude), long2 = -147.183, lat2 = 60.303) ~ "Intertidal",
+                                Distance > gcd.hf(long1 = min(Longitude), lat1 = min(Latitude), long2 = -147.183, lat2 = 60.303) ~ "Upstream"))
+
+#Plot location of estimated high tide mark
+ggplot(finsight_stockdale_filtered, aes(x = Latitude, y = Longitude)) +
+  geom_point() +
+  geom_hline(aes(yintercept = -147.183)) +
+  geom_vline(aes(xintercept = 60.303))
 
 # A function to convert degrees to radians
 # deg2rad <- function(deg) return(deg*pi/180)
@@ -117,9 +123,10 @@ We joined spatial data from Finsight with parentage data.
 ```{r join tables}
 paired_14_16_filter_parents <- read_csv("stock_paired_14_16_filter_parents.csv")
 
-finsight_parentage_stock <- left_join(paired_14_16_filter_parents, finsight_stockdale, 
+finsight_parentage_stock <- left_join(paired_14_16_filter_parents, finsight_stockdale_filtered, 
                                       by = c("DNA Tray Code" = "SampleTrayId" , "DNA Tray Well Code" = "SampleCell")) %>% 
-  mutate(origin = factor(origin, c("Natural", "Hatchery")))  # make factor to ensure hatchery != red
+  mutate(origin = factor(origin, c("Natural", "Hatchery")))  %>% 
+  filter(`Length Mm` > 300)
 
 write_csv(finsight_parentage_stock, "finsight_parentage_stock.csv")
 ```
@@ -133,13 +140,13 @@ reduced <- finsight_parentage_stock %>%
   mutate(Origin = case_when(origin == "Natural" ~ "N", 
                             origin == "Hatchery" ~ "H")) %>% 
   mutate(Origin = factor(Origin, levels = c("N", "H"))) %>% 
-  select(`Sample Date`, Sex, `Length Mm`, Origin, RS, Distance) %>% 
+  select(`Sample Date`, Sex, `Length Mm`, Origin, RS, Intertidal, Distance) %>% 
   drop_na()
 
 ggpairs(reduced, 
         mapping = aes(color = Origin, alpha = 0.5), 
-        columns = c("Sample Date", "Length Mm", "Distance","RS", "Sex"), 
-        columnLabels = c("Sample Date", "Length (mm)", "Distance (m)", "RS", "Sex"), 
+        columns = c("Sample Date", "Length Mm", "Distance","RS", "Intertidal", "Sex"), 
+        columnLabels = c("Sample Date", "Length (mm)", "Distance (m)", "RS", "Intertidal", "Sex"), 
         progress = FALSE, 
         lower = list(continuous = "smooth_loess", combo = wrap(ggally_facethist, position = "dodge2")),
         upper = list(continuous = wrap("cor", size = 4, hjust = 0.8), combo = "box"),
@@ -150,7 +157,7 @@ ggpairs(reduced,
         text = element_text(size = 16))
 ```
 
-Overall, correlations among variables are pretty weak. Weak positive correlations were found between length and date (r = 0.26), distance and date (0.04), and RS and length (0.03). Weak negative correlations were found between distance and length (-0.10), distance and RS (-0.03), and RS and date (-0.25).  
+Overall, correlations among variables are pretty weak. Weak positive correlations were found between length and date (r = 0.26), distance and date (0.08), and RS and length (0.05). Weak negative correlations were found between distance and length (-0.05), distance and RS (-0.10), and RS and date (-0.25).  
 
 # Individual plots
 
@@ -276,7 +283,7 @@ These plots explore the relationship between RS and parent sample date, location
 #   ylab("Reproductive Success") +
 #   theme_bw()
 
-finsight_parentage_hogan %>% 
+finsight_parentage_stock %>% 
   ggplot(aes(x = `Sample Date`, y = n, color = origin, shape = SEX)) +
   geom_jitter(alpha = 0.4, size = 3) +
   geom_smooth() +
@@ -336,32 +343,32 @@ RS.glm.F.15 <- glm.nb(n ~ `Sample Date` * origin, data = Female.even, link = log
 
 RS.glm.F.16 <- glm.nb(n ~ `Length Mm` * origin, data = Female.even, link = log)
 
-#RS.glm.F.17 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Intertidal, data = Female.even, link = log)
+RS.glm.F.17 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Intertidal, data = Female.even, link = log)
 
-#RS.glm.F.18 <- glm.nb(n ~ Intertidal, data = Female.even, link = log)
+RS.glm.F.18 <- glm.nb(n ~ Intertidal, data = Female.even, link = log)
 
-#RS.glm.F.19 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Intertidal, data = Female.even, link = log)
+RS.glm.F.19 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Intertidal, data = Female.even, link = log)
 
-#RS.glm.F.20 <- glm.nb(n ~ `Length Mm` + Intertidal, data = Female.even, link = log)
+RS.glm.F.20 <- glm.nb(n ~ `Length Mm` + Intertidal, data = Female.even, link = log)
 
-#RS.glm.F.21 <- glm.nb(n ~ `Sample Date` + Intertidal, data = Female.even, link = log)
+RS.glm.F.21 <- glm.nb(n ~ `Sample Date` + Intertidal, data = Female.even, link = log)
 
-#RS.glm.F.22 <- glm.nb(n ~ `Sample Date` + Intertidal + origin, data = Female.even, link = log)
+RS.glm.F.22 <- glm.nb(n ~ `Sample Date` + Intertidal + origin, data = Female.even, link = log)
 
-#RS.glm.F.23 <- glm.nb(n ~ Intertidal + origin, data = Female.even, link = log)
+RS.glm.F.23 <- glm.nb(n ~ Intertidal + origin, data = Female.even, link = log)
 
-#RS.glm.F.24 <- glm.nb(n ~ Intertidal * origin, data = Female.even, link = log)
+RS.glm.F.24 <- glm.nb(n ~ Intertidal * origin, data = Female.even, link = log)
 ```
 
 ### Extract Akaike Weights {#female_glm}
 
 Akaike weights are another way of determining which model has the best fit, by calculating their conditional probabilities. 
 
-The model with the highest weight (0.62) included sample date, length, and origin. Origin was consistantly associated with RS in all of the top models.
+The model with the highest weight (0.54) included sample date, length, intertidal, and origin. Origin was consistantly associated with RS in all of the top models.
 
 ```{r female_glm_summary}
 female_model_summary <- bind_rows(
-  lapply(c("full", 2:16), function(i) {
+  lapply(c("full", 2:24), function(i) {
     fit <- get(paste0("RS.glm.F.", i))
     summary(fit)$coefficients %>% 
       as_tibble(rownames = "variable") %>% 
@@ -375,7 +382,7 @@ female_model_summary <- bind_rows(
   } )
 )
 
-female_aic <- AIC(RS.glm.F.full, RS.glm.F.2, RS.glm.F.3, RS.glm.F.4, RS.glm.F.5, RS.glm.F.6, RS.glm.F.7, RS.glm.F.8, RS.glm.F.9, RS.glm.F.10, RS.glm.F.11, RS.glm.F.12, RS.glm.F.13, RS.glm.F.14, RS.glm.F.15, RS.glm.F.16)
+female_aic <- AIC(RS.glm.F.full, RS.glm.F.2, RS.glm.F.3, RS.glm.F.4, RS.glm.F.5, RS.glm.F.6, RS.glm.F.7, RS.glm.F.8, RS.glm.F.9, RS.glm.F.10, RS.glm.F.11, RS.glm.F.12, RS.glm.F.13, RS.glm.F.14, RS.glm.F.15, RS.glm.F.16, RS.glm.F.17, RS.glm.F.18, RS.glm.F.19, RS.glm.F.20, RS.glm.F.21, RS.glm.F.22, RS.glm.F.23, RS.glm.F.24)
 
 female_aic <- female_aic %>% 
   mutate(AIC_weight = as.numeric(Weights(female_aic))) %>% 
@@ -441,28 +448,28 @@ RS.glm.M.15 <- glm.nb(n ~ `Sample Date` * origin, data = Male.even, link = log)
 
 RS.glm.M.16 <- glm.nb(n ~ `Length Mm` * origin, data = Male.even, link = log)
 
-#RS.glm.M.17 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Intertidal, data = Male.even, link = log)
+RS.glm.M.17 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Intertidal, data = Male.even, link = log)
 
-#RS.glm.M.18 <- glm.nb(n ~ Intertidal, data = Male.even, link = log)
+RS.glm.M.18 <- glm.nb(n ~ Intertidal, data = Male.even, link = log)
 
-#RS.glm.M.19 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Intertidal, data = Male.even, link = log)
+RS.glm.M.19 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Intertidal, data = Male.even, link = log)
 
-#RS.glm.M.20 <- glm.nb(n ~ `Length Mm` + Intertidal, data = Male.even, link = log)
+RS.glm.M.20 <- glm.nb(n ~ `Length Mm` + Intertidal, data = Male.even, link = log)
 
-#RS.glm.M.21 <- glm.nb(n ~ `Sample Date` + Intertidal, data = Male.even, link = log)
+RS.glm.M.21 <- glm.nb(n ~ `Sample Date` + Intertidal, data = Male.even, link = log)
 
-#RS.glm.M.22 <- glm.nb(n ~ `Sample Date` + Intertidal + origin, data = Male.even, link = log)
+RS.glm.M.22 <- glm.nb(n ~ `Sample Date` + Intertidal + origin, data = Male.even, link = log)
 
-#RS.glm.M.23 <- glm.nb(n ~ Intertidal + origin, data = Male.even, link = log)
+RS.glm.M.23 <- glm.nb(n ~ Intertidal + origin, data = Male.even, link = log)
 
-#RS.glm.M.24 <- glm.nb(n ~ Intertidal * origin, data = Male.even, link = log)
+RS.glm.M.24 <- glm.nb(n ~ Intertidal * origin, data = Male.even, link = log)
 ```
 
 ### Extract Akaike Weights {#male_glm}
 
 ```{r male_glm_summary}
 male_model_summary <- bind_rows(
-  lapply(c("full", 2:16), function(i) {
+  lapply(c("full", 2:24), function(i) {
     fit <- get(paste0("RS.glm.M.", i))
     summary(fit)$coefficients %>% 
       as_tibble(rownames = "variable") %>% 
@@ -476,7 +483,7 @@ male_model_summary <- bind_rows(
   } )
 )
 
-male_aic <- AIC(RS.glm.M.full, RS.glm.M.2, RS.glm.M.3, RS.glm.M.4, RS.glm.M.5, RS.glm.M.6, RS.glm.M.7, RS.glm.M.8, RS.glm.M.9, RS.glm.M.10, RS.glm.M.11, RS.glm.M.12, RS.glm.M.13, RS.glm.M.14, RS.glm.M.15, RS.glm.M.16)
+male_aic <- AIC(RS.glm.M.full, RS.glm.M.2, RS.glm.M.3, RS.glm.M.4, RS.glm.M.5, RS.glm.M.6, RS.glm.M.7, RS.glm.M.8, RS.glm.M.9, RS.glm.M.10, RS.glm.M.11, RS.glm.M.12, RS.glm.M.13, RS.glm.M.14, RS.glm.M.15, RS.glm.M.16, RS.glm.M.17, RS.glm.M.18, RS.glm.M.19, RS.glm.M.20, RS.glm.M.21, RS.glm.M.22, RS.glm.M.23, RS.glm.M.24)
 
 male_aic <- male_aic %>% 
   mutate(AIC_weight = as.numeric(Weights(male_aic))) %>% 
@@ -498,13 +505,13 @@ male_model_summary %>%
   select(-`Std. Error`, -`z value`, -`Pr(>|z|)`) %>% 
   spread(variable, Estimate, fill = NA)
 
-write_csv(female_model_summary, "../Stockdale/stock_glm_male_summary.csv")
+write_csv(male_model_summary, "../Stockdale/stock_glm_male_summary.csv")
 ```
 
-The model with the highest weight (0.62) included date, length, and origin. Origin was consistantly associated with RS in all of the top models.
+The model with the highest weight (0.63) included date, length, intertidal, and origin. Origin was consistantly associated with RS in all of the top models.
 
 # Summary
 
 In summary, we see that there are some spatial patterns in RS, with higher average RS closer to the mouth than upstream [[link](#rs_v_distance)]. Natural-origin fish tended to spawn lower down in the stream for most sample dates [[link](#distance_v_date)]. 
 
-Hower, negative binomial GLMs did not explain very much of the variance in RS for either [females](#female_glm) or [males](#male_glm) (*note* the small difference between residual deviance and null deviance). With that said, the highest ranked models for females always included origin, often included sample date and length, and occasionally included Distance. For males, the highest ranked models always included length and origin.
+The highest ranked models for females always included origin, often included sample date and length, and occasionally included Distance. For males, the highest ranked models always included length and origin.
