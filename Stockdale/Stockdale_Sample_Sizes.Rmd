@@ -1,0 +1,58 @@
+---
+title: "Stockdale 2014-2016 Sample Sizes for John H"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Introduction
+
+John H. Clark wants to know:  
+  1) sample size of potential parents by sex and origin (2014)
+  2) number of offspring assigned to parents by sex and origin (2016)
+  3) number of potential parents with at least one offspring by sex and origin (2014)
+
+I presume that he wants to know this for some sort of tgMR exercise?
+
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
+# Data
+
+```{r read_data}
+(paired_14_16_filter_parents <- read_csv("stock_paired_14_16_filter_parents.csv") %>% 
+   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+   mutate(sex = case_when(SEX == "M" ~ "Male",
+                          SEX == "F" ~ "Female")) %>% 
+   mutate(sex = factor(x = sex, levels = c("Male", "Female"))))
+```
+
+# Sample Sizes
+
+## Parents by origin and sex
+
+```{r n_parents}
+paired_14_16_filter_parents %>% 
+  count(origin, sex)
+```
+
+## Offspring assigned to parents by origin and sex
+
+```{r n_offspring_assigned}
+paired_14_16_filter_parents %>% 
+  group_by(origin, sex) %>% 
+  summarise(n = sum(n))
+```
+
+## Parents with at least one offspring
+
+```{r n_parents_successful}
+paired_14_16_filter_parents %>% 
+  filter(n > 0) %>% 
+  count(origin, sex)
+```
+
