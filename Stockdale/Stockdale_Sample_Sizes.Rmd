@@ -56,3 +56,156 @@ paired_14_16_filter_parents %>%
   count(origin, sex)
 ```
 
+# Rarefaction
+
+Based on [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122).
+
+## Data
+
+Get offspring data
+
+```{r}
+offspring_dat <- read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv") %>% 
+  filter(`Sample Year` == 2016)
+
+(offspring_franz <- read_csv("../../Franz/Stockdale/Even_Run 2/parentage.csv") %>% 
+    filter(Posterior >= 0.5) %>% 
+    left_join(offspring_dat, by = c("Offspring" = "franz_id")))
+```
+
+## Analysis
+
+Subsample the offspring (not their genotypes, this is a departure from Rawding for simplicity) in levels of 10% and see how many unique parents we end up with.
+```{r rarefaction_loop}
+n_off <- n_distinct(offspring_franz$Offspring)
+n_sample <- round(seq(from = 0.1, to = 1, by = 0.1) * n_off)
+
+rare_dat <- replicate(n = 1000, {
+  lapply(n_sample, function(i) {
+    tmp <- sample_n(offspring_franz, i) %>% 
+      select(Offspring, `Parent 1`, `Parent 2`) %>% 
+      gather(Parent, ID, -Offspring) %>% 
+      arrange(Offspring)
+    tibble(n_off = i, n_par = n_distinct(tmp$ID))
+  }) %>% 
+    bind_rows()
+}, simplify = FALSE) %>% 
+  bind_rows()
+```
+
+Make a plot of the curve.
+```{r rarefaction_plot}
+rare_dat %>% 
+  ggplot(aes(x = n_off, y = n_par)) +
+  geom_point(alpha = 0.01) +
+  xlab("Sample Number of Offspring") +
+  ylab("Number of Breeders") +
+  ggtitle("Stockdale 2014/2016 Genetic Rarefaction Curve") +
+  theme_bw()
+```
+
+Apply the Beverton-Holt equation.
+```{r}
+library(FSA)
+
+rare_dat <- rare_dat %>% 
+  mutate(log_n_par = log(n_par))
+
+bh1s <- srStarts(n_par ~ n_off, data = rare_dat, type = "BevertonHolt", param = 1)
+
+bh1 <- log_n_par ~ log((a * n_off) / (1 + b * n_off))
+
+bh1nls <- nls(bh1, data = rare_dat, start = bh1s)
+
+bh0 <- log_n_par ~ log(a * n_off) # declare model
+bh0s <- bh1s[1] # use the same starting value as above for a
+bh0nls <- nls(bh0, data = rare_dat, start = bh0s)
+
+anova(bh0nls, bh1nls)
+
+AIC(bh0nls, bh1nls)
+
+xmax <- 12000
+ymax <- 1000
+
+plot(n_par ~ n_off, data = rare_dat, xlim = c(0, xmax), ylim = c(0, ymax), col = rgb(0, 0, 0, alpha = 0.01), pch = 16,
+     xlab = "Sample Number of Offspring",
+     ylab = "Number of Breeders", 
+     main = "Stockdale 2014/2016 Genetic Rarefaction Curve")
+curve((coef(bh1nls)[1] * x) / (1 + coef(bh1nls)[2] * x), from = 0, to = xmax, col = "red", lwd = 2, add = TRUE)
+# curve(coef(bh0nls)[1] * x, from = 0, to = 12000, col = "blue", lwd = 2, add = TRUE)
+legend("topleft", legend = c("density dependent"), col = c("red"), lwd = 2, cex = 0.6)
+```
+
+
+# tGMR
+
+## Binomial
+
+n1 = number of carcasses genotyped (potential parents)
+n2 = genotypes from offspring (potential offspring x 2, 1 for dam, 1 for sire)
+m2 = number of recaptured genotypes
+
+### n1 and n2
+
+```{r}
+read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv") %>% 
+  count(`Sample Year`)
+```
+
+n1 = 794
+n2 = 5199 x 2 = 10398
+
+### m2
+
+```{r}
+sum(!is.na(offspring_franz$`Parent 1`))
+sum(!is.na(offspring_franz$`Parent 2`))
+```
+
+m2 = 1058 (parent 1) + 183 (parent 2) = 1241
+
+```{r}
+offspring_franz %>% 
+  select(Offspring, `Parent 1`, `Parent 2`) %>% 
+  gather(Parent, ID, -Offspring) %>% 
+  filter(!is.na(ID))
+```
+
+
+### Nc
+
+```{r}
+round(794 * 5199 * 2 / 1241)
+```
+
+## Binomial strata
+
+### n1 and n2
+
+View 2014 Stockdale by sample date. Let's go with August vs. September.
+```{r}
+paired_2014_2016_dat <- read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv")
+
+paired_2014_2016_dat %>% 
+  filter(`Sample Year` == 2014) %>% 
+  ggplot(aes(x = `Sample Date`, fill = `Otolith Mark Present`)) +
+  geom_bar()
+```
+
+```{r}
+paired_2014_2016_dat %>% 
+  mutate(month = month(`Sample Date`, label = TRUE)) %>% 
+  count(`Sample Year`, month)
+```
+
+```{r}
+offspring_franz %>% 
+  select(Offspring, `Parent 1`, `Parent 2`) %>% 
+  gather(Parent, ID, -Offspring) %>% 
+  filter(!is.na(ID)) %>% 
+  left_join(paired_2014_2016_dat, by = c("ID" = "franz_id")) %>% 
+  mutate(month = month(`Sample Date`, label = TRUE)) %>% 
+  count(`Sample Year`, month)
+```
+
