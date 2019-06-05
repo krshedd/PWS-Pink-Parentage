@@ -14,7 +14,7 @@ library(lubridate)
 # List of silly's for OceanAK filter
 streams <- c("ERB", "HOGAN", "GILMOUR", "PADDY", "STOCK")
 yrs <- 13:18
-writeClipboard(paste(paste0("P", rep(streams, each = 5), yrs), collapse = ";"))
+writeClipboard(paste(paste0("P", rep(streams, each = length(yrs)), yrs), collapse = ";"))
 
 oceanak <- read_csv(file = "OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv") %>% 
   unite(SillySource, `Silly Code`, `Fish ID`, sep = "_", remove = FALSE) %>% 
