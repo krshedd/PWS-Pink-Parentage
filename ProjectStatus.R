@@ -4,7 +4,7 @@
 
 rm(list = ls())
 date()
-setwd("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/")
+# setwd("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/")
 library(tidyverse)
 library(lubridate)
 
@@ -16,9 +16,9 @@ streams <- c("ERB", "HOGAN", "GILMOUR", "PADDY", "STOCK")
 yrs <- 13:18
 writeClipboard(paste(paste0("P", rep(streams, each = length(yrs)), yrs), collapse = ";"))
 
-oceanak <- read_csv(file = "OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv") %>% 
-  unite(SillySource, `Silly Code`, `Fish ID`, sep = "_", remove = FALSE) %>% 
-  unite(TrayCodeID, `DNA Tray Code`, `DNA Tray Well Code`, sep = "_", remove = FALSE)
+og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
+oceanak <- read_csv(file = "../OceanAK/Salmon Biological Data 2 Export from DFGCFRESP.csv")
+names(oceanak) <- og_names
 
 # dups <- oceanak %>% 
 #   group_by(SillySource) %>% 
@@ -51,8 +51,10 @@ table(oceanak$`Location Code`, oceanak$`Otolith Mark Present`, oceanak$`Sample Y
 table(oceanak$`Location Code`, oceanak$`Otolith Mark Status Code`, oceanak$`Sample Year`, useNA = "always")
 
 # add otolith_read logical, stream as factor, and year
-oceanak_mod <- oceanak %>% 
-  mutate(otolith_read = !is.na(`Otolith Mark Status Code`)) %>% 
+oceanak_mod <- oceanak  %>% 
+  unite(SillySource, `Silly Code`, `Fish ID`, sep = "_", remove = FALSE) %>% 
+  unite(TrayCodeID, `DNA Tray Code`, `DNA Tray Well Code`, sep = "_", remove = FALSE) %>% 
+  mutate(otolith_read = !is.na(`Otolith Mark Status Code`) & `Otolith Mark Status Code` != "n") %>% 
   mutate(stream = factor(x = `Location Code`, levels = c("Gilmour Creek", "Paddy Creek", "Erb Creek", "Hogan Creek", "Stockdale Creek"))) %>% 
   rename(year = `Sample Year`) %>% 
   mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "natural",
@@ -70,7 +72,14 @@ oceanak_mod %>%
   filter(otolith_read == TRUE) %>% 
   group_by(stream, year) %>% 
   summarise(freq = n()) %>% 
-  spread(year, freq)
+  spread(year, freq, fill = 0)
+
+# table of otoliths NOT read by stream and year
+oceanak_mod %>%
+  filter(otolith_read == FALSE) %>% 
+  group_by(stream, year) %>% 
+  summarise(freq = n()) %>% 
+  spread(year, freq, fill = 0)
 
 # table of otolith mark read by stream and year
 oceanak_mod %>%
