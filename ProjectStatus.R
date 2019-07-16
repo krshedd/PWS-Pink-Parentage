@@ -190,3 +190,16 @@ table(pws_mod$MarkPresent, useNA = "always")
 table(pws_mod$MarkId, useNA = "always")
 table(pws_mod$MarkStatusDescription, useNA = "always")
 table(pws_mod$MarkStatus, pws$MarkStatusDescription, useNA = "always")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Fry Digs ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+fry <- read_csv("../OceanAK/Fry_Digs_Bulk Tissue Inventory.csv")
+
+fry %>% 
+  group_by(`Silly Code`) %>% 
+  summarise(n = sum(`Field Count`))
+
+fry %>% 
+  count(`Silly Code`)
