@@ -7,8 +7,10 @@ output: html_notebook
 The notebook calculates the river distance of each fish, from the river mouth. It relies on a river network shapefile and 'riverdist' R package. Riverdist was created by ADFG biologist Matt Tyers for tracking fish movements through a river network. More details and vignette can be found here:        
 https://cran.r-project.org/web/packages/riverdist/vignettes/riverdist_vignette.html#Importing%20a%20river%20network
 
-The river network shapefiles are generally taken from the National Hydrography Database (NHD), however, in somce cases the polylines are not accurate or do not exist. Rivers not appearing in the NHD were delineated, in ArcMap, by simply creating polylines through the fish waypoints (We'll assume these datapoints represent fish in the stream...) and verified using satellite imagery. The shapefiles for Stockdale Creek and Gilmore Creek were modified from the NHD. Paddy Creek, Erb Creek, and Hogan Creek, were maually delineated.
+The river network shapefiles are generally taken from the National Hydrography Database (NHD), however, in somce cases the polylines are not accurate or do not exist. Rivers not appearing in the NHD were delineated, in ArcMap, by simply creating polylines through the fish waypoints (We'll assume these datapoints represent fish in the stream...) and verified using satellite imagery. The shapefiles for Stockdale Creek and Gilmore Creek were modified from the NHD. Paddy Creek, Erb Creek, and Hogan Creek, were maually delineated.    
 
+High tide marks were prodvided by the crew and Pete Rand. The final distance upstream will be calculated as 1) positive if above high-tide, and 2) negative if below the high-tide mark.    
+The tidal marks are snapped to the streamlines using arcmap and exported as coordinates.     
 
 # Setup script
 ```{r setup}
@@ -29,6 +31,9 @@ stream = "stockdale" # Enter stream name here
 
 # CSV containing fish data, specifically, Lat/Longs
 stream_data = "../Stream Specimens/StreamSpecimens_PWS_2013-2018_CSVReport.csv"
+
+# CSV containing high tide points for each stream
+tide_data = "../GIS/pws_intertidal_marks/tide_points.csv"
 
 # CAUTION - don't change this unless you want a different projection (and know what you're doing...).
 # For re-projecting in Alaska Albers Equal Area projection:
@@ -119,31 +124,53 @@ raw_dat <- read_csv(file = stream_data) %>%
   filter( Latitude != 0 | Longitude != 0) %>%  # toss if missing GPS info
   mutate( Longitude = case_when( Longitude > 0 ~ (-1 * Longitude),
                             TRUE ~ Longitude)) # convert positive longitudes to negative
+
+
+tide_dat <- read_csv(file = tide_data) %>% 
+  filter( str_detect( Stream, regex(stream, ignore_case = TRUE))) # Overcomplicated, but needs the regex call to include ignore case since data has caps and GIS does not
 ```
 
 After importing the data, the coordinates must be converted into AKalberts xy format. This makes sure these are the same projection as the stream.
 ```{r xy2akalbers}
 # pull xy coordinates and put into riverdist format
-xy_coords <- cbind(as.numeric(raw_dat$Longitude),
+xy_fish <- cbind(as.numeric(raw_dat$Longitude),
                   as.numeric(raw_dat$Latitude))
 
 # Convert from Lat/Long dec. degree coordinates to the xy system.
 # Note coords are long-lat, not lat-long.
-xy2albers <- rgdal::project(xy_coords, proj=AKalbers)
+xyfish2albers <- rgdal::project(xy_fish, proj=AKalbers)
 
 # Make sure this is just the xy-coords
-head(xy2albers)
+head(xyfish2albers)
 
 # Add xy-coords back to original fish data (i.e., sample ID)
 fish_locs <- raw_dat %>% 
   select(SampleTrayId, SampleCell) %>% 
   unite_("Sample", c("SampleTrayId", "SampleCell")) %>% 
-  add_column(x = xy2albers[,1], y = xy2albers[,2])
+  add_column(x = xyfish2albers[,1], y = xyfish2albers[,2])
 
 head(fish_locs)
+
+# pull xy coordinate for tides and put into riverdist format
+xy_tide <- cbind(as.numeric(tide_dat$ArcLong),
+                  as.numeric(tide_dat$ArcLat))
+
+# Convert from Lat/Long dec. degree coordinates to the xy system.
+# Note coords are long-lat, not lat-long.
+xytide2albers <- rgdal::project(xy_tide, proj=AKalbers)
+
+# Make sure this is just the xy-coords
+head(xytide2albers)
+
+# Add xy-coords back to original tide data (i.e., sample ID)
+tide_locs <- tide_dat %>% 
+  select(Stream) %>% 
+  add_column(x = xytide2albers[,1], y = xytide2albers[,2])
+
+head(tide_locs)
 ```
 
-Once the coordinates are in the correct format, the fish can be snapped to the stream network. 
+Once the coordinates are in the correct format, the fish can be snapped to the stream network. The tide marks have already been snapped in ArcMap, but can be done in the same manner as the fish, if necessary.
 
 ```{r CalculateSnapDistance}
 # Snap xy-coords to the nearest streamline. 
@@ -161,9 +188,26 @@ head(fish_locs_snapped)
 ggplot(fish_locs_snapped, aes(x = snapdist)) +
   geom_histogram() +
   ggtitle(label = "Distance of GPS waypoint from river (m)")
+
+
+# Snap xy-coords to the nearest streamline. 
+tide_locs_snapped <- xy2segvert(x = tide_locs$x, y = tide_locs$y, rivers = rivercleaned)
+
+# Add tideID (Sample = TrayID_Cell)
+tide_locs_snapped <- tide_locs_snapped %>% 
+  add_column(Stream = tide_locs$Stream)
+
+# Should contain segment, vertex, snapping distance, and sample id
+head(tide_locs_snapped)
+
+# Visual of how far the waypoints were from the stream network (i.e., snapping distance)
+# Limiting to 400m from streamline, could be more (likely incorrect) GPS points outside of this
+ggplot(tide_locs_snapped, aes(x = snapdist)) +
+  geom_histogram() +
+  ggtitle(label = "Distance of GPS waypoint from river (m)")
 ```
 
-View the waypoints on the stream network and compare snapped (blue) to raw (red) locations:
+View the fish waypoints on the stream network and compare snapped (blue) to raw (red) locations:
 
 ```{r RawVsSnapped}
 # Plot the streamlines, adding 100m buffer in ea direction so we can see all datapoints
@@ -187,30 +231,40 @@ legend("top", legend=c("raw", "snapped"),
 ```
 
 
-Calculate the distance of every fish to the river mouth.
+Calculate the distance of every fish and tide mark to the river mouth.
 ```{r CalculateDistance}
 # Calculate distance, using default algorithm. See riverdist docs for details of available algorithms.
 mouthdist <- riverdist::mouthdist(seg = fish_locs_snapped$seg, vert = fish_locs_snapped$vert, rivers = rivercleaned)
+
+# Calculate distance, using default algorithm. See riverdist docs for details of available algorithms.
+tidedist <- riverdist::mouthdist(seg = tide_locs_snapped$seg, vert = tide_locs_snapped$vert, rivers = rivercleaned)
 ```
 
 
-Create dataframe containing fish information and distance calculation.
+Create dataframe containing fish information and distance calculation. Also, add tide marks and distance information.
 ```{r FinalData}
-final_df <- fish_locs_snapped %>%  
+fish_df <- fish_locs_snapped %>%  
   add_column(mouthdist)
 
 # Should have segment, vertex, snapping distance, sample, and distance from mouth (start of streamline, not necessarily above tidal zone)
-head(final_df)
+head(fish_df)
+
+
+tide_df <- tide_locs_snapped %>%  
+  add_column(tidedist)
+
+# Should have segment, vertex, snapping distance, sample, and distance from mouth (start of streamline, not necessarily above tidal zone)
+head(tide_df)
 ```
 
 
 
 
 Plot of distance data by Lat/Long - These should be a continuous color scale
-```{r QC}
-# Need to add xy coords to the final_df for QC
+```{r QC_fishpts}
+# Need to add xy coords to the fish_df for QC
 # Again, limiting to only points within 400m of stream for visual
-joined <- left_join(x = final_df, y = fish_locs)
+joined <- left_join(x = fish_df, y = fish_locs)
 
 
 # Plot of rivernetwork which should be a continuous scale going upstream (points further from mouth are lighter colors)
@@ -218,6 +272,25 @@ ggplot(joined, aes(x = x, y= y, color = mouthdist)) +
   geom_point() +
   ggtitle("Riverdist calculations")
 ```
+
+# Tidal calulations
+
+Now that distance to high-tide and distance to each fish have been calculated, we can calculate the distance above high-tide mark. Distances below the tide mark will be negative and distances above  positive. Note that distances below tidal marks will still have positive river distances (distance from mouth), because the mouth does not equal high-tide mark. Generally, the 'mouth' is poorly defined for these streams. Further, since river polylines were extended or manually created to accomodate fish GPS points, the distance above/below high-tide point may be a more informative measure.  
+
+```{r upstream_tidal}
+final_df <- fish_df %>% 
+  add_column(tidedist = tide_df$tidedist) %>% 
+  mutate(dist2tide = mouthdist - tidedist)
+
+sum(final_df$dist2tide > 1) / nrow(final_df) # how many waypoints are in the intertidal area??
+
+
+ggplot(final_df, aes(x = dist2tide)) +
+  geom_histogram() +
+  geom_vline(xintercept = 0) +
+  ggtitle(label = "Distance of GPS waypoint from intertidal mark (m)")
+```
+
 
 # Export Data
 
@@ -231,7 +304,7 @@ If all looks good, write a csv containing:
     Segment wpt was snapped to
     Vertex wpt was snapped to
     Snapping distance (how far wpt was from stream)
-    Intertidal or not (1 = intertidal, 0 = upstream of tidal mark)
+    Intertidal or not (dist2tide = negative/positive)
     
 
 
@@ -242,7 +315,6 @@ write_csv(x = final_df, path = output_path)
 
 
 
-#### Working ####
 
-Add in the intertidal information. High tide marks were prodvided by the crew and Pete Rand. The final distance upstream will be calculated as 1) positive if above high-tide, and 2) negative if below the high-tide mark.    
-The tidal marks are snapped to the 
+
+
