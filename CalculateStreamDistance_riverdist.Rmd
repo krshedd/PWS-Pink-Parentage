@@ -1,6 +1,8 @@
 ---
 title: "PWS hydraulic distance"
 output: html_notebook
+editor_options: 
+  chunk_output_type: inline
 ---
 
 # Introduction:    
@@ -49,7 +51,7 @@ Notes on how I went from Original to "chase_edits" - script to fix
 shapefile = paste0("../GIS/R/",stream,"/",stream,"_stream_clean.shp")
 
 # Where do you want output to go?
-output_path <- paste0("../GIS/R/",stream,"/",stream,"_distances.txt")
+output_path <- paste0("../GIS/R/",stream,"/",stream,"_distances.csv")
 ```
 
 
@@ -121,9 +123,9 @@ Import the raw data from finsight and check for common errors, including missing
 # Import the entire dataset and filter for selected stream
 raw_dat <- read_csv(file = stream_data) %>% 
   filter( str_detect( StreamName, regex(stream, ignore_case = TRUE))) %>% # Overcomplicated, but needs the regex call to include ignore case since data has caps and GIS does not
-  filter( Latitude != 0 | Longitude != 0) %>%  # toss if missing GPS info
-  mutate( Longitude = case_when( Longitude > 0 ~ (-1 * Longitude),
-                            TRUE ~ Longitude)) # convert positive longitudes to negative
+  filter(Latitude != 0 | Longitude != 0) %>%  # toss if missing GPS info
+  mutate(Longitude = case_when( Longitude > 0 ~ (-1 * Longitude),
+                                TRUE ~ Longitude)) # convert positive longitudes to negative
 
 
 tide_dat <- read_csv(file = tide_data) %>% 
@@ -134,7 +136,7 @@ After importing the data, the coordinates must be converted into AKalberts xy fo
 ```{r xy2akalbers}
 # pull xy coordinates and put into riverdist format
 xy_fish <- cbind(as.numeric(raw_dat$Longitude),
-                  as.numeric(raw_dat$Latitude))
+                 as.numeric(raw_dat$Latitude))
 
 # Convert from Lat/Long dec. degree coordinates to the xy system.
 # Note coords are long-lat, not lat-long.
@@ -145,7 +147,7 @@ head(xyfish2albers)
 
 # Add xy-coords back to original fish data (i.e., sample ID)
 fish_locs <- raw_dat %>% 
-  select(SampleTrayId, SampleCell) %>% 
+  select(SampleTrayId, SampleCell, Latitude, Longitude) %>% 
   unite_("Sample", c("SampleTrayId", "SampleCell")) %>% 
   add_column(x = xyfish2albers[,1], y = xyfish2albers[,2])
 
@@ -178,7 +180,9 @@ fish_locs_snapped <- xy2segvert(x = fish_locs$x, y = fish_locs$y, rivers = river
 
 # Add fishID (Sample = TrayID_Cell)
 fish_locs_snapped <- fish_locs_snapped %>% 
-  add_column(Sample = fish_locs$Sample)
+  add_column(Sample = fish_locs$Sample,
+             Latitude = fish_locs$Latitude,
+             Longitude = fish_locs$Longitude)
 
 # Should contain segment, vertex, snapping distance, and sample id
 head(fish_locs_snapped)
@@ -199,24 +203,18 @@ tide_locs_snapped <- tide_locs_snapped %>%
 
 # Should contain segment, vertex, snapping distance, and sample id
 head(tide_locs_snapped)
-
-# Visual of how far the waypoints were from the stream network (i.e., snapping distance)
-# Limiting to 400m from streamline, could be more (likely incorrect) GPS points outside of this
-ggplot(tide_locs_snapped, aes(x = snapdist)) +
-  geom_histogram() +
-  ggtitle(label = "Distance of GPS waypoint from river (m)")
 ```
 
 View the fish waypoints on the stream network and compare snapped (blue) to raw (red) locations:
 
 ```{r RawVsSnapped}
 # Plot the streamlines, adding 100m buffer in ea direction so we can see all datapoints
-plot( x = rivercleaned,
-      xlim = c(min(fish_locs$x - 100), max(fish_locs$x + 100)),
-      ylim = c(min(fish_locs$y - 100), max(fish_locs$y + 100)),
-      xlab = "Longitude",
-      ylab = "Latitude"
-      )
+plot(x = rivercleaned,
+     xlim = c(min(fish_locs$x - 100), max(fish_locs$x + 100)),
+     ylim = c(min(fish_locs$y - 100), max(fish_locs$y + 100)),
+     xlab = "Longitude",
+     ylab = "Latitude"
+)
 
 # Add raw data in red
 points( x = fish_locs$x, y = fish_locs$y, pch =5, col = 2) 
@@ -225,7 +223,7 @@ points( x = fish_locs$x, y = fish_locs$y, pch =5, col = 2)
 riverdist::riverpoints( seg = fish_locs_snapped$seg, vert=fish_locs_snapped$vert, rivers = rivercleaned, pch=10, col=4)
 
 # Add legend
-legend("top", legend=c("raw", "snapped"),
+legend("topright", legend=c("raw", "snapped"),
        col=c("red", "blue"), lty=c(1,1), cex=0.8,
        box.lty=0)
 ```
@@ -312,9 +310,3 @@ If all looks good, write a csv containing:
 # Output csv
 write_csv(x = final_df, path = output_path)
 ```
-
-
-
-
-
-
