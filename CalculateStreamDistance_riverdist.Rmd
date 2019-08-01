@@ -29,7 +29,7 @@ Options for stream are limited to:
     stockdale
 
 ```{r inputs}
-stream = "paddy" # Enter stream name here
+stream = "gilmour" # Enter stream name here
 
 # CSV containing fish data, specifically, Lat/Longs
 stream_data = "../Stream Specimens/StreamSpecimens_PWS_2013-2018_CSVReport.csv"
@@ -96,7 +96,7 @@ NOTE - Run this chunk in console as the notebook lags 1 graph behind, making it 
     
     Cleanup steps taken for <i>PADDY CREEK</i>:
     
-    Dissolve: y ( Riverdist recommended but I'm not sure why - it didn't actually make changes ["simplified segments to 3 of 3"])
+    Dissolve: y ( Riverdist recommended but I'm not sure why - it didn't actually make changes ["simplified segments to 5 of 5"])
     Insert verticies to increase snapping precision : y
     Minimum distance to use:  1 [this is in map units shown under the "load_files" chunk]
     Identify segment number of river mouth:  4
@@ -104,6 +104,18 @@ NOTE - Run this chunk in console as the notebook lags 1 graph behind, making it 
     Accept mouth assignment: y
     Remove additional segments:  n
     Build segment routes:  y
+    
+    Cleanup steps taken for <i>GILMOUR CREEK</i>:
+    
+    Dissolve: y ( Riverdist recommended but I'm not sure why - it didn't actually make changes ["simplified segments to 3 of 3"])
+    Insert verticies to increase snapping precision : y
+    Minimum distance to use:  1 [this is in map units shown under the "load_files" chunk]
+    Identify segment number of river mouth:  1
+    Identify vertex number of river mouth:  252
+    Accept mouth assignment: y
+    Remove additional segments:  n
+    Build segment routes:  y
+    
     
 ```{r CleanNetwork}
 # run in console if you want / need visual guides
@@ -278,26 +290,57 @@ ggplot(joined, aes(x = x, y= y, color = mouthdist)) +
 
 Now that distance to high-tide and distance to each fish have been calculated, we can calculate the distance above high-tide mark. Distances below the tide mark will be negative and distances above  positive. Note that distances below tidal marks will still have positive river distances (distance from mouth), because the mouth does not equal high-tide mark. Generally, the 'mouth' is poorly defined for these streams. Further, since river polylines were extended or manually created to accomodate fish GPS points, the distance above/below high-tide point may be a more informative measure.  
 
-In some cases, there are two high-tide marks, one for each channel or tributary. Distances will have to be manually caclulated based on which tide mark is applicable to each fish.    
-Since river network has segment routes for each segment, I tried to automate these calculations. However, it was to be easier to manually assign a tide mark based on which segment the fish are in, unfortunately. 
+In some cases, there are two high-tide marks, one for each channel or tributary. Distances have to be manually assigned based on which tide mark is applicable to each fish.    
 
-```{r}
-tmp <- tibble(rivercleaned$segroutes) %>% 
-  mutate(intertidal_seg = case_when(
-    grepl(tide_df$seg[[1]], rivercleaned$segroutes) ~ tide_df$seg[[1]], # find all routes containing the first high-tide mark
-    grepl(tide_df$seg[[2]], rivercleaned$segroutes) ~ tide_df$seg[[2]], # find all routes containing the second high-tide mark
-    TRUE ~ as.integer(rivercleaned$mouth[1]) # 
-    ))
+
+```{r upstream_tidal}
+tide_df$tidedist # view dataframe - are there multiple points?
+
+if (stream %in% c("stockdale", "erb", "hogan")) {
+  
+  cat('Calculating distance to high tide for', stream)
+  
+final_df <- fish_df %>% 
+  add_column(hitide = tide_df$tidedist) %>% 
+  mutate(dist2tide = mouthdist - hitide)
+
+} else if ( stream %in% "paddy" ) {
+
+  print("Calculating distance to high tide for Paddy Creek")
+  
+  final_df <- fish_df %>% 
+  mutate( hitide = case_when(
+    seg == 1 ~ tide_df$tidedist[[1]],
+    seg == 2 ~ tide_df$tidedist[[1]],
+    seg == 3 ~ tide_df$tidedist[[2]],
+    seg == 4 ~ tide_df$tidedist[[1]],
+    seg == 5 ~ tide_df$tidedist[[1]]
+  )) %>% 
+  mutate( dist2tide = mouthdist - hitide)
+  
+} else if ( stream %in% "gilmour" ) {
+  
+  print("Calculating distance to high tide for Gilmour Creek")
+  
+  final_df <- fish_df %>% 
+  mutate( hitide = case_when(
+    seg == 1 ~ tide_df$tidedist[[1]],
+    seg == 2 ~ tide_df$tidedist[[1]],
+    seg == 3 ~ tide_df$tidedist[[2]],
+  )) %>% 
+  mutate( dist2tide = mouthdist - hitide)
+}
+
+
+final_df
 ```
 
 
 
-```{r upstream_tidal}
-final_df <- fish_df %>% 
-  add_column(tidedist = tide_df$tidedist) %>% 
-  mutate(dist2tide = mouthdist - tidedist)
 
-sum(final_df$dist2tide > 1) / nrow(final_df) # how many waypoints are in the intertidal area??
+
+```{r tidal_plot}
+sum(final_df$dist2tide > 1) / nrow(final_df) # portion of waypoints are above the intertidal area
 
 
 ggplot(final_df, aes(x = dist2tide)) +
