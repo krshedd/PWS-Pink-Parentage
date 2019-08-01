@@ -29,7 +29,7 @@ Options for stream are limited to:
     stockdale
 
 ```{r inputs}
-stream = "stockdale" # Enter stream name here
+stream = "paddy" # Enter stream name here
 
 # CSV containing fish data, specifically, Lat/Longs
 stream_data = "../Stream Specimens/StreamSpecimens_PWS_2013-2018_CSVReport.csv"
@@ -37,21 +37,29 @@ stream_data = "../Stream Specimens/StreamSpecimens_PWS_2013-2018_CSVReport.csv"
 # CSV containing high tide points for each stream
 tide_data = "../GIS/pws_intertidal_marks/tide_points.csv"
 
-# CAUTION - don't change this unless you want a different projection (and know what you're doing...).
-# For re-projecting in Alaska Albers Equal Area projection:
+# Where do you want output to go?
+output_path <- paste0("../GIS/R/",stream,"/",stream,"_distances.csv")
+```
+
+# Setting map projection
+CAUTION - don't change this unless you want a different projection (and know what you're doing).
+See this [link](https://mgimond.github.io/Spatial/coordinate-systems-in-r.html) for learning about coordinate systems in R and the definitions below.  Breifly:    
+    
+    +lat_0     Latitude of origin
+    +lat_1     Latitude of first standard parallel
+    +lat_2     Latitude of second standard parallel
+    +lon_0     Central meridian
+
+For re-projecting in Alaska Albers Equal Area projection:
+```{r projection}
 AKalbers <- "+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154
     +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
 ```
 
 
-Notes on how I went from Original to "chase_edits" - script to fix
-
 ```{r prep}
-# Provide shapefile (*.shp) of river network
+# The shapefile (*.shp) of river network
 shapefile = paste0("../GIS/R/",stream,"/",stream,"_stream_clean.shp")
-
-# Where do you want output to go?
-output_path <- paste0("../GIS/R/",stream,"/",stream,"_distances.csv")
 ```
 
 
@@ -86,24 +94,13 @@ NOTE - Run this chunk in console as the notebook lags 1 graph behind, making it 
     Build segment routes:  y
     
     
-    Cleanup steps taken for <i>ERB CREEK</i>:
-    
-    Insert verticies to increase snapping precision : y
-    Minimum distance to use:  1 [this is in map units shown under the "load_files" chunk]
-    Identify segment number of river mouth:  1
-    Identify vertex number of river mouth:  897
-    Accept mouth assignment: y
-    Remove additional segments:  n
-    Build segment routes:  y
-
-
-    Cleanup steps taken for <i>GILMOUR CREEK</i>:
+    Cleanup steps taken for <i>PADDY CREEK</i>:
     
     Dissolve: y ( Riverdist recommended but I'm not sure why - it didn't actually make changes ["simplified segments to 3 of 3"])
     Insert verticies to increase snapping precision : y
     Minimum distance to use:  1 [this is in map units shown under the "load_files" chunk]
-    Identify segment number of river mouth:  1
-    Identify vertex number of river mouth:  252
+    Identify segment number of river mouth:  4
+    Identify vertex number of river mouth:  166
     Accept mouth assignment: y
     Remove additional segments:  n
     Build segment routes:  y
@@ -228,6 +225,13 @@ legend("topright", legend=c("raw", "snapped"),
        box.lty=0)
 ```
 
+Zoom in to get a look at the snapped high-tide marks
+
+```{r intertidal_pts}
+plot( x = rivercleaned)
+points(tide_locs$x, tide_locs$y, pch=16, col="red")
+```
+
 
 Calculate the distance of every fish and tide mark to the river mouth.
 ```{r CalculateDistance}
@@ -237,7 +241,6 @@ mouthdist <- riverdist::mouthdist(seg = fish_locs_snapped$seg, vert = fish_locs_
 # Calculate distance, using default algorithm. See riverdist docs for details of available algorithms.
 tidedist <- riverdist::mouthdist(seg = tide_locs_snapped$seg, vert = tide_locs_snapped$vert, rivers = rivercleaned)
 ```
-
 
 Create dataframe containing fish information and distance calculation. Also, add tide marks and distance information.
 ```{r FinalData}
@@ -274,6 +277,20 @@ ggplot(joined, aes(x = x, y= y, color = mouthdist)) +
 # Tidal calulations
 
 Now that distance to high-tide and distance to each fish have been calculated, we can calculate the distance above high-tide mark. Distances below the tide mark will be negative and distances above  positive. Note that distances below tidal marks will still have positive river distances (distance from mouth), because the mouth does not equal high-tide mark. Generally, the 'mouth' is poorly defined for these streams. Further, since river polylines were extended or manually created to accomodate fish GPS points, the distance above/below high-tide point may be a more informative measure.  
+
+In some cases, there are two high-tide marks, one for each channel or tributary. Distances will have to be manually caclulated based on which tide mark is applicable to each fish.    
+Since river network has segment routes for each segment, I tried to automate these calculations. However, it was to be easier to manually assign a tide mark based on which segment the fish are in, unfortunately. 
+
+```{r}
+tmp <- tibble(rivercleaned$segroutes) %>% 
+  mutate(intertidal_seg = case_when(
+    grepl(tide_df$seg[[1]], rivercleaned$segroutes) ~ tide_df$seg[[1]], # find all routes containing the first high-tide mark
+    grepl(tide_df$seg[[2]], rivercleaned$segroutes) ~ tide_df$seg[[2]], # find all routes containing the second high-tide mark
+    TRUE ~ as.integer(rivercleaned$mouth[1]) # 
+    ))
+```
+
+
 
 ```{r upstream_tidal}
 final_df <- fish_df %>% 
