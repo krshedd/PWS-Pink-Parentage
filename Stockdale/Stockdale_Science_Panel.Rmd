@@ -413,7 +413,7 @@ paired_14_16_filter %>%
        fill = "Origin") +
   theme(text = element_text(size = 20))
 ```
-
+  
 Here are our sample sizes are for potential parents (2014) and potential offspring (2016) by sex and origin.
 
 ```{r even_sample_sizes}
