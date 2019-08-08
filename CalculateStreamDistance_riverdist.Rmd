@@ -29,7 +29,7 @@ Options for stream are limited to:
     stockdale
 
 ```{r inputs}
-stream = "gilmour" # Enter stream name here
+stream = "stockdale" # Enter stream name here
 
 # CSV containing fish data, specifically, Lat/Longs
 stream_data = "../Stream Specimens/StreamSpecimens_PWS_2013-2018_CSVReport.csv"
