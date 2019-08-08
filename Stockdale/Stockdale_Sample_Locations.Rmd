@@ -20,7 +20,7 @@ The purpose of these analyses is to relate reproductive success (RS) with spatia
 
 Our prior is that there may be spatial separation between hatchery- and natural-origin Pink Salmon and that this separation may help account for observed differences in RS. Spatial separation in spawning location has been observed in farmed- versus wild- Atlantic salmon, with farmed salmon more often found upriver of wild salmon (see [Moe et al. 2016](https://www.int-res.com/abstracts/aei/v8/p77-88/); [Okland et al. 1995](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1095-8649.1995.tb05942.x); [Thorstad et al. 1998](https://onlinelibrary.wiley.com/doi/abs/10.1046/j.1365-2109.1998.00218.x)). In contrast, wild Chinook from the Wenatchee River (WA) were found upstream of hatchery fish and had higher RS (see [Williamson et al. 2010](https://www.nrcresearchpress.com/doi/abs/10.1139/F10-099)). Additionally, spawning location may be influenced by return time if late-returning females have to choose less desirable locations (see [Fleming and Reynolds 2003](https://onlinelibrary.wiley.com/doi/pdf/10.1046/j.1365-2656.2003.00752.x)). 
 
-To test this spatial-separation hypothesis, we obtained sample location information from the contractor's Finsight database, which included both processing area number and GPS coordinates [[link](#read_data)]. Because processing areas overlapped and were inconsistent among years, we decided we couldn't use this variable as a proxy for sample location. Instead, we used an R script developed by Pete Rand at PWSSC that allowed us to convert GPS coordinates to distance from the mouth of the stream [[link](#convert_GPS)]. We did this transformation and then combined this new variable with origin, date, and length from our RS analyses. We did exploratory plotting to examine relationships among RS, date, length, stream distance, and sex and tested for multicollinearity among our variables [[link](#multi-collinearity)]. Following [Bernston et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), and [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725), we used GLM's to evaluate relationships among RS, stream distance, length, origin and run timing separately for each sex [[link](#glm)].
+To test this spatial-separation hypothesis, we obtained sample location information from the contractor's Finsight database, which included both processing area number and GPS coordinates [[link](#read_data)]. Because processing areas overlapped and were inconsistent among years, we decided we couldn't use this variable as a proxy for sample location. Instead, we *initially* used an R script developed by Pete Rand at PWSSC that allowed us to convert GPS coordinates to distance from the mouth of the stream [[link](#convert_GPS)]. We did this transformation and then combined this new variable with origin, date, and length from our RS analyses. We did exploratory plotting to examine relationships among RS, date, length, stream distance, and sex and tested for multicollinearity among our variables [[link](#multi-collinearity)]. Following [Bernston et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), and [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725), we used GLM's to evaluate relationships among RS, stream distance, length, origin and run timing separately for each sex [[link](#glm)].
 
 ```{r setup, include=FALSE}
 library(coin)
@@ -33,6 +33,7 @@ library(ggExtra)
 library(gridExtra)
 library(MuMIn)
 library(GGally)
+library(gganimate)
 
 knitr::opts_chunk$set(warning=FALSE, message=FALSE)
 ```
@@ -85,6 +86,10 @@ The number of processing areas used ranged from 5 in 2013 to 15 in 2015 and 2016
 
 # Convert coordinates to distance from stream mouth {#convert_GPS}
 
+Ultimately, we tried two different methods to convert GPS points to stream distance. Intially we used some R code from Pete Rand to calculate a linear distance for each point from the lowest stream point. However, this method did not account for the sinuosity of streams, so we adopted a more rigorous method using GIS data and the R package *riverdist*. Chase Jalbert used satelite imagery to delineate stream tracks and convert them in to GIS shapefiles. Those stream tracks were then utilized by *riverdist* to "snap" GPS points to the nearest part of the stream track. Once points were snapped, we could calculate the stream distance, determine if they were intertidal vs. upstream, and determine which stream segment they were from.
+
+## Pete Rand's linear distance method
+
 Because we were not able to use processing area as a proxy for sample location, we used a script from Pete Rand (PWSSC) to transform GPS coordinates into a more meaningful measure: distance from the mouth of the stream. This allowed us to derive a new variable relative to sample location: 'Distance' - distance in meters from the mouth of the stream (lowest sampled point).  
       
 
@@ -108,14 +113,24 @@ finsight_stockdale_filtered <- finsight_stockdale_filtered %>%
                                 Distance > gcd.hf(long1 = min(Longitude), lat1 = min(Latitude), long2 = -147.183, lat2 = 60.303) ~ "Upstream"))
 
 #Plot location of estimated high tide mark
-ggplot(finsight_stockdale_filtered, aes(x = Latitude, y = Longitude)) +
+ggplot(finsight_stockdale_filtered, aes(x = Longitude, y = Latitude)) +
   geom_point() +
-  geom_hline(aes(yintercept = -147.183)) +
-  geom_vline(aes(xintercept = 60.303))
+  geom_vline(aes(xintercept = -147.183)) +
+  geom_hline(aes(yintercept = 60.303))
 
 # A function to convert degrees to radians
 # deg2rad <- function(deg) return(deg*pi/180)
 ```
+
+## *riverdist* package with GIS stream track
+
+```{r get_riverdist}
+(riverdist <- read_csv("../../GIS/R/stockdale/stockdale_distances.csv") %>% 
+   mutate(Intertidal = case_when(dist2tide > 0 ~ "Upstream",
+                                 dist2tide <= 0 ~ "Intertidal")) %>% 
+   rename(Distance = mouthdist, Segment = seg))
+```
+
 
 # Join finsight table with parentage data
 
@@ -123,20 +138,68 @@ We joined spatial data from Finsight with parentage data.
 ```{r join tables}
 paired_14_16_filter_parents <- read_csv("stock_paired_14_16_filter_parents.csv")
 
-finsight_parentage_stock <- left_join(paired_14_16_filter_parents, finsight_stockdale_filtered, 
-                                      by = c("DNA Tray Code" = "SampleTrayId" , "DNA Tray Well Code" = "SampleCell")) %>% 
+riverdist_parentage_stock <- paired_14_16_filter_parents %>% 
+  unite("Sample", c("DNA Tray Code", "DNA Tray Well Code"), sep = "_", remove = FALSE) %>% 
+  left_join(riverdist, by = "Sample") %>% 
   mutate(origin = factor(origin, c("Natural", "Hatchery")))  %>% 
-  filter(`Length Mm` > 300)
+  mutate(`Sample Date` = ymd(`Sample Date`)) %>% 
+  filter(is.na(`Length Mm`) | `Length Mm` > 300) %>% 
+  mutate(Segment = factor(Segment))
+  # filter(`Length Mm` > 300)
 
-write_csv(finsight_parentage_stock, "finsight_parentage_stock.csv")
+write_csv(riverdist_parentage_stock, "riverdist_parentage_stock.csv")
 ```
+
+Some quick exploratory plotting
+```{r}
+# riverdist_parentage_stock %>% 
+#   count(Segment)
+# 
+# riverdist_parentage_stock %>% 
+#   ggplot(aes(x = Longitude, y = Latitude, colour = Segment)) +
+#   coord_equal() +
+#   geom_jitter() +
+#   theme_bw()
+# 
+# riverdist_parentage_stock %>% 
+#   ggplot(aes(x = Longitude, y = Latitude, colour = origin, size = n, alpha = 0.05)) +
+#   coord_equal() +
+#   geom_jitter() +
+#   theme_bw() +
+#   transition_time(`Sample Date`) +
+#   shadow_mark() +
+#   enter_appear() +
+#   ggtitle("Date: {frame_time}") +
+#   labs()
+
+
+sample_dates <- unique(sort(riverdist_parentage_stock$`Sample Date`))
+
+my.animation <- riverdist_parentage_stock %>% 
+  mutate(grpI = as.numeric(factor(`Sample Date`))) %>% 
+  ggplot(aes(x = Longitude, y = Latitude, colour = origin, size = n, alpha = 0.05, group = seq_along(`Sample Date`))) +
+  coord_equal() +
+  geom_jitter() +
+  theme_bw() +
+  guides(alpha = FALSE) +
+  labs(size = "RS", colour = "Parent: Origin") +
+  # theme(text = element_text(size = 20)) +
+  transition_reveal(grpI) +
+  ggtitle("Date: {sample_dates[floor(frame_along)]}")
+
+animate(my.animation, height = 1200, width = 2400, res = 300)
+
+anim_save(filename = "Stockdale spatial RS over time.gif", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Powerpoints/Brown Bags/Figures/")
+
+```
+
 
 # Check for multi-collinearity {#multi-collinearity}
 
 Before modeling RS, we checked for multi-collinearity among variables because we assumed that there would be some degree of non-independence. *Note* that these plots exclude individuals with missing data.
-```{r try ggpairs, fig.width=12, fig.height=12}
-reduced <- finsight_parentage_stock %>% 
-  rename(RS = n) %>% 
+```{r try ggpairs, fig.width=12, fig.height=12, warning=FALSE, message=FALSE}
+reduced <- riverdist_parentage_stock %>% 
+  rename(RS = n, Sex = SEX) %>% 
   mutate(Origin = case_when(origin == "Natural" ~ "N", 
                             origin == "Hatchery" ~ "H")) %>% 
   mutate(Origin = factor(Origin, levels = c("N", "H"))) %>% 
