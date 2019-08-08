@@ -375,6 +375,53 @@ paired_14_16_filter_parents %>%
 ```
 
 
+# Figure 5: RS by distance
+
+```{r RS by distance Even}
+riverdist_parentage_stock <- read_csv("riverdist_parentage_stock.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+  mutate(sex = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female"))
+
+riverdist_parentage_stock %>%
+  ggplot(aes(x = Distance, y = n, color = origin)) +
+  geom_vline(aes(xintercept = tidedist), size = 2) +
+  geom_jitter(height = 0, size = 2) +
+  geom_smooth() +
+  facet_grid(sex ~ .)+
+  labs(title = "",  colour = "Parent\nOrigin",
+       shape = "Parent: Sex") +
+  xlab("Parent Sample Location (m from mouth)") +
+  ylab("Number of Offspring") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+ggsave("RS_Even_Distance.png", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Powerpoints/Brown Bags/Figures/", width = 7.29, height = 4.5, units = "in")
+```
+
+# Sampling representativeness
+
+```{r}
+(survey <- read_csv("stockdale_stream_survey_2014_2016.csv") %>% 
+   select(date, alive, dead, samples))
+
+survey %>% 
+  gather(type, count, -date) %>% 
+  mutate(date = mdy(date)) %>% 
+  mutate(julian = yday(date)) %>% 
+  mutate(year = year(date)) %>% 
+  drop_na() %>% 
+  ggplot(aes(x = julian, y = count, colour = type)) +
+  geom_line(lwd = 2) +
+  facet_grid(year ~ .) +
+  labs(title = "",  colour = "Count Type") +
+  xlab("Parent Sample Date (Julian)") +
+  ylab("Count") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+ggsave("Stockdale Sampling.png", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Powerpoints/Brown Bags/Figures/", width = 7.29, height = 4.5, units = "in")
+```
+
+
 # Figure S2: RS for triads  
 
 ```{r RS for triads}
