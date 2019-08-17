@@ -63,7 +63,7 @@ finsight_stockdale$ProcessingAreaNum <- as.factor(finsight_stockdale$ProcessingA
 # Plot processing areas
 
 Below we plot "processing areas" by year. It appears that processing areas changed by day and year.
-```{r plot sample locations, fig.width=10, fig.height=8}
+```{r plot sample locations, out.width="100%"}
 finsight_stockdale %>%
   count(year, ProcessingAreaNum, Longitude, Latitude) %>%
   ggplot(aes(x = Longitude, y = Latitude, color = ProcessingAreaNum, size = n)) +
@@ -132,9 +132,9 @@ ggplot(finsight_stockdale_filtered, aes(x = Longitude, y = Latitude)) +
 ```
 
 
-# Join finsight table with parentage data
+# Join *riverdist* table with parentage data
 
-We joined spatial data from Finsight with parentage data.
+We joined spatial data from *riverdist* with parentage data.
 ```{r join tables}
 paired_14_16_filter_parents <- read_csv("stock_paired_14_16_filter_parents.csv")
 
@@ -144,35 +144,15 @@ riverdist_parentage_stock <- paired_14_16_filter_parents %>%
   mutate(origin = factor(origin, c("Natural", "Hatchery")))  %>% 
   mutate(`Sample Date` = ymd(`Sample Date`)) %>% 
   filter(is.na(`Length Mm`) | `Length Mm` > 300) %>% 
-  mutate(Segment = factor(Segment))
-  # filter(`Length Mm` > 300)
+  mutate(Segment = factor(Segment))%>% 
+  mutate(Success = case_when(n == 0 ~ "Unsuccessful",
+                             n > 0 ~ "Successful"))
 
 write_csv(riverdist_parentage_stock, "riverdist_parentage_stock.csv")
 ```
 
-Some quick exploratory plotting
+Some quick exploratory animation.
 ```{r}
-# riverdist_parentage_stock %>% 
-#   count(Segment)
-# 
-# riverdist_parentage_stock %>% 
-#   ggplot(aes(x = Longitude, y = Latitude, colour = Segment)) +
-#   coord_equal() +
-#   geom_jitter() +
-#   theme_bw()
-# 
-# riverdist_parentage_stock %>% 
-#   ggplot(aes(x = Longitude, y = Latitude, colour = origin, size = n, alpha = 0.05)) +
-#   coord_equal() +
-#   geom_jitter() +
-#   theme_bw() +
-#   transition_time(`Sample Date`) +
-#   shadow_mark() +
-#   enter_appear() +
-#   ggtitle("Date: {frame_time}") +
-#   labs()
-
-
 sample_dates <- unique(sort(riverdist_parentage_stock$`Sample Date`))
 
 my.animation <- riverdist_parentage_stock %>% 
@@ -188,8 +168,102 @@ my.animation <- riverdist_parentage_stock %>%
   ggtitle("Date: {sample_dates[floor(frame_along)]}")
 
 animate(my.animation, height = 1200, width = 2400, res = 300)
+```
 
-anim_save(filename = "Stockdale spatial RS over time.gif", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Powerpoints/Brown Bags/Figures/")
+Simple plot of RS by parent sample date and distance (both origins and sexes combined)
+```{r, out.width="100%"}
+riverdist_parentage_stock %>% 
+  ggplot(aes(x = `Sample Date`, y = Distance, size = n, colour = origin, alpha = 0.05)) +
+  geom_hline(aes(yintercept = tidedist), size = 2) +
+  geom_jitter(width = 0.25) +
+  theme_bw() +
+  guides(alpha = FALSE) +
+  labs(size = "RS", colour = "Parent: Origin") +
+  ggtitle("RS by Timing and Location of Parent Sampled ")
+```
+
+```{r}
+riverdist_parentage_stock %>% 
+  ggplot(aes(x = `Sample Date`, y = Distance, size = n, colour = origin, alpha = 0.01)) +
+  geom_hline(aes(yintercept = tidedist), size = 1) +
+  geom_jitter(width = 0.25, height = 25) +
+  theme_bw() +
+  guides(alpha = FALSE) +
+  labs(size = "RS", colour = "Parent: Origin") +
+  ggtitle("RS by Timing and Location of Parent Sampled") +
+  facet_grid(SEX ~ Success)
+```
+
+Look at cross type data! What are the spatio-temporal patterns in matings of different cross types?
+```{r}
+parents_paired_14_16_cross <- read_csv("stock_parents_paired_14_16_cross.csv")
+
+# organize by sire and dam, join riverdist data
+parents_paired_14_16_cross_riverdist <- parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`, `Sample Date`, `Sample Date.par1`, SEX, SEX.par1, `DNA Tray Code`, `DNA Tray Code.par1`, `DNA Tray Well Code`, `DNA Tray Well Code.par1`, origin.par1, origin, `Length Mm.par1`, `Length Mm`) %>% 
+  rename(`Fish ID.par2` = `Fish ID`, 
+         `Sample Date.par2` = `Sample Date`,
+         SEX.par2 = SEX,
+         `DNA Tray Code.par2` = `DNA Tray Code`,
+         `DNA Tray Well Code.par2` = `DNA Tray Well Code`,
+         origin.par2 = origin,
+         `Length Mm.par2` = `Length Mm`) %>% 
+  unite(Sample.par1, c("DNA Tray Code.par1", "DNA Tray Well Code.par1"), sep = "_", remove = TRUE) %>% 
+  unite(Sample.par2, c("DNA Tray Code.par2", "DNA Tray Well Code.par2"), sep = "_", remove = TRUE) %>% 
+  left_join(riverdist, by = c("Sample.par1" = "Sample")) %>% 
+  left_join(riverdist, by = c("Sample.par2" = "Sample"), suffix = c(".par1", ".par2")) %>% 
+  mutate(fish_id.sire = case_when(SEX.par1 == "M" ~ `Fish ID.par1`,
+                                  TRUE ~ `Fish ID.par2`)) %>% 
+  mutate(fish_id.dam = case_when(SEX.par1 == "F" ~ `Fish ID.par1`,
+                                  TRUE ~ `Fish ID.par2`)) %>% 
+  mutate(sample_date.sire = case_when(SEX.par1 == "M" ~ `Sample Date.par1`,
+                                  TRUE ~ `Sample Date.par2`)) %>% 
+  mutate(sample_date.dam = case_when(SEX.par1 == "F" ~ `Sample Date.par1`,
+                                  TRUE ~ `Sample Date.par2`)) %>% 
+  mutate(sex.sire = case_when(SEX.par1 == "M" ~ SEX.par1,
+                                  TRUE ~ SEX.par2)) %>% 
+  mutate(sex.dam = case_when(SEX.par1 == "F" ~ SEX.par1,
+                                  TRUE ~ SEX.par2)) %>%
+  mutate(origin.sire = case_when(SEX.par1 == "M" ~ origin.par1,
+                                  TRUE ~ origin.par2)) %>% 
+  mutate(origin.dam = case_when(SEX.par1 == "F" ~ origin.par1,
+                                  TRUE ~ origin.par2)) %>%
+  mutate(distance.sire = case_when(SEX.par1 == "M" ~ Distance.par1,
+                                  TRUE ~ Distance.par2)) %>% 
+  mutate(distance.dam = case_when(SEX.par1 == "F" ~ Distance.par1,
+                                  TRUE ~ Distance.par2)) %>%
+  mutate(intertidal.sire = case_when(SEX.par1 == "M" ~ Intertidal.par1,
+                                  TRUE ~ Intertidal.par2)) %>% 
+  mutate(intertidal.dam = case_when(SEX.par1 == "F" ~ Intertidal.par1,
+                                  TRUE ~ Intertidal.par2)) %>%
+  mutate(length.sire = case_when(SEX.par1 == "M" ~ `Length Mm.par1`,
+                                  TRUE ~ `Length Mm.par2`)) %>% 
+  mutate(length.dam = case_when(SEX.par1 == "F" ~ `Length Mm.par1`,
+                                  TRUE ~ `Length Mm.par2`)) %>%
+  select(cross, n, ends_with(".sire"), ends_with(".dam"))
+
+parents_paired_14_16_cross_riverdist %>% 
+  ggplot(aes(x = sample_date.sire, y = sample_date.dam)) +
+  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
+  geom_abline(slope = 1) +
+  theme_bw() +
+  ggtitle("Dam Sample Date vs. Sire Sample Date by Cross Type")
+
+parents_paired_14_16_cross_riverdist %>% 
+  ggplot(aes(x = distance.sire, y = distance.dam), alpha = 0.05) +
+  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
+  geom_abline(slope = 1)+
+  theme_bw() +
+  ggtitle("Dam Sample Distance vs. Sire Sample Distance by Cross Type")
+
+parents_paired_14_16_cross_riverdist %>% 
+  filter(length.sire > 300 & length.dam > 300) %>% 
+  ggplot(aes(x = length.sire, y = length.dam), alpha = 0.05) +
+  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
+  geom_abline(slope = 1)+
+  geom_smooth() +
+  theme_bw() +
+  ggtitle("Dam Length vs. Sire Length by Cross Type")
 
 ```
 
@@ -203,13 +277,13 @@ reduced <- riverdist_parentage_stock %>%
   mutate(Origin = case_when(origin == "Natural" ~ "N", 
                             origin == "Hatchery" ~ "H")) %>% 
   mutate(Origin = factor(Origin, levels = c("N", "H"))) %>% 
-  select(`Sample Date`, Sex, `Length Mm`, Origin, RS, Intertidal, Distance) %>% 
+  select(`Sample Date`, Sex, `Length Mm`, Origin, RS, Success, Intertidal, Distance) %>% 
   drop_na()
 
 ggpairs(reduced, 
         mapping = aes(color = Origin, alpha = 0.5), 
-        columns = c("Sample Date", "Length Mm", "Distance","RS", "Intertidal", "Sex"), 
-        columnLabels = c("Sample Date", "Length (mm)", "Distance (m)", "RS", "Intertidal", "Sex"), 
+        columns = c("Sample Date", "Length Mm", "Distance","RS", "Success", "Intertidal", "Sex"), 
+        columnLabels = c("Sample Date", "Length (mm)", "Distance (m)", "RS", "Success", "Intertidal", "Sex"), 
         progress = FALSE, 
         lower = list(continuous = "smooth_loess", combo = wrap(ggally_facethist, position = "dodge2")),
         upper = list(continuous = wrap("cor", size = 4, hjust = 0.8), combo = "box"),
