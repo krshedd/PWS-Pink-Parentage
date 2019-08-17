@@ -21,7 +21,8 @@ library(lubridate)
 library(PBSmapping)
 library(grid)
 library(ggthemes) 
-library(ggrepel) # Load
+library(ggrepel)
+library(gganimate)
 ```
 
 
@@ -397,6 +398,30 @@ riverdist_parentage_stock %>%
   theme(text = element_text(size = 20))
 ggsave("RS_Even_Distance.png", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Powerpoints/Brown Bags/Figures/", width = 7.29, height = 4.5, units = "in")
 ```
+
+# RS by Distance and Time animation
+```{r}
+riverdist_parentage_stock <- read_csv("riverdist_parentage_stock.csv")
+
+sample_dates <- unique(sort(riverdist_parentage_stock$`Sample Date`))
+
+my.animation <- riverdist_parentage_stock %>% 
+  mutate(grpI = as.numeric(factor(`Sample Date`))) %>% 
+  ggplot(aes(x = Longitude, y = Latitude, colour = origin, size = n, alpha = 0.05, group = seq_along(`Sample Date`))) +
+  coord_equal() +
+  geom_jitter() +
+  theme_bw() +
+  guides(alpha = FALSE) +
+  labs(size = "RS", colour = "Parent: Origin") +
+  # theme(text = element_text(size = 20)) +
+  transition_reveal(grpI) +
+  ggtitle("Date: {sample_dates[floor(frame_along)]}")
+
+animate(my.animation, height = 1200, width = 2400, res = 300)
+
+anim_save(filename = "Stockdale spatial RS over time.gif", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Powerpoints/Brown Bags/Figures/")
+```
+
 
 # Sampling representativeness
 
