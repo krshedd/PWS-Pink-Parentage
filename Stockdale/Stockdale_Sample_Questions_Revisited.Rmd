@@ -1,0 +1,569 @@
+---
+title: "Stockdale Sampling Questions Revistied"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+I
+# Pro Tips {#protip}
+
+Anything in [red](#protip) is a hyperlink that will either take you to the relevant location in this R Notebook .html file, or will link to an external reference (i.e. a publication we cite). If you just want to see the text and figures and **do not** want to see any of the `code` used to generate this R Notebook, click on the grey box in the upper right corner that says "Code" and select "Hide All Code". Happy data exploring!
+
+# Introduction
+
+The purpose of these analyses is to address Science Panel questions regarding the representativeness of sampling relative to the actual escapement for Stockdale Creek. The implicit question here is whether our samples are biased in any way that would affect how fitness results are extrapolated to represent the population. Specifically we will investigate three areas:
+
+  1) What proportion of the Stockdale Creek spawning population in 2014 are represented by our samples?
+  2) Provide a single RRS estimate for Stockdale 2014/2016, weighted by sex.
+  3) Test samples for differences in reproductive success (RS) stratified by sample date, size, and location.
+
+For the third area, we will do some naive tests, considering each variable separately and binning them in to artificial categories. Subsequently, we will consider all information more holistically by model fitting to generalized linear models (GLM's) as is commonly done in the literature (see [Bernston et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), and [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725)).
+
+**Note** that we are only doing these analyses for the Stockdale even-year lineage (2014-2016) because there are not enough parent-offspring assignments from the odd lineage (2013-2015) to draw robust conclusions. Additioanlly, we are investigating Stockdale Creek as opposed to Hogan Bay as Stockdale has a larger sample size of parent-offspring pairs and Stockdale is a longer system, so spawning location is likely more important in Stockdale, than in Hogan (50-100m of spawning habitat). 
+
+```{r setup, include=FALSE}
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+library(gridExtra)
+library(MuMIn)
+library(GGally)
+library(gganimate)
+
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+```
+
+# What Was the Sample Proportion of Stockdale 2014 Escapement
+
+In order to assess what proportion of the 2014 escapement is represented by our samples, we need our sample size and an estimate of the escapement. Here we'll provide four different estiamtes of escapement, all of which have slightly different assumptions.
+
+## Sample Sizes
+
+Here is the sample size of potential parents by origin and sex. These are fish sampled in 2014 that were successfully genotyped and passed our genotype QA process. The figure shows how many samples of each origin were collected by sample date for 2014 (parents) and 2016 (offspring).
+```{r}
+paired_14_16_filter <- read_csv("stock_paired_14_16_filter.csv") %>% 
+  mutate(Origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+  mutate(Sex = case_when(SEX == "M" ~ "Male", SEX == "F" ~ "Female"))
+
+paired_14_16_filter %>% 
+  filter(`Sample Year` == 2014) %>% 
+  count(`Sample Year`, Origin, Sex) %>% 
+  spread(Sex, n)
+
+paired_14_16_filter %>% 
+  ggplot(aes(x = `Julian`)) +
+  theme_bw() +
+  geom_bar(aes(fill = Origin), colour = "black") +
+  facet_grid(`Sample Year` ~ .) +
+  geom_hline(yintercept = 0, colour = "black") +
+  ylab("Count") +
+  xlab("Julian Date") +
+  labs(title= "Number of Samples per Year\nby Date and Origin",
+       fill = "Origin") +
+  theme(text = element_text(size = 20))
+```
+
+## Escapement Estimates
+
+### Aerial Survey AUC
+
+Below is the very sparse aerial survey data for Stockdale in 2014.
+```{r}
+auc <- readxl::read_xlsx(path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Field data/StreamSurveys 10-28-14 Ped only to Kyle 11-7-14_Updated_SM_2-25-2015.xlsm", sheet = "Raw_Data", skip = 4)
+
+(stockdale_aerial <- auc %>% 
+  filter(`ADF&G Stream Name` == "Stockdale Creek", Year == 2014, `Count Type` == "Aerial") %>% 
+  select(Distict, `AWC Stream Number`, `ADF&G Stream Number`, `ADF&G Stream Name`, Year, `Survey Date`, `Survey Live Stream Count`, `Count Type`))
+
+stockdale_aerial %>% 
+  mutate(Julian = yday(`Survey Date`)) %>% 
+  ggplot(aes(x = `Julian`, y = `Survey Live Stream Count`)) +
+  theme_bw() +
+  geom_col(colour = "black") +
+  facet_grid(Year ~ .) +
+  geom_hline(yintercept = 0, colour = "black") +
+  ylab("Live Count") +
+  xlab("Julian Date") +
+  labs(title= "Aerial Survey 2014") +
+  theme(text = element_text(size = 20))
+```
+
+Applying these three surveys to an Area Under the Curve (AUC) model with a stream life of 13.7 days and an observer efficiency of 43.6% [Fried et al. 1998] we get an estimated escapement of **2,869**.
+
+### Stream Walk AUC
+
+Below is the more comprehensive foot survey data for Stockdale in 2014.
+```{r}
+(stockdale_foot <- auc %>% 
+  filter(`ADF&G Stream Name` == "Stockdale Creek", Year == 2014, `Count Type` == "Stream Walks") %>% 
+  select(Distict, `AWC Stream Number`, `ADF&G Stream Number`, `ADF&G Stream Name`, Year, `Survey Date`, `Survey Live Stream Count`, `Count Type`))
+
+stockdale_foot %>% 
+  mutate(Julian = yday(`Survey Date`)) %>% 
+  ggplot(aes(x = `Julian`, y = `Survey Live Stream Count`)) +
+  theme_bw() +
+  geom_col(colour = "black") +
+  facet_grid(Year ~ .) +
+  geom_hline(yintercept = 0, colour = "black") +
+  ylab("Live Count") +
+  xlab("Julian Date") +
+  labs(title= "Foot Survey 2014") +
+  theme(text = element_text(size = 20))
+```
+
+Applying these fourteen surveys to an Area Under the Curve (AUC) model with a stream life of 13.7 days and an observer efficiency of 70.3% [Fried et al. 1998] we get an estimated escapement of **4,038**.
+
+### tGMR Binomial Model
+
+Another method of independently estimating the 2014 escapement to Stockdale Creek is to use trans-generational mark-recapture as detailed in [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122). Briefly, marks are the genotyped parents, and the second event is genotyped offspring, with offspring assigning to parents representing recaptures. This model takes two forms, binomial (with replacement) and hypergeometric (without replacement). Here we provide the binomial estiamte where:  
+
+  * n1 = number of genotyped potential parents (2014)
+  * n2 = number of genotypes from potential offspring (2016) = number of offsping x 2 (one copy from sire, one copy from dam)
+  * m2 = number of recaptured parental genotypes (i.e. offspring that assign to parents)
+
+Here is the sample size of individuals for potential parents (2014) and potential offspring (2016)
+```{r}
+read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv") %>% 
+  count(`Sample Year`)
+```
+
+So that means that:  
+
+  * n1 = 794
+  * n2 = 5,199 x 2 = 10,398
+
+And how many "recaptured genotypes" did we get in 2016?
+```{r}
+offspring_dat <- read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv") %>% 
+  filter(`Sample Year` == 2016)
+
+(offspring_franz <- read_csv("../../Franz/Stockdale/Even_Run 2/parentage.csv") %>% 
+    filter(Posterior >= 0.9) %>% 
+    left_join(offspring_dat, by = c("Offspring" = "franz_id")) %>% 
+    select(Offspring, `Parent 1`, `Parent 2`) %>% 
+    gather(Parent, Parent_ID, -Offspring) %>% 
+    filter(!is.na(Parent_ID)))
+```
+
+Looks like we had 1,238 parent-offspring pair assignments, so that makes:  
+
+  * m2 = 1,238
+
+And our final calculation for Nc is:
+```{r}
+round(794 * 5199 * 2 / 1238)
+```
+
+Giving us an estimated escapement of **6,669** fish
+
+### tGRC: Rarefaction Curve
+
+In addition to tGMR, [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122) provides a method to estimate the number of spawners using a rarefaction curve approach. Briefly, as each offpsring is added to the sample, fewer new unique parental genotypes should be observed with the asymptote being equal to the number of spawners.
+
+Here we will subsample the offspring (not their genotypes, *note* this is a subtle departure from Rawding et al. 2014 for simplicity) in levels of 10% to see how many unique parents we end up with.
+
+```{r}
+offspring_dat <- read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv") %>% 
+  filter(`Sample Year` == 2016)
+
+offspring_franz <- read_csv("../../Franz/Stockdale/Even_Run 2/parentage.csv") %>% 
+  filter(Posterior >= 0.9) %>% 
+  left_join(offspring_dat, by = c("Offspring" = "franz_id"))
+
+n_off <- n_distinct(offspring_franz$Offspring)
+n_sample <- round(seq(from = 0.1, to = 1, by = 0.1) * n_off)
+
+rare_dat <- replicate(n = 1000, {
+  lapply(n_sample, function(i) {
+    tmp <- sample_n(offspring_franz, i) %>% 
+      select(Offspring, `Parent 1`, `Parent 2`) %>% 
+      gather(Parent, ID, -Offspring) %>% 
+      arrange(Offspring)
+    tibble(n_off = i, n_par = n_distinct(tmp$ID))
+  }) %>% 
+    bind_rows()
+}, simplify = FALSE) %>% 
+  bind_rows()
+```
+
+Apply Beverton-Holt model and plot
+```{r}
+library(FSA)
+
+rare_dat <- rare_dat %>% 
+  mutate(log_n_par = log(n_par))
+
+bh1s <- srStarts(n_par ~ n_off, data = rare_dat, type = "BevertonHolt", param = 1)
+
+bh1 <- log_n_par ~ log((a * n_off) / (1 + b * n_off))
+
+bh1nls <- nls(bh1, data = rare_dat, start = bh1s)
+
+bh0 <- log_n_par ~ log(a * n_off) # declare model
+bh0s <- bh1s[1] # use the same starting value as above for a
+bh0nls <- nls(bh0, data = rare_dat, start = bh0s)
+
+xmax <- 12000
+ymax <- 1000
+
+plot(n_par ~ n_off, data = rare_dat, xlim = c(0, xmax), ylim = c(0, ymax), col = rgb(0, 0, 0, alpha = 0.01), pch = 16,
+     xlab = "Sample Number of Offspring",
+     ylab = "Number of Breeders", 
+     main = "Stockdale 2014/2016 Genetic Rarefaction Curve")
+curve((coef(bh1nls)[1] * x) / (1 + coef(bh1nls)[2] * x), from = 0, to = xmax, col = "red", lwd = 2, add = TRUE)
+legend("topleft", legend = c("density dependent"), col = c("red"), lwd = 2, cex = 0.6)
+```
+
+Based on the parentage assignments, it looks like there were **~450** successful spawners.
+
+## Summary
+
+We have four separate estimates of the 2014 Stockdale escapement, which give us four different sampling proportions (parents sample size = 794):  
+
+  1) Aerial Survey AUC: **2,869**, p = 28%
+  2) Foot Survey AUC: **4,038**, p = 20%
+  3) tGMR Binomial Model: **6,669**, p = 12%
+  4) tGRC Rarefaction Curve: **450**, p = 176%
+
+While these are four very different estimates, I think that we can be confident in saying that the Foot Survey AUC and tGMR Binomial Model estimates are likely the two most reliable. The aerial survey AUC estimate was only based on three flights, and the tGRC is biased downward in part due to the large number of parents that had no offspring assign back to them.
+
+Based on this data, it is reasonable to conclude that our sample of 794 fish in 2014 likely represents between 12-20% of the escapement. Another very simple metric that we would expect to be correlated to the parental sampling rate would be the offspring assignment rate (i.e. what percentage of our 5,199 offspring assigned to parents?). Of our 5,199 offspring, 1,054 were assigned to at least one parent for an assignment rate of ~20%.
+
+# Single RRS Estimate for Stockdale 2014
+
+While providing separate estimates of RRS by sex is standard throughout the literature (see [Williamson et al. 2010](https://www.nrcresearchpress.com/doi/abs/10.1139/F10-099), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), [Anderson et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1752-4571.2012.00271.x), [Berejikian etl al. 2009](https://www.nrcresearchpress.com/doi/abs/10.1139/f09-041), [Christie et al. 2014](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12183), etc.), especially in cases where most offspring assignments are to a single parent (as opposed to both parents), the Science Panel has expressed an interest in a single estimate of RRS, stratified by sex. In order to provide a stratified estimate, we need to know what we are stratifying by. I see two options, both of which have their own assumptions and drawbacks:  
+
+  1) Assume that the sex ratio of the sample is representative of the population
+  2) Sex-specific tGMR estimates as done in [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122). 
+
+I'll present both here for completeness, however, it is worth noting that using sex-specific tGMR estimates to stratify RRS data is potentially a bit circular (i.e. using the same parentage data to infer the population of males vs. females to stratify an estimate based on the parentage data)
+
+## Sample Sex Ratio
+
+If we assume that our sample sex ratio is representative of the sex ratio for the spawning population, then we can simply consider all parents and offspring together. **Note** that offspring with two parents get double counted since they assign to both a dam and a sire.
+
+Here are sample sizes of parents by origin and the number of offspring that they produced
+```{r}
+paired_14_16_filter_parents <- read_csv("stock_paired_14_16_filter_parents.csv")
+
+paired_14_16_filter_parents %>% 
+  group_by(origin) %>% 
+  summarise(parents = n(), offspring = sum(n))
+```
+
+And here is our estimate of RRS with 95% confidence intervals following the methods of [Kalinowski and Taper 2005](http://www.nrcresearchpress.com/doi/10.1139/f04-239)
+```{r}
+rrs_ci_kalinowski <- function(n_h_off, n_w_off, n_h_par, n_w_par, alpha){
+  chi_alpha <- qchisq(p = (1 - alpha), df = 1)
+  n_off <- sum(c(n_h_off, n_w_off))
+  n_par <- sum(c(n_h_par, n_w_par))
+  
+  rs_h <- n_h_off / n_h_par
+  rs_w <- n_w_off / n_w_par
+  
+  p_h_par <- n_h_par / n_par
+  p_w_par <- n_w_par / n_par
+  
+  rrs_h <- rs_h / rs_w
+  rrs_w <- rs_w / rs_w
+  rrs_avg <- (rrs_h * p_h_par) + (rrs_w * p_w_par)
+  
+  rrs_ml <- (n_h_off * log(p_h_par * rrs_h / rrs_avg)) + (n_w_off * log(p_w_par * rrs_w / rrs_avg))
+  
+  xi_dist <- bind_rows(
+    lapply(seq(0.01, 5, by = 0.01), function(rrs_h_xi) {
+      rrs_avg_xi <- (rrs_h_xi * p_h_par) + (rrs_w * p_w_par)
+      tibble(rrs_crit = rrs_h_xi,
+             logl = (n_h_off * log(p_h_par * rrs_h_xi / rrs_avg_xi)) + (n_w_off * log(p_w_par * rrs_w / rrs_avg_xi)) - (rrs_ml - chi_alpha / 2)
+      )
+    } )
+  )
+  
+  rrs_min <- xi_dist %>% 
+    mutate(abs_logl = abs(logl)) %>% 
+    filter(rrs_crit < rrs_h) %>% 
+    top_n(-1, abs_logl) %>% 
+    pull(rrs_crit)
+  
+  rrs_max <- xi_dist %>% 
+    mutate(abs_logl = abs(logl)) %>% 
+    filter(rrs_crit > rrs_h) %>% 
+    top_n(-1, abs_logl) %>% 
+    pull(rrs_crit)
+  
+  xi_plot <- xi_dist %>% 
+    ggplot(aes(x = rrs_crit, y = logl)) +
+    geom_line() +
+    geom_hline(yintercept = 0, colour = "red", lwd = 2) +
+    geom_vline(xintercept = c(rrs_h, rrs_min, rrs_max), colour = "blue") +
+    ylim(c(-5, 5)) +
+    xlim(c(0, 2)) +
+    ylab("Log Likelihood - Chi Sq Value") +
+    annotate("text", x = rrs_h + 0.1, y = xi_dist %>% filter(rrs_crit == xi_dist$rrs_crit[which.min(abs(xi_dist$rrs_crit  - rrs_h))]) %>% pull(logl) + 0.4, label = round(rrs_h, 2)) +
+    annotate("text", x = rrs_min - 0.1, y = xi_dist %>% filter(rrs_crit == rrs_min) %>% pull(logl) + 0.4, label = rrs_min) +
+    annotate("text", x = rrs_max + 0.1, y = xi_dist %>% filter(rrs_crit == rrs_max) %>% pull(logl) + 0.4, label = rrs_max)
+  
+  print(xi_plot)
+  return(c(rrs_min, rrs_h, rrs_max))
+}
+
+rrs_ci_kalinowski(n_h_off = 373, n_w_off = 865, n_h_par = 436, n_w_par = 358, alpha = 0.05)
+```
+
+**RRS = 0.35 (0.31-0.40)**
+
+```{r}
+paired_14_16_filter_parents %>% 
+  count(SEX)
+```
+
+## Sex-Specific tGRM Binomial Model
+
+Here is the sample size of individuals for potential parents (2014) and recaptured offspring assigned to parents (2016)
+```{r}
+paired_14_16_filter_parents %>% 
+  group_by(SEX) %>% 
+  summarise(parents = n(), offspring = sum(n))
+```
+
+### Male
+
+  * n1 = 343 male potential parents
+  * n2 = 5,199 x 1 (1 copy from sire) = 5,199
+  * m2 = 594 (offspring that assigned to males)
+
+And our final calculation for male Nc is:
+```{r}
+round(343 * 5199 * 1 / 594)
+```
+
+Giving us an estimated escapement of **3,002** fish
+
+### Female
+
+  * n1 = 451 female potential parents
+  * n2 = 5,199 x 1 (1 copy from dam) = 5,199
+  * m2 = 644 (offspring that assigned to females)
+
+And our final calculation for male Nc is:
+```{r}
+round(451 * 5199 * 1 / 644)
+```
+
+Giving us an estimated escapement of **3,641** fish
+
+### Stratified Estimate
+
+We found male RRS ~ 0.28 and female RRS ~ 0.42, if we stratify those by our population estimates, we get a combined RRS.
+```{r}
+round(((3002 * 0.28) + (3641 * 0.42)) / (3002 + 3641), 2)
+```
+
+**RRS = 0.36**
+
+# Test Covariates of Reproductive Success: Sample Date, Size, and Location
+
+Here we will do some basic testing to see if RRS differences between hatchery- and natural-origin fish hold when arbitrarily splitting our covariates into bins (i.e. early vs. late, small vs. large, intertidal vs. upstream). These results should be considered "preliminary" analyses, because a more rigorous analysis (see [Generalized Linear Models](#GLM)) will 1) not arbitrarily break continuous variables (i.e. sample date and size) into categorical bins, and 2) consider all variables and their interactions holistically in a single model rather than considering each on their own.
+
+## Sample Date {#RS_vs_date}
+
+First let us look at the influence of sample date on RS for hatchery- and natural-origin spawners.
+```{r}
+paired_14_16_filter_parents <- read_csv("stock_paired_14_16_filter_parents.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+  mutate(sex = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female"))
+
+paired_14_16_filter_parents %>%
+  ggplot(aes(x = `Sample Date`, y = n, color = origin)) +
+  geom_jitter(height = 0, size = 2) +
+  geom_smooth() +
+  facet_grid(sex ~ .)+
+  labs(title = "",  colour = "Parent\nOrigin",
+       shape = "Parent: Sex") +
+  xlab("Parent Sample Date") +
+  ylab("Number of Offspring") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
+
+We can clearly see that there are some temporal patterns in RS, but let us test for them! Perhaps a clean split would be parents sampled in August (early) vs. parents sampled in September (late). What are our sample sizes by month and origin (both sexes combined)?
+```{r}
+paired_14_16_filter_parents %>% 
+  filter(`Sample Year` == 2014) %>% 
+  mutate(Month = month(`Sample Date`, label = TRUE)) %>% 
+  count(`Sample Year`, Month, origin) %>% 
+  spread(origin, n)
+```
+
+Excellent, how many offspring were produced by these parents?
+```{r}
+paired_14_16_filter_parents %>% 
+  filter(`Sample Year` == 2014) %>% 
+  mutate(Month = month(`Sample Date`, label = TRUE)) %>% 
+  group_by(Month, origin) %>% 
+  summarise(offspring = sum(n, na.rm = TRUE)) %>% 
+  spread(origin, offspring)
+```
+
+Now we can calculate month-specific RRS (both sexes combined)
+
+### August
+
+```{r}
+rrs_ci_kalinowski(n_h_off = 197, n_w_off = 634, n_h_par = 172, n_w_par = 224, alpha = 0.05)
+```
+
+**RRS = 0.40 (0.34-0.47)**
+
+### September
+
+```{r}
+rrs_ci_kalinowski(n_h_off = 176, n_w_off = 231, n_h_par = 264, n_w_par = 134, alpha = 0.05)
+```
+
+**RRS = 0.39 (0.32-0.47)**
+
+### Summary
+
+When we compare RRS for hatchery- and natural-origin fish by sample month of the parents (August - early, September - late), we find that hatchery-origin fish produce an average of ~39-40% as many offspring as natural-origin parents. Sample date (timing) matters (see [plot](#RS_vs_date)), but we still see differences in RS between hatchery- and natural-origin fish when we compare within early- and late-run groups.
+
+## Size {#RS_vs_size}
+
+Next let us look at the influence of body size on RS for hatchery- and natural-origin spawners.
+```{r}
+paired_14_16_filter_parents <- read_csv("stock_paired_14_16_filter_parents.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+  mutate(sex = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female"))
+
+paired_14_16_filter_parents %>% 
+  filter(`Length Mm` > 300) %>%  # remove outlier
+  ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
+  geom_jitter(height = 0, size = 2) +
+  geom_smooth() +
+  facet_grid(sex ~ .) +
+  labs(title = "",  colour = "Parent\nOrigin",
+       shape = "Parent: Sex") +
+  xlab("Parental Length (mm)") +
+  ylab("Number of Offspring") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
+
+We can clearly see that there are some body size patterns in RS, specifically for males, but let us test for them! Perhaps a clean split would be to consider above average size fish "large", and below average fish "small". What are our sample sizes by large/small (425mm is our cutoff) and origin (both sexes combined)?
+```{r}
+paired_14_16_filter_parents %>% 
+  filter(`Length Mm` > 300) %>%  # remove outlier
+  filter(`Sample Year` == 2014) %>% 
+  mutate(Size = case_when(`Length Mm` <= 425 ~ "Small",
+                          `Length Mm` > 425 ~ "Large")) %>% 
+  mutate(Size = factor(x = Size, levels = c("Small", "Large"))) %>% 
+  count(`Sample Year`, Size, origin) %>% 
+  spread(origin, n)
+```
+
+Excellent, how many offspring were produced by these parents?
+```{r}
+paired_14_16_filter_parents %>% 
+  filter(`Length Mm` > 300) %>%  # remove outlier
+  filter(`Sample Year` == 2014) %>% 
+  mutate(Size = case_when(`Length Mm` <= 425 ~ "Small",
+                          `Length Mm` > 425 ~ "Large")) %>% 
+  mutate(Size = factor(x = Size, levels = c("Small", "Large"))) %>% 
+  group_by(Size, origin) %>% 
+  summarise(offspring = sum(n, na.rm = TRUE)) %>% 
+  spread(origin, offspring)
+```
+
+Now we can calculate month-specific RRS (both sexes combined)
+
+### Small
+
+```{r}
+rrs_ci_kalinowski(n_h_off = 120, n_w_off = 441, n_h_par = 151, n_w_par = 208, alpha = 0.05)
+```
+
+**RRS = 0.37 (0.31-0.46)**
+
+### Large
+
+```{r}
+rrs_ci_kalinowski(n_h_off = 223, n_w_off = 375, n_h_par = 243, n_w_par = 124, alpha = 0.05)
+```
+
+**RRS = 0.30 (0.26-0.36)**
+
+### Summary
+
+When we compare RRS for hatchery- and natural-origin fish by body size of the parents (<= 425mm - small, > 425mm - large), we find that hatchery-origin fish produce an average of ~30-37% as many offspring as natural-origin parents. Body size clearly matters (see [plot](#RS_vs_size)), but we still see differences in RS between hatchery- and natural-origin fish when we compare within small- and large-sized groups.
+
+## Location {#RS_vs_location}
+
+Next let us look at the influence of spawning location on RS for hatchery- and natural-origin spawners. **Note** Parent sample location is listed in meters from the lowest extent of samples (i.e. mouth of stream), the black line denotes the upper extent of high tide (i.e. below is intertidal, above is upstream).
+```{r}
+riverdist_parentage_stock <- read_csv("riverdist_parentage_stock.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+  mutate(sex = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female"))
+
+riverdist_parentage_stock %>%
+  ggplot(aes(x = Distance, y = n, color = origin)) +
+  geom_vline(aes(xintercept = tidedist), size = 2) +
+  geom_jitter(height = 0, size = 2) +
+  geom_smooth() +
+  facet_grid(sex ~ .)+
+  labs(title = "",  colour = "Parent\nOrigin",
+       shape = "Parent: Sex") +
+  xlab("Parent Sample Location (m from mouth)") +
+  ylab("Number of Offspring") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
+
+We can clearly see that there are some spatial patterns in RS, specifically for males, but let us test for them! What are our sample sizes by intertidal/upstream and origin (both sexes combined)?
+```{r}
+riverdist_parentage_stock %>% 
+  count(`Sample Year`, Intertidal, origin) %>% 
+  spread(origin, n)
+```
+
+Excellent, how many offspring were produced by these parents?
+```{r}
+riverdist_parentage_stock %>% 
+  filter(`Sample Year` == 2014) %>% 
+  group_by(Intertidal, origin) %>% 
+  summarise(offspring = sum(n, na.rm = TRUE)) %>% 
+  spread(origin, offspring)
+```
+
+Now we can calculate location-specific RRS (both sexes combined)
+
+### Intertidal
+
+```{r}
+rrs_ci_kalinowski(n_h_off = 205, n_w_off = 570, n_h_par = 117, n_w_par = 188, alpha = 0.05)
+```
+
+**RRS = 0.58 (0.49-0.68)**
+
+### Upstream
+
+```{r}
+rrs_ci_kalinowski(n_h_off = 168, n_w_off = 290, n_h_par = 319, n_w_par = 169, alpha = 0.05)
+```
+
+**RRS = 0.31 (0.25-0.37)**
+
+### Summary
+
+When we compare RRS for hatchery- and natural-origin fish by sample location of the parents (intertidal vs. upstream), we find that hatchery-origin fish produce an average of ~31-58% as many offspring as natural-origin parents depending on where the parents were sampled. Parent sample location clearly matters (see [plot](#RS_vs_location)), but we still see differences in RS between hatchery- and natural-origin fish when we compare within intertidal and upstream groups.
+
+# Generalized Linear Models {#GLM}
