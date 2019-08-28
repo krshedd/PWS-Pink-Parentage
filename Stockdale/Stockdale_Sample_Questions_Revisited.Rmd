@@ -370,7 +370,7 @@ round(((3002 * 0.28) + (3641 * 0.42)) / (3002 + 3641), 2)
 
 # Test Covariates of Reproductive Success: Sample Date, Size, and Location
 
-Here we will do some basic testing to see if RRS differences between hatchery- and natural-origin fish hold when arbitrarily splitting our covariates into bins (i.e. early vs. late, small vs. large, intertidal vs. upstream). These results should be considered "preliminary" analyses, because a more rigorous analysis (see [Generalized Linear Models](#GLM)) will 1) not arbitrarily break continuous variables (i.e. sample date and size) into categorical bins, and 2) consider all variables and their interactions holistically in a single model rather than considering each on their own.
+Here we will do some basic testing to see if there are RRS differences when arbitrarily splitting our covariates into bins (i.e. early vs. late, small vs. large, intertidal vs. upstream). Additionally, we will investigate whether differences in RRS between hatchery- and natural-origin fish hold, despite these covariates of RS. These results should be considered "preliminary" analyses, because a more rigorous analysis (see [Generalized Linear Models](#GLM)) will 1) not arbitrarily break continuous variables (i.e. sample date and size) into categorical bins, and 2) consider all variables and their interactions holistically in a single model rather than considering each on their own.
 
 ## Sample Date {#RS_vs_date}
 
@@ -394,7 +394,39 @@ paired_14_16_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
-We can clearly see that there are some temporal patterns in RS, but let us test for them! Perhaps a clean split would be parents sampled in August (early) vs. parents sampled in September (late). What are our sample sizes by month and origin (both sexes combined)?
+We can clearly see that there are some temporal patterns in RS, but let us test for them! Perhaps a clean split would be parents sampled in August (early) vs. parents sampled in September (late). What are our sample sizes by month (*both origins and sexes combined*)?
+```{r}
+paired_14_16_filter_parents %>% 
+  filter(`Sample Year` == 2014) %>% 
+  mutate(Month = month(`Sample Date`, label = TRUE)) %>% 
+  count(`Sample Year`, Month)
+```
+
+Excellent, how many offspring were produced by these parents?
+```{r}
+paired_14_16_filter_parents %>% 
+  filter(`Sample Year` == 2014) %>% 
+  mutate(Month = month(`Sample Date`, label = TRUE)) %>% 
+  group_by(Month) %>% 
+  summarise(offspring = sum(n, na.rm = TRUE))
+```
+
+### Early (August) vs. Late (September)
+
+Clearly early-run fish produced more offspring on average. Now we can calculate the RRS of late-run (September) parents relative to early-run (August) parents (*both origins and sexes combined*)
+```{r}
+rrs_ci_kalinowski(n_h_off = 407, n_w_off = 831, n_h_par = 398, n_w_par = 396, alpha = 0.05)
+```
+
+**RRS = 0.49 (0.43-0.55)**
+
+Run timing (i.e. parent sample date) clearly has an effect on RS with late-run (September) parents producing only half as many offspring on average as early-run (August) parents. Thus, if sampling of parents is not fully representative of escapement, there is a potential for our estimates of RS (and RRS) for hatchery- vs. natural-origin to be biased. 
+
+However, given that we now know parent sample month has an influence on RS, what if we compare hatchery- vs. natural-origin RRS within each month?
+
+### Hatchery vs. Natural Within Month
+
+What are our sample sizes by month and origin (*both sexes combined*)?
 ```{r}
 paired_14_16_filter_parents %>% 
   filter(`Sample Year` == 2014) %>% 
@@ -413,9 +445,9 @@ paired_14_16_filter_parents %>%
   spread(origin, offspring)
 ```
 
-Now we can calculate month-specific RRS (both sexes combined)
+Now we can calculate month-specific RRS (*both sexes combined*)
 
-### August
+#### August (Early)
 
 ```{r}
 rrs_ci_kalinowski(n_h_off = 197, n_w_off = 634, n_h_par = 172, n_w_par = 224, alpha = 0.05)
@@ -423,7 +455,7 @@ rrs_ci_kalinowski(n_h_off = 197, n_w_off = 634, n_h_par = 172, n_w_par = 224, al
 
 **RRS = 0.40 (0.34-0.47)**
 
-### September
+#### September (Late)
 
 ```{r}
 rrs_ci_kalinowski(n_h_off = 176, n_w_off = 231, n_h_par = 264, n_w_par = 134, alpha = 0.05)
@@ -458,7 +490,45 @@ paired_14_16_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
-We can clearly see that there are some body size patterns in RS, specifically for males, but let us test for them! Perhaps a clean split would be to consider above average size fish "large", and below average fish "small". What are our sample sizes by large/small (425mm is our cutoff) and origin (both sexes combined)?
+We can clearly see that there are some body size patterns in RS, specifically for males, but let us test for them! Perhaps a clean split would be to consider above average size fish "large", and below average fish "small". What are our sample sizes by large/small (425mm is our cutoff) and origin (*both origins and sexes combined*)?
+```{r}
+paired_14_16_filter_parents %>% 
+  filter(`Length Mm` > 300) %>%  # remove outlier
+  filter(`Sample Year` == 2014) %>% 
+  mutate(Size = case_when(`Length Mm` <= 425 ~ "Small",
+                          `Length Mm` > 425 ~ "Large")) %>% 
+  mutate(Size = factor(x = Size, levels = c("Small", "Large"))) %>% 
+  count(`Sample Year`, Size)
+```
+
+Excellent, how many offspring were produced by these parents?
+```{r}
+paired_14_16_filter_parents %>% 
+  filter(`Length Mm` > 300) %>%  # remove outlier
+  filter(`Sample Year` == 2014) %>% 
+  mutate(Size = case_when(`Length Mm` <= 425 ~ "Small",
+                          `Length Mm` > 425 ~ "Large")) %>% 
+  mutate(Size = factor(x = Size, levels = c("Small", "Large"))) %>% 
+  group_by(Size) %>% 
+  summarise(offspring = sum(n, na.rm = TRUE))
+```
+
+### Small (<= 425mm) vs. Large (> 425mm)
+
+It doesn't look like there are large differences in average RS between small and large parents. Now we can calculate the RRS of small (<= 425mm) parents relative to large (> 425mm) parents (*both origins and sexes combined*)
+```{r}
+rrs_ci_kalinowski(n_h_off = 531, n_w_off = 598, n_h_par = 359, n_w_par = 367, alpha = 0.05)
+```
+
+**RRS = 0.91 (0.81-1.02)**
+
+Body size (i.e. parent length) does not appear to have a strong effect (not significant with alpha = 0.05), but on average, smaller fish produce slightly fewer offspring than larger fish. Thus, if sampling of parents based on size is not fully representative of escapement, there is relatively little potential for our estimates of RS (and RRS) for hatchery- vs. natural-origin to be biased. 
+
+However, given that we now know parent body size has relatively little influence on RS, what if we compare hatchery- vs. natural-origin RRS within each size class?
+
+### Hatchery vs. Natural Within Size Class
+
+What are our sample sizes by size class and origin (*both sexes combined*)?
 ```{r}
 paired_14_16_filter_parents %>% 
   filter(`Length Mm` > 300) %>%  # remove outlier
@@ -483,9 +553,9 @@ paired_14_16_filter_parents %>%
   spread(origin, offspring)
 ```
 
-Now we can calculate month-specific RRS (both sexes combined)
+Now we can calculate month-specific RRS (*both sexes combined*)
 
-### Small
+#### Small (<= 425mm)
 
 ```{r}
 rrs_ci_kalinowski(n_h_off = 120, n_w_off = 441, n_h_par = 151, n_w_par = 208, alpha = 0.05)
@@ -493,7 +563,7 @@ rrs_ci_kalinowski(n_h_off = 120, n_w_off = 441, n_h_par = 151, n_w_par = 208, al
 
 **RRS = 0.37 (0.31-0.46)**
 
-### Large
+#### Large (> 425mm)
 
 ```{r}
 rrs_ci_kalinowski(n_h_off = 223, n_w_off = 375, n_h_par = 243, n_w_par = 124, alpha = 0.05)
@@ -503,7 +573,7 @@ rrs_ci_kalinowski(n_h_off = 223, n_w_off = 375, n_h_par = 243, n_w_par = 124, al
 
 ### Summary
 
-When we compare RRS for hatchery- and natural-origin fish by body size of the parents (<= 425mm - small, > 425mm - large), we find that hatchery-origin fish produce an average of ~30-37% as many offspring as natural-origin parents. Body size clearly matters (see [plot](#RS_vs_size)), but we still see differences in RS between hatchery- and natural-origin fish when we compare within small- and large-sized groups.
+When we compare RRS for hatchery- and natural-origin fish by body size of the parents (<= 425mm - small, > 425mm - large), we find that hatchery-origin fish produce an average of ~30-37% as many offspring as natural-origin parents. Body size clearly has some effect (see [plot](#RS_vs_size)), but we still see differences in RS between hatchery- and natural-origin fish when we compare within small and large size classes.
 
 ## Location {#RS_vs_location}
 
@@ -528,7 +598,36 @@ riverdist_parentage_stock %>%
   theme(text = element_text(size = 20))
 ```
 
-We can clearly see that there are some spatial patterns in RS, specifically for males, but let us test for them! What are our sample sizes by intertidal/upstream and origin (both sexes combined)?
+We can clearly see that there are some spatial patterns in RS, specifically for males, but let us test for them! What are our sample sizes by intertidal/upstream (*both origins and sexes combined*)?
+```{r}
+riverdist_parentage_stock %>% 
+  count(`Sample Year`, Intertidal)
+```
+
+Excellent, how many offspring were produced by these parents?
+```{r}
+riverdist_parentage_stock %>% 
+  filter(`Sample Year` == 2014) %>% 
+  group_by(Intertidal) %>% 
+  summarise(offspring = sum(n, na.rm = TRUE))
+```
+
+### Intertidal vs. Upstream
+
+Clearly intertidal spawners produced more offspring on average than upstream spawners. Now we can calculate the RRS of upstream parents relative to intetidal parents (*both origins and sexes combined*)
+```{r}
+rrs_ci_kalinowski(n_h_off = 458, n_w_off = 775, n_h_par = 488, n_w_par = 305, alpha = 0.05)
+```
+
+**RRS = 0.37 (0.33-0.41)**
+
+Spawning location (i.e. parent sample location in the intertidal vs. upstream) clearly has an effect on RS, with upstream fish producing 37% as many offspring on average as intertidal parents! Thus, if sampling of parents is not fully representative of escapement, there is a potential for our estimates of RS (and RRS) for hatchery- vs. natural-origin to be biased. 
+
+However, given that we now know parent sample location has an influence on RS, what if we compare hatchery- vs. natural-origin RRS within each location?
+
+### Hatchery vs. Natural Within Location
+
+What are our sample sizes by location and origin (*both sexes combined*)?
 ```{r}
 riverdist_parentage_stock %>% 
   count(`Sample Year`, Intertidal, origin) %>% 
@@ -544,7 +643,7 @@ riverdist_parentage_stock %>%
   spread(origin, offspring)
 ```
 
-Now we can calculate location-specific RRS (both sexes combined)
+Now we can calculate location-specific RRS (*both sexes combined*)
 
 ### Intertidal
 
@@ -567,3 +666,5 @@ rrs_ci_kalinowski(n_h_off = 168, n_w_off = 290, n_h_par = 319, n_w_par = 169, al
 When we compare RRS for hatchery- and natural-origin fish by sample location of the parents (intertidal vs. upstream), we find that hatchery-origin fish produce an average of ~31-58% as many offspring as natural-origin parents depending on where the parents were sampled. Parent sample location clearly matters (see [plot](#RS_vs_location)), but we still see differences in RS between hatchery- and natural-origin fish when we compare within intertidal and upstream groups.
 
 # Generalized Linear Models {#GLM}
+
+Whew, now that we are done with this *preliminar* data exploration exercise (splitting continuous variables in to arbitrary categorical variables and considering each covariate piecemeal), we can move on to a more robust approach and consider all covariates holistically in a GLM, as is commonly done in the literature (see [Bernston et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), and [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725)).
