@@ -149,11 +149,11 @@ Overall, correlations among potential explanatory variables (sample date, length
 
 # Use GLM's to associate RS with sample location, date, origin, and length by sex {#glm}
 
-We used a negative binomial distribution model and log-linked function to evaluation associations between RS and origin, length, sample date, and location separately for females and males. We ran 16 models for each sex, identified statistically significant variables, and selected the best model based on AIC and model complexity. We avoided overly-complex models by only including first order interactions with origin. 
+We'll use a negative binomial distribution model and log-linked function to evaluation associations between RS and origin, length, sample date, location (distance from the mouth of the stream), and sex. *A priori* we have set up 131 models that range in complexity from considering a single variable, to more complex models incorporating all variables, as well as quadratic terms for ordinal sample date (Julian) and length (based on relationships we saw [above](#multi-collinearity)). We avoided overly-complex models by only including first order interactions with origin and sex. For this suite of models we will identify statistically significant variables and selected the best model based on Akaike's Information Criteria (AIC), which takes into account both residual deviance and model complexity.
 
-## Berntson et al. 2011
+## Create models
 
-Create models following the methods of Berntson et al. 2011
+Create models following the methods of [Berntson et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489).
 ```{r}
 riverdist_parentage_stock <- riverdist_parentage_stock %>% 
   mutate(Julian = yday(`Sample Date`))
@@ -161,74 +161,74 @@ riverdist_parentage_stock <- riverdist_parentage_stock %>%
 # Length^2 + Julian^2
 # Distance
 ## with and without sex/origin interactions
-RS.glm.1 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Distance + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
-RS.glm.2 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.3 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
-RS.glm.4 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.1 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` * SEX + Distance + I(Julian^2) + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.2 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` * SEX + Distance + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.3 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Distance + I(Julian^2) + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.4 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Distance + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 4 vars
-RS.glm.5 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + I(Julian^2), data = riverdist_parentage_stock, link = log)
-RS.glm.6 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.7 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.8 <- glm.nb(n ~ I(`Length Mm`^2) + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.9 <- glm.nb(n ~ SEX + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.5 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Distance + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.6 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Distance + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.7 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.8 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Distance + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.9 <- glm.nb(n ~ SEX + Distance + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 3 vars
-RS.glm.10 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance, data = riverdist_parentage_stock, link = log)
-RS.glm.11 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + I(Julian^2), data = riverdist_parentage_stock, link = log)
-RS.glm.12 <- glm.nb(n ~ I(`Length Mm`^2) + Distance + I(Julian^2), data = riverdist_parentage_stock, link = log)
-RS.glm.13 <- glm.nb(n ~  SEX + Distance + I(Julian^2), data = riverdist_parentage_stock, link = log)
-RS.glm.14 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.15 <- glm.nb(n ~ I(`Length Mm`^2) + Distance + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.10 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Distance, data = riverdist_parentage_stock, link = log)
+RS.glm.11 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.12 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Distance + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.13 <- glm.nb(n ~  SEX + Distance + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.14 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.15 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Distance + origin, data = riverdist_parentage_stock, link = log)
 RS.glm.16 <- glm.nb(n ~ SEX + Distance + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.17 <- glm.nb(n ~ I(`Length Mm`^2) + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.18 <- glm.nb(n ~ SEX + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.19 <- glm.nb(n ~ Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.17 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.18 <- glm.nb(n ~ SEX + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.19 <- glm.nb(n ~ Distance + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 2 vars
-RS.glm.20 <- glm.nb(n ~ I(`Length Mm`^2) + SEX, data = riverdist_parentage_stock, link = log)
-RS.glm.21 <- glm.nb(n ~ I(`Length Mm`^2) + Distance, data = riverdist_parentage_stock, link = log)
+RS.glm.20 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX, data = riverdist_parentage_stock, link = log)
+RS.glm.21 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Distance, data = riverdist_parentage_stock, link = log)
 RS.glm.22 <- glm.nb(n ~ SEX + Distance, data = riverdist_parentage_stock, link = log)
-RS.glm.23 <- glm.nb(n ~ I(`Length Mm`^2) + I(Julian^2), data = riverdist_parentage_stock, link = log)
-RS.glm.24 <- glm.nb(n ~ SEX + I(Julian^2), data = riverdist_parentage_stock, link = log)
-RS.glm.25 <- glm.nb(n ~ Distance + I(Julian^2), data = riverdist_parentage_stock, link = log)
-RS.glm.26 <- glm.nb(n ~ I(`Length Mm`^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.23 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.24 <- glm.nb(n ~ SEX + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.25 <- glm.nb(n ~ Distance + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.26 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + origin, data = riverdist_parentage_stock, link = log)
 RS.glm.27 <- glm.nb(n ~ SEX + origin, data = riverdist_parentage_stock, link = log)
 RS.glm.28 <- glm.nb(n ~ Distance + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.29 <- glm.nb(n ~ I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.29 <- glm.nb(n ~ I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 1 var
 RS.glm.30 <- glm.nb(n ~ origin, data = riverdist_parentage_stock, link = log)
-RS.glm.31 <- glm.nb(n ~ I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.31 <- glm.nb(n ~ I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
 RS.glm.32 <- glm.nb(n ~ Distance, data = riverdist_parentage_stock, link = log)
 RS.glm.33 <- glm.nb(n ~ SEX, data = riverdist_parentage_stock, link = log)
-RS.glm.34 <- glm.nb(n ~ I(`Length Mm`^2), data = riverdist_parentage_stock, link = log)
+RS.glm.34 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm`, data = riverdist_parentage_stock, link = log)
 
 # Intertidal
 ## with and without sex/origin interactions
-RS.glm.35 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Intertidal + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
-RS.glm.36 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.37 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
-RS.glm.38 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.35 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` * SEX + Intertidal + I(Julian^2) + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.36 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` * SEX + Intertidal + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.37 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Intertidal + I(Julian^2) + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.38 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Intertidal + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 4 vars
-RS.glm.39 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + I(Julian^2), data = riverdist_parentage_stock, link = log)
-RS.glm.40 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.41 <- glm.nb(n ~ I(`Length Mm`^2) + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.42 <- glm.nb(n ~ SEX + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.39 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Intertidal + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.40 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Intertidal + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.41 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Intertidal + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.42 <- glm.nb(n ~ SEX + Intertidal + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 3 vars
-RS.glm.43 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal, data = riverdist_parentage_stock, link = log)
-RS.glm.44 <- glm.nb(n ~ I(`Length Mm`^2) + Intertidal + I(Julian^2), data = riverdist_parentage_stock, link = log)
-RS.glm.45 <- glm.nb(n ~  SEX + Intertidal + I(Julian^2), data = riverdist_parentage_stock, link = log)
-RS.glm.46 <- glm.nb(n ~ I(`Length Mm`^2) + Intertidal + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.43 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Intertidal, data = riverdist_parentage_stock, link = log)
+RS.glm.44 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Intertidal + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.45 <- glm.nb(n ~  SEX + Intertidal + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.46 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Intertidal + origin, data = riverdist_parentage_stock, link = log)
 RS.glm.47 <- glm.nb(n ~ SEX + Intertidal + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.48 <- glm.nb(n ~ Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.48 <- glm.nb(n ~ Intertidal + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 2 vars
-RS.glm.49 <- glm.nb(n ~ I(`Length Mm`^2) + Intertidal, data = riverdist_parentage_stock, link = log)
+RS.glm.49 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Intertidal, data = riverdist_parentage_stock, link = log)
 RS.glm.50 <- glm.nb(n ~ SEX + Intertidal, data = riverdist_parentage_stock, link = log)
-RS.glm.51 <- glm.nb(n ~ Intertidal + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.51 <- glm.nb(n ~ Intertidal + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
 RS.glm.52 <- glm.nb(n ~ Intertidal + origin, data = riverdist_parentage_stock, link = log)
 
 ## 1 var
@@ -239,29 +239,29 @@ RS.glm.53 <- glm.nb(n ~ Intertidal, data = riverdist_parentage_stock, link = log
 # Length + Julian^2
 # Distance
 ## with and without sex/origin interactions
-RS.glm.54 <- glm.nb(n ~ `Length Mm` * SEX + Distance + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
-RS.glm.55 <- glm.nb(n ~ `Length Mm` * SEX + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.56 <- glm.nb(n ~ `Length Mm` + SEX + Distance + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
-RS.glm.57 <- glm.nb(n ~ `Length Mm` + SEX + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.54 <- glm.nb(n ~ `Length Mm` * SEX + Distance + I(Julian^2) + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.55 <- glm.nb(n ~ `Length Mm` * SEX + Distance + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.56 <- glm.nb(n ~ `Length Mm` + SEX + Distance + I(Julian^2) + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.57 <- glm.nb(n ~ `Length Mm` + SEX + Distance + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 4 vars
-RS.glm.58 <- glm.nb(n ~ `Length Mm` + SEX + Distance + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.58 <- glm.nb(n ~ `Length Mm` + SEX + Distance + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
 RS.glm.59 <- glm.nb(n ~ `Length Mm` + SEX + Distance + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.60 <- glm.nb(n ~ `Length Mm` + SEX + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.61 <- glm.nb(n ~ `Length Mm` + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.60 <- glm.nb(n ~ `Length Mm` + SEX + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.61 <- glm.nb(n ~ `Length Mm` + Distance + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 3 vars
 RS.glm.62 <- glm.nb(n ~ `Length Mm` + SEX + Distance, data = riverdist_parentage_stock, link = log)
-RS.glm.63 <- glm.nb(n ~ `Length Mm` + SEX + I(Julian^2), data = riverdist_parentage_stock, link = log)
-RS.glm.64 <- glm.nb(n ~ `Length Mm` + Distance + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.63 <- glm.nb(n ~ `Length Mm` + SEX + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.64 <- glm.nb(n ~ `Length Mm` + Distance + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
 RS.glm.65 <- glm.nb(n ~ `Length Mm` + SEX + origin, data = riverdist_parentage_stock, link = log)
 RS.glm.66 <- glm.nb(n ~ `Length Mm` + Distance + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.67 <- glm.nb(n ~ `Length Mm` + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.67 <- glm.nb(n ~ `Length Mm` + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 2 vars
 RS.glm.68 <- glm.nb(n ~ `Length Mm` + SEX, data = riverdist_parentage_stock, link = log)
 RS.glm.69 <- glm.nb(n ~ `Length Mm` + Distance, data = riverdist_parentage_stock, link = log)
-RS.glm.70 <- glm.nb(n ~ `Length Mm` + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.70 <- glm.nb(n ~ `Length Mm` + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
 RS.glm.71 <- glm.nb(n ~ `Length Mm` + origin, data = riverdist_parentage_stock, link = log)
 
 ## 1 var
@@ -269,19 +269,19 @@ RS.glm.72 <- glm.nb(n ~ `Length Mm`, data = riverdist_parentage_stock, link = lo
 
 # Intertidal
 ## with and without sex/origin interactions
-RS.glm.73 <- glm.nb(n ~ `Length Mm` * SEX + Intertidal + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
-RS.glm.74 <- glm.nb(n ~ `Length Mm` * SEX + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.75 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
-RS.glm.76 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.73 <- glm.nb(n ~ `Length Mm` * SEX + Intertidal + I(Julian^2) + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.74 <- glm.nb(n ~ `Length Mm` * SEX + Intertidal + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.75 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + I(Julian^2) + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.76 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 4 vars
-RS.glm.77 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.77 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
 RS.glm.78 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.79 <- glm.nb(n ~ `Length Mm` + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.79 <- glm.nb(n ~ `Length Mm` + Intertidal + I(Julian^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 3 vars
 RS.glm.80 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal, data = riverdist_parentage_stock, link = log)
-RS.glm.81 <- glm.nb(n ~ `Length Mm` + Intertidal + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.81 <- glm.nb(n ~ `Length Mm` + Intertidal + I(Julian^2) + Julian, data = riverdist_parentage_stock, link = log)
 RS.glm.82 <- glm.nb(n ~ `Length Mm` + Intertidal + origin, data = riverdist_parentage_stock, link = log)
 
 ## 2 vars
@@ -294,27 +294,27 @@ RS.glm.83 <- glm.nb(n ~ `Length Mm` + Intertidal, data = riverdist_parentage_sto
 # Length^2 + Julian
 # Distance
 ## with and without sex/origin interactions
-RS.glm.84 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Distance + Julian * origin, data = riverdist_parentage_stock, link = log)
-RS.glm.85 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.86 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + Julian * origin, data = riverdist_parentage_stock, link = log)
-RS.glm.87 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.84 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` * SEX + Distance + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.85 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` * SEX + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.86 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Distance + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.87 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 4 vars
-RS.glm.88 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + Julian, data = riverdist_parentage_stock, link = log)
-RS.glm.89 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Julian + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.90 <- glm.nb(n ~ I(`Length Mm`^2) + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.88 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Distance + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.89 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.90 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
 RS.glm.91 <- glm.nb(n ~ SEX + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 3 vars
-RS.glm.92 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Julian, data = riverdist_parentage_stock, link = log)
-RS.glm.93 <- glm.nb(n ~ I(`Length Mm`^2) + Distance + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.92 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.93 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Distance + Julian, data = riverdist_parentage_stock, link = log)
 RS.glm.94 <- glm.nb(n ~  SEX + Distance + Julian, data = riverdist_parentage_stock, link = log)
-RS.glm.95 <- glm.nb(n ~ I(`Length Mm`^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.95 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Julian + origin, data = riverdist_parentage_stock, link = log)
 RS.glm.96 <- glm.nb(n ~ SEX + Julian + origin, data = riverdist_parentage_stock, link = log)
 RS.glm.97 <- glm.nb(n ~ Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 2 vars
-RS.glm.98 <- glm.nb(n ~ I(`Length Mm`^2) + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.98 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Julian, data = riverdist_parentage_stock, link = log)
 RS.glm.99 <- glm.nb(n ~ SEX + Julian, data = riverdist_parentage_stock, link = log)
 RS.glm.100 <- glm.nb(n ~ Distance + Julian, data = riverdist_parentage_stock, link = log)
 RS.glm.101 <- glm.nb(n ~ Julian + origin, data = riverdist_parentage_stock, link = log)
@@ -324,18 +324,18 @@ RS.glm.102 <- glm.nb(n ~ Julian, data = riverdist_parentage_stock, link = log)
 
 # Intertidal
 ## with and without sex/origin interactions
-RS.glm.103 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Intertidal + Julian * origin, data = riverdist_parentage_stock, link = log)
-RS.glm.104 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
-RS.glm.105 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + Julian * origin, data = riverdist_parentage_stock, link = log)
-RS.glm.106 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.103 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` * SEX + Intertidal + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.104 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` * SEX + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.105 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Intertidal + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.106 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 4 vars
-RS.glm.107 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + Julian, data = riverdist_parentage_stock, link = log)
-RS.glm.108 <- glm.nb(n ~ I(`Length Mm`^2) + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.107 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + SEX + Intertidal + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.108 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
 RS.glm.109 <- glm.nb(n ~ SEX + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
 
 ## 3 vars
-RS.glm.110 <- glm.nb(n ~ I(`Length Mm`^2) + Intertidal + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.110 <- glm.nb(n ~ I(`Length Mm`^2) + `Length Mm` + Intertidal + Julian, data = riverdist_parentage_stock, link = log)
 RS.glm.111 <- glm.nb(n ~  SEX + Intertidal + Julian, data = riverdist_parentage_stock, link = log)
 RS.glm.112 <- glm.nb(n ~ Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
 
@@ -389,12 +389,11 @@ RS.glm.131 <- glm.nb(n ~ `Length Mm` + Intertidal + Julian, data = riverdist_par
 
 ```
 
-Akaike weights are another way of determining which model has the best fit, by calculating their conditional probabilities. 
+## GLM Summaries
 
-The model with the highest weight (0.54) included sample date, length, intertidal, and origin. Origin was consistantly associated with RS in all of the top models.
-
+Here are the top models ranked by Akaike weights, which are another way of determining which model has the best fit, by calculating their conditional probabilities.
 ```{r bernston_glm_summary}
-bernston_model_summary <- bind_rows(
+glm_model_summary <- bind_rows(
   lapply(c(1:131), function(i) {
     fit <- get(paste0("RS.glm.", i))
     summary(fit)$coefficients %>% 
@@ -409,7 +408,7 @@ bernston_model_summary <- bind_rows(
   } )
 )
 
-bernston_aic <- bind_rows(
+glm_aic <- bind_rows(
   lapply(paste0("RS.glm.", 1:131), function(mod) {
     data.frame(row.names = mod,
                df = length(get(mod)$coefficients) + 1,
@@ -418,30 +417,62 @@ bernston_aic <- bind_rows(
   } )
 )
 
-rownames(bernston_aic) <- paste0("RS.glm.", 1:131)
+rownames(glm_aic) <- paste0("RS.glm.", 1:131)
 
-bernston_aic <- bernston_aic %>% 
-  mutate(AIC_weight = as.numeric(Weights(bernston_aic))) %>% 
-  mutate(name = rownames(bernston_aic)) %>% 
+glm_aic <- glm_aic %>% 
+  mutate(AIC_weight = as.numeric(Weights(glm_aic))) %>% 
+  mutate(name = rownames(glm_aic)) %>% 
   arrange(AIC) %>% 
   mutate(delta_AIC = AIC - min(AIC))
 
-(bernston_model_summary <- bernston_model_summary %>% 
-  left_join(bernston_aic, by = c("name", "AIC")) %>% 
-  arrange(AIC)) %>% 
-  select(name, model, df, AIC, delta_AIC, AIC_weight, variable, Estimate, `Std. Error`, residual_deviance, residual_df, null_deviance, null_df)
+glm_model_summary <- glm_model_summary %>% 
+  left_join(glm_aic, by = c("name", "AIC")) %>% 
+  arrange(AIC)
+  # select(name, model, df, AIC, delta_AIC, AIC_weight, variable, Estimate, `Std. Error`, residual_deviance, residual_df, null_deviance, null_df)
 
-bernston_model_summary %>% 
-  group_by(name) %>% 
-  summarise(AIC_weight = max(AIC_weight), model = unique(model)) %>% 
+glm_model_summary %>% 
+  group_by(name, df, residual_deviance, null_deviance) %>% 
+  summarise(AIC_weight = round(max(AIC_weight), 3), model = unique(model), deviance_explained = round(1 - (max(residual_deviance) / max(null_deviance)), 3)) %>% 
+  ungroup() %>% 
+  select(name, df, AIC_weight, deviance_explained, model) %>% 
   arrange(desc(AIC_weight))
-
-bernston_model_summary %>% 
-  select(-`Std. Error`, -`z value`, -`Pr(>|z|)`) %>% 
-  spread(variable, Estimate, fill = NA)
 
 # write_csv(female_model_summary, "../Stockdale/stock_glm_berntson_summary.csv")
 ```
+
+It looks like all of the top models, to some degree, incorporate all potential explainatory variables. The proportion of deviance explained (1 - residual_deviance / null_deviance) ~ 30%.
+
+Here is a more thorough model summary.
+```{r}
+glm_model_summary %>% 
+  select(-`Std. Error`, -`z value`, -`Pr(>|z|)`) %>% 
+  spread(variable, Estimate, fill = NA)
+```
+
+Here is the summary of the top model.
+```{r}
+summary(RS.glm.120)
+```
+
+What are the coefficients and 95% CIs?
+```{r}
+(est <- cbind(Estimate = coef(RS.glm.120), confint(RS.glm.120)))
+```
+
+**Note** those coefficients are still in log space due to the logit link function. If we take the exponent, we can look at incident ratios.
+```{r}
+exp(est)
+```
+
+Looking at these incident ratios, we can see that the RRS of hatchery-origin fish relative to natural-origin fish is ~ 0.48 (0.39-0.59) holding the other variables constant (length, distance, and date). Also, the percent change in the number of offspring increases by ~ 1.2% for every Mm increase in length, decreases by ~ 0.2% for every meter further upstream a fish is sampled, and decreases ~ 4.3% for every day later in the season a fish is sampled.
+
+
+
+
+
+DELETE EVERYTHING BELOW HERE!!!
+
+
 ## Female
 
 ### Negative binomial GLMs
