@@ -14,7 +14,7 @@ Anything in [red](#protip) is a hyperlink that will either take you to the relev
 
 # Introduction
 
-The purpose of these analyses are to follow up on the previous notebook and fully consider all of the Stockdale Creek data holistically by model fitting reproducitve success (RS) to generalized linear models (GLM’s), as is commonly done in the literature (see [Bernston et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), and [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725)).
+The purpose of these analyses are to follow up on the previous notebook and fully consider all of the Stockdale Creek data holistically by model fitting reproducitve success (RS) to generalized linear models (GLM’s), as is commonly done in the literature (see [Anderson et al. 2011](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1752-4571.2012.00271.x), [Bernston et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), and [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725)). First we will explore the data a bit so we know what we are modeling, next we will check for multi-collinearity among variables, and finally we will construct a series of GLM's to model RS and use Akaike model selection to calculate variable weights.
 
 ```{r setup, include=FALSE}
 library(coin)
@@ -32,16 +32,16 @@ library(gganimate)
 knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.width = 10)
 ```
 
-# Load Data
+# Load Parent Data
 ```{r}
 (riverdist_parentage_stock <- read_csv("riverdist_parentage_stock.csv") %>% 
    mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 )
 ```
 
-# Explore Data
+# Explore Parent Data
 
-## Visualize RS in Space and Time
+While we've previously shown figures relating RS to individual variables (e.g. Sample Date, Length of parents, etc.), we have now incorporated the spatial data (Sample Location of parents) and can now explore spatio-temporal trends in RS.  
 
 Here we'll create an animation that walks through each sample date to show that fishes sample location (latitude and longitude) with the color of the point indicating the fish's origin (hatchery vs. natural), the shape the fish's sex (male/female), and the size of the point indicating how many offspring were assigned to it (reproductive success). This will show us two important things:  
 
@@ -82,7 +82,7 @@ anim_save(filename = "Stockdale spatial RS over time.gif", path = "../")
 knitr::include_graphics("../Stockdale spatial RS over time.gif")
 ```
 
-Another way to look at this is to use river distance instead of latitude/longitude, so we can view it in 2D as opposed to an animation. Here is a simple plot of RS by parent sample date and distance (both origins and sexes combined).
+Another way to look at this is to use river distance (distance in meters upstream from the lowest sampling extent) instead of latitude/longitude, so we can view it in 2D as opposed to an animation. Here is a simple plot of RS by parent sample date and distance (both origins and sexes combined).
 ```{r, out.width="100%"}
 riverdist_parentage_stock %>% 
     mutate(Sex = case_when(SEX == "F" ~ "Female",
@@ -100,7 +100,7 @@ riverdist_parentage_stock %>%
   theme(text = element_text(size = 20))
 ```
 
-Interesting, we can certainly see how hatchery- and natural-origin fish are separated in space and time, although there is some spatio-temporal overlap. Here we'll split out the "Unsuccessful" potential parents (i.e. those with RS = 0, no offspring assigned) as well as females and males.
+Interesting, we can certainly see how hatchery- and natural-origin fish are separated in space and time, although there is some spatio-temporal overlap. Here we'll split out the "Unsuccessful" potential parents (i.e. Successful parents have RS >= 1, and Unsuccessful parents have RS = 0, no offspring assigned) as well as females and males.
 ```{r}
 riverdist_parentage_stock %>% 
   mutate(Sex = case_when(SEX == "F" ~ "Female",
@@ -119,105 +119,9 @@ riverdist_parentage_stock %>%
   theme(text = element_text(size = 20))  
 ```
 
-How about the cross type data (offspring with two-parents, dam and sire)? What are the spatio-temporal patterns in matings of different cross types?
-```{r}
-parents_paired_14_16_cross <- read_csv("stock_parents_paired_14_16_cross.csv")
-
-# organize by sire and dam, join riverdist data
-parents_paired_14_16_cross_riverdist <- parents_paired_14_16_cross %>% 
-  count(cross, `Fish ID`, `Fish ID.par1`, `Sample Date`, `Sample Date.par1`, SEX, SEX.par1, `DNA Tray Code`, `DNA Tray Code.par1`, `DNA Tray Well Code`, `DNA Tray Well Code.par1`, origin.par1, origin, `Length Mm.par1`, `Length Mm`) %>% 
-  rename(`Fish ID.par2` = `Fish ID`, 
-         `Sample Date.par2` = `Sample Date`,
-         SEX.par2 = SEX,
-         `DNA Tray Code.par2` = `DNA Tray Code`,
-         `DNA Tray Well Code.par2` = `DNA Tray Well Code`,
-         origin.par2 = origin,
-         `Length Mm.par2` = `Length Mm`) %>% 
-  unite(Sample.par1, c("DNA Tray Code.par1", "DNA Tray Well Code.par1"), sep = "_", remove = TRUE) %>% 
-  unite(Sample.par2, c("DNA Tray Code.par2", "DNA Tray Well Code.par2"), sep = "_", remove = TRUE) %>% 
-  left_join(riverdist, by = c("Sample.par1" = "Sample")) %>% 
-  left_join(riverdist, by = c("Sample.par2" = "Sample"), suffix = c(".par1", ".par2")) %>% 
-  mutate(fish_id.sire = case_when(SEX.par1 == "M" ~ `Fish ID.par1`,
-                                  TRUE ~ `Fish ID.par2`)) %>% 
-  mutate(fish_id.dam = case_when(SEX.par1 == "F" ~ `Fish ID.par1`,
-                                  TRUE ~ `Fish ID.par2`)) %>% 
-  mutate(sample_date.sire = case_when(SEX.par1 == "M" ~ `Sample Date.par1`,
-                                  TRUE ~ `Sample Date.par2`)) %>% 
-  mutate(sample_date.dam = case_when(SEX.par1 == "F" ~ `Sample Date.par1`,
-                                  TRUE ~ `Sample Date.par2`)) %>% 
-  mutate(sex.sire = case_when(SEX.par1 == "M" ~ SEX.par1,
-                                  TRUE ~ SEX.par2)) %>% 
-  mutate(sex.dam = case_when(SEX.par1 == "F" ~ SEX.par1,
-                                  TRUE ~ SEX.par2)) %>%
-  mutate(origin.sire = case_when(SEX.par1 == "M" ~ origin.par1,
-                                  TRUE ~ origin.par2)) %>% 
-  mutate(origin.dam = case_when(SEX.par1 == "F" ~ origin.par1,
-                                  TRUE ~ origin.par2)) %>%
-  mutate(distance.sire = case_when(SEX.par1 == "M" ~ Distance.par1,
-                                  TRUE ~ Distance.par2)) %>% 
-  mutate(distance.dam = case_when(SEX.par1 == "F" ~ Distance.par1,
-                                  TRUE ~ Distance.par2)) %>%
-  mutate(intertidal.sire = case_when(SEX.par1 == "M" ~ Intertidal.par1,
-                                  TRUE ~ Intertidal.par2)) %>% 
-  mutate(intertidal.dam = case_when(SEX.par1 == "F" ~ Intertidal.par1,
-                                  TRUE ~ Intertidal.par2)) %>%
-  mutate(length.sire = case_when(SEX.par1 == "M" ~ `Length Mm.par1`,
-                                  TRUE ~ `Length Mm.par2`)) %>% 
-  mutate(length.dam = case_when(SEX.par1 == "F" ~ `Length Mm.par1`,
-                                  TRUE ~ `Length Mm.par2`)) %>%
-  select(cross, n, ends_with(".sire"), ends_with(".dam"))
-```
-
-**When** were Dams and Sires that mated together sampled? We would expected that they would be sampled within the same time frame. However, it looks like females were sampled later (on average) than males. This is likely due to earlier run timing in males.
-```{r}
-parents_paired_14_16_cross_riverdist %>% 
-  ggplot(aes(x = sample_date.sire, y = sample_date.dam)) +
-  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
-  geom_abline(slope = 1) +
-  theme_bw() +
-  ggtitle("Parent Sample Date by Cross Type") +
-  xlab("Sire Sample Date") +
-  ylab("Dam Sample Date") +
-  labs(size = "RS", 
-       colour = "Parent: Cross Type") +
-  theme(text = element_text(size = 20))  
-```
-
-**Where** were Dams and Sires that mated together sampled? We would expected that they would be sampled within the same area.
-```{r}
-parents_paired_14_16_cross_riverdist %>% 
-  ggplot(aes(x = distance.sire, y = distance.dam), alpha = 0.05) +
-  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
-  geom_abline(slope = 1)+
-  theme_bw() +
-  ggtitle("Parent Distance by Cross Type") +
-  xlab("Sire Sample Distance from Mouth") +
-  ylab("Dam Sample Distance from Mouth") +
-  labs(size = "RS", 
-       colour = "Parent: Cross Type") +
-  theme(text = element_text(size = 20))  
-```
-
-Was there evidence of size assortative mating? Did larger fish mate with each other? Nope, doesn't look like it.
-```{r}
-parents_paired_14_16_cross_riverdist %>% 
-  filter(length.sire > 300 & length.dam > 300) %>% 
-  ggplot(aes(x = length.sire, y = length.dam), alpha = 0.05) +
-  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
-  geom_abline(slope = 1)+
-  geom_smooth(method = "lm") +
-  theme_bw() +
-  ggtitle("Parent Length by Cross Type")+
-  xlab("Sire Length") +
-  ylab("Dam Length") +
-  labs(size = "RS", 
-       colour = "Parent: Cross Type") +
-  theme(text = element_text(size = 20))  
-```
-
 # Check for multi-collinearity {#multi-collinearity}
 
-Before modeling RS, we checked for multi-collinearity among variables because we assumed that there would be some degree of non-independence. *Note* that these plots exclude individuals with missing data.
+Before modeling RS, we need to check for multi-collinearity among variables because there may be some degree of non-independence among variables. For visualization purposes, data are grouped by origin. The diagonal shows density plots for continuous variables (e.g. Sample Date) and side by side bar plots for categorical variables (e.g. Sex). The upper plots above the diagonal show correlation coefficients between confitnuous variables, grouped box plots between continuous and categorical variables, and stacked bar plots between categorical variables. The lower plots below the diagonal show scatter plots with loess curves between continuous variables, grouped histograms between continuous and categorical variables, and stacked bar plots between categorical variables. The variable *Success* is derived from *RS* (Successful for RS >= 1, Unsuccessful for RS = 0), and thus would not be used in a model concurrent with *RS*. **Note** that these plots exclude individuals with missing data.
 ```{r try ggpairs, fig.width=12, fig.height=12, warning=FALSE, message=FALSE}
 reduced <- riverdist_parentage_stock %>% 
   rename(RS = n, Sex = SEX) %>% 
@@ -241,183 +145,534 @@ ggpairs(reduced,
         text = element_text(size = 16))
 ```
 
-Overall, correlations among potential explanatory variables (sample date, length, and stream distance) are pretty weak, so there are not big concernc with multi-collinearity (i.e. we can have all variables in a model). Weak positive correlations were found between length and date (r = 0.26), distance and date (0.08), and RS and length (0.05). Weak negative correlations were found between distance and length (-0.05), distance and RS (-0.10), and RS and date (-0.25). Reproductive success was negatively correlated with sample date (-0.25) and stream distance (-0.37), and slightly positively correlated with length (0.05).
+Overall, correlations among potential explanatory variables (sample date, length, and stream distance) are pretty weak, so there are not big concerns with multi-collinearity (i.e. we can have all variables in a model). Weak positive correlations were found between length and date (r = 0.26), distance and date (0.08), and RS and length (0.05). Weak negative correlations were found between distance and length (-0.05), distance and RS (-0.10), and RS and date (-0.25). Reproductive success was negatively correlated with sample date (-0.25) and stream distance (-0.37), and slightly positively correlated with length (0.05).
 
-# Cross Data
+# Use GLM's to associate RS with sample location, date, origin, and length by sex {#glm}
 
-## Each row as a cross
+We used a negative binomial distribution model and log-linked function to evaluation associations between RS and origin, length, sample date, and location separately for females and males. We ran 16 models for each sex, identified statistically significant variables, and selected the best model based on AIC and model complexity. We avoided overly-complex models by only including first order interactions with origin. 
+
+## Berntson et al. 2011
+
+Create models following the methods of Berntson et al. 2011
 ```{r}
-riverdist <- read_csv("../../GIS/R/stockdale/stockdale_distances.csv") %>% 
-  mutate(Intertidal = case_when(dist2tide > 0 ~ "Upstream",
-                                dist2tide <= 0 ~ "Intertidal")) %>% 
-  rename(Distance = mouthdist, Segment = seg)
+riverdist_parentage_stock <- riverdist_parentage_stock %>% 
+  mutate(Julian = yday(`Sample Date`))
 
-parents_paired_14_16_cross <- read_csv("stock_parents_paired_14_16_cross.csv")
+# Length^2 + Julian^2
+# Distance
+## with and without sex/origin interactions
+RS.glm.1 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Distance + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.2 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.3 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.4 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
 
-# organize by sire and dam, join riverdist data
-parents_paired_14_16_cross_riverdist <- parents_paired_14_16_cross %>% 
-  count(cross, `Fish ID`, `Fish ID.par1`, `Sample Date`, `Sample Date.par1`, SEX, SEX.par1, `DNA Tray Code`, `DNA Tray Code.par1`, `DNA Tray Well Code`, `DNA Tray Well Code.par1`, origin.par1, origin, `Length Mm.par1`, `Length Mm`) %>% 
-  rename(`Fish ID.par2` = `Fish ID`, 
-         `Sample Date.par2` = `Sample Date`,
-         SEX.par2 = SEX,
-         `DNA Tray Code.par2` = `DNA Tray Code`,
-         `DNA Tray Well Code.par2` = `DNA Tray Well Code`,
-         origin.par2 = origin,
-         `Length Mm.par2` = `Length Mm`) %>% 
-  unite(Sample.par1, c("DNA Tray Code.par1", "DNA Tray Well Code.par1"), sep = "_", remove = TRUE) %>% 
-  unite(Sample.par2, c("DNA Tray Code.par2", "DNA Tray Well Code.par2"), sep = "_", remove = TRUE) %>% 
-  left_join(riverdist, by = c("Sample.par1" = "Sample")) %>% 
-  left_join(riverdist, by = c("Sample.par2" = "Sample"), suffix = c(".par1", ".par2")) %>% 
-  mutate(fish_id.sire = case_when(SEX.par1 == "M" ~ `Fish ID.par1`,
-                                  TRUE ~ `Fish ID.par2`)) %>% 
-  mutate(fish_id.dam = case_when(SEX.par1 == "F" ~ `Fish ID.par1`,
-                                  TRUE ~ `Fish ID.par2`)) %>% 
-  mutate(sample_date.sire = case_when(SEX.par1 == "M" ~ `Sample Date.par1`,
-                                  TRUE ~ `Sample Date.par2`)) %>% 
-  mutate(sample_date.dam = case_when(SEX.par1 == "F" ~ `Sample Date.par1`,
-                                  TRUE ~ `Sample Date.par2`)) %>% 
-  mutate(sex.sire = case_when(SEX.par1 == "M" ~ SEX.par1,
-                                  TRUE ~ SEX.par2)) %>% 
-  mutate(sex.dam = case_when(SEX.par1 == "F" ~ SEX.par1,
-                                  TRUE ~ SEX.par2)) %>%
-  mutate(origin.sire = case_when(SEX.par1 == "M" ~ origin.par1,
-                                  TRUE ~ origin.par2)) %>% 
-  mutate(origin.dam = case_when(SEX.par1 == "F" ~ origin.par1,
-                                  TRUE ~ origin.par2)) %>%
-  mutate(distance.sire = case_when(SEX.par1 == "M" ~ Distance.par1,
-                                  TRUE ~ Distance.par2)) %>% 
-  mutate(distance.dam = case_when(SEX.par1 == "F" ~ Distance.par1,
-                                  TRUE ~ Distance.par2)) %>%
-  mutate(intertidal.sire = case_when(SEX.par1 == "M" ~ Intertidal.par1,
-                                  TRUE ~ Intertidal.par2)) %>% 
-  mutate(intertidal.dam = case_when(SEX.par1 == "F" ~ Intertidal.par1,
-                                  TRUE ~ Intertidal.par2)) %>%
-  mutate(length.sire = case_when(SEX.par1 == "M" ~ `Length Mm.par1`,
-                                  TRUE ~ `Length Mm.par2`)) %>% 
-  mutate(length.dam = case_when(SEX.par1 == "F" ~ `Length Mm.par1`,
-                                  TRUE ~ `Length Mm.par2`)) %>%
-  select(cross, n, ends_with(".sire"), ends_with(".dam"))
+## 4 vars
+RS.glm.5 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.6 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.7 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.8 <- glm.nb(n ~ I(`Length Mm`^2) + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.9 <- glm.nb(n ~ SEX + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+
+## 3 vars
+RS.glm.10 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance, data = riverdist_parentage_stock, link = log)
+RS.glm.11 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.12 <- glm.nb(n ~ I(`Length Mm`^2) + Distance + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.13 <- glm.nb(n ~  SEX + Distance + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.14 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.15 <- glm.nb(n ~ I(`Length Mm`^2) + Distance + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.16 <- glm.nb(n ~ SEX + Distance + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.17 <- glm.nb(n ~ I(`Length Mm`^2) + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.18 <- glm.nb(n ~ SEX + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.19 <- glm.nb(n ~ Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+
+## 2 vars
+RS.glm.20 <- glm.nb(n ~ I(`Length Mm`^2) + SEX, data = riverdist_parentage_stock, link = log)
+RS.glm.21 <- glm.nb(n ~ I(`Length Mm`^2) + Distance, data = riverdist_parentage_stock, link = log)
+RS.glm.22 <- glm.nb(n ~ SEX + Distance, data = riverdist_parentage_stock, link = log)
+RS.glm.23 <- glm.nb(n ~ I(`Length Mm`^2) + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.24 <- glm.nb(n ~ SEX + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.25 <- glm.nb(n ~ Distance + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.26 <- glm.nb(n ~ I(`Length Mm`^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.27 <- glm.nb(n ~ SEX + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.28 <- glm.nb(n ~ Distance + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.29 <- glm.nb(n ~ I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+
+## 1 var
+RS.glm.30 <- glm.nb(n ~ origin, data = riverdist_parentage_stock, link = log)
+RS.glm.31 <- glm.nb(n ~ I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.32 <- glm.nb(n ~ Distance, data = riverdist_parentage_stock, link = log)
+RS.glm.33 <- glm.nb(n ~ SEX, data = riverdist_parentage_stock, link = log)
+RS.glm.34 <- glm.nb(n ~ I(`Length Mm`^2), data = riverdist_parentage_stock, link = log)
+
+# Intertidal
+## with and without sex/origin interactions
+RS.glm.35 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Intertidal + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.36 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.37 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.38 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+
+## 4 vars
+RS.glm.39 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.40 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.41 <- glm.nb(n ~ I(`Length Mm`^2) + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.42 <- glm.nb(n ~ SEX + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+
+## 3 vars
+RS.glm.43 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal, data = riverdist_parentage_stock, link = log)
+RS.glm.44 <- glm.nb(n ~ I(`Length Mm`^2) + Intertidal + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.45 <- glm.nb(n ~  SEX + Intertidal + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.46 <- glm.nb(n ~ I(`Length Mm`^2) + Intertidal + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.47 <- glm.nb(n ~ SEX + Intertidal + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.48 <- glm.nb(n ~ Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+
+## 2 vars
+RS.glm.49 <- glm.nb(n ~ I(`Length Mm`^2) + Intertidal, data = riverdist_parentage_stock, link = log)
+RS.glm.50 <- glm.nb(n ~ SEX + Intertidal, data = riverdist_parentage_stock, link = log)
+RS.glm.51 <- glm.nb(n ~ Intertidal + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.52 <- glm.nb(n ~ Intertidal + origin, data = riverdist_parentage_stock, link = log)
+
+## 1 var
+RS.glm.53 <- glm.nb(n ~ Intertidal, data = riverdist_parentage_stock, link = log)
+
+
+
+# Length + Julian^2
+# Distance
+## with and without sex/origin interactions
+RS.glm.54 <- glm.nb(n ~ `Length Mm` * SEX + Distance + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.55 <- glm.nb(n ~ `Length Mm` * SEX + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.56 <- glm.nb(n ~ `Length Mm` + SEX + Distance + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.57 <- glm.nb(n ~ `Length Mm` + SEX + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+
+## 4 vars
+RS.glm.58 <- glm.nb(n ~ `Length Mm` + SEX + Distance + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.59 <- glm.nb(n ~ `Length Mm` + SEX + Distance + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.60 <- glm.nb(n ~ `Length Mm` + SEX + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.61 <- glm.nb(n ~ `Length Mm` + Distance + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+
+## 3 vars
+RS.glm.62 <- glm.nb(n ~ `Length Mm` + SEX + Distance, data = riverdist_parentage_stock, link = log)
+RS.glm.63 <- glm.nb(n ~ `Length Mm` + SEX + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.64 <- glm.nb(n ~ `Length Mm` + Distance + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.65 <- glm.nb(n ~ `Length Mm` + SEX + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.66 <- glm.nb(n ~ `Length Mm` + Distance + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.67 <- glm.nb(n ~ `Length Mm` + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+
+## 2 vars
+RS.glm.68 <- glm.nb(n ~ `Length Mm` + SEX, data = riverdist_parentage_stock, link = log)
+RS.glm.69 <- glm.nb(n ~ `Length Mm` + Distance, data = riverdist_parentage_stock, link = log)
+RS.glm.70 <- glm.nb(n ~ `Length Mm` + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.71 <- glm.nb(n ~ `Length Mm` + origin, data = riverdist_parentage_stock, link = log)
+
+## 1 var
+RS.glm.72 <- glm.nb(n ~ `Length Mm`, data = riverdist_parentage_stock, link = log)
+
+# Intertidal
+## with and without sex/origin interactions
+RS.glm.73 <- glm.nb(n ~ `Length Mm` * SEX + Intertidal + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.74 <- glm.nb(n ~ `Length Mm` * SEX + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.75 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + I(Julian^2) * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.76 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+
+## 4 vars
+RS.glm.77 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.78 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.79 <- glm.nb(n ~ `Length Mm` + Intertidal + I(Julian^2) + origin, data = riverdist_parentage_stock, link = log)
+
+## 3 vars
+RS.glm.80 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal, data = riverdist_parentage_stock, link = log)
+RS.glm.81 <- glm.nb(n ~ `Length Mm` + Intertidal + I(Julian^2), data = riverdist_parentage_stock, link = log)
+RS.glm.82 <- glm.nb(n ~ `Length Mm` + Intertidal + origin, data = riverdist_parentage_stock, link = log)
+
+## 2 vars
+RS.glm.83 <- glm.nb(n ~ `Length Mm` + Intertidal, data = riverdist_parentage_stock, link = log)
+
+## 1 var
+
+
+
+# Length^2 + Julian
+# Distance
+## with and without sex/origin interactions
+RS.glm.84 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Distance + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.85 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.86 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.87 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
+
+## 4 vars
+RS.glm.88 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Distance + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.89 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.90 <- glm.nb(n ~ I(`Length Mm`^2) + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.91 <- glm.nb(n ~ SEX + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
+
+## 3 vars
+RS.glm.92 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.93 <- glm.nb(n ~ I(`Length Mm`^2) + Distance + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.94 <- glm.nb(n ~  SEX + Distance + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.95 <- glm.nb(n ~ I(`Length Mm`^2) + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.96 <- glm.nb(n ~ SEX + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.97 <- glm.nb(n ~ Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
+
+## 2 vars
+RS.glm.98 <- glm.nb(n ~ I(`Length Mm`^2) + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.99 <- glm.nb(n ~ SEX + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.100 <- glm.nb(n ~ Distance + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.101 <- glm.nb(n ~ Julian + origin, data = riverdist_parentage_stock, link = log)
+
+## 1 var
+RS.glm.102 <- glm.nb(n ~ Julian, data = riverdist_parentage_stock, link = log)
+
+# Intertidal
+## with and without sex/origin interactions
+RS.glm.103 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Intertidal + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.104 <- glm.nb(n ~ I(`Length Mm`^2) * SEX + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.105 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.106 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
+
+## 4 vars
+RS.glm.107 <- glm.nb(n ~ I(`Length Mm`^2) + SEX + Intertidal + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.108 <- glm.nb(n ~ I(`Length Mm`^2) + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.109 <- glm.nb(n ~ SEX + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
+
+## 3 vars
+RS.glm.110 <- glm.nb(n ~ I(`Length Mm`^2) + Intertidal + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.111 <- glm.nb(n ~  SEX + Intertidal + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.112 <- glm.nb(n ~ Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
+
+## 2 vars
+RS.glm.113 <- glm.nb(n ~ Intertidal + Julian, data = riverdist_parentage_stock, link = log)
+
+## 1 var
+
+
+
+# Length + Julian
+# Distance
+## with and without sex/origin interactions
+RS.glm.114 <- glm.nb(n ~ `Length Mm` * SEX + Distance + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.115 <- glm.nb(n ~ `Length Mm` * SEX + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.116 <- glm.nb(n ~ `Length Mm` + SEX + Distance + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.117 <- glm.nb(n ~ `Length Mm` + SEX + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
+
+## 4 vars
+RS.glm.118 <- glm.nb(n ~ `Length Mm` + SEX + Distance + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.119 <- glm.nb(n ~ `Length Mm` + SEX + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.120 <- glm.nb(n ~ `Length Mm` + Distance + Julian + origin, data = riverdist_parentage_stock, link = log)
+
+## 3 vars
+RS.glm.121 <- glm.nb(n ~ `Length Mm` + SEX + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.122 <- glm.nb(n ~ `Length Mm` + Distance + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.123 <- glm.nb(n ~ `Length Mm` + Julian + origin, data = riverdist_parentage_stock, link = log)
+
+## 2 vars
+RS.glm.124 <- glm.nb(n ~ `Length Mm` + Julian, data = riverdist_parentage_stock, link = log)
+
+## 1 var
+
+# Intertidal
+## with and without sex/origin interactions
+RS.glm.125 <- glm.nb(n ~ `Length Mm` * SEX + Intertidal + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.126 <- glm.nb(n ~ `Length Mm` * SEX + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
+RS.glm.127 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + Julian * origin, data = riverdist_parentage_stock, link = log)
+RS.glm.128 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
+
+## 4 vars
+RS.glm.129 <- glm.nb(n ~ `Length Mm` + SEX + Intertidal + Julian, data = riverdist_parentage_stock, link = log)
+RS.glm.130 <- glm.nb(n ~ `Length Mm` + Intertidal + Julian + origin, data = riverdist_parentage_stock, link = log)
+
+## 3 vars
+RS.glm.131 <- glm.nb(n ~ `Length Mm` + Intertidal + Julian, data = riverdist_parentage_stock, link = log)
+
+## 2 vars
+
+## 1 var
+
 ```
 
-```{r}
-parents_paired_14_16_cross_riverdist
-```
+Akaike weights are another way of determining which model has the best fit, by calculating their conditional probabilities. 
 
-# Each row as a parent
-```{r}
-riverdist_parentage_stock
-```
+The model with the highest weight (0.54) included sample date, length, intertidal, and origin. Origin was consistantly associated with RS in all of the top models.
 
-# Each row as an offspring
-```{r}
-riverdist
-```
-
-```{r}
-(parents_paired_14_16 <- read_csv("stock_parents_paired_14_16.csv") %>% 
-     mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
+```{r bernston_glm_summary}
+bernston_model_summary <- bind_rows(
+  lapply(c(1:131), function(i) {
+    fit <- get(paste0("RS.glm.", i))
+    summary(fit)$coefficients %>% 
+      as_tibble(rownames = "variable") %>% 
+      mutate(name = paste0("RS.glm.", i)) %>% 
+      mutate(model = as.character(fit$call)[2]) %>% 
+      mutate(AIC = fit$aic) %>% 
+      mutate(residual_deviance = fit$deviance) %>% 
+      mutate(residual_df = fit$df.residual) %>% 
+      mutate(null_deviance = fit$null.deviance) %>% 
+      mutate(null_df = fit$df.null)
+  } )
 )
-```
 
-```{r}
-parents_paired_14_16 %>% 
-  mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
-                             SEX.par == "M" ~ "Parent: Male")) %>% 
-  mutate(sex.off = case_when(SEX.off == "F" ~ "Offspring: Female",
-                             SEX.off == "M" ~ "Offspring: Male")) %>% 
-  group_by(sex.par, sex.off) %>% 
-  summarise(correlation = round(cor(Julian.off, Julian.par), 3))
-
-parents_paired_14_16 %>% 
-  mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
-                             SEX.par == "M" ~ "Parent: Male")) %>% 
-  mutate(sex.off = case_when(SEX.off == "F" ~ "Offspring: Female",
-                             SEX.off == "M" ~ "Offspring: Male")) %>% 
-  ggplot(aes(x = Julian.par, y = Julian.off, colour = origin.par)) +
-  geom_abline(slope = 1) +
-  geom_jitter(alpha = 0.2) +
-  geom_smooth(method = "lm") +
-  facet_grid(sex.off ~ sex.par) +
-  labs(title = "Heritability of Sample Date",  colour = "Parent: Origin") +
-  xlab("Parent Sample Date (Julian)") +
-  ylab("Offspring Sample Date (Julian)") +
-  theme_bw() +
-  theme(text = element_text(size = 20))
-```
-
-# Each row as an offspring, dam and sire
-
-## read paired data
-```{r}
-(paired_14_16 <- read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv") %>% 
-   select(franz_id, starts_with("Sample"), SILLY, `Fish ID`, starts_with("DNA"), SEX, `Length Mm`, `Otolith Mark Present`, `Otolith Mark ID`) %>% 
-   rename(sample_id = "Sample ID", 
-          Year = "Sample Year", 
-          silly = "SILLY", 
-          fish_id = "Fish ID", 
-          dna_tray = "DNA Tray Code", 
-          dna_well = "DNA Tray Well Code",
-          Sex = "SEX",
-          Length = "Length Mm") %>% 
-   mutate(Origin = case_when(`Otolith Mark Present` == "YES" ~ "Hatchery",
-                             `Otolith Mark Present` == "NO" ~ "Natural")) %>% 
-   mutate(Origin = factor(x = Origin, levels = c("Natural", "Hatchery")))
+bernston_aic <- bind_rows(
+  lapply(paste0("RS.glm.", 1:131), function(mod) {
+    data.frame(row.names = mod,
+               df = length(get(mod)$coefficients) + 1,
+               AIC = AIC(get(mod))
+    )
+  } )
 )
-```
 
-## get offspring, dam, sire relationships and join
+rownames(bernston_aic) <- paste0("RS.glm.", 1:131)
+
+bernston_aic <- bernston_aic %>% 
+  mutate(AIC_weight = as.numeric(Weights(bernston_aic))) %>% 
+  mutate(name = rownames(bernston_aic)) %>% 
+  arrange(AIC) %>% 
+  mutate(delta_AIC = AIC - min(AIC))
+
+(bernston_model_summary <- bernston_model_summary %>% 
+  left_join(bernston_aic, by = c("name", "AIC")) %>% 
+  arrange(AIC)) %>% 
+  select(name, model, df, AIC, delta_AIC, AIC_weight, variable, Estimate, `Std. Error`, residual_deviance, residual_df, null_deviance, null_df)
+
+bernston_model_summary %>% 
+  group_by(name) %>% 
+  summarise(AIC_weight = max(AIC_weight), model = unique(model)) %>% 
+  arrange(desc(AIC_weight))
+
+bernston_model_summary %>% 
+  select(-`Std. Error`, -`z value`, -`Pr(>|z|)`) %>% 
+  spread(variable, Estimate, fill = NA)
+
+# write_csv(female_model_summary, "../Stockdale/stock_glm_berntson_summary.csv")
+```
+## Female
+
+### Negative binomial GLMs
+
 ```{r}
-offspring_14_16_sire <- parents_paired_14_16 %>% 
-  filter(SEX.par == "M") %>% 
-  select(Offspring, Parent_ID)
+riverdist_parentage_stock <- riverdist_parentage_stock %>% 
+  mutate(Julian = yday(`Sample Date`))
 
-offspring_14_16_dam <- parents_paired_14_16 %>% 
-  filter(SEX.par == "F") %>% 
-  select(Offspring, Parent_ID)
+summary(glm.nb(n ~ `Length Mm`*SEX + Distance + I(Julian^2)*origin, data = riverdist_parentage_stock, link = log))
 
-(offspring_14_16_dam_sire <- offspring_14_16_dam %>% 
-    full_join(offspring_14_16_sire, by = "Offspring", suffix = c(".dam", ".sire")))
+glm.nb(n ~ `Sample Date` + `Length Mm` * origin + Distance * origin, data = Female.even, link = log)
+
+summary(glm.nb(n ~ origin / (`Sample Date`*Distance + `Length Mm`), data = Female.even, link = log))
+
+
+quine.nb1 <- glm.nb(Days ~ Sex/(Age + Eth*Lrn), data = quine)
+quine.nb2 <- update(quine.nb1, . ~ . + Sex:Age:Lrn)
+quine.nb3 <- update(quine.nb2, Days ~ .^4)
+anova(quine.nb1, quine.nb2, quine.nb3)
+
+
 ```
 
-## join back paired data to offspring, dam, and sire
-```{r}
-parents_paired_14_16_dam_sire <- offspring_14_16_dam_sire %>% 
-  left_join(paired_14_16, by = c("Offspring" = "franz_id")) %>% 
-  left_join(paired_14_16, by = c("Parent_ID.dam" = "franz_id"), suffix = c(".off", "")) %>% 
-  left_join(paired_14_16, by = c("Parent_ID.sire" = "franz_id"), suffix = c(".dam", ".sire")) %>% 
-  mutate(Julian.off = yday(`Sample Date.off`),
-         Julian.dam = yday(`Sample Date.dam`),
-         Julian.sire = yday(`Sample Date.sire`))
+```{r Female Even GLM}
+Female.even <-  
+  riverdist_parentage_stock %>% 
+  mutate(Julian = yday(`Sample Date`)) %>% 
+  filter(SEX == "F")
+
+RS.glm.F.full <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Female.even, link = log)
+
+RS.glm.F.2 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin, data = Female.even, link = log)
+
+RS.glm.F.3 <- glm.nb(n ~ `Length Mm` + origin, data = Female.even, link = log)
+
+RS.glm.F.4 <- glm.nb(n ~ origin, data = Female.even, link = log)
+
+RS.glm.F.5 <- glm.nb(n ~ `Length Mm`, data = Female.even, link = log)
+
+RS.glm.F.6 <- glm.nb(n ~ `Sample Date`, data = Female.even, link = log)
+
+RS.glm.F.7 <- glm.nb(n ~ Distance, data = Female.even, link = log)
+
+RS.glm.F.8 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Distance, data = Female.even, link = log)
+
+RS.glm.F.9 <- glm.nb(n ~ `Length Mm` + Distance, data = Female.even, link = log)
+
+RS.glm.F.10 <- glm.nb(n ~ `Sample Date` + origin, data = Female.even, link = log)
+
+RS.glm.F.11 <- glm.nb(n ~ `Sample Date` + Distance, data = Female.even, link = log)
+
+RS.glm.F.12 <- glm.nb(n ~ `Sample Date` + Distance + origin, data = Female.even, link = log)
+
+RS.glm.F.13 <- glm.nb(n ~ Distance + origin, data = Female.even, link = log)
+
+RS.glm.F.14 <- glm.nb(n ~ Distance * origin, data = Female.even, link = log)
+
+RS.glm.F.15 <- glm.nb(n ~ `Sample Date` * origin, data = Female.even, link = log)
+
+RS.glm.F.16 <- glm.nb(n ~ `Length Mm` * origin, data = Female.even, link = log)
+
+RS.glm.F.17 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Intertidal, data = Female.even, link = log)
+
+RS.glm.F.18 <- glm.nb(n ~ Intertidal, data = Female.even, link = log)
+
+RS.glm.F.19 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Intertidal, data = Female.even, link = log)
+
+RS.glm.F.20 <- glm.nb(n ~ `Length Mm` + Intertidal, data = Female.even, link = log)
+
+RS.glm.F.21 <- glm.nb(n ~ `Sample Date` + Intertidal, data = Female.even, link = log)
+
+RS.glm.F.22 <- glm.nb(n ~ `Sample Date` + Intertidal + origin, data = Female.even, link = log)
+
+RS.glm.F.23 <- glm.nb(n ~ Intertidal + origin, data = Female.even, link = log)
+
+RS.glm.F.24 <- glm.nb(n ~ Intertidal * origin, data = Female.even, link = log)
 ```
 
-```{r}
-offspring_both_parents <- parents_paired_14_16_dam_sire %>% 
-  filter(!is.na(Parent_ID.dam) & !is.na(Parent_ID.sire)) %>% 
-  pull(Offspring)
+### Extract Akaike Weights {#female_glm}
 
-parents_paired_14_16 %>% 
-  filter(Offspring %in% offspring_both_parents) %>% 
-  mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
-                             SEX.par == "M" ~ "Parent: Male")) %>% 
-  mutate(sex.off = case_when(SEX.off == "F" ~ "Offspring: Female",
-                             SEX.off == "M" ~ "Offspring: Male")) %>% 
-  group_by(sex.par, sex.off) %>% 
-  summarise(correlation = round(cor(Julian.off, Julian.par), 3))
+Akaike weights are another way of determining which model has the best fit, by calculating their conditional probabilities. 
 
-parents_paired_14_16 %>% 
-  filter(Offspring %in% offspring_both_parents) %>% 
-  mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
-                             SEX.par == "M" ~ "Parent: Male")) %>% 
-  mutate(sex.off = case_when(SEX.off == "F" ~ "Offspring: Female",
-                             SEX.off == "M" ~ "Offspring: Male")) %>% 
-  ggplot(aes(x = Julian.par, y = Julian.off, colour = origin.par)) +
-  geom_abline(slope = 1) +
-  geom_jitter(alpha = 0.2) +
-  geom_smooth(method = "lm") +
-  facet_grid(sex.off ~ sex.par) +
-  labs(title = "Heritability of Sample Date",  colour = "Parent: Origin") +
-  xlab("Parent Sample Date (Julian)") +
-  ylab("Offspring Sample Date (Julian)") +
-  theme_bw() +
-  theme(text = element_text(size = 20))
+The model with the highest weight (0.54) included sample date, length, intertidal, and origin. Origin was consistantly associated with RS in all of the top models.
+
+```{r female_glm_summary}
+female_model_summary <- bind_rows(
+  lapply(c("full", 2:24), function(i) {
+    fit <- get(paste0("RS.glm.F.", i))
+    summary(fit)$coefficients %>% 
+      as_tibble(rownames = "variable") %>% 
+      mutate(name = paste0("RS.glm.F.", i)) %>% 
+      mutate(model = as.character(fit$call)[2]) %>% 
+      mutate(AIC = fit$aic) %>% 
+      mutate(residual_deviance = fit$deviance) %>% 
+      mutate(residual_df = fit$df.residual) %>% 
+      mutate(null_deviance = fit$null.deviance) %>% 
+      mutate(null_df = fit$df.null)
+  } )
+)
+
+female_aic <- AIC(RS.glm.F.full, RS.glm.F.2, RS.glm.F.3, RS.glm.F.4, RS.glm.F.5, RS.glm.F.6, RS.glm.F.7, RS.glm.F.8, RS.glm.F.9, RS.glm.F.10, RS.glm.F.11, RS.glm.F.12, RS.glm.F.13, RS.glm.F.14, RS.glm.F.15, RS.glm.F.16, RS.glm.F.17, RS.glm.F.18, RS.glm.F.19, RS.glm.F.20, RS.glm.F.21, RS.glm.F.22, RS.glm.F.23, RS.glm.F.24)
+
+female_aic <- female_aic %>% 
+  mutate(AIC_weight = as.numeric(Weights(female_aic))) %>% 
+  mutate(name = rownames(female_aic)) %>% 
+  arrange(AIC) %>% 
+  mutate(delta_AIC = AIC - min(AIC))
+
+(female_model_summary <- female_model_summary %>% 
+  left_join(female_aic, by = c("name", "AIC")) %>% 
+  arrange(AIC)) %>% 
+  select(name, model, df, AIC, delta_AIC, AIC_weight, variable, Estimate, `Std. Error`, residual_deviance, residual_df, null_deviance, null_df)
+
+female_model_summary %>% 
+  group_by(name) %>% 
+  summarise(AIC_weight = max(AIC_weight), model = unique(model)) %>% 
+  arrange(desc(AIC_weight))
+
+female_model_summary %>% 
+  select(-`Std. Error`, -`z value`, -`Pr(>|z|)`) %>% 
+  spread(variable, Estimate, fill = NA)
+
+write_csv(female_model_summary, "../Stockdale/stock_glm_female_summary.csv")
 ```
+
+## Male
+
+### Negative binomial GLMs
+
+```{r Male Even GLM}
+Male.even <-  
+  riverdist_parentage_stock %>% 
+  filter(SEX == "M")
+
+RS.glm.M.full <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Male.even, link = log)
+
+RS.glm.M.2 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin, data = Male.even, link = log)
+
+RS.glm.M.3 <- glm.nb(n ~ `Length Mm` + origin, data = Male.even, link = log)
+
+RS.glm.M.4 <- glm.nb(n ~ origin, data = Male.even, link = log)
+
+RS.glm.M.5 <- glm.nb(n ~ `Length Mm`, data = Male.even, link = log)
+
+RS.glm.M.6 <- glm.nb(n ~ `Sample Date`, data = Male.even, link = log)
+
+RS.glm.M.7 <- glm.nb(n ~ Distance, data = Male.even, link = log)
+
+RS.glm.M.8 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Distance, data = Male.even, link = log)
+
+RS.glm.M.9 <- glm.nb(n ~ `Length Mm` + Distance, data = Male.even, link = log)
+
+RS.glm.M.10 <- glm.nb(n ~ `Sample Date` + origin, data = Male.even, link = log)
+
+RS.glm.M.11 <- glm.nb(n ~ `Sample Date` + Distance, data = Male.even, link = log)
+
+RS.glm.M.12 <- glm.nb(n ~ `Sample Date` + Distance + origin, data = Male.even, link = log)
+
+RS.glm.M.13 <- glm.nb(n ~ Distance + origin, data = Male.even, link = log)
+
+RS.glm.M.14 <- glm.nb(n ~ Distance * origin, data = Male.even, link = log)
+
+RS.glm.M.15 <- glm.nb(n ~ `Sample Date` * origin, data = Male.even, link = log)
+
+RS.glm.M.16 <- glm.nb(n ~ `Length Mm` * origin, data = Male.even, link = log)
+
+RS.glm.M.17 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Intertidal, data = Male.even, link = log)
+
+RS.glm.M.18 <- glm.nb(n ~ Intertidal, data = Male.even, link = log)
+
+RS.glm.M.19 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Intertidal, data = Male.even, link = log)
+
+RS.glm.M.20 <- glm.nb(n ~ `Length Mm` + Intertidal, data = Male.even, link = log)
+
+RS.glm.M.21 <- glm.nb(n ~ `Sample Date` + Intertidal, data = Male.even, link = log)
+
+RS.glm.M.22 <- glm.nb(n ~ `Sample Date` + Intertidal + origin, data = Male.even, link = log)
+
+RS.glm.M.23 <- glm.nb(n ~ Intertidal + origin, data = Male.even, link = log)
+
+RS.glm.M.24 <- glm.nb(n ~ Intertidal * origin, data = Male.even, link = log)
+```
+
+### Extract Akaike Weights {#male_glm}
+
+```{r male_glm_summary}
+male_model_summary <- bind_rows(
+  lapply(c("full", 2:24), function(i) {
+    fit <- get(paste0("RS.glm.M.", i))
+    summary(fit)$coefficients %>% 
+      as_tibble(rownames = "variable") %>% 
+      mutate(name = paste0("RS.glm.M.", i)) %>% 
+      mutate(model = as.character(fit$call)[2]) %>% 
+      mutate(AIC = fit$aic) %>% 
+      mutate(residual_deviance = fit$deviance) %>% 
+      mutate(residual_df = fit$df.residual) %>% 
+      mutate(null_deviance = fit$null.deviance) %>% 
+      mutate(null_df = fit$df.null)
+  } )
+)
+
+male_aic <- AIC(RS.glm.M.full, RS.glm.M.2, RS.glm.M.3, RS.glm.M.4, RS.glm.M.5, RS.glm.M.6, RS.glm.M.7, RS.glm.M.8, RS.glm.M.9, RS.glm.M.10, RS.glm.M.11, RS.glm.M.12, RS.glm.M.13, RS.glm.M.14, RS.glm.M.15, RS.glm.M.16, RS.glm.M.17, RS.glm.M.18, RS.glm.M.19, RS.glm.M.20, RS.glm.M.21, RS.glm.M.22, RS.glm.M.23, RS.glm.M.24)
+
+male_aic <- male_aic %>% 
+  mutate(AIC_weight = as.numeric(Weights(male_aic))) %>% 
+  mutate(name = rownames(male_aic)) %>% 
+  arrange(AIC) %>% 
+  mutate(delta_AIC = AIC - min(AIC))
+
+(male_model_summary <- male_model_summary %>% 
+  left_join(male_aic, by = c("name", "AIC")) %>% 
+  arrange(AIC)) %>% 
+  select(name, model, df, AIC, delta_AIC, AIC_weight, variable, Estimate, `Std. Error`, residual_deviance, residual_df, null_deviance, null_df)
+
+male_model_summary %>% 
+  group_by(name) %>% 
+  summarise(AIC_weight = max(AIC_weight), model = unique(model)) %>% 
+  arrange(desc(AIC_weight))
+
+male_model_summary %>% 
+  select(-`Std. Error`, -`z value`, -`Pr(>|z|)`) %>% 
+  spread(variable, Estimate, fill = NA)
+
+write_csv(male_model_summary, "../Stockdale/stock_glm_male_summary.csv")
+```
+
+The model with the highest weight (0.63) included date, length, intertidal, and origin. Origin was consistantly associated with RS in all of the top models.
+
+# Summary
+
+In summary, we see that there are some spatial patterns in RS, with higher average RS closer to the mouth than upstream [[link](#rs_v_distance)]. Natural-origin fish tended to spawn lower down in the stream for most sample dates [[link](#distance_v_date)]. 
+
+The highest ranked models for females always included origin, often included sample date and length, and occasionally included Distance. For males, the highest ranked models always included length and origin.
+ 
