@@ -24,6 +24,8 @@ For the third area, we will do some naive tests, considering each variable separ
 
 **Note** that we are only doing these analyses for the Stockdale even-year lineage (2014-2016) because there are not enough parent-offspring assignments from the odd lineage (2013-2015) to draw robust conclusions. Additionally, we are investigating Stockdale as opposed to Hogan Bay (Hogan) because Stockdale has a larger sample size of parent-offspring pairs and Stockdale is a longer system (~1500m of spawning habitat), so spawning location is likely more important in Stockdale than in Hogan (only 600m of spawning habitat).
 
+**Methods Note:** All pedigree analyses and RRS results to date have been based on output from the computer program [*FRANz*](https://academic.oup.com/bioinformatics/article/25/16/2134/203763). In this notebook we will also introduce pedigree results from another computer program, [*Colony*](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1755-0998.2009.02787.x). Both pedigree analysis programs are used extensively in the literature and have been shown to produce highly consistent results, so long as the genetic markerset is informative enough. We introduce results from *Colony* here because both the hypergeometric model trans-generational mark-recapture (tGMR) and trans-generational rarefaction curve (tGRC) methods from [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122) require an estimate of the number of *unsampled*, *inferred* parents (i.e. how many unique parents would it have taken to create all of the offspring in our sample)
+
 ```{r setup, include=FALSE}
 library(coin)
 library(MASS)
@@ -120,7 +122,7 @@ stockdale_foot %>%
 
 Applying these fourteen surveys to an Area Under the Curve (AUC) model with a stream life of 13.7 days and an observer efficiency of 70.3% [Fried et al. 1998] we get an estimated escapement of **4,038** fish.
 
-### tGMR Binomial Model
+### tGMR: Binomial Model
 
 Another method of independently estimating the 2014 escapement to Stockdale Creek is to use trans-generational mark-recapture as detailed in [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122). Briefly, marks are the genotyped potential parents, and the second event is genotyped potential offspring, with offspring assigning to parents representing recaptures. This model takes two forms, binomial (with replacement) and hypergeometric (without replacement). Here we provide the binomial estimate where:  
 
@@ -163,30 +165,92 @@ round(794 * 5199 * 2 / 1238)
 
 Giving us an estimated escapement of **6,669** fish
 
+### tGMR: Hypergeometric Model
+
+**Note:** the previous version of this R Notebook that was sent out by Chris on Wednesday, August 28, 2019 did not include this method as it requires an estimate of the total number of parents it would have taken to create all of the offspring in our sample (i.e. *inferred* parents). Having an estimate of the number of unsampled, *inferred* parents is also required for the rarefaction curve method (tGRC). *Inferred* parents come from the maximum likelihood configuration pedigree from [*Colony*](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1755-0998.2009.02787.x).
+
+Here we provide the hypergeometric tGMR model (without replacement) estimates where:  
+
+  * n1 = number of genotyped potential parents (2014)
+  * n2 = number of unique adults estimated to have contributed to genotyped offspring (assigned + inferred parents from *Colony*)
+  * m2 = number of genotyped parents assigned at least 1 offspring
+
+Here is the sample size of individuals for potential parents (2014)
+```{r}
+read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv") %>% 
+  filter(`Sample Year` == 2014) %>% 
+  count(`Sample Year`)
+```
+And the number of unique parents inferred to have produced all offspring in our sample
+```{r}
+colony_best_config <- read_delim("../../Colony/Stockdale/Output/Stockdale_2014_2016.BestConfig", delim = " ", trim_ws = TRUE)
+
+# colony_best_config <- read_delim("C:/Users/krshedd/Program Files/Colony/Example1/example1.BestConfig", delim = " ", trim_ws = TRUE)
+
+# add
+n_distinct(colony_best_config$FatherID) + n_distinct(colony_best_config$MotherID)
+
+# split sire/dam
+colony_best_config %>% 
+  summarise(unique_sire = n_distinct(FatherID),
+            unique_dam = n_distinct(MotherID))
+
+# how many known vs. inferred sires
+colony_best_config %>% 
+  mutate(Father_Known = case_when(grepl(pattern = "\\*", x = FatherID) ~ FALSE,
+                                  TRUE ~ TRUE)) %>% 
+  group_by(Father_Known) %>% 
+  summarise(n_Sire = n_distinct(FatherID))
+
+# how many known vs. inferred dams
+colony_best_config %>% 
+  mutate(Mother_Known = case_when(grepl(pattern = "\\*", x = MotherID) ~ FALSE,
+                                  TRUE ~ TRUE)) %>% 
+  group_by(Mother_Known) %>% 
+  summarise(n_Dam = n_distinct(MotherID))
+```
+
+And here are the number of parents that produced at least one offspring
+```{r}
+riverdist_parentage_stock <- read_csv("riverdist_parentage_stock.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
+
+riverdist_parentage_stock %>% 
+  filter(Success == "Successful") %>% 
+  count(`Sample Year`)
+```
+
+So that gives us:  
+
+  * n1 = 794
+  * n2 = ???
+  * m2 = 404
+
+And our final calculation for Nc is:
+```{r}
+round(794 * XXX / 404)
+```
+
+Giving us an estimated escapement of **X,XXX** fish
+
 ### tGRC: Rarefaction Curve
+
+**Note:** the previous version of this R Notebook that was sent out by Chris on Wednesday, August 28, 2019 did not apply this method correctly. In that version, the rarfaction curve only considered *assigned* parents and not *inferred* parents. This was a mistake, and is now corrected to consider both *assigned* **and** *inferred* parents. *Inferred* parents come from the maximum likelihood configuration pedigree from [*Colony*](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1755-0998.2009.02787.x) (i.e. how many unique parents would it have taken to create all of the offspring in our sample).
 
 In addition to tGMR, [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122) provides a method to estimate the number of spawners using a rarefaction curve approach. Briefly, as each offspring is added to the sample, fewer new unique parental genotypes should be observed with the asymptote being equal to the number of spawners.
 
-Here we will subsample the offspring (not their genotypes, *note* this is a subtle departure from Rawding et al. 2014 for simplicity) in levels of 10% to see how many unique parents we end up with.
+Here we will subsample the offspring (not their genotypes, *note* this is a subtle departure from Rawding et al. 2014 for simplicity) in levels of 10% to see how many unique parents (both assigned **and** inferred from *Colony*) we end up with.
 
 ```{r}
-offspring_dat <- read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv") %>% 
-  filter(`Sample Year` == 2016)
+colony_best_config <- read_delim("../../Colony/Stockdale/Output/Stockdale_2014_2016.BestConfig", delim = " ", trim_ws = TRUE)
 
-offspring_franz <- read_csv("../../Franz/Stockdale/Even_Run 2/parentage.csv") %>% 
-  filter(Posterior >= 0.9) %>% 
-  left_join(offspring_dat, by = c("Offspring" = "franz_id"))
-
-n_off <- n_distinct(offspring_franz$Offspring)
+n_off <- n_distinct(colony_best_config$OffspringID)
 n_sample <- round(seq(from = 0.1, to = 1, by = 0.1) * n_off)
 
 rare_dat <- replicate(n = 1000, {
   lapply(n_sample, function(i) {
-    tmp <- sample_n(offspring_franz, i) %>% 
-      select(Offspring, `Parent 1`, `Parent 2`) %>% 
-      gather(Parent, ID, -Offspring) %>% 
-      arrange(Offspring)
-    tibble(n_off = i, n_par = n_distinct(tmp$ID))
+    tmp <- sample_n(colony_best_config, i)
+    tibble(n_off = i, n_par = n_distinct(tmp$FatherID) + n_distinct(tmp$MotherID))
   }) %>% 
     bind_rows()
 }, simplify = FALSE) %>% 
@@ -211,7 +275,7 @@ bh0s <- bh1s[1] # use the same starting value as above for a
 bh0nls <- nls(bh0, data = rare_dat, start = bh0s)
 
 xmax <- 12000
-ymax <- 1000
+ymax <- max(rare_dat$n_par) * 1.2
 
 plot(n_par ~ n_off, data = rare_dat, xlim = c(0, xmax), ylim = c(0, ymax), col = rgb(0, 0, 0, alpha = 0.01), pch = 16,
      xlab = "Sample Number of Offspring",
@@ -230,7 +294,8 @@ We have four separate estimates of the 2014 Stockdale escapement, which give us 
   1) Aerial Survey AUC: **2,869** fish, p = 28%
   2) Foot Survey AUC: **4,038** fish, p = 20%
   3) tGMR Binomial Model: **6,669** fish, p = 12%
-  4) tGRC Rarefaction Curve: **450** successful spawners, p = 176%
+  4) tGMR Hypergeometric Model: **X,XXX** fish, p = XX%
+  4) tGRC Rarefaction Curve: **X,XXX** successful spawners, p = XX%
 
 While these are four very different estimates, I think that we can be confident in saying that the Foot Survey AUC and tGMR Binomial Model estimates are likely the two most reliable estimates for the escapement. The aerial survey AUC estimate was only based on three flights, and the tGRC is biased downward in part due to the large number of parents that had no offspring assign back to them (only estimates successful spawners, not full escapement).
 
