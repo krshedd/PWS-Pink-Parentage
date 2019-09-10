@@ -1,0 +1,155 @@
+---
+title: "Colony Input Files - Stockdale 2014/2016"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+```{r setup, include=FALSE}
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+library(gridExtra)
+library(MuMIn)
+library(GGally)
+library(gganimate)
+
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.width = 10)
+```
+
+# Purpose
+The objective of this R Notebook is to create input files for *Colony* for the Stockdale 2014/2016 data. The purpose of re-running this data through *Colony* (as opposed to *FRANz*, which we've already done for RRS analyses) is to get an estimated number of potential parents for all of the unassigned offspring in order to apply the multinomial trans-generational mark-recpature (tGMR) and trans-generational rarefaction (tGMR) models [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122).
+
+# Gentoype Data
+
+Read in Stockdale genotype data from *FRANz* input file and get paired data.
+```{r}
+(genotypes <- read_delim(file = "../Franz/stockdale_postQA_2014_2016_STOCK.dat", delim = " ", col_names = FALSE, skip = 2))
+
+loci298 <- dget("../../Objects/Stockdale/loci298.txt")
+```
+
+Add column names
+```{r}
+names(genotypes) <- c("id", "trash", "birth_year", "death_year", "sex", loci298)
+
+(genotypes <- genotypes %>% 
+    select(id, death_year, sex, loci298)
+)
+```
+
+## Format Genotypes
+
+Need to get in to a 2 column format
+```{r}
+(colongy_genotypes <- genotypes %>% 
+   gather(locus, genotype, -id, -death_year, -sex) %>% 
+   mutate(genotype = str_replace(string = genotype, pattern = "\\?/\\?", replacement = "0/0")) %>% 
+   separate(genotype, c("allele_1", "allele_2"), sep = "/") %>% 
+   mutate(allele_1 = as.numeric(allele_1),
+          allele_2 = as.numeric(allele_2)) %>% 
+   gather(variable, value, -(id:locus)) %>% 
+   unite(temp, locus, variable) %>% 
+   spread(temp, value)
+)
+```
+
+How many fish?
+```{r}
+colongy_genotypes %>% 
+  count(death_year, sex) %>% 
+  spread(sex, n)
+```
+
+## Male
+
+```{r}
+male_genotypes <- colongy_genotypes %>% 
+  filter(death_year == 2014 & sex == "M") %>% 
+  select(-death_year, -sex)
+
+write_delim(x = male_genotypes, path = "../../Colony/Stockdale/male_genotypes.txt", col_names = FALSE)
+```
+
+## Female
+
+```{r}
+female_genotypes <- colongy_genotypes %>% 
+  filter(death_year == 2014 & sex == "F") %>% 
+  select(-death_year, -sex)
+
+write_delim(x = female_genotypes, path = "../../Colony/Stockdale/female_genotypes.txt", col_names = FALSE)
+```
+
+## Offspring
+
+```{r}
+offspring_genotypes <- colongy_genotypes %>% 
+  filter(death_year == 2016) %>% 
+  select(-death_year, -sex)
+
+write_delim(x = offspring_genotypes, path = "../../Colony/Stockdale/offspring_genotypes.txt", col_names = FALSE)
+```
+
+# Genotype Error Rates
+
+*Colony* can take locus specific error rates. We will read them in from our QC data, and then manipulate in to *Colony* format. Here is what we need by row:  
+
+  * locus name
+  * marker type (0 - codominant, 1 - dominant)
+  * allelic dropout rate (0 for our SNPs)
+  * locus specific error rate
+
+## Read QC Data
+
+```{r}
+(qc <- read_csv("../../QC/Stockdale/error_rate_by_locus.csv"))
+
+loci298 <- dget("../../Objects/Stockdale/loci298.txt")
+```
+
+```{r}
+qc %>% 
+  ggplot(aes(x = error_rate)) +
+  geom_histogram() +
+  theme_bw()
+```
+
+Verify that no markers have an error rate of 0.
+```{r}
+qc %>% 
+  arrange(error_rate)
+```
+
+Looks like we do have some loci that never had an error, give them a floor
+```{r}
+min_error <- qc %>% 
+  filter(error_rate != 0) %>% 
+  top_n(n = -1, wt = error_rate) %>% 
+  pull(error_rate)
+
+qc <- qc %>% 
+  mutate(error_rate = case_when(error_rate == 0 ~ min_error,
+                                TRUE ~ error_rate))
+```
+
+
+## Format for *Colony*
+
+```{r}
+marker_type_error_rate <- qc %>% 
+  filter(locus %in% loci298) %>% 
+  mutate(codominant = 0, dropout = 0) %>% 
+  select(locus, codominant, dropout, error_rate)
+
+write_delim(x = as.data.frame(t(marker_type_error_rate)), path = "../../Colony/Stockdale/marker_type_error_rate.txt", col_names = FALSE)
+```
+
