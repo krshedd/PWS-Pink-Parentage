@@ -14,7 +14,7 @@ Anything in [red](#protip) is a hyperlink that will either take you to the relev
 
 # Introduction
 
-The purpose of these analyses are to follow up on the previous notebook and fully consider all of the Stockdale Creek data holistically by model fitting reproducitve success (RS) to generalized linear models (GLM’s), as is commonly done in the literature (see [Anderson et al. 2011](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1752-4571.2012.00271.x), [Bernston et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), and [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725)). First we will explore the data a bit so we know what we are modeling, next we will check for multi-collinearity among variables, and finally we will construct a series of GLM's to model RS and use Akaike model selection to calculate variable weights.
+The purpose of these analyses are to follow up on the previous notebook and fully consider all of the Stockdale Creek data holistically by model fitting reproductive success (RS) to generalized linear models (GLM’s), as is commonly done in the literature (see [Anderson et al. 2011](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1752-4571.2012.00271.x), [Bernston et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), and [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725)). First, we will explore the data a bit so we know what we are modeling, next we will check for multi-collinearity among variables, and finally we will construct a series of GLM's to model RS and use Akaike model selection to calculate variable weights.
 
 ```{r setup, include=FALSE}
 library(coin)
@@ -45,7 +45,7 @@ While we've previously shown figures relating RS to individual variables (e.g. S
 
 Here we'll create an animation that walks through each sample date to show that fishes sample location (latitude and longitude) with the color of the point indicating the fish's origin (hatchery vs. natural), the shape the fish's sex (male/female), and the size of the point indicating how many offspring were assigned to it (reproductive success). This will show us two important things:  
 
-  1) where high reproductive success ocurred in space and time
+  1) where high reproductive success occurred in space and time
   2) the degree of spatio-temporal overlap between hatchery- and natural-origin pink salmon in Stockdale in 2014
 
 *Note*, in this plot, Stockdale flows from bottom right to the mouth on the top left.
@@ -121,7 +121,7 @@ riverdist_parentage_stock %>%
 
 # Check for multi-collinearity {#multi-collinearity}
 
-Before modeling RS, we need to check for multi-collinearity among variables because there may be some degree of non-independence among variables. For visualization purposes, data are grouped by origin. The diagonal shows density plots for continuous variables (e.g. Sample Date) and side by side bar plots for categorical variables (e.g. Sex). The upper plots above the diagonal show correlation coefficients between confitnuous variables, grouped box plots between continuous and categorical variables, and stacked bar plots between categorical variables. The lower plots below the diagonal show scatter plots with loess curves between continuous variables, grouped histograms between continuous and categorical variables, and stacked bar plots between categorical variables. The variable *Success* is derived from *RS* (Successful for RS >= 1, Unsuccessful for RS = 0), and thus would not be used in a model concurrent with *RS*. **Note** that these plots exclude individuals with missing data.
+Before modeling RS, we need to check for multi-collinearity among variables because there may be some degree of non-independence among variables. For visualization purposes, data are grouped by origin. The diagonal shows density plots for continuous variables (e.g. Sample Date) and side by side bar plots for categorical variables (e.g. Sex). The upper plots above the diagonal show correlation coefficients between continuous variables, grouped box plots between continuous and categorical variables, and stacked bar plots between categorical variables. The lower plots below the diagonal show scatter plots with loess curves between continuous variables, grouped histograms between continuous and categorical variables, and stacked bar plots between categorical variables. The variable *Success* is derived from *RS* (Successful for RS >= 1, Unsuccessful for RS = 0), and thus would not be used in a model concurrent with *RS*. **Note** that these plots exclude individuals with missing data.
 ```{r try ggpairs, fig.width=12, fig.height=12, warning=FALSE, message=FALSE}
 reduced <- riverdist_parentage_stock %>% 
   rename(RS = n, Sex = SEX) %>% 
@@ -145,15 +145,15 @@ ggpairs(reduced,
         text = element_text(size = 16))
 ```
 
-Overall, correlations among potential explanatory variables (sample date, length, and stream distance) are pretty weak, so there are not big concerns with multi-collinearity (i.e. we can have all variables in a model). Weak positive correlations were found between length and date (r = 0.26), distance and date (0.08), and RS and length (0.05). Weak negative correlations were found between distance and length (-0.05), distance and RS (-0.10), and RS and date (-0.25). Reproductive success was negatively correlated with sample date (-0.25) and stream distance (-0.37), and slightly positively correlated with length (0.05).
+Overall, correlations among potential explanatory variables (sample date, length, and stream distance) are pretty weak, so there are not big concerns with multi-collinearity (i.e. we can have all variables in a model). Weak positive correlations were found between length and date (r = 0.26), distance and date (0.22), and distance and length (0.21). Reproductive success was negatively correlated with sample date (-0.25) and stream distance (-0.37), and slightly positively correlated with length (0.05).
 
 # Use GLM's to associate RS with sample location, date, origin, and length by sex {#glm}
 
-We'll use a negative binomial distribution model and log-linked function to evaluation associations between RS and origin, length, sample date, location (distance from the mouth of the stream), and sex. *A priori* we have set up 131 models that range in complexity from considering a single variable, to more complex models incorporating all variables, as well as quadratic terms for ordinal sample date (Julian) and length (based on relationships we saw [above](#multi-collinearity)). We avoided overly-complex models by only including first order interactions with origin and sex. For this suite of models we will identify statistically significant variables and selected the best model based on Akaike's Information Criteria (AIC), which takes into account both residual deviance and model complexity.
+Given that the distribution of RS is best approximated by a negative binomial distribution, we'll use a negative binomial distribution GLM with a log-linked function to evaluation associations between RS and origin, length, sample date, location (distance from the mouth of the stream), and sex.
 
 ## Create models
 
-Create models following the methods of [Berntson et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489).
+Here we create models following the methods of [Berntson et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489). *A priori* we have set up 131 models that range in complexity from considering a single variable, to more complex models incorporating all variables, as well as quadratic terms for ordinal sample date (Julian) and length (based on relationships we saw [above](#multi-collinearity)). We avoid overly-complex models by only including first order interactions with origin and sex. For this suite of models we will identify statistically significant variables and select the best model based on Akaike's Information Criteria (AIC), which takes into account both residual deviance and model complexity.
 ```{r}
 riverdist_parentage_stock <- riverdist_parentage_stock %>% 
   mutate(Julian = yday(`Sample Date`))
@@ -391,7 +391,11 @@ RS.glm.131 <- glm.nb(n ~ `Length Mm` + Intertidal + Julian, data = riverdist_par
 
 ## GLM Summaries
 
+### GLM Models Ranked by Akaike Weight {#glm_summary}
+
 Here are the top models ranked by Akaike weights, which are another way of determining which model has the best fit, by calculating their conditional probabilities.
+
+**Note**: Tables below may have additional columns to the right. These columns are accessible by clicking on the black arrow in the upper righthand corner of the table. The footer at the bottom left of the table indicates how many rows and columns the table has, and which ones are currently displayed.
 ```{r bernston_glm_summary}
 glm_model_summary <- bind_rows(
   lapply(c(1:131), function(i) {
@@ -437,24 +441,27 @@ glm_model_summary %>%
   select(name, df, AIC_weight, deviance_explained, model) %>% 
   arrange(desc(AIC_weight))
 
-# write_csv(female_model_summary, "../Stockdale/stock_glm_berntson_summary.csv")
+write_csv(glm_model_summary, "../Stockdale/stock_glm_summary.csv")
 ```
 
-It looks like all of the top models, to some degree, incorporate all potential explainatory variables. The proportion of deviance explained (1 - residual_deviance / null_deviance) ~ 30%.
+It looks like all of the top models, to some degree, incorporate all potential explanatory variables. The proportion of deviance explained (1 - residual_deviance / null_deviance) ~ 30%.
 
-Here is a more thorough model summary.
+### Detailed Model Summary
+
 ```{r}
 glm_model_summary %>% 
   select(-`Std. Error`, -`z value`, -`Pr(>|z|)`) %>% 
   spread(variable, Estimate, fill = NA)
 ```
 
-Here is the summary of the top model.
+### Top Model Summary
+
+Here is the summary of the top model, which includes parent body length, spawning location (distance), parent sample date (julian), and origin.
 ```{r}
 summary(RS.glm.120)
 ```
 
-What are the coefficients and 95% CIs?
+What are the coefficients and 95% CIs for each of the explanatory variables?
 ```{r}
 (est <- cbind(Estimate = coef(RS.glm.120), confint(RS.glm.120)))
 ```
@@ -466,35 +473,26 @@ exp(est)
 
 Looking at these incident ratios, we can see that the RRS of hatchery-origin fish relative to natural-origin fish is ~ 0.48 (0.39-0.59) holding the other variables constant (length, distance, and date). Also, the percent change in the number of offspring increases by ~ 1.2% for every Mm increase in length, decreases by ~ 0.2% for every meter further upstream a fish is sampled, and decreases ~ 4.3% for every day later in the season a fish is sampled.
 
+### Top 10 Model Coefficients
 
+Based on our top model, it looks like the RRS of hatchery- to natural-origin fish is ~0.48 holding all other variables constant. However, given the number of models that we ran, there were several fairly similar top models that had relatively high Akaike weights and **all** of them included *origin* as a significant variable in the model. We can take a weighted average of the *origin* term for the top 10 models to see how well it compares to our estimate from the top model.
+```{r}
+glm_model_summary %>% 
+  filter(variable == "originHatchery") %>% 
+  top_n(n = 10, wt = AIC_weight) %>% 
+  mutate(weighted_origin = Estimate * AIC_weight) %>% 
+  summarise(RRS = exp(sum(weighted_origin) / sum(AIC_weight)))
+```
 
+### Global GLM Summary
 
-
-DELETE EVERYTHING BELOW HERE!!!
-
+We constructed 131 negative binomial models *a prior* based on the most reasonable combinations of our potential explanatory variables. We also included quadratic terms for *Julian* and *Length Mm* based on our data exploration [above](#multi-collinearity). There was no clear top model based on [Akaike weights](#glm_summary), however, all top models were relatively similar and included almost all explanatory variables. This indicates that if we consider all of the data jointly, parent body size, parent sample date, parent sample location, and origin all had a statistically significant impact of RS. If we specifically consider the origin term, it appears that hatchery-origin fish had a RRS ~ 0.47 with all else equal (i.e. accounting for differences in length, sample date, and sample location).
 
 ## Female
 
+The Global GLM's that we did above had both male and female parents grouped together. Here we will construct simple models and consider the two sexes separately as was done by [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725).
+
 ### Negative binomial GLMs
-
-```{r}
-riverdist_parentage_stock <- riverdist_parentage_stock %>% 
-  mutate(Julian = yday(`Sample Date`))
-
-summary(glm.nb(n ~ `Length Mm`*SEX + Distance + I(Julian^2)*origin, data = riverdist_parentage_stock, link = log))
-
-glm.nb(n ~ `Sample Date` + `Length Mm` * origin + Distance * origin, data = Female.even, link = log)
-
-summary(glm.nb(n ~ origin / (`Sample Date`*Distance + `Length Mm`), data = Female.even, link = log))
-
-
-quine.nb1 <- glm.nb(Days ~ Sex/(Age + Eth*Lrn), data = quine)
-quine.nb2 <- update(quine.nb1, . ~ . + Sex:Age:Lrn)
-quine.nb3 <- update(quine.nb2, Days ~ .^4)
-anova(quine.nb1, quine.nb2, quine.nb3)
-
-
-```
 
 ```{r Female Even GLM}
 Female.even <-  
@@ -502,64 +500,38 @@ Female.even <-
   mutate(Julian = yday(`Sample Date`)) %>% 
   filter(SEX == "F")
 
-RS.glm.F.full <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Female.even, link = log)
-
+RS.glm.F.1 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Female.even, link = log)
 RS.glm.F.2 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin, data = Female.even, link = log)
-
 RS.glm.F.3 <- glm.nb(n ~ `Length Mm` + origin, data = Female.even, link = log)
-
 RS.glm.F.4 <- glm.nb(n ~ origin, data = Female.even, link = log)
-
 RS.glm.F.5 <- glm.nb(n ~ `Length Mm`, data = Female.even, link = log)
-
 RS.glm.F.6 <- glm.nb(n ~ `Sample Date`, data = Female.even, link = log)
-
 RS.glm.F.7 <- glm.nb(n ~ Distance, data = Female.even, link = log)
-
 RS.glm.F.8 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Distance, data = Female.even, link = log)
-
 RS.glm.F.9 <- glm.nb(n ~ `Length Mm` + Distance, data = Female.even, link = log)
-
 RS.glm.F.10 <- glm.nb(n ~ `Sample Date` + origin, data = Female.even, link = log)
-
 RS.glm.F.11 <- glm.nb(n ~ `Sample Date` + Distance, data = Female.even, link = log)
-
 RS.glm.F.12 <- glm.nb(n ~ `Sample Date` + Distance + origin, data = Female.even, link = log)
-
 RS.glm.F.13 <- glm.nb(n ~ Distance + origin, data = Female.even, link = log)
-
 RS.glm.F.14 <- glm.nb(n ~ Distance * origin, data = Female.even, link = log)
-
 RS.glm.F.15 <- glm.nb(n ~ `Sample Date` * origin, data = Female.even, link = log)
-
 RS.glm.F.16 <- glm.nb(n ~ `Length Mm` * origin, data = Female.even, link = log)
-
 RS.glm.F.17 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Intertidal, data = Female.even, link = log)
-
 RS.glm.F.18 <- glm.nb(n ~ Intertidal, data = Female.even, link = log)
-
 RS.glm.F.19 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Intertidal, data = Female.even, link = log)
-
 RS.glm.F.20 <- glm.nb(n ~ `Length Mm` + Intertidal, data = Female.even, link = log)
-
 RS.glm.F.21 <- glm.nb(n ~ `Sample Date` + Intertidal, data = Female.even, link = log)
-
 RS.glm.F.22 <- glm.nb(n ~ `Sample Date` + Intertidal + origin, data = Female.even, link = log)
-
 RS.glm.F.23 <- glm.nb(n ~ Intertidal + origin, data = Female.even, link = log)
-
 RS.glm.F.24 <- glm.nb(n ~ Intertidal * origin, data = Female.even, link = log)
 ```
 
 ### Extract Akaike Weights {#female_glm}
 
 Akaike weights are another way of determining which model has the best fit, by calculating their conditional probabilities. 
-
-The model with the highest weight (0.54) included sample date, length, intertidal, and origin. Origin was consistantly associated with RS in all of the top models.
-
 ```{r female_glm_summary}
-female_model_summary <- bind_rows(
-  lapply(c("full", 2:24), function(i) {
+female_glm_model_summary <- bind_rows(
+  lapply(c(1:24), function(i) {
     fit <- get(paste0("RS.glm.F.", i))
     summary(fit)$coefficients %>% 
       as_tibble(rownames = "variable") %>% 
@@ -573,94 +545,103 @@ female_model_summary <- bind_rows(
   } )
 )
 
-female_aic <- AIC(RS.glm.F.full, RS.glm.F.2, RS.glm.F.3, RS.glm.F.4, RS.glm.F.5, RS.glm.F.6, RS.glm.F.7, RS.glm.F.8, RS.glm.F.9, RS.glm.F.10, RS.glm.F.11, RS.glm.F.12, RS.glm.F.13, RS.glm.F.14, RS.glm.F.15, RS.glm.F.16, RS.glm.F.17, RS.glm.F.18, RS.glm.F.19, RS.glm.F.20, RS.glm.F.21, RS.glm.F.22, RS.glm.F.23, RS.glm.F.24)
+female_glm_aic <- bind_rows(
+  lapply(paste0("RS.glm.F.", 1:24), function(mod) {
+    data.frame(row.names = mod,
+               df = length(get(mod)$coefficients) + 1,
+               AIC = AIC(get(mod))
+    )
+  } )
+)
 
-female_aic <- female_aic %>% 
-  mutate(AIC_weight = as.numeric(Weights(female_aic))) %>% 
-  mutate(name = rownames(female_aic)) %>% 
+rownames(female_glm_aic) <- paste0("RS.glm.F.", 1:24)
+
+female_glm_aic <- female_glm_aic %>% 
+  mutate(AIC_weight = as.numeric(Weights(female_glm_aic))) %>% 
+  mutate(name = rownames(female_glm_aic)) %>% 
   arrange(AIC) %>% 
   mutate(delta_AIC = AIC - min(AIC))
 
-(female_model_summary <- female_model_summary %>% 
-  left_join(female_aic, by = c("name", "AIC")) %>% 
-  arrange(AIC)) %>% 
-  select(name, model, df, AIC, delta_AIC, AIC_weight, variable, Estimate, `Std. Error`, residual_deviance, residual_df, null_deviance, null_df)
+female_glm_model_summary <- female_glm_model_summary %>% 
+  left_join(female_glm_aic, by = c("name", "AIC")) %>% 
+  arrange(AIC)
+  # select(name, model, df, AIC, delta_AIC, AIC_weight, variable, Estimate, `Std. Error`, residual_deviance, residual_df, null_deviance, null_df)
 
-female_model_summary %>% 
-  group_by(name) %>% 
-  summarise(AIC_weight = max(AIC_weight), model = unique(model)) %>% 
+female_glm_model_summary %>% 
+  group_by(name, df, residual_deviance, null_deviance) %>% 
+  summarise(AIC_weight = round(max(AIC_weight), 3), model = unique(model), deviance_explained = round(1 - (max(residual_deviance) / max(null_deviance)), 3)) %>% 
+  ungroup() %>% 
+  select(name, df, AIC_weight, deviance_explained, model) %>% 
   arrange(desc(AIC_weight))
 
-female_model_summary %>% 
-  select(-`Std. Error`, -`z value`, -`Pr(>|z|)`) %>% 
-  spread(variable, Estimate, fill = NA)
-
-write_csv(female_model_summary, "../Stockdale/stock_glm_female_summary.csv")
+write_csv(female_glm_model_summary, "../Stockdale/stock_glm_female_summary.csv")
 ```
 
+It looks like the top model has 99% of the Akaike Weight and incorporates all potential explanatory variables. The proportion of deviance explained (1 - residual_deviance / null_deviance) ~ 25%.
+
+### Top Model Summary
+
+Here is the summary of the top female model, which includes parent body length, spawning location (distance), parent sample date (julian), and origin.
+```{r}
+summary(RS.glm.F.1)
+```
+
+What are the coefficients and 95% CIs for each of the explanatory variables?
+```{r}
+(female_est <- cbind(Estimate = coef(RS.glm.F.1), confint(RS.glm.F.1)))
+```
+
+**Note** those coefficients are still in log space due to the logit link function. If we take the exponent, we can look at incident ratios.
+```{r}
+exp(female_est)
+```
+
+Looking at these incident ratios, we can see that the RRS of hatchery-origin females relative to natural-origin females is ~ 0.60 (0.45-0.79) holding the other variables constant (length, distance, and date). Also, the percent change in the number of offspring increases by ~ 0.0% for every Mm increase in length, decreases by ~ 0.2% for every meter further upstream a fish is sampled, and decreases ~ 3.0% for every day later in the season a fish is sampled.
+
 ## Male
+
+The Global GLM's that we did above had both male and male parents grouped together. Here we will construct simple models and consider the two sexes separately as was done by [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725).
 
 ### Negative binomial GLMs
 
 ```{r Male Even GLM}
 Male.even <-  
   riverdist_parentage_stock %>% 
+  mutate(Julian = yday(`Sample Date`)) %>% 
   filter(SEX == "M")
 
-RS.glm.M.full <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Male.even, link = log)
-
+RS.glm.M.1 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Distance, data = Male.even, link = log)
 RS.glm.M.2 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin, data = Male.even, link = log)
-
 RS.glm.M.3 <- glm.nb(n ~ `Length Mm` + origin, data = Male.even, link = log)
-
 RS.glm.M.4 <- glm.nb(n ~ origin, data = Male.even, link = log)
-
 RS.glm.M.5 <- glm.nb(n ~ `Length Mm`, data = Male.even, link = log)
-
 RS.glm.M.6 <- glm.nb(n ~ `Sample Date`, data = Male.even, link = log)
-
 RS.glm.M.7 <- glm.nb(n ~ Distance, data = Male.even, link = log)
-
 RS.glm.M.8 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Distance, data = Male.even, link = log)
-
 RS.glm.M.9 <- glm.nb(n ~ `Length Mm` + Distance, data = Male.even, link = log)
-
 RS.glm.M.10 <- glm.nb(n ~ `Sample Date` + origin, data = Male.even, link = log)
-
 RS.glm.M.11 <- glm.nb(n ~ `Sample Date` + Distance, data = Male.even, link = log)
-
 RS.glm.M.12 <- glm.nb(n ~ `Sample Date` + Distance + origin, data = Male.even, link = log)
-
 RS.glm.M.13 <- glm.nb(n ~ Distance + origin, data = Male.even, link = log)
-
 RS.glm.M.14 <- glm.nb(n ~ Distance * origin, data = Male.even, link = log)
-
 RS.glm.M.15 <- glm.nb(n ~ `Sample Date` * origin, data = Male.even, link = log)
-
 RS.glm.M.16 <- glm.nb(n ~ `Length Mm` * origin, data = Male.even, link = log)
-
 RS.glm.M.17 <- glm.nb(n ~ `Sample Date` + `Length Mm` + origin + Intertidal, data = Male.even, link = log)
-
 RS.glm.M.18 <- glm.nb(n ~ Intertidal, data = Male.even, link = log)
-
 RS.glm.M.19 <- glm.nb(n ~ `Sample Date` + `Length Mm` + Intertidal, data = Male.even, link = log)
-
 RS.glm.M.20 <- glm.nb(n ~ `Length Mm` + Intertidal, data = Male.even, link = log)
-
 RS.glm.M.21 <- glm.nb(n ~ `Sample Date` + Intertidal, data = Male.even, link = log)
-
 RS.glm.M.22 <- glm.nb(n ~ `Sample Date` + Intertidal + origin, data = Male.even, link = log)
-
 RS.glm.M.23 <- glm.nb(n ~ Intertidal + origin, data = Male.even, link = log)
-
 RS.glm.M.24 <- glm.nb(n ~ Intertidal * origin, data = Male.even, link = log)
 ```
 
 ### Extract Akaike Weights {#male_glm}
 
+Akaike weights are another way of determining which model has the best fit, by calculating their conditional probabilities. 
 ```{r male_glm_summary}
-male_model_summary <- bind_rows(
-  lapply(c("full", 2:24), function(i) {
+male_glm_model_summary <- bind_rows(
+  lapply(c(1:24), function(i) {
     fit <- get(paste0("RS.glm.M.", i))
     summary(fit)$coefficients %>% 
       as_tibble(rownames = "variable") %>% 
@@ -674,36 +655,62 @@ male_model_summary <- bind_rows(
   } )
 )
 
-male_aic <- AIC(RS.glm.M.full, RS.glm.M.2, RS.glm.M.3, RS.glm.M.4, RS.glm.M.5, RS.glm.M.6, RS.glm.M.7, RS.glm.M.8, RS.glm.M.9, RS.glm.M.10, RS.glm.M.11, RS.glm.M.12, RS.glm.M.13, RS.glm.M.14, RS.glm.M.15, RS.glm.M.16, RS.glm.M.17, RS.glm.M.18, RS.glm.M.19, RS.glm.M.20, RS.glm.M.21, RS.glm.M.22, RS.glm.M.23, RS.glm.M.24)
+male_glm_aic <- bind_rows(
+  lapply(paste0("RS.glm.M.", 1:24), function(mod) {
+    data.frame(row.names = mod,
+               df = length(get(mod)$coefficients) + 1,
+               AIC = AIC(get(mod))
+    )
+  } )
+)
 
-male_aic <- male_aic %>% 
-  mutate(AIC_weight = as.numeric(Weights(male_aic))) %>% 
-  mutate(name = rownames(male_aic)) %>% 
+rownames(male_glm_aic) <- paste0("RS.glm.M.", 1:24)
+
+male_glm_aic <- male_glm_aic %>% 
+  mutate(AIC_weight = as.numeric(Weights(male_glm_aic))) %>% 
+  mutate(name = rownames(male_glm_aic)) %>% 
   arrange(AIC) %>% 
   mutate(delta_AIC = AIC - min(AIC))
 
-(male_model_summary <- male_model_summary %>% 
-  left_join(male_aic, by = c("name", "AIC")) %>% 
-  arrange(AIC)) %>% 
-  select(name, model, df, AIC, delta_AIC, AIC_weight, variable, Estimate, `Std. Error`, residual_deviance, residual_df, null_deviance, null_df)
+male_glm_model_summary <- male_glm_model_summary %>% 
+  left_join(male_glm_aic, by = c("name", "AIC")) %>% 
+  arrange(AIC)
+  # select(name, model, df, AIC, delta_AIC, AIC_weight, variable, Estimate, `Std. Error`, residual_deviance, residual_df, null_deviance, null_df)
 
-male_model_summary %>% 
-  group_by(name) %>% 
-  summarise(AIC_weight = max(AIC_weight), model = unique(model)) %>% 
+male_glm_model_summary %>% 
+  group_by(name, df, residual_deviance, null_deviance) %>% 
+  summarise(AIC_weight = round(max(AIC_weight), 3), model = unique(model), deviance_explained = round(1 - (max(residual_deviance) / max(null_deviance)), 3)) %>% 
+  ungroup() %>% 
+  select(name, df, AIC_weight, deviance_explained, model) %>% 
   arrange(desc(AIC_weight))
 
-male_model_summary %>% 
-  select(-`Std. Error`, -`z value`, -`Pr(>|z|)`) %>% 
-  spread(variable, Estimate, fill = NA)
-
-write_csv(male_model_summary, "../Stockdale/stock_glm_male_summary.csv")
+write_csv(male_glm_model_summary, "../Stockdale/stock_glm_male_summary.csv")
 ```
 
-The model with the highest weight (0.63) included date, length, intertidal, and origin. Origin was consistantly associated with RS in all of the top models.
+It looks like the top model has 100% of the Akaike Weight and incorporates all potential explanatory variables. The proportion of deviance explained (1 - residual_deviance / null_deviance) ~ 36%.
+
+### Top Model Summary
+
+Here is the summary of the top male model, which includes parent body length, spawning location (distance), parent sample date (julian), and origin.
+```{r}
+summary(RS.glm.M.1)
+```
+
+What are the coefficients and 95% CIs for each of the explanatory variables?
+```{r}
+(male_est <- cbind(Estimate = coef(RS.glm.M.1), confint(RS.glm.M.1)))
+```
+
+**Note** those coefficients are still in log space due to the logit link function. If we take the exponent, we can look at incident ratios.
+```{r}
+exp(male_est)
+```
+
+Looking at these incident ratios, we can see that the RRS of hatchery-origin males relative to natural-origin males is ~ 0.43 (0.31-0.60) holding the other variables constant (length, distance, and date). Also, the percent change in the number of offspring increases by ~ 1.6% for every Mm increase in length, decreases by ~ 0.2% for every meter further upstream a fish is sampled, and decreases ~ 5.4% for every day later in the season a fish is sampled.
 
 # Summary
 
-In summary, we see that there are some spatial patterns in RS, with higher average RS closer to the mouth than upstream [[link](#rs_v_distance)]. Natural-origin fish tended to spawn lower down in the stream for most sample dates [[link](#distance_v_date)]. 
+In summary, while there are many explanatory variables that impact RS such as body size, sample date, and sample location (distance from mouth), we see that there is still a significant reduction in RS for hatchery-origin fish relative to natural-origin fish. When we consider all potential parents together (both sexes), we end up with RRS ~ 0.47. If we consider the sexes separately, the RRS is ~ 0.60 for females and ~ 0.43 for males.  
 
-The highest ranked models for females always included origin, often included sample date and length, and occasionally included Distance. For males, the highest ranked models always included length and origin.
+The *true* RRS of hatchery/natural fish of Stockdale BY 2014 (i.e RRS of the escapement) is probably different than the *model* RRS from the above GLMs that takes into account size, location, and time. Hatchery fish are (on average) larger than natural origin fish, and that would bias the *model* RRS estimate that takes size into account downward because larger fish had higher RS than smaller fish. Hatchery (on average) spawn (were sampled) farther upstream than natural fish and that would bias the *model* RRS estimate that takes distance into account upward because fish sampled farther upstream had lower RS than fish sampled farther downstream. Finally, hatchery fish are (on average) later than natural origin fish, and that would bias the *model* RRS estimate that takes timing into account upward because later fish had lower RS than earlier fish.
  
