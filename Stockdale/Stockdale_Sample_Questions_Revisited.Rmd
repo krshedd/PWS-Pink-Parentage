@@ -24,7 +24,7 @@ For the third area, we will do some naive tests, considering each variable separ
 
 **Note** that we are only doing these analyses for the Stockdale even-year lineage (2014-2016) because there are not enough parent-offspring assignments from the odd lineage (2013-2015) to draw robust conclusions. Additionally, we are investigating Stockdale as opposed to Hogan Bay (Hogan) because Stockdale has a larger sample size of parent-offspring pairs and Stockdale is a longer system (~1500m of spawning habitat), so spawning location is likely more important in Stockdale than in Hogan (only 600m of spawning habitat).
 
-**Methods Note:** All pedigree analyses and RRS results to date have been based on output from the computer program [*FRANz*](https://academic.oup.com/bioinformatics/article/25/16/2134/203763). In this notebook we will also introduce pedigree results from another computer program, [*Colony*](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1755-0998.2009.02787.x). Both pedigree analysis programs are used extensively in the literature and have been shown to produce highly consistent results, so long as the genetic markerset is informative enough. We introduce results from *Colony* here because both the hypergeometric trans-generational mark-recapture (tGMR) and trans-generational rarefaction curve (tGRC) methods from [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122) require an estimate of the number of *unsampled*, *inferred* parents (i.e. how many unique parents would it have taken to create all of the offspring in our sample). However, *Colony* is notorious for having very long run times (weeks/months), so I had to cut the run short in order to provide results in a timely fashion for the Science Panel Meeting this Friday, September 13, 2019. While these *Colony* results should be considered *preliminary* due to the short run time, the parent-offspring assignments were in 93% agreement with *FRANz*.
+**Methods Note:** All pedigree analyses and RRS results to date have been based on pedigree output from the computer program [*FRANz*](https://academic.oup.com/bioinformatics/article/25/16/2134/203763). In this notebook we will also introduce pedigree results from another computer program, [*Colony*](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1755-0998.2009.02787.x). Both pedigree analysis programs are used extensively in the literature and have been shown to produce highly consistent results, so long as the genetic markerset is informative enough. We introduce results from *Colony* here because both the hypergeometric trans-generational mark-recapture (tGMR) and trans-generational rarefaction curve (tGRC) methods from [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122) require an estimate of the number of *unsampled*, *inferred* parents (i.e. how many unique parents would it have taken to create all of the offspring in our sample). However, *Colony* is notorious for having very long run times (weeks/months), so I had to cut the run short in order to provide results in a timely fashion for the Science Panel Meeting this Friday, September 13, 2019. While these *Colony* results should be considered *preliminary* due to the short run time, the parent-offspring assignments were in 93% agreement with *FRANz*.
 
 ```{r setup, include=FALSE}
 library(coin)
@@ -83,7 +83,7 @@ Pretty darn similar it looks like, in terms of parents that were assigned offspr
 
 Read in *FRANz* offspring data to compare all parent/offspring relationships.
 ```{r}
-(franz <- read_csv("../../Franz/Stockdale/Even_Run 2/parentage.csv"))
+franz <- read_csv("../../Franz/Stockdale/Even_Run 2/parentage.csv")
 ```
 
 List all parent-offspring assignments from *FRANz* with a posterior > 0.9.
@@ -212,7 +212,7 @@ stockdale_foot %>%
   theme(text = element_text(size = 20))
 ```
 
-Applying these fourteen surveys to an Area Under the Curve (AUC) model with a stream life of 13.7 days and an observer efficiency of 70.3% [Fried et al. 1998] we get an estimated escapement of **4,038** fish
+Applying these fourteen surveys to an Area Under the Curve (AUC) model with a stream life of 13.7 days and an observer efficiency of 70.3% [Fried et al. 1998] we get an estimated escapement of **4,038** fish.
 
 ### tGMR: Binomial Model
 
@@ -221,86 +221,6 @@ Another method of independently estimating the 2014 escapement to Stockdale Cree
   * n1 = number of genotyped potential parents (2014)
   * n2 = number of genotypes from potential offspring (2016) = number of offspring x 2 (one copy from sire, one copy from dam)
   * m2 = number of recaptured parental genotypes (i.e. offspring that assign to parents)
-
-```{r}
-library(FSA)
-
-mr_binom <- mrClosed(M = 201, n = 3982, m = 880, method = "Petersen")
-summary(mr_binom, incl.SE = TRUE, verbose = TRUE)
-confint(mr_binom, verbose = TRUE, type = "binomial", level = 0.95)
-
-mr_hyper <- mrClosed(M = 201, n = 779, m = 166, method = "Petersen")
-summary(mr_hyper, incl.SE = TRUE, verbose = TRUE)
-confint(mr_hyper, verbose = TRUE, type = "hypergeometric", level = 0.95)
-
-mr_binom_female <- mrClosed(M = 99, n = 1991, m = 457, method = "Petersen")
-summary(mr_binom_female, incl.SE = TRUE, verbose = TRUE)
-confint(mr_binom_female, verbose = TRUE, type = "binomial", level = 0.95)
-
-mr_binom_male <- mrClosed(M = 102, n = 1991, m = 423, method = "Petersen")
-summary(mr_binom_male, incl.SE = TRUE, verbose = TRUE)
-confint(mr_binom_male, verbose = TRUE, type = "binomial", level = 0.95)
-```
-
-```{r}
-var_krebs <- function(m, c, r, p = 0.95) {
-  (qnorm(1 - (1 - p) / 2) * sqrt(((1 - (r / m)) * (r / c) * (1 - (r / c))) / (c - 1))) + (1 / (2 * c))
-}
-
-var_krebs(m = 1800, c = 800, r = 73)
-
-ci_krebs <- function(m, c, r, p = 0.95) {
-  round(
-    cbind(m * (1 / ((r / c) + var_krebs(m, c, r))),
-          m * c / r,
-          m * (1 / ((r / c) - var_krebs(m, c, r)))
-    )
-  )
-}
-
-ci_krebs(m = 1800, c = 800, r = 73)
-
-# Rawding binomial
-ci_krebs(m = 201, c = 3982, r = 880)
-
-# Rawding hypergeometric
-ci_krebs(m = 201, c = 779, r = 166)
-
-
-
-qbinom(p = c(0.025, 0.975), size = 22, prob = 14 / 22)
-
-library(binom)
-(1 / binom.confint(x = 14, n = 22, conf.level = 0.95, methods = "wilson") %>% 
-  select(mean, lower, upper)) * 50
-
-(1 / binom.confint(x = 167, n = 421, conf.level = 0.95, methods = "wilson") %>% 
-  select(mean, lower, upper)) * 948
-
-
-(1 / binom.confint(x = 167, n = 421, conf.level = 0.95, methods = "wilson") %>% 
-    select(mean, lower, upper) %>% 
-    rename(lower = upper, upper = lower) %>% 
-    select(lower, mean, upper)) * 948
-
-(1 / binom.confint(x = 880, n = 3982, conf.level = 0.95, methods = "wilson") %>% 
-    select(mean, lower, upper) %>% 
-    rename(lower = upper, upper = lower) %>% 
-    select(lower, mean, upper)) * 201
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 Here is the sample size of individuals for potential parents (2014) and potential offspring (2016)
 ```{r}
@@ -318,12 +238,16 @@ And how many "recaptured genotypes" did we get in 2016?
 offspring_dat <- read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv") %>% 
   filter(`Sample Year` == 2016)
 
-(offspring_franz <- read_csv("../../Franz/Stockdale/Even_Run 2/parentage.csv") %>% 
-    filter(Posterior >= 0.9) %>% 
-    left_join(offspring_dat, by = c("Offspring" = "franz_id")) %>% 
-    select(Offspring, `Parent 1`, `Parent 2`) %>% 
-    gather(Parent, Parent_ID, -Offspring) %>% 
-    filter(!is.na(Parent_ID)))
+offspring_franz <- read_csv("../../Franz/Stockdale/Even_Run 2/parentage.csv") %>% 
+  filter(Posterior >= 0.9) %>% 
+  left_join(offspring_dat, by = c("Offspring" = "franz_id")) %>% 
+  select(Offspring, `Parent 1`, `Parent 2`) %>% 
+  gather(Parent, Parent_ID, -Offspring) %>% 
+  filter(!is.na(Parent_ID)) %>% 
+  mutate(`Sample Year` = 2016)
+
+offspring_franz %>% 
+  count(`Sample Year`)
 ```
 
 We had 1,238 parent-offspring pair assignments, so that makes:  
@@ -331,7 +255,7 @@ We had 1,238 parent-offspring pair assignments, so that makes:
   * m2 = 1,238
 
 And our final calculation for Nc is:
-```{r}
+```{r, message=TRUE}
 mr_binom <- mrClosed(M = 794, n = 5199 * 2, m = 1238, method = "Petersen")
 summary(mr_binom, incl.SE = TRUE, verbose = TRUE)
 confint(mr_binom, verbose = TRUE, type = "binomial", level = 0.95)
@@ -378,7 +302,7 @@ So that gives us:
   * m2 = 406
 
 And our final calculation for Nc is:
-```{r}
+```{r, message=TRUE}
 mr_hyper <- mrClosed(M = 794, n = 6225 + 406, m = 406, method = "Petersen")
 summary(mr_hyper, incl.SE = TRUE, verbose = TRUE)
 confint(mr_hyper, verbose = TRUE, type = "hypergeometric", level = 0.95)
@@ -440,7 +364,7 @@ curve((coef(bh1nls)[1] * x) / (1 + coef(bh1nls)[2] * x), from = 0, to = xmax, co
 legend("topleft", legend = c("density dependent"), col = c("red"), lwd = 2, cex = 0.6)
 ```
 
-Based on the *inferred* parentage assignments from *Colony*, it looks like there were **>14,000** successful spawners. However, we did not have enough offspring sampled to reach the assymptote of the curve.
+Based on the *inferred* parentage assignments from *Colony*, it looks like there were **>14,000** successful spawners. However, we did not have enough offspring sampled to reach the assymptote of the curve, so this estimate should be taken with a grain of salt.
 
 ## Summary
 
@@ -469,7 +393,7 @@ I'll present both here for completeness, however, it is worth noting that using 
 
 ## Sample Sex Ratio
 
-The number of adults sampled in 2014 was 451 females and 343 males, resulting in a sex ratio of 1.32 (females/males).
+The number of adults sampled in 2014 was 451 females and 343 males, resulting in a sex ratio of `r round(451/343, 2)` (females/males).
 ```{r}
 paired_14_16_filter_parents <- read_csv("stock_paired_14_16_filter_parents.csv") %>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
@@ -897,5 +821,5 @@ These *preliminary* data explorations reveal two conclusions: 1) there is room f
 
 The next steps are:  
 
-  1) to move on to a more robust approach and consider all variables (covariates) of RS holistically. General linear models are commonly used in the literature (see [Bernston et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), and [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725)) to determine the magnitude of the effect of origin on RRS while considering other variables (i.e. sample date, fish size, sample location, etc.). In another notebook soon to follow we will consider all information more holistically by model fitting to GLM's; and 
+  1) to move on to a more robust approach and consider all variables (covariates) of RS holistically. General linear models are commonly used in the literature (see [Bernston et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), and [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725)) to determine the magnitude of the effect of origin on RRS while considering other variables (i.e. sample date, fish size, sample location, etc.). In another notebook soon to follow (**Chris sent this out to the Science Panel on Tuesday, September 10, 2019**) we will consider all information more holistically by model fitting to GLM's; and 
   2) determine if our samples are temporally representative of escapement (i.e. did we have a consistent sampling rate throughout the season), and, if not, determine the most appropriate way to adjust our RRS estimates for this (e.g. randomly subsampling fish by sample date at an even sampling rate and getting bootstrapped estimates of hatchery vs. natural RRS). This will be a topic of discussion at the upcoming Science Panel meeting.
