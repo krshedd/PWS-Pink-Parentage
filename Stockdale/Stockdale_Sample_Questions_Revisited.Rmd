@@ -24,7 +24,7 @@ For the third area, we will do some naive tests, considering each variable separ
 
 **Note** that we are only doing these analyses for the Stockdale even-year lineage (2014-2016) because there are not enough parent-offspring assignments from the odd lineage (2013-2015) to draw robust conclusions. Additionally, we are investigating Stockdale as opposed to Hogan Bay (Hogan) because Stockdale has a larger sample size of parent-offspring pairs and Stockdale is a longer system (~1500m of spawning habitat), so spawning location is likely more important in Stockdale than in Hogan (only 600m of spawning habitat).
 
-**Methods Note:** All pedigree analyses and RRS results to date have been based on output from the computer program [*FRANz*](https://academic.oup.com/bioinformatics/article/25/16/2134/203763). In this notebook we will also introduce pedigree results from another computer program, [*Colony*](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1755-0998.2009.02787.x). Both pedigree analysis programs are used extensively in the literature and have been shown to produce highly consistent results, so long as the genetic markerset is informative enough. We introduce results from *Colony* here because both the hypergeometric model trans-generational mark-recapture (tGMR) and trans-generational rarefaction curve (tGRC) methods from [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122) require an estimate of the number of *unsampled*, *inferred* parents (i.e. how many unique parents would it have taken to create all of the offspring in our sample)
+**Methods Note:** All pedigree analyses and RRS results to date have been based on output from the computer program [*FRANz*](https://academic.oup.com/bioinformatics/article/25/16/2134/203763). In this notebook we will also introduce pedigree results from another computer program, [*Colony*](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1755-0998.2009.02787.x). Both pedigree analysis programs are used extensively in the literature and have been shown to produce highly consistent results, so long as the genetic markerset is informative enough. We introduce results from *Colony* here because both the hypergeometric trans-generational mark-recapture (tGMR) and trans-generational rarefaction curve (tGRC) methods from [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122) require an estimate of the number of *unsampled*, *inferred* parents (i.e. how many unique parents would it have taken to create all of the offspring in our sample). However, *Colony* is notorious for having very long run times (weeks/months), so I had to cut the run short in order to provide results in a timely fashion for the Science Panel Meeting this Friday, September 13, 2019. While these *Colony* results should be considered *preliminary* due to the short run time, the parent-offspring assignments were in 93% agreement with *FRANz*.
 
 ```{r setup, include=FALSE}
 library(coin)
@@ -38,9 +38,101 @@ library(gridExtra)
 library(MuMIn)
 library(GGally)
 library(gganimate)
+library(limma)  # for Venn Diagram
+library(FSA)  # Peterson estimator
 
 knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.width = 10)
 ```
+
+# Compare *Colony* vs. *FRANz* results
+
+Read in *Colony* results from our short, aborted run. **Note**: any Father with a * or Mother with a # represents an unsampled parent with relationships inferred by sibship among offspring.
+```{r}
+(colony_best_config <- read_delim("../../Colony/Stockdale/Output/Stockdale_2014_2016_quickndirty.BestConfig", delim = " ", trim_ws = TRUE))
+```
+
+## Compare Number of Parents Assigned Offspring
+
+How many parents, by sex, produced at least one offspring according to *Colony*?
+```{r}
+colony_best_config %>% 
+  gather(SEX, parent_id, -OffspringID, -ClusterIndex) %>% 
+  mutate(SEX = case_when(SEX == "FatherID" ~ "M",
+                         SEX == "MotherID" ~ "F")) %>% 
+  mutate(known_parent = case_when(grepl(pattern = "\\*", x = parent_id) ~ FALSE,
+                                  grepl(pattern = "\\#", x = parent_id) ~ FALSE,
+                                  TRUE ~ TRUE)) %>% 
+  filter(known_parent == TRUE) %>% 
+  group_by(SEX) %>% 
+  summarise(n = n_distinct(parent_id))
+```
+
+How many parents, by sex, produced at least one offspring according to *FRANz*?
+```{r}
+riverdist_parentage_stock <- read_csv("riverdist_parentage_stock.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
+
+riverdist_parentage_stock %>% 
+  filter(Success == "Successful") %>% 
+  count(`Sample Year`, SEX)
+```
+
+Pretty darn similar it looks like, in terms of parents that were assigned offspring!
+
+## Compare Number of Offspring Assigned Parents
+
+Read in *FRANz* offspring data to compare all parent/offspring relationships.
+```{r}
+(franz <- read_csv("../../Franz/Stockdale/Even_Run 2/parentage.csv"))
+```
+
+List all parent-offspring assignments from *FRANz* with a posterior > 0.9.
+```{r}
+(franz_assignments <- franz %>% 
+   filter(Posterior > 0.9) %>% 
+   rename(offspring_id = Offspring) %>% 
+   select(offspring_id, `Parent 1`, `Parent 2`) %>% 
+   gather(parent, parent_id, -offspring_id) %>% 
+   drop_na(parent_id) %>% 
+   select(-parent)
+)
+```
+
+List all parent-offspring assignments from *Colony* from the maximum likelihood configuration.
+```{r}
+(colony_assignments <- colony_best_config %>% 
+   gather(SEX, parent_id, -OffspringID, -ClusterIndex) %>% 
+   mutate(SEX = case_when(SEX == "FatherID" ~ "M",
+                          SEX == "MotherID" ~ "F")) %>% 
+   mutate(known_parent = case_when(grepl(pattern = "\\*", x = parent_id) ~ FALSE,
+                                   grepl(pattern = "\\#", x = parent_id) ~ FALSE,
+                                   TRUE ~ TRUE)) %>% 
+   filter(known_parent == TRUE) %>% 
+   rename(offspring_id = OffspringID) %>% 
+   select(offspring_id, parent_id)
+)
+```
+
+It looks like *FRANz* made 1,238 parent-offspring assignments, while *Colony* made 1,159.
+
+Here is a Venn diagram of the overlap in offspring assignments to sampled parents.
+```{r}
+offspring_assignments <- bind_rows(
+  inner_join(franz_assignments, colony_assignments) %>% 
+    mutate(FRANz = TRUE,
+           Colony = TRUE),
+  anti_join(franz_assignments, colony_assignments) %>% 
+    mutate(FRANz = TRUE,
+           Colony = FALSE),
+  anti_join(colony_assignments, franz_assignments) %>% 
+    mutate(FRANz = FALSE,
+           Colony = TRUE),
+)
+
+vennDiagram(vennCounts(offspring_assignments[, c("FRANz", "Colony")]))
+```
+
+It looks like *Colony* is slightly more conservative than *FRANz* in terms of making parent-offspring assignments for sampled parents (84 assignments were unique to *FRANz* and only 5 were unique to *Colony*). Overall, *Colony* agreed with `r round(1154 / 1238 * 100, 1)`% of the parent-offspring assignments made by *FRANz*.
 
 # What Was the Sample Proportion of Stockdale 2014 Escapement?
 
@@ -120,7 +212,7 @@ stockdale_foot %>%
   theme(text = element_text(size = 20))
 ```
 
-Applying these fourteen surveys to an Area Under the Curve (AUC) model with a stream life of 13.7 days and an observer efficiency of 70.3% [Fried et al. 1998] we get an estimated escapement of **4,038** fish.
+Applying these fourteen surveys to an Area Under the Curve (AUC) model with a stream life of 13.7 days and an observer efficiency of 70.3% [Fried et al. 1998] we get an estimated escapement of **4,038** fish
 
 ### tGMR: Binomial Model
 
@@ -129,6 +221,86 @@ Another method of independently estimating the 2014 escapement to Stockdale Cree
   * n1 = number of genotyped potential parents (2014)
   * n2 = number of genotypes from potential offspring (2016) = number of offspring x 2 (one copy from sire, one copy from dam)
   * m2 = number of recaptured parental genotypes (i.e. offspring that assign to parents)
+
+```{r}
+library(FSA)
+
+mr_binom <- mrClosed(M = 201, n = 3982, m = 880, method = "Petersen")
+summary(mr_binom, incl.SE = TRUE, verbose = TRUE)
+confint(mr_binom, verbose = TRUE, type = "binomial", level = 0.95)
+
+mr_hyper <- mrClosed(M = 201, n = 779, m = 166, method = "Petersen")
+summary(mr_hyper, incl.SE = TRUE, verbose = TRUE)
+confint(mr_hyper, verbose = TRUE, type = "hypergeometric", level = 0.95)
+
+mr_binom_female <- mrClosed(M = 99, n = 1991, m = 457, method = "Petersen")
+summary(mr_binom_female, incl.SE = TRUE, verbose = TRUE)
+confint(mr_binom_female, verbose = TRUE, type = "binomial", level = 0.95)
+
+mr_binom_male <- mrClosed(M = 102, n = 1991, m = 423, method = "Petersen")
+summary(mr_binom_male, incl.SE = TRUE, verbose = TRUE)
+confint(mr_binom_male, verbose = TRUE, type = "binomial", level = 0.95)
+```
+
+```{r}
+var_krebs <- function(m, c, r, p = 0.95) {
+  (qnorm(1 - (1 - p) / 2) * sqrt(((1 - (r / m)) * (r / c) * (1 - (r / c))) / (c - 1))) + (1 / (2 * c))
+}
+
+var_krebs(m = 1800, c = 800, r = 73)
+
+ci_krebs <- function(m, c, r, p = 0.95) {
+  round(
+    cbind(m * (1 / ((r / c) + var_krebs(m, c, r))),
+          m * c / r,
+          m * (1 / ((r / c) - var_krebs(m, c, r)))
+    )
+  )
+}
+
+ci_krebs(m = 1800, c = 800, r = 73)
+
+# Rawding binomial
+ci_krebs(m = 201, c = 3982, r = 880)
+
+# Rawding hypergeometric
+ci_krebs(m = 201, c = 779, r = 166)
+
+
+
+qbinom(p = c(0.025, 0.975), size = 22, prob = 14 / 22)
+
+library(binom)
+(1 / binom.confint(x = 14, n = 22, conf.level = 0.95, methods = "wilson") %>% 
+  select(mean, lower, upper)) * 50
+
+(1 / binom.confint(x = 167, n = 421, conf.level = 0.95, methods = "wilson") %>% 
+  select(mean, lower, upper)) * 948
+
+
+(1 / binom.confint(x = 167, n = 421, conf.level = 0.95, methods = "wilson") %>% 
+    select(mean, lower, upper) %>% 
+    rename(lower = upper, upper = lower) %>% 
+    select(lower, mean, upper)) * 948
+
+(1 / binom.confint(x = 880, n = 3982, conf.level = 0.95, methods = "wilson") %>% 
+    select(mean, lower, upper) %>% 
+    rename(lower = upper, upper = lower) %>% 
+    select(lower, mean, upper)) * 201
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Here is the sample size of individuals for potential parents (2014) and potential offspring (2016)
 ```{r}
@@ -160,7 +332,9 @@ We had 1,238 parent-offspring pair assignments, so that makes:
 
 And our final calculation for Nc is:
 ```{r}
-round(794 * 5199 * 2 / 1238)
+mr_binom <- mrClosed(M = 794, n = 5199 * 2, m = 1238, method = "Petersen")
+summary(mr_binom, incl.SE = TRUE, verbose = TRUE)
+confint(mr_binom, verbose = TRUE, type = "binomial", level = 0.95)
 ```
 
 Giving us an estimated escapement of **6,669** fish
@@ -175,63 +349,42 @@ Here we provide the hypergeometric tGMR model (without replacement) estimates wh
   * n2 = number of unique adults estimated to have contributed to genotyped offspring (assigned + inferred parents from *Colony*)
   * m2 = number of genotyped parents assigned at least 1 offspring
 
-Here is the sample size of individuals for potential parents (2014)
+Here is the sample size of individuals for potential parents (2014).
 ```{r}
 read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv") %>% 
   filter(`Sample Year` == 2014) %>% 
   count(`Sample Year`)
 ```
-And the number of unique parents inferred to have produced all offspring in our sample
+
+And the total number of unique parents inferred to have produced all offspring in our sample. *Sampled* parents are those that were sampled in 2014 and produced at least one offspring, while *Inferred* parents are those inferred by *Colony* based on sibship among offspring.
 ```{r}
-colony_best_config <- read_delim("../../Colony/Stockdale/Output/Stockdale_2014_2016.BestConfig", delim = " ", trim_ws = TRUE)
+colony_best_config <- read_delim("../../Colony/Stockdale/Output/Stockdale_2014_2016_quickndirty.BestConfig", delim = " ", trim_ws = TRUE)
 
-# colony_best_config <- read_delim("C:/Users/krshedd/Program Files/Colony/Example1/example1.BestConfig", delim = " ", trim_ws = TRUE)
-
-# add
-n_distinct(colony_best_config$FatherID) + n_distinct(colony_best_config$MotherID)
-
-# split sire/dam
 colony_best_config %>% 
-  summarise(unique_sire = n_distinct(FatherID),
-            unique_dam = n_distinct(MotherID))
-
-# how many known vs. inferred sires
-colony_best_config %>% 
-  mutate(Father_Known = case_when(grepl(pattern = "\\*", x = FatherID) ~ FALSE,
-                                  TRUE ~ TRUE)) %>% 
-  group_by(Father_Known) %>% 
-  summarise(n_Sire = n_distinct(FatherID))
-
-# how many known vs. inferred dams
-colony_best_config %>% 
-  mutate(Mother_Known = case_when(grepl(pattern = "\\*", x = MotherID) ~ FALSE,
-                                  TRUE ~ TRUE)) %>% 
-  group_by(Mother_Known) %>% 
-  summarise(n_Dam = n_distinct(MotherID))
-```
-
-And here are the number of parents that produced at least one offspring
-```{r}
-riverdist_parentage_stock <- read_csv("riverdist_parentage_stock.csv") %>% 
-  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
-
-riverdist_parentage_stock %>% 
-  filter(Success == "Successful") %>% 
-  count(`Sample Year`)
+  gather(SEX, parent_id, -OffspringID, -ClusterIndex) %>% 
+  mutate(SEX = case_when(SEX == "FatherID" ~ "M",
+                         SEX == "MotherID" ~ "F")) %>% 
+  mutate(Parent = case_when(grepl(pattern = "\\*", x = parent_id) ~ "Inferred",
+                                  grepl(pattern = "\\#", x = parent_id) ~ "Inferred",
+                                  TRUE ~ "Sampled")) %>% 
+  group_by(Parent) %>% 
+  summarise(n = n_distinct(parent_id))
 ```
 
 So that gives us:  
 
   * n1 = 794
-  * n2 = ???
-  * m2 = 404
+  * n2 = 6,225 + 406
+  * m2 = 406
 
 And our final calculation for Nc is:
 ```{r}
-round(794 * XXX / 404)
+mr_hyper <- mrClosed(M = 794, n = 6225 + 406, m = 406, method = "Petersen")
+summary(mr_hyper, incl.SE = TRUE, verbose = TRUE)
+confint(mr_hyper, verbose = TRUE, type = "hypergeometric", level = 0.95)
 ```
 
-Giving us an estimated escapement of **X,XXX** fish
+Giving us an estimated escapement of **12,968** fish
 
 ### tGRC: Rarefaction Curve
 
@@ -239,10 +392,9 @@ Giving us an estimated escapement of **X,XXX** fish
 
 In addition to tGMR, [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122) provides a method to estimate the number of spawners using a rarefaction curve approach. Briefly, as each offspring is added to the sample, fewer new unique parental genotypes should be observed with the asymptote being equal to the number of spawners.
 
-Here we will subsample the offspring (not their genotypes, *note* this is a subtle departure from Rawding et al. 2014 for simplicity) in levels of 10% to see how many unique parents (both assigned **and** inferred from *Colony*) we end up with.
-
+Here we will subsample the offspring in levels of 10% to see how many unique parents (both assigned **and** inferred from *Colony*) we end up with.
 ```{r}
-colony_best_config <- read_delim("../../Colony/Stockdale/Output/Stockdale_2014_2016.BestConfig", delim = " ", trim_ws = TRUE)
+colony_best_config <- read_delim("../../Colony/Stockdale/Output/Stockdale_2014_2016_quickndirty.BestConfig", delim = " ", trim_ws = TRUE)
 
 n_off <- n_distinct(colony_best_config$OffspringID)
 n_sample <- round(seq(from = 0.1, to = 1, by = 0.1) * n_off)
@@ -274,18 +426,21 @@ bh0 <- log_n_par ~ log(a * n_off) # declare model
 bh0s <- bh1s[1] # use the same starting value as above for a
 bh0nls <- nls(bh0, data = rare_dat, start = bh0s)
 
-xmax <- 12000
-ymax <- max(rare_dat$n_par) * 1.2
+xmax <- n_off * 5
+ymax <- max(rare_dat$n_par) * 2.5
 
-plot(n_par ~ n_off, data = rare_dat, xlim = c(0, xmax), ylim = c(0, ymax), col = rgb(0, 0, 0, alpha = 0.01), pch = 16,
+par(mar = c(5.1, 5.1, 4.1, 1.1))
+plot(n_par ~ n_off, data = rare_dat, xlim = c(0, xmax), ylim = c(0, ymax), col = rgb(0, 0, 0, alpha = 0.01), pch = 16, yaxt = 'n',
      xlab = "Sample Number of Offspring",
-     ylab = "Number of Breeders", 
+     ylab = "", 
      main = "Stockdale 2014/2016 Genetic Rarefaction Curve")
+axis(side = 2, at = seq(0, 16000, 2000), las = 1, line = 0)
+title(ylab = "Number of Breeders", mgp = c(4, 1, 0))
 curve((coef(bh1nls)[1] * x) / (1 + coef(bh1nls)[2] * x), from = 0, to = xmax, col = "red", lwd = 2, add = TRUE)
 legend("topleft", legend = c("density dependent"), col = c("red"), lwd = 2, cex = 0.6)
 ```
 
-Based on the parentage assignments, it looks like there were **~450** successful spawners.
+Based on the *inferred* parentage assignments from *Colony*, it looks like there were **>14,000** successful spawners. However, we did not have enough offspring sampled to reach the assymptote of the curve.
 
 ## Summary
 
@@ -294,10 +449,10 @@ We have four separate estimates of the 2014 Stockdale escapement, which give us 
   1) Aerial Survey AUC: **2,869** fish, p = 28%
   2) Foot Survey AUC: **4,038** fish, p = 20%
   3) tGMR Binomial Model: **6,669** fish, p = 12%
-  4) tGMR Hypergeometric Model: **X,XXX** fish, p = XX%
-  4) tGRC Rarefaction Curve: **X,XXX** successful spawners, p = XX%
+  4) tGMR Hypergeometric Model: **12,968** fish, p = 6%
+  5) tGRC Rarefaction Curve: **>14,000** successful spawners, p = 6%
 
-While these are four very different estimates, I think that we can be confident in saying that the Foot Survey AUC and tGMR Binomial Model estimates are likely the two most reliable estimates for the escapement. The aerial survey AUC estimate was only based on three flights, and the tGRC is biased downward in part due to the large number of parents that had no offspring assign back to them (only estimates successful spawners, not full escapement).
+While these are five very different estimates, I think that we can be confident in saying that the Foot Survey AUC and tGMR Binomial Model estimates are likely the two most reliable estimates for the escapement. The aerial survey AUC estimate was only based on three flights, wheras the tGMR Hypergeometric Model and tGRC estimates rely on an estimate of the number of *inferred* parents that were estiamted to have contributed to the offspring. In [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122), they sampled ~21% (166/779) of the parents estimated to have produced the offspring in their sample. In contrast, we sampled  ~6% (406/6631) of the parents estimated to have produced the offspring in our sample. Given our lower sampling rate of parents, I would expect the hypergeometric tGMR and tGRC methods to be less precise.
 
 Based on this data, it is reasonable to conclude that our sample of 794 fish in 2014 likely represents between 12-20% of the escapement. Another very simple metric that we would expect to be correlated to the parental sampling rate would be the offspring assignment rate (i.e. what percentage of our 5,199 offspring assigned to parents?). Of our 5,199 offspring, 1,054 were assigned to at least one parent for an assignment rate of ~20%.
 
