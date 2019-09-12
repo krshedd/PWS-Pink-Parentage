@@ -59,7 +59,8 @@ oceanak_mod <- oceanak  %>%
   rename(year = `Sample Year`) %>% 
   mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "natural",
                             `Otolith Mark Present` == "YES" ~ "hatchery")) %>% 
-  mutate(origin = factor(origin, levels = c("natural", "hatchery")))
+  mutate(origin = factor(origin, levels = c("natural", "hatchery"))) %>% 
+  mutate(date = dmy(`Sample Date`))
 
 # table of stream, year, and otolith_read
 table(oceanak_mod$stream, oceanak_mod$otolith_read, oceanak_mod$year)
@@ -91,11 +92,19 @@ oceanak_mod %>%
 # min and max date within a year
 oceanak_mod %>% 
   group_by(year) %>% 
-  summarise(begin_date = min(`Sample Date`), end_date = max(`Sample Date`))
+  summarise(begin_date = min(date), end_date = max(date))
+
+# end date by stream and year
+# min and max date within a year
+oceanak_mod %>% 
+  group_by(year, stream) %>% 
+  summarise(end_date = max(date)) %>% 
+  spread(year, end_date)
+
 
 # histogram of samples per date per year
 oceanak_mod %>% 
-  mutate(julian_date = yday(`Sample Date`)) %>% 
+  mutate(julian_date = yday(date)) %>% 
   ggplot(aes(x = julian_date)) +
   geom_histogram() +
   facet_grid(year ~ .)
