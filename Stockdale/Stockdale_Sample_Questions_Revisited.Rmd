@@ -24,7 +24,9 @@ For the third area, we will do some naive tests, considering each variable separ
 
 **Note** that we are only doing these analyses for the Stockdale even-year lineage (2014-2016) because there are not enough parent-offspring assignments from the odd lineage (2013-2015) to draw robust conclusions. Additionally, we are investigating Stockdale as opposed to Hogan Bay (Hogan) because Stockdale has a larger sample size of parent-offspring pairs and Stockdale is a longer system (~1500m of spawning habitat), so spawning location is likely more important in Stockdale than in Hogan (only 600m of spawning habitat).
 
-**Methods Note:** All pedigree analyses and RRS results to date have been based on pedigree output from the computer program [*FRANz*](https://academic.oup.com/bioinformatics/article/25/16/2134/203763). In this notebook we will also introduce pedigree results from another computer program, [*Colony*](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1755-0998.2009.02787.x). Both pedigree analysis programs are used extensively in the literature and have been shown to produce highly consistent results, so long as the genetic marker set is informative enough. We introduce results from *Colony* here because both the hypergeometric trans-generational mark-recapture (tGMR) and trans-generational rarefaction curve (tGRC) methods from [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122) require an estimate of the number of *unsampled*, *inferred* parents (i.e. how many unique parents would it have taken to create all of the offspring in our sample). However, *Colony* is notorious for having very long run times (weeks/months), so I had to cut the run short in order to provide results in a timely fashion for the Science Panel Meeting this Friday, September 13, 2019. While these *Colony* results should be considered *preliminary* due to the short run time, the parent-offspring assignments were in 93% agreement with *FRANz*.
+**Methods Note:** All pedigree analyses and RRS results to date have been based on pedigree output from the computer program [*FRANz*](https://academic.oup.com/bioinformatics/article/25/16/2134/203763). In this notebook we will also introduce pedigree results from another computer program, [*Colony*](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1755-0998.2009.02787.x). Both pedigree analysis programs are used extensively in the literature and have been shown to produce highly consistent results, so long as the genetic marker set is informative enough. We introduce results from *Colony* here because both the hypergeometric trans-generational mark-recapture (tGMR) and trans-generational rarefaction curve (tGRC) methods from [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122) require an estimate of the number of *unsampled*, *inferred* parents (i.e. how many unique parents would it have taken to create all of the offspring in our sample). However, *Colony* is notorious for having very long run times (weeks/months), so I **originally** (9/12/19) had to cut the run short in order to provide results in a timely fashion for the Science Panel Meeting this Friday, September 13, 2019. While these *Colony* results should be considered *preliminary* due to the short run time, the parent-offspring assignments were in 93% agreement with *FRANz*.
+
+**UPDATE 9/13/19**: The *Colony* run that I cut short to provide results on 9/12/19 finished and yielded slightly different results. The parent-offspring assignments were in 96.3% agreement with *FRANz*. Additionally, *Colony* inferred fewer unsampled parents, which reduced the tGMR hypergeometric and tGRC estimates from **12,968** and **>14,000**, respectively, to **10,924** and **>10,000**. This reduced the disparity between these two estimates and the tGMR binomial and stream walk AUC estimates.
 
 ```{r setup, include=FALSE}
 library(coin)
@@ -132,7 +134,7 @@ offspring_assignments <- bind_rows(
 vennDiagram(vennCounts(offspring_assignments[, c("FRANz", "Colony")]))
 ```
 
-It looks like *Colony* is slightly more conservative than *FRANz* in terms of making parent-offspring assignments for sampled parents (84 assignments were unique to *FRANz* and only 5 were unique to *Colony*). Overall, *Colony* agreed with `r round(1154 / 1238 * 100, 1)`% of the parent-offspring assignments made by *FRANz*.
+It looks like *Colony* is slightly more conservative than *FRANz* in terms of making parent-offspring assignments for sampled parents (84 assignments were unique to *FRANz* and only 5 were unique to *Colony*). Overall, *Colony* agreed with `r round(1192 / 1238 * 100, 1)`% of the parent-offspring assignments made by *FRANz*.
 
 # What Was the Sample Proportion of Stockdale 2014 Escapement?
 
@@ -298,17 +300,17 @@ colony_best_config %>%
 So that gives us:  
 
   * n1 = 794
-  * n2 = 6,225 + 406
-  * m2 = 406
+  * n2 = 5,167 + 405
+  * m2 = 405
 
 And our final calculation for Nc is:
 ```{r, message=TRUE}
-mr_hyper <- mrClosed(M = 794, n = 6225 + 406, m = 406, method = "Petersen")
+mr_hyper <- mrClosed(M = 794, n = 5167 + 405, m = 405, method = "Petersen")
 summary(mr_hyper, incl.SE = TRUE, verbose = TRUE)
 confint(mr_hyper, verbose = TRUE, type = "hypergeometric", level = 0.95)
 ```
 
-Giving us an estimated escapement of **12,968** fish
+Giving us an estimated escapement of **10,924** fish
 
 ### tGRC: Rarefaction Curve
 
@@ -362,21 +364,27 @@ axis(side = 2, at = seq(0, 16000, 2000), las = 1, line = 0)
 title(ylab = "Number of Breeders", mgp = c(4, 1, 0))
 curve((coef(bh1nls)[1] * x) / (1 + coef(bh1nls)[2] * x), from = 0, to = xmax, col = "red", lwd = 2, add = TRUE)
 legend("topleft", legend = c("density dependent"), col = c("red"), lwd = 2, cex = 0.6)
+abline(h = seq(0, 13000, 1000), lwd = 1, lty = 3)
 ```
 
-Based on the *inferred* parentage assignments from *Colony*, it looks like there were **>14,000** successful spawners. However, we did not have enough offspring sampled to reach the asymptote of the curve, so this estimate should be taken with a grain of salt.
+Based on the *inferred* parentage assignments from *Colony*, it looks like there were **>10,000** successful spawners. However, we did not have enough offspring sampled to reach the asymptote of the curve, so this estimate should be taken with a grain of salt.
+
+### *Colony* Estimate of *Ne*
+
+*Colony* also provides an estimate of *Ne* (effective population size) based on sibling relationships. That estimate is **4,711** (95% CI 4,512-4,919).
 
 ## Summary
 
-We have five separate estimates of the 2014 Stockdale escapement, which give us five different sampling proportions (parents sample size = 794):  
+We have six separate estimates of the 2014 Stockdale escapement, which give us six different sampling proportions (parents sample size = 794):  
 
   1) Aerial Survey AUC: **2,869** fish, p = 28%
   2) Foot Survey AUC: **4,038** fish, p = 20%
   3) tGMR Binomial Model: **6,669** fish, p = 12%
-  4) tGMR Hypergeometric Model: **12,968** fish, p = 6%
-  5) tGRC Rarefaction Curve: **>14,000** successful spawners, p = 6%
+  4) tGMR Hypergeometric Model: **10,924** fish, p = 7%
+  5) tGRC Rarefaction Curve: **>10,000** successful spawners, p = 8%
+  6) *Ne* from *Colony*: **4,711**
 
-While these are five very different estimates, I think that we can be confident in saying that the Foot Survey AUC and tGMR Binomial Model estimates are likely the two most reliable estimates for the escapement. The aerial survey AUC estimate was only based on three flights, whereas the tGMR Hypergeometric Model and tGRC estimates rely on an estimate of the number of *inferred* parents that were estimated to have contributed to the offspring. In [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122), they sampled ~21% (166/779) of the parents estimated to have produced the offspring in their sample. In contrast, we sampled  ~6% (406/6631) of the parents estimated to have produced the offspring in our sample. Given our lower sampling rate of parents, I would expect the hypergeometric tGMR and tGRC methods to be less precise.
+While these are six very different estimates, I think that we can be confident in saying that the Foot Survey AUC and tGMR Binomial Model estimates are likely the two most reliable estimates for the escapement. The aerial survey AUC estimate was only based on three flights, whereas the tGMR Hypergeometric Model and tGRC estimates rely on an estimate of the number of *inferred* parents that were estimated to have contributed to the offspring. In [Rawding et al. 2014](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2013.829122), they sampled ~21% (166/779) of the parents estimated to have produced the offspring in their sample. In contrast, we sampled  ~6% (406/6631) of the parents estimated to have produced the offspring in our sample. Given our lower sampling rate of parents, I would expect the hypergeometric tGMR and tGRC methods to be less precise.
 
 Based on these data, it is reasonable to conclude that our sample of 794 fish in 2014 likely represents between 12-20% of the escapement. Another very simple metric that we would expect to be correlated to the parental sampling rate would be the offspring assignment rate (i.e. what percentage of our 5,199 offspring assigned to parents?). Of our 5,199 offspring, 1,054 were assigned to at least one parent for an assignment rate of ~20%.
 
