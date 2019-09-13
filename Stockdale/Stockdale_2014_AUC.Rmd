@@ -1,0 +1,124 @@
+---
+title: "Stockdale 2014 Area Under the Curve"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+These are **not** adjusted for stream life or observer efficiency yet!
+```{r}
+(auc <- readxl::read_xlsx(path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Field data/StreamSurveys 10-28-14 Ped only to Kyle 11-7-14_Updated_SM_2-25-2015.xlsm", sheet = "AUC", skip = 2))
+```
+
+Now I adjust daily live AUC counts by stream life and observer efficiency and plot with raw dead counts.
+```{r}
+stream_life <- 13.7  # also a variable in the 
+observer_efficiency <- 0.703
+
+auc %>% 
+  filter(Strname == "Stockdale C", Year == 2014) %>% 
+  mutate(live_auc = `Live Count AUC` / `Salmon Stream Life` / observer_efficiency) %>% 
+  rename(dead_raw = `Dead count`) %>% 
+  select(Survdate, live_auc, dead_raw) %>% 
+  gather(type, count, -Survdate) %>% 
+  ggplot(aes(x = Survdate, y = count, colour = type)) +
+  geom_line() + 
+  theme_bw()
+```
+
+Read in OceanAK data for to get all samples collected.
+```{r}
+og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
+oceanak <- read_csv(file = "../OceanAK/Salmon Biological Data 2 Export from DFGCFRESP.csv")
+names(oceanak) <- og_names
+
+(oceanak_mod <- oceanak  %>% 
+    unite(SillySource, `Silly Code`, `Fish ID`, sep = "_", remove = FALSE) %>% 
+    unite(TrayCodeID, `DNA Tray Code`, `DNA Tray Well Code`, sep = "_", remove = FALSE) %>% 
+    mutate(otolith_read = !is.na(`Otolith Mark Status Code`) & `Otolith Mark Status Code` != "n") %>% 
+    mutate(stream = factor(x = `Location Code`, levels = c("Gilmour Creek", "Paddy Creek", "Erb Creek", "Hogan Creek", "Stockdale Creek"))) %>% 
+    rename(year = `Sample Year`) %>% 
+    mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "natural",
+                              `Otolith Mark Present` == "YES" ~ "hatchery")) %>% 
+    mutate(origin = factor(origin, levels = c("natural", "hatchery"))) %>% 
+    mutate(date = dmy(`Sample Date`))
+)
+```
+
+Samples collected by day.
+```{r}
+(samples <- oceanak_mod %>% 
+   filter(stream == "Stockdale Creek", year == 2014) %>% 
+   count(date) %>% 
+   rename(samples = n) %>% 
+   bind_rows(tibble(date = as.Date("2014-09-12"), samples = 0))
+)
+```
+
+Read in samples that were analyzed (we randomly selected a subset to genotype)
+```{r}
+(paired_data <- read_csv("Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv"))
+```
+
+Samples analyzed by day (make sure to add in last day on 09-12)
+```{r}
+(analyzed <- paired_data %>% 
+   filter(`Sample Year` == 2014) %>% 
+   mutate(date = as.Date(`Sample Date`)) %>% 
+   count(date) %>% 
+   rename(analyzed = n) %>% 
+   bind_rows(tibble(date = as.Date("2014-09-12"), analyzed = 0))
+)
+```
+
+Plot daily AUC, raw dead counts, samples collected, and samples analyzed.
+```{r}
+auc %>% 
+  filter(Strname == "Stockdale C", Year == 2014) %>% 
+  mutate(live_auc = `Live Count AUC` / `Salmon Stream Life` / observer_efficiency) %>% 
+  rename(dead_raw = `Dead count`, date = Survdate) %>% 
+  mutate(date = as.Date(date)) %>% 
+  select(date, live_auc, dead_raw) %>% 
+  full_join(samples) %>% 
+  full_join(analyzed) %>% 
+  gather(type, count, -date) %>% 
+  drop_na(count) %>% 
+  mutate(type = factor(x = type, levels = c("live_auc", "dead_raw", "samples", "analyzed"))) %>% 
+  ggplot(aes(x = date, y = count, colour = type)) +
+  geom_line(lwd = 2) + 
+  theme_bw() +
+  ggtitle("Stockdale 2014")
+```
+
+Now, what if we shift the daily live AUC counts over by stream life? Shouldn't that represent how many "new dead" accumulate each day?
+```{r}
+auc %>% 
+  filter(Strname == "Stockdale C", Year == 2014) %>% 
+  mutate(live_auc = `Live Count AUC` / `Salmon Stream Life` / observer_efficiency) %>% 
+  rename(dead_raw = `Dead count`, date = Survdate) %>% 
+  mutate(date = as.Date(date)) %>% 
+  select(date, live_auc, dead_raw) %>% 
+  full_join(samples) %>% 
+  full_join(analyzed) %>% 
+  gather(type, count, -date) %>% 
+  drop_na(count) %>% 
+  mutate(date = case_when(type == "live_auc" ~ date + 14,
+                          TRUE ~ date)) %>% 
+  filter(type %in% c("live_auc", "analyzed")) %>% 
+  mutate(type = case_when(type == "live_auc" ~ "adjusted_live_auc",
+                          TRUE ~ type)) %>% 
+  mutate(type = factor(x = type, levels = c("adjusted_live_auc", "analyzed"))) %>% 
+  ggplot(aes(x = date, y = count, colour = type)) +
+  geom_line(lwd = 2) + 
+  theme_bw() +
+  ggtitle("Stockdale 2014")
+```
+
