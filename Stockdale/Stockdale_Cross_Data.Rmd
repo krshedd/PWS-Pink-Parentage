@@ -14,7 +14,7 @@ Anything in [red](#protip) is a hyperlink that will either take you to the relev
 
 # Introduction
 
-The purpose of these analyses are to follow up on the previous notebook and fully consider all of the Stockdale Creek data holistically by model fitting reproducitve success (RS) to generalized linear models (GLM’s), as is commonly done in the literature (see [Bernston et al. 2011](https://afspubs.onlinelibrary.wiley.com/doi/pdf/10.1080/00028487.2011.584489), [Ford et al. 2012](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1755-263X.2012.00261.x), and [Janowitz-Koch et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/eva.12725)).
+The purpose of these analyses are to more fully explore the parent-pair offspring trio data (i.e. cross data).
 
 ```{r setup, include=FALSE}
 library(coin)
@@ -31,7 +31,6 @@ library(gganimate)
 
 knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.width = 10)
 ```
-
 
 How about the cross type data (offspring with two-parents, dam and sire)? What are the spatio-temporal patterns in matings of different cross types?
 ```{r}
@@ -211,14 +210,15 @@ riverdist
 )
 ```
 
-```{r}
+```{r, fig.width=10}
 parents_paired_14_16 %>% 
   mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
                              SEX.par == "M" ~ "Parent: Male")) %>% 
   mutate(sex.off = case_when(SEX.off == "F" ~ "Offspring: Female",
                              SEX.off == "M" ~ "Offspring: Male")) %>% 
   group_by(sex.par, sex.off) %>% 
-  summarise(correlation = round(cor(Julian.off, Julian.par), 3))
+  summarise(correlation = round(cor(Julian.off, Julian.par), 3),
+            r2 = round(cor(Julian.off, Julian.par)^2, 3))
 
 parents_paired_14_16 %>% 
   mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
@@ -313,3 +313,35 @@ parents_paired_14_16 %>%
   theme_bw() +
   theme(text = element_text(size = 20))
 ```
+
+
+```{r, fig.width=10}
+heritability_date <- parents_paired_14_16_dam_sire %>% 
+  drop_na(Julian.dam) %>% 
+  drop_na(Julian.sire) %>% 
+  mutate(Julian.par = (Julian.dam + Julian.sire) / 2) %>% 
+  mutate(Cross = case_when(Origin.dam == "Natural" & Origin.sire == "Natural" ~ "NN",
+                           Origin.dam == "Hatchery" & Origin.sire == "Hatchery" ~ "HH",
+                           TRUE ~ "HN"))
+
+fit <- lm(Julian.off ~ Julian.par, data = heritability_date)
+summary(fit)
+
+summary(lm(Julian.off ~ Julian.par, data = heritability_date %>% filter(Cross == "HH")))
+summary(lm(Julian.off ~ Julian.par, data = heritability_date %>% filter(Cross == "NN")))
+summary(lm(Julian.off ~ Julian.par, data = heritability_date %>% filter(Cross == "HN")))
+
+
+heritability_date %>% 
+  # filter(Julian.par >= 240) %>% 
+  ggplot(aes(x = Julian.par, y = Julian.off, colour = Cross)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.5, size = 2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Heritability of Sample Date - Parent Pair",  colour = "Parent: Origin") +
+  xlab("Mid Parent Sample Date (Julian)") +
+  ylab("Offspring Sample Date (Julian)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
+
