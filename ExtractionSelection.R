@@ -557,3 +557,42 @@ save.image("../Extraction/eP005_Extraction_List_190716.RData")
 
 extraction_eP005 %>% 
   count(`Silly Code`, `Tissue Type`)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Update eP005: Stockdale Hatchery fish ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+require(tidyverse)
+og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
+oceanak <- read_csv(file = "../OceanAK/Salmon Biological Data 2 Export from DFGCFRESP.csv")
+names(oceanak) <- og_names
+
+(oceanak <- oceanak %>% 
+    mutate(`DNA Tray Code` = str_pad(string = `DNA Tray Code`, width = 10, pad = "0", side = "left")) %>% 
+    mutate(`DNA Tray Well Code` = str_pad(string = `DNA Tray Well Code`, width = 2, pad = "0", side = "left")) %>% 
+    mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>% 
+    unite(col = "SillySource", c("Silly Code", "Fish ID"), sep = "_", remove = FALSE) %>% 
+    filter(`Well Has More Than One Sample` != 1) %>% 
+    filter(`Is Missing Paired Data Exists` != 1) %>% 
+    filter(Sex %in% c("M", "F")))
+
+#### Filter for Stockdale 2018 Hatchery Samples ####
+Stockdale_Hatchery_18 <- oceanak %>% 
+  filter(`Silly Code` == "PSTOCK18") %>% 
+  filter(`Otolith Mark Present`=="YES")
+
+Stockdale_Hatchery_18 %>% 
+  count(Sex, `Otolith Mark Present`)
+
+
+#### Combine tibbles ####
+
+extraction_eP005_addendum <- Stockdale_Hatchery_18 %>% 
+  select(`Silly Code`, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Tissue Type`)
+
+write_csv(x = extraction_eP005_addendum, path = "../Extraction/eP005_Extraction_List_Addendum_190917.csv")
+
+save.image("../Extraction/eP005_Extraction_List_Addendum_190917.RData")
+
+extraction_eP005_addendum %>% 
+  count(`Silly Code`, `Tissue Type`)
