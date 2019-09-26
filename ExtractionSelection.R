@@ -596,3 +596,59 @@ save.image("../Extraction/eP005_Extraction_List_Addendum_190917.RData")
 
 extraction_eP005_addendum %>% 
   count(`Silly Code`, `Tissue Type`)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP006: Create extraction list for ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# All remaining Hogan from 2016 (hatchery and left over natural)
+# Can't select Hogan 2018 yet, because we are uncertain if/how many hatchery-origin to select (are we sampling in 2020???)
+
+#### Read in OceanAK data ####
+require(tidyverse)
+og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
+oceanak <- read_csv(file = "../OceanAK/Salmon Biological Data 2 Export from DFGCFRESP.csv")
+names(oceanak) <- og_names
+
+(oceanak <- oceanak %>% 
+    mutate(`DNA Tray Code` = str_pad(string = `DNA Tray Code`, width = 10, pad = "0", side = "left")) %>% 
+    mutate(`DNA Tray Well Code` = str_pad(string = `DNA Tray Well Code`, width = 2, pad = "0", side = "left")) %>% 
+    mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>% 
+    unite(col = "SillySource", c("Silly Code", "Fish ID"), sep = "_", remove = FALSE) %>% 
+    filter(`Well Has More Than One Sample` != 1) %>% 
+    filter(`Is Missing Paired Data Exists` != 1) %>% 
+    filter(Sex %in% c("M", "F")))
+
+#### Read in eP002 extraction list
+(eP002_list <- read_delim(file = "../Extraction/eP002_ExtractionList10052017.txt", delim = "\t") %>% 
+    mutate("DNA Tray Code" = str_remove(string = DNA.Tray.Code, pattern = "'")) %>% 
+    mutate("DNA Tray Code" = str_remove(string = `DNA Tray Code`, pattern = "'")) %>% 
+    mutate("DNA Tray Well Code" = str_pad(string = DNA.Tray.Well.Code, width = 2, side = "left", pad = "0")) %>% 
+    mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")))
+
+#### Read in eP002 extracted fish from iStrategy wells table dump
+(eP002_extracted <- read_csv("../Extraction/eP002_Wells.csv") %>% 
+    filter(`Silly Code` == "PSTOCK16") %>% 
+    unite(col = "SillySource", c("Silly Code", "Fish"), sep = "_", remove = FALSE))
+
+#### Filter for Hogan 2016 Samples ####
+Hogan_16 <- oceanak %>% 
+  filter(`Silly Code` == "PHOGAN16") %>% 
+  filter(!is.na(`Otolith Mark Present`)) %>% 
+  anti_join(eP002_list, by = "Key") %>% 
+  anti_join(eP002_extracted, by = "SillySource")
+
+Hogan_16 %>% 
+  count(`Otolith Mark Present`)
+
+#### Combine tibbles ####
+
+extraction_eP006 <- bind_rows(Hogan_16) %>% 
+  select(`Silly Code`, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Tissue Type`) %>% 
+  arrange(`Silly Code`, `Fish ID`)
+
+write_csv(x = extraction_eP006, path = "../Extraction/eP006_Extraction_List_190716.csv")
+
+save.image("../Extraction/eP006_Extraction_List_190926.RData")
+
+extraction_eP006 %>% 
+  count(`Silly Code`, `Tissue Type`)
