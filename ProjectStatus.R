@@ -111,7 +111,7 @@ oceanak_mod %>%
 
 # histogram of samples per date per year per stream
 oceanak_mod %>% 
-  mutate(julian_date = yday(`Sample Date`)) %>% 
+  mutate(julian_date = yday(date)) %>% 
   ggplot(aes(x = julian_date, fill = origin)) +
   geom_histogram(binwidth = 1) +
   theme_bw() +
