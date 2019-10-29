@@ -33,6 +33,8 @@ library(ggExtra)
 library(gridExtra)
 library(MuMIn)
 library(GGally)
+library(gganimate)
+library(gifski)
 
 knitr::opts_chunk$set(warning=FALSE, message=FALSE)
 ```
@@ -78,9 +80,12 @@ Seven processing areas were identified each year of sampling. These plots show t
 
 # Convert coordinates to distance from stream mouth {#convert_GPS}
 
-Because we were not able to use processing area as a proxy for sample location, we used a script from Pete Rand (PWSSC) to transform GPS coordinates into a more meaningful measure: distance from the mouth of the stream. This allowed us to derive two variables relative to sample location:  
-    1) 'Distance' - distance in meters from the mouth of the stream (lowest sampled point)  
-    2) 'Intertidal' - categorical variable [intertidal/upstream] based on being below or above extent of high tide (GPS of high tide provided by Pete Rand)  
+Ultimately, we tried two different methods to convert GPS points to stream distance. Intially we used some R code from Pete Rand to calculate a linear distance for each point from the lowest stream point. However, this method did not account for the sinuosity of streams, so we adopted a more rigorous method using GIS data and the R package *riverdist*. Chase Jalbert used satellite imagery to delineate stream tracks and convert them in to GIS shapefiles. Those stream tracks were then utilized by *riverdist* to "snap" GPS points to the nearest part of the stream track. Once points were snapped, we could calculate the stream distance, determine if they were intertidal vs. upstream, and determine which stream segment they were from.
+
+## Pete Rand's linear distance method
+
+Because we were not able to use processing area as a proxy for sample location, we used a script from Pete Rand (PWSSC) to transform GPS coordinates into a more meaningful measure: distance from the mouth of the stream. This allowed us to derive a new variable relative to sample location: 'Distance' - distance in meters from the mouth of the stream (lowest sampled point).  
+      
 
 ```{r convert coordinates to distances}
 # Calculates the geodesic distance between two points specified by radian latitude/longitude using the
@@ -95,45 +100,183 @@ gcd.hf <- function(long1, lat1, long2, lat2) {
   return(d) # Distance in km
 }
 
-# From Pete Rand on 1/14, high tide extent is 60.209, -147.761
+# From Pete Rand on 5/16, high tide extent is estimated to be 60.209, -147.761
 finsight_hogan_filtered <- finsight_hogan_filtered %>% 
   mutate(Distance = unlist(pmap(list(long1 = min(Longitude), lat1 = min(Latitude), long2 = Longitude, lat2 = Latitude), gcd.hf))) %>% 
   mutate(Intertidal = case_when(Distance <= gcd.hf(long1 = min(Longitude), lat1 = min(Latitude), long2 = -147.761, lat2 = 60.209) ~ "Intertidal",
                                 Distance > gcd.hf(long1 = min(Longitude), lat1 = min(Latitude), long2 = -147.761, lat2 = 60.209) ~ "Upstream"))
 
+#Plot location of estimated high tide mark
+ggplot(finsight_hogan_filtered, aes(x = Longitude, y = Latitude)) +
+  geom_point() +
+  geom_vline(aes(xintercept = -147.761)) +
+  geom_hline(aes(yintercept = 60.209))
+
 # A function to convert degrees to radians
 # deg2rad <- function(deg) return(deg*pi/180)
 ```
 
-# Join finsight table with parentage data
+## *riverdist* package with GIS stream track
 
-We joined spatial data from Finsight with parentage data.
+```{r get_riverdist}
+(riverdist <- read_csv("../../GIS/R/hogan/hogan_distances.csv") %>% 
+   mutate(Intertidal = case_when(dist2tide > 0 ~ "Upstream",
+                                 dist2tide <= 0 ~ "Intertidal")) %>% 
+   rename(Distance = mouthdist, Segment = seg))
+```
+
+
+# Join *riverdist* table with parentage data
+
+We joined spatial data from *riverdist* with parentage data.
 ```{r join tables}
 paired_14_16_filter_parents <- read_csv("paired_14_16_filter_parents.csv")
 
-finsight_parentage_hogan <- left_join(paired_14_16_filter_parents, finsight_hogan_filtered, 
-                                      by = c("DNA Tray Code" = "SampleTrayId" , "DNA Tray Well Code" = "SampleCell")) %>% 
-  mutate(origin = factor(origin, c("Natural", "Hatchery")))  # make factor to ensure hatchery != red
+riverdist_parentage_hogan <- paired_14_16_filter_parents %>% 
+  unite("Sample", c("DNA Tray Code", "DNA Tray Well Code"), sep = "_", remove = FALSE) %>% 
+  left_join(riverdist, by = "Sample") %>% 
+  mutate(origin = factor(origin, c("Natural", "Hatchery")))  %>% 
+  mutate(`Sample Date` = ymd(`Sample Date`)) %>% 
+  filter(is.na(`Length Mm`) | `Length Mm` > 300) %>% 
+  mutate(Segment = factor(Segment))%>% 
+  mutate(Success = case_when(n == 0 ~ "Unsuccessful",
+                             n > 0 ~ "Successful"))
 
-write_csv(finsight_parentage_hogan, "finsight_parentage_hogan.csv")
+write_csv(riverdist_parentage_hogan, "riverdist_parentage_hogan.csv")
+```
+
+Some quick exploratory animation.
+```{r}
+sample_dates <- unique(sort(riverdist_parentage_hogan$`Sample Date`))
+
+my.animation <- riverdist_parentage_hogan %>% 
+  mutate(grpI = as.numeric(factor(`Sample Date`))) %>% 
+  ggplot(aes(x = Longitude, y = Latitude, colour = origin, size = n, alpha = 0.05, group = seq_along(`Sample Date`))) +
+  coord_equal() +
+  geom_jitter() +
+  theme_bw() +
+  guides(alpha = FALSE) +
+  labs(size = "RS", colour = "Parent: Origin") +
+  # theme(text = element_text(size = 20)) +
+  transition_reveal(grpI) +
+  ggtitle("Date: {sample_dates[floor(frame_along)]}")
+
+animate(my.animation, height = 1200, width = 2400, res = 300)
+```
+
+Simple plot of RS by parent sample date and distance (both origins and sexes combined)
+```{r, out.width="100%"}
+riverdist_parentage_hogan %>% 
+  ggplot(aes(x = `Sample Date`, y = Distance, size = n, colour = origin, alpha = 0.05)) +
+  geom_hline(aes(yintercept = dist2tide), size = 2) +
+  geom_jitter(width = 0.25) +
+  theme_bw() +
+  guides(alpha = FALSE) +
+  labs(size = "RS", colour = "Parent: Origin") +
+  ggtitle("RS by Timing and Location of Parent Sampled ")
+```
+
+```{r}
+riverdist_parentage_hogan %>% 
+  ggplot(aes(x = `Sample Date`, y = Distance, size = n, colour = origin, alpha = 0.01)) +
+  geom_hline(aes(yintercept = dist2tide), size = 1) +
+  geom_jitter(width = 0.25, height = 25) +
+  theme_bw() +
+  guides(alpha = FALSE) +
+  labs(size = "RS", colour = "Parent: Origin") +
+  ggtitle("RS by Timing and Location of Parent Sampled") +
+  facet_grid(SEX ~ Success)
+```
+
+Look at cross type data! What are the spatio-temporal patterns in matings of different cross types?
+```{r}
+parents_paired_14_16_cross <- read_csv("parents_paired_14_16_cross.csv")
+
+# organize by sire and dam, join riverdist data
+parents_paired_14_16_cross_riverdist <- parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`, `Sample Date`, `Sample Date.par1`, SEX, SEX.par1, `DNA Tray Code`, `DNA Tray Code.par1`, `DNA Tray Well Code`, `DNA Tray Well Code.par1`, origin.par1, origin, `Length Mm.par1`, `Length Mm`) %>% 
+  rename(`Fish ID.par2` = `Fish ID`, 
+         `Sample Date.par2` = `Sample Date`,
+         SEX.par2 = SEX,
+         `DNA Tray Code.par2` = `DNA Tray Code`,
+         `DNA Tray Well Code.par2` = `DNA Tray Well Code`,
+         origin.par2 = origin,
+         `Length Mm.par2` = `Length Mm`) %>% 
+  unite(Sample.par1, c("DNA Tray Code.par1", "DNA Tray Well Code.par1"), sep = "_", remove = TRUE) %>% 
+  unite(Sample.par2, c("DNA Tray Code.par2", "DNA Tray Well Code.par2"), sep = "_", remove = TRUE) %>% 
+  left_join(riverdist, by = c("Sample.par1" = "Sample")) %>% 
+  left_join(riverdist, by = c("Sample.par2" = "Sample"), suffix = c(".par1", ".par2")) %>% 
+  mutate(fish_id.sire = case_when(SEX.par1 == "M" ~ `Fish ID.par1`,
+                                  TRUE ~ `Fish ID.par2`)) %>% 
+  mutate(fish_id.dam = case_when(SEX.par1 == "F" ~ `Fish ID.par1`,
+                                  TRUE ~ `Fish ID.par2`)) %>% 
+  mutate(sample_date.sire = case_when(SEX.par1 == "M" ~ `Sample Date.par1`,
+                                  TRUE ~ `Sample Date.par2`)) %>% 
+  mutate(sample_date.dam = case_when(SEX.par1 == "F" ~ `Sample Date.par1`,
+                                  TRUE ~ `Sample Date.par2`)) %>% 
+  mutate(sex.sire = case_when(SEX.par1 == "M" ~ SEX.par1,
+                                  TRUE ~ SEX.par2)) %>% 
+  mutate(sex.dam = case_when(SEX.par1 == "F" ~ SEX.par1,
+                                  TRUE ~ SEX.par2)) %>%
+  mutate(origin.sire = case_when(SEX.par1 == "M" ~ origin.par1,
+                                  TRUE ~ origin.par2)) %>% 
+  mutate(origin.dam = case_when(SEX.par1 == "F" ~ origin.par1,
+                                  TRUE ~ origin.par2)) %>%
+  mutate(distance.sire = case_when(SEX.par1 == "M" ~ Distance.par1,
+                                  TRUE ~ Distance.par2)) %>% 
+  mutate(distance.dam = case_when(SEX.par1 == "F" ~ Distance.par1,
+                                  TRUE ~ Distance.par2)) %>%
+  mutate(intertidal.sire = case_when(SEX.par1 == "M" ~ Intertidal.par1,
+                                  TRUE ~ Intertidal.par2)) %>% 
+  mutate(intertidal.dam = case_when(SEX.par1 == "F" ~ Intertidal.par1,
+                                  TRUE ~ Intertidal.par2)) %>%
+  mutate(length.sire = case_when(SEX.par1 == "M" ~ `Length Mm.par1`,
+                                  TRUE ~ `Length Mm.par2`)) %>% 
+  mutate(length.dam = case_when(SEX.par1 == "F" ~ `Length Mm.par1`,
+                                  TRUE ~ `Length Mm.par2`)) %>%
+  select(cross, n, ends_with(".sire"), ends_with(".dam"))
+
+parents_paired_14_16_cross_riverdist %>% 
+  ggplot(aes(x = sample_date.sire, y = sample_date.dam)) +
+  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
+  geom_abline(slope = 1) +
+  theme_bw() +
+  ggtitle("Dam Sample Date vs. Sire Sample Date by Cross Type")
+
+parents_paired_14_16_cross_riverdist %>% 
+  ggplot(aes(x = distance.sire, y = distance.dam), alpha = 0.05) +
+  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
+  geom_abline(slope = 1)+
+  theme_bw() +
+  ggtitle("Dam Sample Distance vs. Sire Sample Distance by Cross Type")
+
+parents_paired_14_16_cross_riverdist %>% 
+  filter(length.sire > 300 & length.dam > 300) %>% 
+  ggplot(aes(x = length.sire, y = length.dam), alpha = 0.05) +
+  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
+  geom_abline(slope = 1)+
+  geom_smooth() +
+  theme_bw() +
+  ggtitle("Dam Length vs. Sire Length by Cross Type")
+
 ```
 
 # Check for multi-collinearity {#multi-collinearity}
 
 Before modeling RS, we checked for multi-collinearity among variables because we assumed that there would be some degree of non-independence. *Note* that these plots exclude individuals with missing data.
-```{r try ggpairs, fig.width=12, fig.height=12}
-reduced <- finsight_parentage_hogan %>% 
-  rename(RS = n) %>% 
+```{r try ggpairs, fig.width=12, fig.height=12, warning=FALSE, message=FALSE}
+reduced <- riverdist_parentage_hogan %>% 
+  rename(RS = n, Sex = SEX) %>% 
   mutate(Origin = case_when(origin == "Natural" ~ "N", 
                             origin == "Hatchery" ~ "H")) %>% 
   mutate(Origin = factor(Origin, levels = c("N", "H"))) %>% 
-  select(`Sample Date`, Sex, `Length Mm`, Origin, RS, Distance, Intertidal) %>% 
+  select(`Sample Date`, Sex, `Length Mm`, Origin, RS, Success, Intertidal, Distance) %>% 
   drop_na()
 
 ggpairs(reduced, 
         mapping = aes(color = Origin, alpha = 0.5), 
-        columns = c("Sample Date", "Length Mm", "Distance","RS", "Intertidal", "Sex"), 
-        columnLabels = c("Sample Date", "Length (mm)", "Distance (m)", "RS", "Intertidal", "Sex"), 
+        columns = c("Sample Date", "Length Mm", "Distance","RS", "Success", "Intertidal", "Sex"), 
+        columnLabels = c("Sample Date", "Length (mm)", "Distance (m)", "RS", "Success", "Intertidal", "Sex"), 
         progress = FALSE, 
         lower = list(continuous = "smooth_loess", combo = wrap(ggally_facethist, position = "dodge2")),
         upper = list(continuous = wrap("cor", size = 4, hjust = 0.8), combo = "box"),
@@ -144,7 +287,7 @@ ggpairs(reduced,
         text = element_text(size = 16))
 ```
 
-Overall, correlations among variables are pretty weak. Weak positive correlations were found between length and date (r = 0.28), RS and date (r = 0.03), distance and length (r = 0.13), and RS and length (r = 0.07). Weak negative correlations were found between distance and date (r = -0.08) and RS and distance (r = -0.10). 
+Overall, correlations among variables are pretty weak. Weak positive correlations were found between length and date (r = 0.28), RS and date (r = 0.03), distance and length (r = 0.12), and RS and length (r = 0.07). Weak negative correlations were found between distance and date (r = -0.10) and RS and distance (r = -0.10). 
 
 # Individual plots
 
