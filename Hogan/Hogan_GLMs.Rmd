@@ -596,7 +596,7 @@ What are the coefficients and 95% CIs for each of the explanatory variables?
 exp(female_est)
 ```
 
-Looking at these incident ratios, we can see that the RRS of hatchery-origin females relative to natural-origin females is ~ 0 holding the other variables constant (length, distance, and date).  
+The incident ratios reveal that the RRS of hatchery-origin to natural-origin Pink Salmon is ~0.42 (95% CI’s: 0.24 – 0.71), holding the other variables (length, distance, and date) constant. The number of offspring increased by ~1% for every day later that a parent was sampled and every mm in parent length and ~5% for parents sampled in the intertidal versus upstream.  
 
 ## Male
 
