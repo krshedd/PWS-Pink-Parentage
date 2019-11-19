@@ -13,7 +13,7 @@ library(lubridate)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # List of silly's for OceanAK filter
 streams <- c("ERB", "HOGAN", "GILMOUR", "PADDY", "STOCK")
-yrs <- 13:18
+yrs <- 13:19
 writeClipboard(paste(paste0("P", rep(streams, each = length(yrs)), yrs), collapse = ";"))
 
 og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
