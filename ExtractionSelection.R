@@ -727,3 +727,69 @@ save.image("../Extraction/eP007_Extraction_List_191119.RData")
 
 extraction_eP007 %>% 
   count(`Silly Code`, `Tissue Type`)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Otolith Transfer Extravaganza!!! ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Wed Nov 20 14:03:17 2019
+# Heather is super swamped and doesn't have time to set up multiple small projects
+# I suggested that while we have extra lab staff, they separate ALL remaining DWPs
+# This is likely Paddy, Erb, and Gilmour 2015-2018
+
+#### Read in OceanAK data ####
+library(tidyverse)
+library(lubridate)
+og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
+oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20191119_1053.csv")
+names(oceanak) <- og_names
+
+## How many samples we got?
+oceanak %>% 
+  count(`Location Code`, `Sample Year`) %>% 
+  spread(`Sample Year`, n, fill = 0)
+
+## Modify for extraction list prep, NO FILTERING, this is tissue transfer, not extraction
+oceanak <- oceanak %>% 
+  replace_na(list(`Well Has More Than One Sample` = 0, `Is Missing Paired Data Exists` = 0)) %>% 
+  mutate(`DNA Tray Code` = str_pad(string = `DNA Tray Code`, width = 10, pad = "0", side = "left")) %>% 
+  mutate(`DNA Tray Well Code` = str_pad(string = `DNA Tray Well Code`, width = 2, pad = "0", side = "left")) %>% 
+  mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>% 
+  unite(col = "SillySource", c("Silly Code", "Fish ID"), sep = "_", remove = FALSE) %>% 
+  mutate(otolith_read = !is.na(`Otolith Mark Status Code`) & `Otolith Mark Status Code` != "n") %>% 
+  mutate(stream = factor(x = `Location Code`, levels = c("Gilmour Creek", "Paddy Creek", "Erb Creek", "Hogan Creek", "Stockdale Creek"))) %>% 
+  rename(year = `Sample Year`) %>% 
+  mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "natural",
+                            `Otolith Mark Present` == "YES" ~ "hatchery")) %>% 
+  mutate(origin = factor(origin, levels = c("natural", "hatchery"))) %>% 
+  mutate(date = dmy(`Sample Date`))
+
+  # filter(`Well Has More Than One Sample` != 1) %>% 
+  # filter(`Is Missing Paired Data Exists` != 1) %>% 
+  # filter(Sex %in% c("M", "F"))
+
+## How many samples we got?
+oceanak %>% 
+  count(stream, year) %>% 
+  spread(year, n, fill = 0)
+
+# How many samples
+oceanak %>% count()
+
+# How many otoliths read
+oceanak %>% 
+  count(otolith_read)
+
+# How many trays
+trays_to_separate <- oceanak %>% 
+  group_by(year, stream, `DNA Tray Code`) %>% 
+  count(otolith_read) %>% 
+  spread(otolith_read, n, fill = 0) %>% 
+  filter(`TRUE` == 0 & `FALSE` > 0 & year != 2019 & stream %in% c("Gilmour Creek", "Paddy Creek", "Erb Creek")) %>% 
+  ungroup()
+
+trays_to_separate %>% 
+  count(year, stream) %>% 
+  spread(year, n, fill = 0)
+
+trays_to_separate %>% count()
