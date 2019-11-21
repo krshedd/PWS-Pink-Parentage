@@ -780,7 +780,7 @@ oceanak %>% count()
 oceanak %>% 
   count(otolith_read)
 
-# How many trays
+# Get trays to otolith separate from Gilmour, Paddy, Erb 2015-2018
 trays_to_separate <- oceanak %>% 
   group_by(year, stream, `Silly Code`, `DNA Tray Code`) %>% 
   count(otolith_read) %>% 
@@ -788,12 +788,15 @@ trays_to_separate <- oceanak %>%
   filter(`TRUE` == 0 & `FALSE` > 0 & year != 2019 & stream %in% c("Gilmour Creek", "Paddy Creek", "Erb Creek")) %>% 
   ungroup()
 
+# How many per stream per year
 trays_to_separate %>% 
   count(year, stream) %>% 
   spread(year, n, fill = 0)
 
+# How many total
 trays_to_separate %>% count()
 
+# Write for Heather
 trays_to_separate %>% 
   select(`Silly Code`, `DNA Tray Code`) %>% 
   write_csv(path = "../Extraction/DWP_otolith_transfer_paddy_erb_gilmour_2015-2018.csv")
