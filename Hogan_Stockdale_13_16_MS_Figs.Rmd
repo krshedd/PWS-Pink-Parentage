@@ -176,7 +176,22 @@ ggsave("Figure_2.pdf", plot = Figure_2, path = "V:/Documents/5_Coastwide/Multisp
 ```{r Plot RS}
 paired_13_15_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/paired_13_15_filter_parents.csv") %>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
-mutate(sex = case_when(SEX == "M" ~ "Male",
+mutate(SEX = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female"))
+
+paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/paired_14_16_filter_parents.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+mutate(SEX = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female"))
+
+stock_paired_13_15_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_paired_13_15_filter_parents.csv")%>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+mutate(SEX = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female"))
+
+stock_paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_paired_14_16_filter_parents.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+mutate(SEX = case_when(SEX == "M" ~ "Male",
                          SEX == "F" ~ "Female"))
 
 Hogan_Odd_RS <- paired_13_15_filter_parents %>% 
@@ -187,11 +202,267 @@ Hogan_Odd_RS <- paired_13_15_filter_parents %>%
   theme_bw() +
   theme(legend.position = c(0.85, 0.75)) +
   geom_col(position = position_dodge2(preserve="single")) +
-  scale_y_continuous(breaks = pretty_breaks()) +
-  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
+  scale_x_continuous(limits = c(0,20), breaks = seq(0,20, by = 2)) +
   facet_grid(~ SEX, labeller = labeller(F = "Female", M = "Male")) +
   labs(title="Hogan",
        fill = "Parent: Origin") +
+  ylab(expression(atop("Odd", paste("Proportion of Parents")))) 
+
+Hogan_Even_RS <- paired_14_16_filter_parents %>% 
+  count(SEX, origin, n) %>% 
+  group_by(SEX, origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x = n, y = p, fill = origin)) +
+  theme_bw() +
+  theme(legend.position = 'none') +
+  geom_col(position = position_dodge2(preserve="single")) +
+   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
+  scale_x_continuous(limits = c(0,20), breaks = seq(0,20, by = 2)) +
+  facet_grid(~ SEX) +
+  labs(fill = "Parent: Origin") +
+  xlab("Number of Offspring")+
+  ylab(expression(atop("Even", paste("Proportion of Parents")))) 
+
+Stockdale_Odd_RS <- stock_paired_13_15_filter_parents %>% 
+   count(SEX, origin, n) %>% 
+  group_by(SEX, origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x = n, y = p, fill = origin)) +
+  theme_bw() +
+  theme(legend.position = 'none') +
+  geom_col(position = position_dodge2(preserve="single")) +
+   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
+  scale_x_continuous(limits = c(0,20), breaks = seq(0,20, by = 2)) +
+  facet_grid(~ SEX, labeller = labeller(F = "Female", M = "Male")) +
+  labs(title="Stockdale",
+       fill = "Parent: Origin") 
+
+Stockdale_Even_RS <- stock_paired_14_16_filter_parents %>% 
+   count(SEX, origin, n) %>% 
+  group_by(SEX, origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x = n, y = p, fill = origin)) +
+  theme_bw() +
+  theme(legend.position = 'none') +
+  geom_col(position = position_dodge2(preserve="single")) +
+   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
+  scale_x_continuous(limits = c(0,20), breaks = seq(0,20, by = 2)) +
+  facet_grid(~ SEX, labeller = labeller(F = "Female", M = "Male")) +
+  labs(fill = "Parent: Origin") +
+  xlab("Number of Offspring (RS)")
+
+Figure_3 <- 
+grid.arrange(Hogan_Odd_RS, Stockdale_Odd_RS, Hogan_Even_RS, Stockdale_Even_RS,nrow = 2)
+
+ggsave("Figure_3.pdf", plot = Figure_3, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
+
+```
+
+#Figure 4
+```{r Plot RS by Date}
+Hogan_Even_Date <- paired_14_16_filter_parents %>% 
+  ggplot(aes(x = `Sample Date`, y = n, color = origin)) +
+  geom_jitter(height = 0) +
+  geom_smooth() +
+  theme_bw() +
+   theme(legend.position = c(0.85, 0.85)) +
+  scale_y_continuous(limits = c(0,20), breaks = seq(0,20, by = 5)) +
+  facet_grid(SEX ~ .)+
+  labs(title = "Hogan",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Parental Sample Date") +
+  ylab("Number of Offspring (RS)")
+
+Stockdale_Even_Date <- stock_paired_14_16_filter_parents %>% 
+  ggplot(aes(x = `Sample Date`, y = n, color = origin)) +
+  geom_jitter(height = 0) +
+  geom_smooth() +
+  theme_bw() +
+  theme(legend.position = 'none') +
+  scale_y_continuous(limits = c(0,20), breaks = seq(0,20, by = 5)) +
+  facet_grid(SEX ~ .)+
+  labs(title = "Stockdale",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Parental Sample Date") +
+  ylab(" ")
+
+Figure_4 <- grid.arrange(Hogan_Even_Date, Stockdale_Even_Date, nrow = 1)
+
+ggsave("Figure_4.pdf", plot = Figure_4, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
+
+```
+
+#Figure 5
+``` {r Plot RS by Location}
+finsight_parentage_hogan <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/finsight_parentage_hogan.csv") %>% mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+  mutate(SEX = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female"))
+finsight_parentage_stock <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/finsight_parentage_stock.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+  mutate(SEX = case_when(SEX == "M" ~ "Male",
+                         SEX == "F" ~ "Female"))
+
+Hogan_Location <- finsight_parentage_hogan %>% 
+  ggplot(aes(x = Distance, y = n, color = origin)) +
+  geom_smooth() +
+  geom_jitter(height = 0.5, alpha = 0.3, size = 3) +
+  facet_grid(SEX ~ .) +
+  labs(colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Distance from Stream Mouth (m)") +
+  ylab("Number of Offspring (RS)") +
+  theme_bw(base_size = 20) +
+  theme(legend.position = c(0.8, 0.9)) +
+  theme(legend.title = element_text(size = 6)) +
+  theme(legend.text = element_text(size = 6)) +
+  labs(title = "Hogan")
+
+Stockdale_Location <- finsight_parentage_stock %>% 
+  ggplot(aes(x = Distance, y = n, color = origin)) +
+  geom_smooth() +
+  geom_jitter(height = 0.5, alpha = 0.3, size = 3) +
+  facet_grid(SEX ~ .) +
+  labs(colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Distance from Stream Mouth (m)") +
+  ylab(" ") +
+  theme_bw(base_size = 20) +
+  theme(legend.position = "none") +
+  labs(title = "Stockdale")
+
+Figure_5 <- grid.arrange(Hogan_Location, Stockdale_Location, nrow = 1)
+
+ggsave("Figure_5.pdf", plot = Figure_5, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
+
+```
+
+#Figure 6
+```{r Plot RS by Length}
+Hogan_Even_Length <- paired_14_16_filter_parents %>% 
+  ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
+  geom_jitter(height = 0) +
+  geom_smooth() +
+  theme_bw() +
+   theme(legend.position = c(0.85, 0.85)) +
+  scale_y_continuous(limits = c(0,20), breaks = seq(0,20, by = 5)) +
+  scale_x_continuous(limits = c(325, 500), breaks = seq(325, 500, by = 25)) +
+  facet_grid(SEX ~ .)+
+  labs(title = "Hogan",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Parental Length (mm)") +
+  ylab("Number of Offspring (RS)")
+
+Stockdale_Even_Length <- stock_paired_14_16_filter_parents %>% 
+  filter(`Length Mm` > 300)  %>% 
+  ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
+  geom_jitter(height = 0) +
+  geom_smooth() +
+  theme_bw() +
+  theme(legend.position = 'none') +
+  scale_y_continuous(limits = c(0,20), breaks = seq(0,20, by = 5)) +
+   scale_x_continuous(limits = c(325, 500), breaks = seq(325, 500, by = 25)) +
+  facet_grid(SEX ~ .)+
+  labs(title = "Stockdale",  colour = "Parent: Origin",
+       shape = "Parent: Sex") +
+  xlab("Parental Length (mm)") +
+  ylab(" ")
+
+Figure_6 <- grid.arrange(Hogan_Even_Length, Stockdale_Even_Length, nrow = 1)
+
+ggsave("Figure_6.pdf", plot = Figure_6, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
+```
+
+#Figure S1
+```{r Plot Het}
+Hogan_het_tibble <- read_file("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Hogan/het_tibble.txt")
+Stockdale_het_tibble <- read_file("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Stockdale/het_tibble.txt")
+
+Hogan_low_box_het <- Hogan_het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
+
+Hogan_high_box_het <- Hogan_het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het = quantile(het, probs = 0.75) + 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
+
+Stockdale_low_box_het <- Stockdale_het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
+
+Stockdale_high_box_het <- Stockdale_het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het = quantile(het, probs = 0.75) + 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
+
+Hogan_het_tibble %>% 
+  ggplot2::ggplot(aes(x = het)) +
+  ggplot2::geom_histogram(binwidth = 1/304) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "IQR"), low_box_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "IQR"), high_box_het) +
+  ggplot2::facet_grid(rows=vars(lineage), scales = "free_y") +
+  ggplot2::xlim(0.15, 0.85) +
+  ggplot2::xlab("Individual Heterozygosity") +
+  ggplot2::ylab("Frequency") +
+  ggplot2::ggtitle("Hogan")
+
+Stockdale_het_tibble %>% 
+  ggplot2::ggplot(aes(x = het)) +
+  ggplot2::geom_histogram(binwidth = 1/298) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "IQR"), low_box_het) +
+  ggplot2::geom_vline(aes(xintercept = het, color = "IQR"), high_box_het) +
+  ggplot2::facet_grid(rows=vars(lineage), scales = "free_y") +
+  ggplot2::xlim(0.15, 0.85) +
+  ggplot2::xlab("Individual Heterozygosity") +
+  ggplot2::ylab(" ") +
+  ggplot2::ggtitle("Stockdale")
+```
+
+#Figure S2
+``` {r Plot Cross Type}
+Hogan_parents_paired_14_16_cross <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/parents_paired_14_16_cross.csv") %>% 
+  mutate(cross = factor(x = cross, levels = c("NN", "NH", "HN", "HH"))) 
+
+Stockdale_parents_paired_14_16_cross <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_parents_paired_14_16_cross.csv") %>% 
+  mutate(cross = factor(x = cross, levels = c("NN", "NH", "HN", "HH"))) 
+
+Hogan_Cross_Type <- Hogan_parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
+  count(cross, n) %>% 
+  complete(cross, n, fill = list(nn = 0)) %>% 
+  group_by(cross) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x = n, y = p, fill = cross))+
+  geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
+  scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
+  scale_x_continuous(limits = c(0,5), breaks = seq(0, 5, by = 1)) +
+  labs(title = "Hogan",
+       fill = "Cross Type") +
   xlab("Number of Offspring (RS)")+
-  ylab("Proportion of Parents") 
+  ylab("Proportion of Families of Each Cross Type") +
+  theme_bw() +
+  theme(text = element_text(size = 20)) +
+  theme(legend.position = c(0.7, 0.75)) 
+
+Stockdale_Cross_Type <- Stockdale_parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
+  count(cross, n) %>% 
+  complete(cross, n, fill = list(nn = 0)) %>% 
+  group_by(cross) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x = n, y = p, fill = cross))+
+  geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
+  scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
+  scale_x_continuous(limits = c(0,5), breaks = seq(0, 5, by = 1)) +
+  labs(title = "Stockdale",
+       fill = "Cross Type") +
+  xlab("Number of Offspring (RS)")+
+  ylab(" ") +
+  theme_bw() +
+  theme(text = element_text(size = 20)) +
+  theme(legend.position = 'none') 
+
+Figure_S2 <- grid.arrange(Hogan_Cross_Type, Stockdale_Cross_Type, nrow = 1)
+
+ggsave("Figure_S2.pdf", plot = Figure_S2, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
+
 ```
