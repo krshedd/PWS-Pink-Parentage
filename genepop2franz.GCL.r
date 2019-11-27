@@ -113,11 +113,13 @@ gind_df <- gind_df %>%
                                      "FISHID")) %>%
     rename(SEX = "Sex")
   
+  # Convert SEX = "U" to "?" as this is what FRANz expects
+  combined_ocean_franz$SEX[combined_ocean_franz$SEX == "U"] <- "?"
   
   # create the first lime of the FRANz file by combining: total # populations, total number of loci, "/", projectname. 
   # projectname is automatically assigned from the Genepop input filename for record keeping
   franz_first_line = set_names(
-    as.tibble(
+    as_tibble(
       paste(
         NROW(as.data.frame( table(STREAM))), # get counts of the number of unique streams
         NCOL(gind_df), # count number of loci
