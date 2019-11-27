@@ -1,0 +1,50 @@
+---
+title: "Stockdale 2015/2017 Parentage Analysis with 298 Markers"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+```
+
+Below are analyses of parentage results calculated separately for Odd (2015-2017) using *FRANz*. 
+
+# Odd lineage (2013/2015)
+
+## *FRANz* parameters
+*FRANz* was run at Tue Nov 26 13:42:51 2019. We used the following parameters:
+FRANz.exe --Nmmax 13000 --Nfmax 13000 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2 "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\stock_postQA_2015_2017_STOCK.dat"
+
+Do not use --fullsibtest if running on Kyle's Genetics Domain Computer, it won't save output!!!
+
+The parameters are defined as follows:
+--Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 26,000 and divided by 2 (*note: aerial survey was 25,666 and stream walk was 27,815*). This escapement number came from rounding up the smaller of the two estimates (aerial survey AUC and stream walk AUC). This estimate is listed under 'pop est aerial' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx"   
+--femrepro and --malerepro specify the age range in which an individual can reproduce  
+--typingerror refers to the overall genotyping error rate. Ours was ~0.006 (for Stockdale was actually ???, from QC)
+--updatefreqs specifies that *FRANz* should update allele frequencies using MCMC sampling  
+--poutformat specifies that all potential parents should be listed, not just the most likely  
+--fullsibtest tests for full siblings among offspring   
+
+All output files can be found here: "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\Stockdale\Odd_Run 2"  
+
+The summary file provides information about the power of our marker suite:   
+Cumulative exclusion probability when 1 to 7 fullsibs are genotyped  
+  First Parent              : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000   
+  Second Parent             : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000   
+  Parent Pair               : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000
+  
+According to the FRANz manual, marker sets are not considered powerful if these cumulative exclusion probabilities are less than 0.95, which indicates that the probability that a random pair of individuals in the population has a 5% chance of having a genotype pair compatible to an offspring genotype. Since all of our probabilities are 1, we can be **confident** in the power of our 298 amplicons to make parent assignments.  
+
+## Import data
+The first step is to read in .csv files for parentage assignments produced by *FRANz* as well as paired genotype and OceanAK data. 
