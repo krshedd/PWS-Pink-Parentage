@@ -17,7 +17,7 @@ yrs <- 13:19
 writeClipboard(paste(paste0("P", rep(streams, each = length(yrs)), yrs), collapse = ";"))
 
 og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
-oceanak <- read_csv(file = "../OceanAK/Salmon Biological Data 2 Export from DFGCFRESP.csv")
+oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20191119_1053.csv")
 names(oceanak) <- og_names
 
 # dups <- oceanak %>% 
