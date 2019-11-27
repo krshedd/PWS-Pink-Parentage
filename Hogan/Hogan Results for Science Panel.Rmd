@@ -162,6 +162,36 @@ round(RRS_tibble_0_13_15, 2)
 
 **RRS for males = `r round(RRS_m_0_13_15, 2)`. RRS for females = `r round(RRS_f_0_13_15, 2)`.**
 
+```{r calculate RRS for males and females combined}
+paired_13_15_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/paired_13_15_filter_parents.csv")
+
+# Mean RS including 0's
+rs_13_15_0 <- paired_13_15_filter_parents %>%
+  group_by(origin) %>% 
+  summarise(RS = mean(n, na.rm = TRUE))
+
+rs_13_15_0 %>%
+  mutate(RS = round(RS, 2)) %>% 
+  spread(RS)
+
+# Save RS values
+h_0_13_15 <- rs_13_15_0 %>% 
+  filter(origin == "Hatchery") %>% 
+  pull(RS)
+
+n_0_13_15 <- rs_13_15_0 %>% 
+  filter(origin == "Natural") %>% 
+  pull(RS)
+
+RRS_0_13_15 <- h_0_13_15/n_0_13_15
+
+#CI's
+rrs_ci_kalinowski(n_h_off = 3, n_w_off = 45, n_h_par = 443, n_w_par = 322, alpha = 0.05)
+
+
+
+```
+
 Let's test for significant differences in RS between male and female hatchery and natural origin fish. We'll perform two different statistical tests:  
 
   1. Nonparametric permutation test
@@ -577,6 +607,34 @@ round(RRS_tibble_0_14_16, 2)
 ```
 
 **RRS for males = `r round(RRS_m_0_14_16, 2)`. RRS for females = `r round(RRS_f_0_14_16, 2)`.**
+
+```{R calculate RRS for males and females combined even}
+paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/paired_14_16_filter_parents.csv")
+
+# Mean RS including 0's
+rs_14_16_0 <- paired_14_16_filter_parents %>%
+  group_by(origin) %>% 
+  summarise(RS = mean(n, na.rm = TRUE))
+
+rs_14_16_0 %>%
+  mutate(RS = round(RS, 2)) %>% 
+  spread(RS)
+
+# Save RS values
+h_0_14_16 <- rs_14_16_0 %>% 
+  filter(origin == "Hatchery") %>% 
+  pull(RS)
+
+n_0_14_16 <- rs_14_16_0 %>% 
+  filter(origin == "Natural") %>% 
+  pull(RS)
+
+RRS_0_14_16 <- h_0_14_16/n_0_14_16
+
+#CI's
+rrs_ci_kalinowski(n_h_off = 265, n_w_off = 208, n_h_par = 437, n_w_par = 214, alpha = 0.05)
+
+```
 
 Let's test for significant differences in RRS between male and female hatchery and natural origin fish. We'll perform two different statistical tests:  
 
