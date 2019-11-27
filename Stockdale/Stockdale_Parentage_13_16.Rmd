@@ -530,6 +530,34 @@ paired_13_15_filter_parents %>%
 rrs_ci_kalinowski(n_h_off = 2, n_w_off = 36, n_h_par = 69, n_w_par = 418, alpha = 0.05)
 ```
 
+```{r calculate RRS and CI's for males and females combined odd}
+stock_paired_13_15_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_paired_13_15_filter_parents.csv")
+
+# Mean RS including 0's
+rs_13_15_0 <- stock_paired_13_15_filter_parents %>%
+  group_by(origin) %>% 
+  summarise(RS = mean(n, na.rm = TRUE))
+
+rs_13_15_0 %>%
+  mutate(RS = round(RS, 2)) %>% 
+  spread(RS)
+
+# Save RS values
+h_0_13_15 <- rs_13_15_0 %>% 
+  filter(origin == "Hatchery") %>% 
+  pull(RS)
+
+n_0_13_15 <- rs_13_15_0 %>% 
+  filter(origin == "Natural") %>% 
+  pull(RS)
+
+RRS_0_13_15 <- h_0_13_15/n_0_13_15
+
+#CI's
+rrs_ci_kalinowski(n_h_off = 3, n_w_off = 69, n_h_par = 163, n_w_par = 811, alpha = 0.05)
+
+``` 
+
 #### RS vs. field data plots
 
 ```{r Examine reproductive success by sample date odd with zeros}
@@ -1300,13 +1328,40 @@ paired_14_16_filter_parents %>%
 rrs_ci_kalinowski(n_h_off = 177, n_w_off = 417, n_h_par = 206, n_w_par = 137, alpha = 0.05)
 ```
 
+```{r calculate RRS for males and females combined even}
+paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_paired_14_16_filter_parents.csv")
+
+# Mean RS including 0's
+rs_14_16_0 <- paired_14_16_filter_parents %>%
+  group_by(origin) %>% 
+  summarise(RS = mean(n, na.rm = TRUE))
+
+rs_14_16_0 %>%
+  mutate(RS = round(RS, 2)) %>% 
+  spread(RS)
+
+# Save RS values
+h_0_14_16 <- rs_14_16_0 %>% 
+  filter(origin == "Hatchery") %>% 
+  pull(RS)
+
+n_0_14_16 <- rs_14_16_0 %>% 
+  filter(origin == "Natural") %>% 
+  pull(RS)
+
+RRS_0_14_16 <- h_0_14_16/n_0_14_16
+
+#CI's
+rrs_ci_kalinowski(n_h_off = 373, n_w_off = 865, n_h_par = 436, n_w_par = 358, alpha = 0.05)
+
+```
 #### RS vs. field data plots
 
 ```{r paired_14_16_filter_parents_sex_even}
 paired_14_16_filter_parents <- paired_14_16_filter_parents %>% 
   mutate(sex = case_when(SEX == "M" ~ "Male",
                          SEX == "F" ~ "Female"))
-```
+
 
 Natural-origin males and females both do better early in the season (density-dependence or increased fishing pressure later in the season?).
 ```{r Examine reproductive success by sample date even with zeros}
