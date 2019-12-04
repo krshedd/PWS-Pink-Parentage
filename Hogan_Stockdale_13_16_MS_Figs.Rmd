@@ -128,6 +128,7 @@ Hogan_Odd <- paired_13_15_filter %>%
   theme(legend.title = element_text(size = 4)) +
   theme(legend.text = element_text(size = 4)) +
   scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
+  scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
   geom_bar(aes(fill=origin)) +
   facet_grid(`Sample Year` ~ .) +
   labs(title = "Hogan", y = "Number of Samples", fill = "Origin") +
@@ -137,6 +138,7 @@ Hogan_Even <- paired_14_16_filter %>%
   ggplot(aes(x= Julian)) +
   theme_bw() +
   scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
+   scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
   theme(legend.position = 'none') +
   geom_bar(aes(fill=origin)) +
   facet_grid(Sample.Year ~ .) +
@@ -149,6 +151,7 @@ Stock_Odd <- stock_paired_13_15_filter %>%
   theme(axis.title.y = element_blank()) +
   theme(axis.title.x = element_blank()) +
   scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
+   scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
   theme(legend.position = 'none') +
   geom_bar(aes(fill=origin)) +
   facet_grid(`Sample Year` ~ .) +
@@ -159,6 +162,7 @@ Stock_Even <- stock_paired_14_16_filter %>%
   theme_bw() +
   theme(axis.title.y = element_blank()) +
   scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
+   scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
    theme(legend.position = 'none') +
   geom_bar(aes(fill=origin)) +
   facet_grid(`Sample Year` ~ .) +
@@ -168,7 +172,7 @@ Figure_2 <-
 grid.arrange(Hogan_Odd, Stock_Odd, Hogan_Even, Stock_Even,nrow = 2)
 
 
-ggsave("Figure_2.pdf", plot = Figure_2, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
+ggsave("Figure_2.pdf", plot = Figure_2, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures")
 ```
 
 # Figure 3: Reproductive success
@@ -207,7 +211,8 @@ Hogan_Odd_RS <- paired_13_15_filter_parents %>%
   facet_grid(~ SEX, labeller = labeller(F = "Female", M = "Male")) +
   labs(title="Hogan",
        fill = "Parent: Origin") +
-  ylab(expression(atop("Odd", paste("Proportion of Parents")))) 
+  ylab(expression(atop("Odd", paste("Proportion of Parents")))) +
+  xlab(" ")
 
 Hogan_Even_RS <- paired_14_16_filter_parents %>% 
   count(SEX, origin, n) %>% 
@@ -221,7 +226,7 @@ Hogan_Even_RS <- paired_14_16_filter_parents %>%
   scale_x_continuous(limits = c(0,20), breaks = seq(0,20, by = 2)) +
   facet_grid(~ SEX) +
   labs(fill = "Parent: Origin") +
-  xlab("Number of Offspring")+
+  xlab("Number of Offspring (RS)")+
   ylab(expression(atop("Even", paste("Proportion of Parents")))) 
 
 Stockdale_Odd_RS <- stock_paired_13_15_filter_parents %>% 
@@ -236,7 +241,9 @@ Stockdale_Odd_RS <- stock_paired_13_15_filter_parents %>%
   scale_x_continuous(limits = c(0,20), breaks = seq(0,20, by = 2)) +
   facet_grid(~ SEX, labeller = labeller(F = "Female", M = "Male")) +
   labs(title="Stockdale",
-       fill = "Parent: Origin") 
+       fill = "Parent: Origin") +
+  ylab(" ") +
+  xlab (" ")
 
 Stockdale_Even_RS <- stock_paired_14_16_filter_parents %>% 
    count(SEX, origin, n) %>% 
@@ -250,7 +257,8 @@ Stockdale_Even_RS <- stock_paired_14_16_filter_parents %>%
   scale_x_continuous(limits = c(0,20), breaks = seq(0,20, by = 2)) +
   facet_grid(~ SEX, labeller = labeller(F = "Female", M = "Male")) +
   labs(fill = "Parent: Origin") +
-  xlab("Number of Offspring (RS)")
+  xlab("Number of Offspring (RS)") +
+  ylab(" ")
 
 Figure_3 <- 
 grid.arrange(Hogan_Odd_RS, Stockdale_Odd_RS, Hogan_Even_RS, Stockdale_Even_RS,nrow = 2)
