@@ -102,7 +102,7 @@ This is the code used to actually save the map as a .png file
 png(filename = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures/Figure1_map.png", width = 6.5, height = 6.5, units = "in", res = 300)
 grid.newpage()
 vp_b <- viewport(width = 1, height = 1, x = 0.5, y = 0.5)  # the larger map
-vp_a <- viewport(width = 0.23, height = 0.35, x = 0.65, y = 0.3)  # the inset in lower left
+vp_a <- viewport(width = 0.23, height = 0.35, x = 0.63, y = 0.31)  # the inset in lower left
 print(pws_map, vp = vp_b)
 print(ak_map + maptheme, vp = vp_a)
 dev.off()
@@ -110,16 +110,16 @@ dev.off()
 
 # Figure 2: Sample sizes throughout run
 ```{r sample sizes throughout run}
-paired_13_15_filter <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/paired_13_15_filter.csv") %>% 
+paired_13_15_filter <- read_csv("Hogan/paired_13_15_filter.csv") %>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
-paired_14_16_filter <- read.csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/paired_14_16_filter.csv") %>% 
+paired_14_16_filter <- read.csv("Hogan/paired_14_16_filter.csv") %>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
-stock_paired_13_15_filter <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_paired_13_15_filter.csv") %>% 
+stock_paired_13_15_filter <- read_csv("Stockdale/stock_paired_13_15_filter.csv") %>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
-stock_paired_14_16_filter <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_paired_14_16_filter.csv") %>% 
+stock_paired_14_16_filter <- read_csv("Stockdale/stock_paired_14_16_filter.csv") %>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery")))
 
 #Stacked
@@ -172,7 +172,7 @@ Stock_Even <- stock_paired_14_16_filter %>%
   labs(x = "Julian Date")
 
 Figure_2 <- 
-grid.arrange(Hogan_Odd, Stock_Odd, Hogan_Even, Stock_Even,nrow = 2)
+grid.arrange(Hogan_Odd, Stock_Odd, Hogan_Even, Stock_Even, nrow = 2, widths = c(1.15, 1))  # added width argument to get plot area equal
 
 
 ggsave("Figure_2.pdf", plot = Figure_2, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures")
