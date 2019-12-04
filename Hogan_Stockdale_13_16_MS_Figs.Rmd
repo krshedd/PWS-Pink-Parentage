@@ -125,54 +125,59 @@ stock_paired_14_16_filter <- read_csv("Stockdale/stock_paired_14_16_filter.csv")
 #Stacked
 Hogan_Odd <- paired_13_15_filter %>% 
   ggplot(aes(x= Julian)) +
+  geom_bar(aes(fill=origin)) +
   theme_bw() +
-  theme(axis.title.x = element_blank()) +
-  theme(legend.position = c(0.85, 0.75)) +
-  theme(legend.title = element_text(size = 4)) +
-  theme(legend.text = element_text(size = 4)) +
+  theme(legend.position = c(0.85, 0.75),
+        legend.title = element_text(size = 6),
+        legend.text = element_text(size = 6),
+        legend.key.size = unit(1, "line"),
+        panel.grid = element_blank(),
+        axis.title.x = element_blank()) +
   scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
   scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
-  geom_bar(aes(fill=origin)) +
   facet_grid(`Sample Year` ~ .) +
   labs(title = "Hogan", y = "Number of Samples", fill = "Origin") +
   ylab(expression(atop("Odd", paste("Number of Samples"))))
-  
+
 Hogan_Even <- paired_14_16_filter %>% 
   ggplot(aes(x= Julian)) +
-  theme_bw() +
-  scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
-   scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
-  theme(legend.position = 'none') +
   geom_bar(aes(fill=origin)) +
+  theme_bw() +
+  theme(legend.position = 'none',
+        panel.grid = element_blank()) +
+  scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
+  scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
   facet_grid(Sample.Year ~ .) +
   labs(y = "Number of Samples", x = "Julian Date") +
   ylab(expression(atop("Even", paste("Number of Samples"))))
 
 Stock_Odd <- stock_paired_13_15_filter %>% 
   ggplot(aes(x=Julian)) +
-  theme_bw() +
-  theme(axis.title.y = element_blank()) +
-  theme(axis.title.x = element_blank()) +
-  scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
-   scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
-  theme(legend.position = 'none') +
   geom_bar(aes(fill=origin)) +
+  theme_bw() +
+  scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
+  scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
+  theme(legend.position = 'none',
+        panel.grid = element_blank(),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank()) +
   facet_grid(`Sample Year` ~ .) +
   labs(title = "Stockdale")
 
 Stock_Even <- stock_paired_14_16_filter %>% 
   ggplot(aes(x=Julian)) +
-  theme_bw() +
-  theme(axis.title.y = element_blank()) +
-  scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
-   scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
-   theme(legend.position = 'none') +
   geom_bar(aes(fill=origin)) +
+  theme_bw() +
+  scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
+  scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
+  theme(legend.position = 'none',
+        panel.grid = element_blank(),
+        axis.title.y = element_blank()) +
   facet_grid(`Sample Year` ~ .) +
   labs(x = "Julian Date")
 
 Figure_2 <- 
-grid.arrange(Hogan_Odd, Stock_Odd, Hogan_Even, Stock_Even, nrow = 2, widths = c(1.15, 1))  # added width argument to get plot area equal
+  grid.arrange(Hogan_Odd, Stock_Odd, Hogan_Even, Stock_Even, nrow = 2, widths = c(1.15, 1))  # added width argument to get plot area equal
 
 
 ggsave("Figure_2.pdf", plot = Figure_2, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures")
@@ -181,24 +186,24 @@ ggsave("Figure_2.pdf", plot = Figure_2, path = "V:/Documents/5_Coastwide/Multisp
 # Figure 3: Reproductive success
 
 ```{r Plot RS}
-paired_13_15_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/paired_13_15_filter_parents.csv") %>% 
+paired_13_15_filter_parents <- read_csv("Hogan/paired_13_15_filter_parents.csv") %>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
-mutate(SEX = case_when(SEX == "M" ~ "Male",
+  mutate(SEX = case_when(SEX == "M" ~ "Male",
                          SEX == "F" ~ "Female"))
 
-paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/paired_14_16_filter_parents.csv") %>% 
+paired_14_16_filter_parents <- read_csv("Hogan/paired_14_16_filter_parents.csv") %>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
-mutate(SEX = case_when(SEX == "M" ~ "Male",
+  mutate(SEX = case_when(SEX == "M" ~ "Male",
                          SEX == "F" ~ "Female"))
 
-stock_paired_13_15_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_paired_13_15_filter_parents.csv")%>% 
+stock_paired_13_15_filter_parents <- read_csv("Stockdale/stock_paired_13_15_filter_parents.csv")%>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
-mutate(SEX = case_when(SEX == "M" ~ "Male",
+  mutate(SEX = case_when(SEX == "M" ~ "Male",
                          SEX == "F" ~ "Female"))
 
-stock_paired_14_16_filter_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_paired_14_16_filter_parents.csv") %>% 
+stock_paired_14_16_filter_parents <- read_csv("Stockdale/stock_paired_14_16_filter_parents.csv") %>% 
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
-mutate(SEX = case_when(SEX == "M" ~ "Male",
+  mutate(SEX = case_when(SEX == "M" ~ "Male",
                          SEX == "F" ~ "Female"))
 
 Hogan_Odd_RS <- paired_13_15_filter_parents %>% 
@@ -206,14 +211,15 @@ Hogan_Odd_RS <- paired_13_15_filter_parents %>%
   group_by(SEX, origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x = n, y = p, fill = origin)) +
-  theme_bw() +
-  theme(legend.position = c(0.85, 0.75)) +
   geom_col(position = position_dodge2(preserve="single")) +
+  theme_bw() +
+  theme(legend.position = c(0.85, 0.75),
+        panel.grid = element_blank()) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
-  scale_x_continuous(limits = c(0,20), breaks = seq(0,20, by = 2)) +
+  scale_x_continuous(limits = c(-0.5,20), breaks = seq(0,20, by = 2)) +
   facet_grid(~ SEX, labeller = labeller(F = "Female", M = "Male")) +
   labs(title="Hogan",
-       fill = "Parent: Origin") +
+       fill = "Parent origin") +
   ylab(expression(atop("Odd", paste("Proportion of Parents")))) +
   xlab(" ")
 
@@ -222,49 +228,53 @@ Hogan_Even_RS <- paired_14_16_filter_parents %>%
   group_by(SEX, origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x = n, y = p, fill = origin)) +
-  theme_bw() +
-  theme(legend.position = 'none') +
   geom_col(position = position_dodge2(preserve="single")) +
-   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
-  scale_x_continuous(limits = c(0,20), breaks = seq(0,20, by = 2)) +
+  theme_bw() +
+  theme(legend.position = 'none',
+        panel.grid = element_blank()) +
+  scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
+  scale_x_continuous(limits = c(-0.5,20), breaks = seq(0,20, by = 2)) +
   facet_grid(~ SEX) +
-  labs(fill = "Parent: Origin") +
+  labs(fill = "Parent origin") +
   xlab("Number of Offspring (RS)")+
   ylab(expression(atop("Even", paste("Proportion of Parents")))) 
 
 Stockdale_Odd_RS <- stock_paired_13_15_filter_parents %>% 
-   count(SEX, origin, n) %>% 
+  count(SEX, origin, n) %>% 
   group_by(SEX, origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x = n, y = p, fill = origin)) +
-  theme_bw() +
-  theme(legend.position = 'none') +
   geom_col(position = position_dodge2(preserve="single")) +
-   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
-  scale_x_continuous(limits = c(0,20), breaks = seq(0,20, by = 2)) +
+  theme_bw() +
+  theme(legend.position = 'none',
+        panel.grid = element_blank()) +
+  scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
+  scale_x_continuous(limits = c(-0.5,20), breaks = seq(0,20, by = 2)) +
   facet_grid(~ SEX, labeller = labeller(F = "Female", M = "Male")) +
   labs(title="Stockdale",
-       fill = "Parent: Origin") +
+       fill = "Parent origin") +
   ylab(" ") +
   xlab (" ")
 
 Stockdale_Even_RS <- stock_paired_14_16_filter_parents %>% 
-   count(SEX, origin, n) %>% 
+  count(SEX, origin, n) %>% 
   group_by(SEX, origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x = n, y = p, fill = origin)) +
-  theme_bw() +
-  theme(legend.position = 'none') +
   geom_col(position = position_dodge2(preserve="single")) +
-   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
-  scale_x_continuous(limits = c(0,20), breaks = seq(0,20, by = 2)) +
+  theme_bw() +
+  theme(legend.position = 'none',
+        panel.grid = element_blank()) +
+  scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
+  scale_x_continuous(limits = c(-0.5,20), breaks = seq(0,20, by = 2)) +
   facet_grid(~ SEX, labeller = labeller(F = "Female", M = "Male")) +
-  labs(fill = "Parent: Origin") +
+  labs(fill = "Parent origin") +
   xlab("Number of Offspring (RS)") +
   ylab(" ")
 
 Figure_3 <- 
-grid.arrange(Hogan_Odd_RS, Stockdale_Odd_RS, Hogan_Even_RS, Stockdale_Even_RS,nrow = 2)
+  grid.arrange(Hogan_Odd_RS, Stockdale_Odd_RS, Hogan_Even_RS, Stockdale_Even_RS, nrow = 2, widths = c(1.05, 1))
+
 
 ggsave("Figure_3.pdf", plot = Figure_3, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
 
