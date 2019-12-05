@@ -283,7 +283,7 @@ ggsave("Figure_3.pdf", plot = Figure_3, path = "V:/Documents/5_Coastwide/Multisp
 
 ```
 
-# Figure 4
+# Figure 4: RS by date
 ```{r Plot RS by Date}
 Hogan_Even_Date <- paired_14_16_filter_parents %>% 
   ggplot(aes(x = `Sample Date`, y = n, color = origin)) +
@@ -320,7 +320,7 @@ ggsave("Figure_4.pdf", plot = Figure_4, path = "V:/Documents/5_Coastwide/Multisp
 
 ```
 
-# Figure 5
+# Figure 5: RS by location
 ``` {r Plot RS by Location}
 riverdist_parentage_hogan <-
   read_csv("Hogan/riverdist_parentage_hogan.csv") %>% 
@@ -374,7 +374,7 @@ ggsave("Figure_5.pdf", plot = Figure_5, path = "V:/Documents/5_Coastwide/Multisp
 
 ```
 
-# Figure 6
+# Figure 6: RS by length
 ```{r Plot RS by Length}
 Hogan_Even_Length <- paired_14_16_filter_parents %>% 
   ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
@@ -413,11 +413,12 @@ Figure_6 <- grid.arrange(Hogan_Even_Length, Stockdale_Even_Length, nrow = 1, wid
 ggsave("Figure_6.pdf", plot = Figure_6, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
 ```
 
-#Figure S1
+# Figure S1: Heterozygosity distribution
 ```{r Plot Het}
-Hogan_het_tibble <- read_file("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Hogan/het_tibble.txt")
-Stockdale_het_tibble <- read_file("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Stockdale/het_tibble.txt")
+Hogan_het_tibble <- dget("../Objects/Hogan_13_14_15_16/het_tibble.txt")
+Stockdale_het_tibble <- dget("../Objects/Stockdale_13_14_15_16//het_tibble.txt")
 
+# IQR
 Hogan_low_box_het <- Hogan_het_tibble %>% 
   dplyr::group_by(lineage) %>% 
   dplyr::summarise(het = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
@@ -434,30 +435,102 @@ Stockdale_high_box_het <- Stockdale_het_tibble %>%
   dplyr::group_by(lineage) %>% 
   dplyr::summarise(het = quantile(het, probs = 0.75) + 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
 
-Hogan_het_tibble %>% 
-  ggplot2::ggplot(aes(x = het)) +
-  ggplot2::geom_histogram(binwidth = 1/304) +
-  ggplot2::geom_vline(aes(xintercept = het, color = "IQR"), low_box_het) +
-  ggplot2::geom_vline(aes(xintercept = het, color = "IQR"), high_box_het) +
-  ggplot2::facet_grid(rows=vars(lineage), scales = "free_y") +
-  ggplot2::xlim(0.15, 0.85) +
-  ggplot2::xlab("Individual Heterozygosity") +
-  ggplot2::ylab("Frequency") +
-  ggplot2::ggtitle("Hogan")
+# 3SD
+Hogan_low_sd_het <- Hogan_het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het = mean(het) - (3 * sd(het)))
 
-Stockdale_het_tibble %>% 
-  ggplot2::ggplot(aes(x = het)) +
-  ggplot2::geom_histogram(binwidth = 1/298) +
-  ggplot2::geom_vline(aes(xintercept = het, color = "IQR"), low_box_het) +
-  ggplot2::geom_vline(aes(xintercept = het, color = "IQR"), high_box_het) +
-  ggplot2::facet_grid(rows=vars(lineage), scales = "free_y") +
-  ggplot2::xlim(0.15, 0.85) +
-  ggplot2::xlab("Individual Heterozygosity") +
-  ggplot2::ylab(" ") +
-  ggplot2::ggtitle("Stockdale")
+Hogan_high_sd_het <- Hogan_het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het = mean(het) + (3 * sd(het)))
+
+Stockdale_low_sd_het <- Stockdale_het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het = mean(het) - (3 * sd(het)))
+
+Stockdale_high_sd_het <- Stockdale_het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(het = mean(het) + (3 * sd(het)))
+
+
+
+Hogan_odd_het <- Hogan_het_tibble %>% 
+  filter(lineage == "odd") %>% 
+  ggplot(aes(x = het)) +
+  geom_histogram(aes(y = ..count../sum(..count..)), binwidth = 1/303) +
+  geom_vline(aes(xintercept = het, color = "1.5 IQR"), filter(Hogan_low_box_het, lineage == "odd")) +
+  geom_vline(aes(xintercept = het, color = "1.5 IQR"), filter(Hogan_high_box_het, lineage == "odd")) +
+  geom_vline(aes(xintercept = het, color = "3 SD"), filter(Hogan_low_sd_het, lineage == "odd")) +
+  geom_vline(aes(xintercept = het, color = "3 SD"), filter(Hogan_high_sd_het, lineage == "odd")) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = c(0.85, 0.75),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        legend.key.size = unit(1, "line"),
+        panel.grid = element_blank()) +
+  xlim(0.15, 0.85) +
+  ylim(0, 0.05) +
+  xlab("") +
+  labs(title = "Hogan", y = "Frequency", color = "Cutoff")
+
+Hogan_even_het <- Hogan_het_tibble %>% 
+  filter(lineage == "even") %>% 
+  ggplot(aes(x = het)) +
+  geom_histogram(aes(y = ..count../sum(..count..)), binwidth = 1/303) +
+  geom_vline(aes(xintercept = het, color = "1.5 IQR"), filter(Hogan_low_box_het, lineage == "even")) +
+  geom_vline(aes(xintercept = het, color = "1.5 IQR"), filter(Hogan_high_box_het, lineage == "even")) +
+  geom_vline(aes(xintercept = het, color = "3 SD"), filter(Hogan_low_sd_het, lineage == "even")) +
+  geom_vline(aes(xintercept = het, color = "3 SD"), filter(Hogan_high_sd_het, lineage == "even")) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = 'none',
+        panel.grid = element_blank()) +
+  xlim(0.15, 0.85) +
+  ylim(0, 0.05) +
+  xlab("Individual Heterozygosity") +
+  ylab("Frequency")
+
+Stockdale_odd_het <- Stockdale_het_tibble %>% 
+  filter(lineage == "odd") %>% 
+  ggplot(aes(x = het)) +
+  geom_histogram(aes(y = ..count../sum(..count..)), binwidth = 1/303) +
+  geom_vline(aes(xintercept = het, color = "1.5 IQR"), filter(Stockdale_low_box_het, lineage == "odd")) +
+  geom_vline(aes(xintercept = het, color = "1.5 IQR"), filter(Stockdale_high_box_het, lineage == "odd")) +
+  geom_vline(aes(xintercept = het, color = "3 SD"), filter(Stockdale_low_sd_het, lineage == "odd")) +
+  geom_vline(aes(xintercept = het, color = "3 SD"), filter(Stockdale_high_sd_het, lineage == "odd")) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = 'none',
+        panel.grid = element_blank()) +
+  xlim(0.15, 0.85) +
+  ylim(0, 0.05) +
+  xlab("") +
+  ylab("") +
+  ggtitle("Stockdale")
+
+Stockdale_even_het <- Stockdale_het_tibble %>% 
+  filter(lineage == "even") %>% 
+  ggplot(aes(x = het)) +
+  geom_histogram(aes(y = ..count../sum(..count..)), binwidth = 1/303) +
+  geom_vline(aes(xintercept = het, color = "1.5 IQR"), filter(Stockdale_low_box_het, lineage == "even")) +
+  geom_vline(aes(xintercept = het, color = "1.5 IQR"), filter(Stockdale_high_box_het, lineage == "even")) +
+  geom_vline(aes(xintercept = het, color = "3 SD"), filter(Stockdale_low_sd_het, lineage == "even")) +
+  geom_vline(aes(xintercept = het, color = "3 SD"), filter(Stockdale_high_sd_het, lineage == "even")) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = 'none',
+        panel.grid = element_blank()) +
+  xlim(0.15, 0.85) +
+  ylim(0, 0.05) +
+  xlab("Individual Heterozygosity") +
+  ylab("")
+
+
+Figure_S1 <- 
+  grid.arrange(Hogan_odd_het, Stockdale_odd_het, Hogan_even_het, Stockdale_even_het, nrow = 2, widths = c(1.10, 1))  # added width argument to get plot area equal
+
+
+ggsave("Figure_S1.pdf", plot = Figure_S1, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
 ```
 
-#Figure S2
+# Figure S2
 ``` {r Plot Cross Type}
 Hogan_parents_paired_14_16_cross <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/parents_paired_14_16_cross.csv") %>% 
   mutate(cross = factor(x = cross, levels = c("NN", "NH", "HN", "HH"))) 
