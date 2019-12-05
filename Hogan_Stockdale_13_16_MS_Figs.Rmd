@@ -126,15 +126,15 @@ stock_paired_14_16_filter <- read_csv("Stockdale/stock_paired_14_16_filter.csv")
 Hogan_Odd <- paired_13_15_filter %>% 
   ggplot(aes(x= Julian)) +
   geom_bar(aes(fill=origin)) +
-  theme_bw() +
+  theme_bw(base_size = 14) +
   theme(legend.position = c(0.85, 0.75),
-        legend.title = element_text(size = 6),
-        legend.text = element_text(size = 6),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 10),
         legend.key.size = unit(1, "line"),
         panel.grid = element_blank(),
         axis.title.x = element_blank()) +
-  scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
-  scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
+  scale_y_continuous(limits = c(0, 500), breaks = seq(0, 500, by = 100)) +
+  scale_x_continuous(limits = c(220, 270), breaks = seq(220, 270, by = 10), labels = format(x = (as.Date("2012-12-31") + seq(220, 270, by = 10)), "%b %d")) +
   facet_grid(`Sample Year` ~ .) +
   labs(title = "Hogan", y = "Number of Samples", fill = "Origin") +
   ylab(expression(atop("Odd", paste("Number of Samples"))))
@@ -142,21 +142,21 @@ Hogan_Odd <- paired_13_15_filter %>%
 Hogan_Even <- paired_14_16_filter %>% 
   ggplot(aes(x= Julian)) +
   geom_bar(aes(fill=origin)) +
-  theme_bw() +
+  theme_bw(base_size = 14) +
   theme(legend.position = 'none',
         panel.grid = element_blank()) +
-  scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
-  scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
+  scale_y_continuous(limits = c(0, 500), breaks = seq(0, 500, by = 100)) +
+  scale_x_continuous(limits = c(220, 270), breaks = seq(220, 270, by = 10), labels = format(x = (as.Date("2012-12-31") + seq(220, 270, by = 10)), "%b %d")) +
   facet_grid(Sample.Year ~ .) +
-  labs(y = "Number of Samples", x = "Julian Date") +
+  labs(y = "Number of Samples", x = "Sample Date") +
   ylab(expression(atop("Even", paste("Number of Samples"))))
 
 Stock_Odd <- stock_paired_13_15_filter %>% 
   ggplot(aes(x=Julian)) +
   geom_bar(aes(fill=origin)) +
-  theme_bw() +
-  scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
-  scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
+  theme_bw(base_size = 14) +
+  scale_y_continuous(limits = c(0, 500), breaks = seq(0, 500, by = 100)) +
+  scale_x_continuous(limits = c(220, 270), breaks = seq(220, 270, by = 10), labels = format(x = (as.Date("2012-12-31") + seq(220, 270, by = 10)), "%b %d")) +
   theme(legend.position = 'none',
         panel.grid = element_blank(),
         axis.title.y = element_blank(),
@@ -167,20 +167,20 @@ Stock_Odd <- stock_paired_13_15_filter %>%
 Stock_Even <- stock_paired_14_16_filter %>% 
   ggplot(aes(x=Julian)) +
   geom_bar(aes(fill=origin)) +
-  theme_bw() +
-  scale_y_continuous(limits = c(0,500), breaks = seq(0,500, by = 100)) +
-  scale_x_continuous(limits = c(220,270), breaks = seq(220,270, by = 10)) +
+  theme_bw(base_size = 14) +
+  scale_y_continuous(limits = c(0, 500), breaks = seq(0, 500, by = 100)) +
+  scale_x_continuous(limits = c(220, 270), breaks = seq(220, 270, by = 10), labels = format(x = (as.Date("2012-12-31") + seq(220, 270, by = 10)), "%b %d")) +
   theme(legend.position = 'none',
         panel.grid = element_blank(),
         axis.title.y = element_blank()) +
   facet_grid(`Sample Year` ~ .) +
-  labs(x = "Julian Date")
+  labs(x = "Sample Date")
 
 Figure_2 <- 
-  grid.arrange(Hogan_Odd, Stock_Odd, Hogan_Even, Stock_Even, nrow = 2, widths = c(1.15, 1))  # added width argument to get plot area equal
+  grid.arrange(Hogan_Odd, Stock_Odd, Hogan_Even, Stock_Even, nrow = 2, widths = c(1.10, 1))  # added width argument to get plot area equal
 
 
-ggsave("Figure_2.pdf", plot = Figure_2, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures")
+ggsave("Figure_2.pdf", plot = Figure_2, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
 ```
 
 # Figure 3: Reproductive success
@@ -212,8 +212,11 @@ Hogan_Odd_RS <- paired_13_15_filter_parents %>%
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x = n, y = p, fill = origin)) +
   geom_col(position = position_dodge2(preserve="single")) +
-  theme_bw() +
+  theme_bw(base_size = 14) +
   theme(legend.position = c(0.85, 0.75),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        legend.key.size = unit(1, "line"),
         panel.grid = element_blank()) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
   scale_x_continuous(limits = c(-0.5,20), breaks = seq(0,20, by = 2)) +
@@ -229,7 +232,7 @@ Hogan_Even_RS <- paired_14_16_filter_parents %>%
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x = n, y = p, fill = origin)) +
   geom_col(position = position_dodge2(preserve="single")) +
-  theme_bw() +
+  theme_bw(base_size = 14) +
   theme(legend.position = 'none',
         panel.grid = element_blank()) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
@@ -245,7 +248,7 @@ Stockdale_Odd_RS <- stock_paired_13_15_filter_parents %>%
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x = n, y = p, fill = origin)) +
   geom_col(position = position_dodge2(preserve="single")) +
-  theme_bw() +
+  theme_bw(base_size = 14) +
   theme(legend.position = 'none',
         panel.grid = element_blank()) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
@@ -262,7 +265,7 @@ Stockdale_Even_RS <- stock_paired_14_16_filter_parents %>%
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x = n, y = p, fill = origin)) +
   geom_col(position = position_dodge2(preserve="single")) +
-  theme_bw() +
+  theme_bw(base_size = 14) +
   theme(legend.position = 'none',
         panel.grid = element_blank()) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
@@ -280,116 +283,132 @@ ggsave("Figure_3.pdf", plot = Figure_3, path = "V:/Documents/5_Coastwide/Multisp
 
 ```
 
-#Figure 4
+# Figure 4
 ```{r Plot RS by Date}
 Hogan_Even_Date <- paired_14_16_filter_parents %>% 
   ggplot(aes(x = `Sample Date`, y = n, color = origin)) +
-  geom_jitter(height = 0) +
-  geom_smooth() +
-  theme_bw() +
-   theme(legend.position = c(0.85, 0.85)) +
+  geom_jitter(height = 0, alpha = 0.5, size = 3) +
+  geom_smooth(method = "loess", se = TRUE, level = 0.95) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = c(0.85, 0.90),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        legend.key.size = unit(1, "line"),
+        panel.grid = element_blank()) +
   scale_y_continuous(limits = c(0,20), breaks = seq(0,20, by = 5)) +
   facet_grid(SEX ~ .)+
-  labs(title = "Hogan",  colour = "Parent: Origin",
-       shape = "Parent: Sex") +
-  xlab("Parental Sample Date") +
+  labs(title = "Hogan",  colour = "Parent origin") +
+  xlab("Parent Sample Date") +
   ylab("Number of Offspring (RS)")
 
 Stockdale_Even_Date <- stock_paired_14_16_filter_parents %>% 
   ggplot(aes(x = `Sample Date`, y = n, color = origin)) +
-  geom_jitter(height = 0) +
-  geom_smooth() +
-  theme_bw() +
-  theme(legend.position = 'none') +
+  geom_jitter(height = 0, alpha = 0.5, size = 3) +
+  geom_smooth(method = "loess", se = TRUE, level = 0.95) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = 'none',
+        panel.grid = element_blank()) +
   scale_y_continuous(limits = c(0,20), breaks = seq(0,20, by = 5)) +
   facet_grid(SEX ~ .)+
-  labs(title = "Stockdale",  colour = "Parent: Origin",
-       shape = "Parent: Sex") +
-  xlab("Parental Sample Date") +
+  labs(title = "Stockdale",  colour = "Parent origin") +
+  xlab("Parent Sample Date") +
   ylab(" ")
 
-Figure_4 <- grid.arrange(Hogan_Even_Date, Stockdale_Even_Date, nrow = 1)
+Figure_4 <- grid.arrange(Hogan_Even_Date, Stockdale_Even_Date, nrow = 1, widths = c(1, 1))
 
 ggsave("Figure_4.pdf", plot = Figure_4, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
 
 ```
 
-#Figure 5
+# Figure 5
 ``` {r Plot RS by Location}
-finsight_parentage_hogan <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/finsight_parentage_hogan.csv") %>% mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+riverdist_parentage_hogan <-
+  read_csv("Hogan/riverdist_parentage_hogan.csv") %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>%
   mutate(SEX = case_when(SEX == "M" ~ "Male",
                          SEX == "F" ~ "Female"))
-finsight_parentage_stock <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/finsight_parentage_stock.csv") %>% 
-  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+riverdist_parentage_stock <-
+  read_csv("Stockdale/riverdist_parentage_stock.csv") %>%
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>%
   mutate(SEX = case_when(SEX == "M" ~ "Male",
                          SEX == "F" ~ "Female"))
 
-Hogan_Location <- finsight_parentage_hogan %>% 
+Hogan_Location <- riverdist_parentage_hogan %>% 
   ggplot(aes(x = Distance, y = n, color = origin)) +
-  geom_smooth() +
-  geom_jitter(height = 0.5, alpha = 0.3, size = 3) +
-  facet_grid(SEX ~ .) +
-  labs(colour = "Parent: Origin",
-       shape = "Parent: Sex") +
+  geom_vline(aes(xintercept = hitide), color = "black", lwd = 1.5) +
+  geom_jitter(height = 0, alpha = 0.5, size = 3) +
+  geom_smooth(method = "loess", se = TRUE, level = 0.95) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = c(0.85, 0.90),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        legend.key.size = unit(1, "line"),
+        panel.grid = element_blank()) +
+  scale_x_continuous(limits = c(0, 1500), breaks = seq(0, 1500, by = 250)) +
+  scale_y_continuous(limits = c(0,20), breaks = seq(0,20, by = 5)) +
+  facet_grid(SEX ~ .)+
+  labs(title = "Hogan",  colour = "Parent origin") +
   xlab("Distance from Stream Mouth (m)") +
-  ylab("Number of Offspring (RS)") +
-  theme_bw(base_size = 20) +
-  theme(legend.position = c(0.8, 0.9)) +
-  theme(legend.title = element_text(size = 6)) +
-  theme(legend.text = element_text(size = 6)) +
-  labs(title = "Hogan")
+  ylab("Number of Offspring (RS)")
 
-Stockdale_Location <- finsight_parentage_stock %>% 
+
+Stockdale_Location <- riverdist_parentage_stock %>% 
   ggplot(aes(x = Distance, y = n, color = origin)) +
-  geom_smooth() +
-  geom_jitter(height = 0.5, alpha = 0.3, size = 3) +
-  facet_grid(SEX ~ .) +
-  labs(colour = "Parent: Origin",
-       shape = "Parent: Sex") +
+  geom_vline(aes(xintercept = tidedist), color = "black", lwd = 1.5) +
+  geom_jitter(height = 0, alpha = 0.5, size = 3) +
+  geom_smooth(method = "loess", se = TRUE, level = 0.95) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = "none",
+        panel.grid = element_blank()) +
+  scale_x_continuous(limits = c(0, 1500), breaks = seq(0, 1500, by = 250)) +
+  scale_y_continuous(limits = c(0,20), breaks = seq(0,20, by = 5)) +
+  facet_grid(SEX ~ .)+
+  labs(title = "Stockdale") +
   xlab("Distance from Stream Mouth (m)") +
-  ylab(" ") +
-  theme_bw(base_size = 20) +
-  theme(legend.position = "none") +
-  labs(title = "Stockdale")
+  ylab("")
 
-Figure_5 <- grid.arrange(Hogan_Location, Stockdale_Location, nrow = 1)
+
+Figure_5 <- grid.arrange(Hogan_Location, Stockdale_Location, nrow = 1, widths = c(1, 1))
 
 ggsave("Figure_5.pdf", plot = Figure_5, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
 
 ```
 
-#Figure 6
+# Figure 6
 ```{r Plot RS by Length}
 Hogan_Even_Length <- paired_14_16_filter_parents %>% 
   ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
-  geom_jitter(height = 0) +
-  geom_smooth() +
-  theme_bw() +
-   theme(legend.position = c(0.85, 0.85)) +
-  scale_y_continuous(limits = c(0,20), breaks = seq(0,20, by = 5)) +
+  geom_jitter(height = 0, alpha = 0.5, size = 3) +
+  geom_smooth(method = "loess", se = TRUE, level = 0.95) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = c(0.85, 0.90),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        legend.key.size = unit(1, "line"),
+        panel.grid = element_blank()) +
   scale_x_continuous(limits = c(325, 500), breaks = seq(325, 500, by = 25)) +
+  scale_y_continuous(limits = c(0,20), breaks = seq(0,20, by = 5)) +
   facet_grid(SEX ~ .)+
-  labs(title = "Hogan",  colour = "Parent: Origin",
-       shape = "Parent: Sex") +
-  xlab("Parental Length (mm)") +
+  labs(title = "Hogan",  colour = "Parent origin") +
+  xlab("Parent Length (mm)") +
   ylab("Number of Offspring (RS)")
 
 Stockdale_Even_Length <- stock_paired_14_16_filter_parents %>% 
-  filter(`Length Mm` > 300)  %>% 
   ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
-  geom_jitter(height = 0) +
-  geom_smooth() +
-  theme_bw() +
-  theme(legend.position = 'none') +
+  geom_jitter(height = 0, alpha = 0.5, size = 3) +
+  geom_smooth(method = "loess", se = TRUE, level = 0.95) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = 'none',
+        panel.grid = element_blank()) +
+  scale_x_continuous(limits = c(325, 500), breaks = seq(325, 500, by = 25)) +
   scale_y_continuous(limits = c(0,20), breaks = seq(0,20, by = 5)) +
-   scale_x_continuous(limits = c(325, 500), breaks = seq(325, 500, by = 25)) +
   facet_grid(SEX ~ .)+
-  labs(title = "Stockdale",  colour = "Parent: Origin",
-       shape = "Parent: Sex") +
-  xlab("Parental Length (mm)") +
+  labs(title = "Stockdale",  colour = "Parent origin") +
+  xlab("Parent Length (mm)") +
   ylab(" ")
 
-Figure_6 <- grid.arrange(Hogan_Even_Length, Stockdale_Even_Length, nrow = 1)
+
+Figure_6 <- grid.arrange(Hogan_Even_Length, Stockdale_Even_Length, nrow = 1, widths = c(1, 1))
 
 ggsave("Figure_6.pdf", plot = Figure_6, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
 ```
