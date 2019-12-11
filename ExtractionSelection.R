@@ -800,3 +800,130 @@ trays_to_separate %>% count()
 trays_to_separate %>% 
   select(`Silly Code`, `DNA Tray Code`) %>% 
   write_csv(path = "../Extraction/DWP_otolith_transfer_paddy_erb_gilmour_2015-2018.csv")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP008 + eP009: Create extraction list for ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Our next priority was Hogan 2018, but we don't have a firm decision on whether we are doing 2020 sampling yet,
+# so I don't want to extract several thousand hatchery-origin 2018 fish if it isn't necessary
+# The next priority after that was to run natural-origin 2019 fish from Hogan and Stockdale, but we don't have otolith reads yet.
+# eP007 was Gilmour even-years + 2017
+
+# This extraction list is going to look at doing the same thing we did with Gilmour for Paddy and Erb
+# i.e. All fish from Paddy and Erb even years (2014, 2016, 2018) + maybe odd years?
+# Worse case is we don't end up doing 2020 and we "waste" extracting a few hundred hatchery strays from 2018
+
+#### Read in OceanAK data ####
+require(tidyverse)
+og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
+oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20191119_1053.csv")
+names(oceanak) <- og_names
+
+## Modify for extraction list prep
+oceanak <- oceanak %>% 
+  replace_na(list(`Well Has More Than One Sample` = 0, `Is Missing Paired Data Exists` = 0)) %>% 
+  mutate(`DNA Tray Code` = str_pad(string = `DNA Tray Code`, width = 10, pad = "0", side = "left")) %>% 
+  mutate(`DNA Tray Well Code` = str_pad(string = `DNA Tray Well Code`, width = 2, pad = "0", side = "left")) %>% 
+  mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>% 
+  unite(col = "SillySource", c("Silly Code", "Fish ID"), sep = "_", remove = FALSE) %>% 
+  filter(`Well Has More Than One Sample` != 1) %>% 
+  filter(`Is Missing Paired Data Exists` != 1) %>% 
+  filter(Sex %in% c("M", "F"))
+
+## How many samples we got?
+oceanak %>% 
+  count(`Location Code`, `Sample Year`) %>% 
+  spread(`Sample Year`, n, fill = 0)
+
+## How about what we want to extract
+oceanak %>% 
+  filter(`Sample Year` != 2013) %>%  # we have deep sixed this year
+  count(`Sample Year`, `Otolith Mark Present`, `Location Code`) %>%  # how many 
+  spread(`Otolith Mark Present`, n, fill = 0) %>%  # yes/no/na
+  mutate(pHOS = YES / (YES + NO),  # calculate pHOS
+         n = YES + NO + `<NA>`) %>%  # total sample size
+  mutate(nHatchery = pHOS * n,  # how many projected hatchery fish
+         nNatural = (1 - pHOS) * n) %>%  # and how many project natural fish
+  filter(`Location Code` %in% c("Paddy Creek", "Erb Creek", "Gilmour Creek"))  # we want Paddy and Erb, use Gilmour to compare
+
+
+# Just Paddy
+oceanak %>% 
+  filter(`Sample Year` != 2013) %>%  # we have deep sixed this year
+  count(`Sample Year`, `Otolith Mark Present`, `Location Code`) %>%  # how many 
+  spread(`Otolith Mark Present`, n, fill = 0) %>%  # yes/no/na
+  mutate(pHOS = YES / (YES + NO),  # calculate pHOS
+         nTotal = YES + NO + `<NA>`) %>%  # total sample size
+  mutate(nHatchery = pHOS * nTotal,  # how many projected hatchery fish
+         nNatural = (1 - pHOS) * nTotal) %>%  # and how many project natural fish
+  filter(`Location Code` == "Paddy Creek")
+
+
+# Just Erb
+oceanak %>% 
+  filter(`Sample Year` != 2013) %>%  # we have deep sixed this year
+  count(`Sample Year`, `Otolith Mark Present`, `Location Code`) %>%  # how many 
+  spread(`Otolith Mark Present`, n, fill = 0) %>%  # yes/no/na
+  mutate(pHOS = YES / (YES + NO),  # calculate pHOS
+         nTotal = YES + NO + `<NA>`) %>%  # total sample size
+  mutate(nHatchery = pHOS * nTotal,  # how many projected hatchery fish
+         nNatural = (1 - pHOS) * nTotal) %>%  # and how many project natural fish
+  filter(`Location Code` == "Erb Creek")
+
+
+
+
+# Just go ahead and extract all 2014, 2016, and 2018 Paddy and Erb
+# Going to pass on 2015 and 2017 for now, because we probably don't need several thousand parents for each origin
+# We'll revisit 2015 and 2017 after analyzing Stockdale/Hogan 2015/2017 and doing a sensitivity analysis on parent sample size
+# Also passing on 2019 until we get otolith reads
+# Worse case is we don't end up doing 2020 and we "waste" extracting a few hundred hatchery strays from 2018
+
+# We need to otolith separate Paddy + Erb 2015-2019, how many DWPs?
+# oceanak %>% 
+#   filter(`Location Code` == "Gilmour Creek") %>%  #, `Sample Year` %in% c(2014, 2016, 2018)
+#   distinct(`Sample Year`, `DNA Tray Code`) %>% 
+#   count(`Sample Year`) 
+
+#### Filter for Paddy/Erb Even-year Samples ####
+Paddy_14_16_18 <- oceanak %>% 
+  filter(`Location Code` %in% c("Paddy Creek") & `Sample Year` %in% c(2014, 2016, 2018)) %>% 
+  filter(!is.na(`Otolith Mark Present`) & `Sample Year` == 2014 | `Sample Year` %in% c(2016, 2018))  # need NA's from 2016 and 2018 as we don't have reads yet
+
+Paddy_14_16_18 %>% 
+  count(`Sample Year`, `Otolith Mark Present`) %>% 
+  spread(`Sample Year`, n, fill = 0)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Erb_14_16_18 <- oceanak %>% 
+  filter(`Location Code` %in% c("Erb Creek") & `Sample Year` %in% c(2014, 2016, 2018)) %>% 
+  filter(!is.na(`Otolith Mark Present`) & `Sample Year` == 2014 | `Sample Year` %in% c(2016, 2018))  # need NA's from 2016 and 2018 as we don't have reads yet
+
+Erb_14_16_18 %>% 
+  count(`Sample Year`, `Otolith Mark Present`) %>% 
+  spread(`Sample Year`, n, fill = 0)
+
+#### Combine tibbles ####
+
+extraction_eP008 <- bind_rows(Paddy_14_16_18) %>% 
+  select(`Silly Code`, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Tissue Type`) %>% 
+  arrange(`Silly Code`, `Fish ID`)
+
+write_csv(x = extraction_eP008, path = "../Extraction/eP008_Extraction_List_191210.csv")
+
+save.image("../Extraction/eP008_Extraction_List_191210.RData")
+
+extraction_eP008 %>% 
+  count(`Silly Code`, `Tissue Type`)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+extraction_eP009 <- bind_rows(Erb_14_16_18) %>% 
+  select(`Silly Code`, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Tissue Type`) %>% 
+  arrange(`Silly Code`, `Fish ID`)
+
+write_csv(x = extraction_eP009, path = "../Extraction/eP009_Extraction_List_191210.csv")
+
+save.image("../Extraction/eP009_Extraction_List_191210.RData")
+
+extraction_eP009 %>% 
+  count(`Silly Code`, `Tissue Type`)
