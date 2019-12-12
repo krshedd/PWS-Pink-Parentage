@@ -696,7 +696,7 @@ Multiple matings clearly occur, however, the way we have our data set up it is h
   left_join(paired_15_17_filter, by = c("Sire" = "franz_id"), suffix = c("_dam", "_sire")))
 ```
 
-There were 115 unique matings.
+There were 62 unique matings.
 ```{r unique_matings_odd}
 parents_paired_15_17_cross_dam_sire %>% 
   count(Dam, Sire)
