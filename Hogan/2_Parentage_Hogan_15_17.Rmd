@@ -20,7 +20,7 @@ library(ggExtra)
 
 Below are analyses of parentage results calculated separately for Odd (2015-2017) using *FRANz*. 
 
-# Odd lineage (2013/2015)
+# Odd lineage (2015/2017)
 
 ## *FRANz* parameters
 *FRANz* was run at Wed Nov 27 08:56:59 2019. We used the following parameters:
@@ -126,7 +126,7 @@ parents_paired_15_17 %>%
   spread(origin, n)
 ```
 
-**Note** that *FRANz* assigned 262 offspring to 202 parents. 221 of these offsrping have natural-origin parents and 41 offspring have hatchery-origin parents. The hatchery origin fish are from AFK13B, CCH13, and WNH13PINKB.
+**Note** that *FRANz* assigned 201 offspring to 202 parents. 221 of these offsrping have natural-origin parents and 41 offspring have hatchery-origin parents. The hatchery origin fish are from AFK13B, CCH13, and WNH13PINKB.
 
 ## Proportion test
 Let's use a Chi-Square test to determine whether the proportions of offspring assigned to hatchery- and natural-origin parents significantly differ from the proportions of hatchery- and natural-origin parents sampled. 
@@ -659,7 +659,7 @@ parents_paired_15_17_cross %>%
 
 ```{r RRS_confidence_intervals_15_17}
 # HH vs. NN
-rrs_ci_kalinowski(n_h_off = 2, n_w_off = 51, n_h_par = 2, n_w_par = 40, alpha = 0.05) # Significant!
+rrs_ci_kalinowski(n_h_off = 2, n_w_off = 51, n_h_par = 2, n_w_par = 40, alpha = 0.05) # NS
 
 # HN vs. NN
 rrs_ci_kalinowski(n_h_off = 5, n_w_off = 51, n_h_par = 5, n_w_par = 40, alpha = 0.05) # NS
@@ -784,7 +784,7 @@ parents_paired_15_17_cross_dam_sire %>%
 
 ## Summary of odd lineage results
 1. Almost all exclusion probabilities were equal to 1, which means we can be confident in the ability of our marker set to correctly assign parents to offspring.  
-2. 262 offspring were assigned to 202 parents, for an assignment rate of **6.5%**.  
+2. 201 offspring were assigned to 202 parents, for an assignment rate of **6.5%**.  
 3. 61 offspring assigned to 2 parents (triads).  
 4. RRS was significant for both males (0.16) and females (0.17).  
 5. There was not enough cross type data (triads) to make meaningful comparisons.  
