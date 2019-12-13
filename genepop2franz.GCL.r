@@ -36,29 +36,29 @@ genepop2franz.GCL=function(Genepop, OceanAK, Year, Stream, output_dir){
   genepop <- read.genepop(Genepop) #import genepop file as genind object using adegenet
   
   gind_df <- genind2df(genepop, pop = NULL, sep = "/", usepop = FALSE, oneColPerAll = FALSE) # convert genind to dataframedata using adegenet
-
- gind_df$silly <- str_extract(row.names(gind_df),"^([^_]*)")# get silly from rownames using regex
- gind_df$death <- as.numeric(str_extract( gind_df$silly, "([0-9]{2})")) + 2000 # get death year from silly
- gind_df$river <- str_extract(gind_df$silly, "(?<=[A-Z]{1})(.*)(?=[0-9]{2})") # get stream name from silly
- 
- # Filter the dataframe based on input Stream name and Year (both taken from SILLY). First we're filtering for year
- # and Year + 2 to get parents and offspring. Then we filter based on list of stream names. 
- # Just FYI- good explanation of "%in%" vs "==" https://stackoverflow.com/questions/25647470/filter-multiple-conditions-dplyr
-gind_df <- gind_df %>%
-  rownames_to_column('names') %>% 
-  filter(death %in% as.numeric(Year) | 
-  death %in% (as.numeric(Year) + 2)) %>% 
-  filter(river %in% Stream) %>% 
-  column_to_rownames('names') %>% 
-  select(-c(silly,death,river))
+  
+  gind_df$silly <- str_extract(row.names(gind_df),"^([^_]*)")# get silly from rownames using regex
+  gind_df$death <- as.numeric(str_extract( gind_df$silly, "([0-9]{2})")) + 2000 # get death year from silly
+  gind_df$river <- str_extract(gind_df$silly, "(?<=[A-Z]{1})(.*)(?=[0-9]{2})") # get stream name from silly
+  
+  # Filter the dataframe based on input Stream name and Year (both taken from SILLY). First we're filtering for year
+  # and Year + 2 to get parents and offspring. Then we filter based on list of stream names. 
+  # Just FYI- good explanation of "%in%" vs "==" https://stackoverflow.com/questions/25647470/filter-multiple-conditions-dplyr
+  gind_df <- gind_df %>%
+    tibble::rownames_to_column('names') %>%
+    dplyr::filter(death %in% as.numeric(Year) |
+                    death %in% (as.numeric(Year) + 2)) %>%
+    dplyr::filter(river %in% Stream) %>%
+    tibble::column_to_rownames('names') %>%
+    dplyr::select(-c(silly, death, river))
   
   # # Filter by all rows (individuals) missing more than 20%
   # filt_df <- gind_df[ -which( rowMeans( 
   #   is.na( gind_df)) > 0.2 ), ] 
-
+  
   # we removed filtering steps because this will be done before running this function. But I rely on the "filt_df" so make a copy of the original df for now. 
   filt_df <- gind_df
-
+  
   # replace NAs (0000) with ?/? as requird by FRANz
   filt_df[ is.na( filt_df )] <- "?/?"
   
@@ -66,13 +66,13 @@ gind_df <- gind_df %>%
   filt_df$NOCALLS <- rowSums( filt_df == "?/?") 
   
   # Extract fish id by selecting everything between the first "_" and the end ($) in the id list
-  FISHID = str_extract(row.names(filt_df), "(?<=_)(.*?)(?=$)")
+  FISHID = stringr::str_extract(row.names(filt_df), "(?<=_)(.*?)(?=$)")
   
   # Extract silly from the IDs by matchiung everyting that is not a "_", from the start of the string, until the "_"
-  SILLY = str_extract(row.names(filt_df), "^([^_]*)") 
+  SILLY = stringr::str_extract(row.names(filt_df), "^([^_]*)") 
   
   # Extract species code by starting at the begining of the line ^ and selecting the first letter [A-Z]{1} of SILLY.
-  SPECIES = str_extract(SILLY, "^[A-Z]{1}")
+  SPECIES = stringr::str_extract(SILLY, "^[A-Z]{1}")
   
   # Extract year of death by selecting the group of two numbers ([0-9]{2}) in the SILLY add 2000 for 2000's. 
   DEATH_YR = as.numeric(str_extract( SILLY, "([0-9]{2})")) + 2000 
@@ -81,37 +81,37 @@ gind_df <- gind_df %>%
   BIRTH_YR = DEATH_YR-2
   
   # Extract the stream name by selecting everyting (.*) between the first letter ?<=[A-Z]{1} and last two digits of the SILLY ?=[0-9]{2}.
-  STREAM = str_extract(SILLY, "(?<=[A-Z]{1})(.*)(?=[0-9]{2})") 
+  STREAM = stringr::str_extract(SILLY, "(?<=[A-Z]{1})(.*)(?=[0-9]{2})") 
   
   # Add column signaling how often the genotype is observed. This is for clonal organisms so our fish will always be "1".
   OBSERVED = rep("1", length(row.names(filt_df)))
-
+  
   
   # combine the above values into a dataframe
-  combined_df = bind_cols(list(SILLY, FISHID, STREAM, SPECIES, BIRTH_YR, DEATH_YR, OBSERVED)) 
+  combined_df = dplyr::bind_cols(list(SILLY, FISHID, STREAM, SPECIES, BIRTH_YR, DEATH_YR, OBSERVED)) 
   
   names(combined_df) = c("SILLY","FISHID","STREAM", "SPECIES", "BIRTH_YR", "DEATH_YR", "OBSERVED") # add names to dataframe 
   
   
   # Create unique FRANz ID - this MUST be 10-digits and can be padded with spaces, if necessary. Here, I combined as follows:
-  combined_df$franz_id <- str_c(SPECIES, # 1st letter of species name
-                                 substr(STREAM,1,1), # 1st letter of stream name
-                                 substr(DEATH_YR,3,4), # last two digits of death year
-                                 "_", # underscore
-                                 str_pad(FISHID,5, pad = "0")  # 5 digit fishid using padded zeros up front
-                                 )
+  combined_df$franz_id <- stringr::str_c(SPECIES, # 1st letter of species name
+                                         substr(STREAM,1,1), # 1st letter of stream name
+                                         substr(DEATH_YR,3,4), # last two digits of death year
+                                         "_", # underscore
+                                         stringr::str_pad(FISHID,5, pad = "0")  # 5 digit fishid using padded zeros up front
+  )
   
   
   # Read in csv containing OceanAK data for collections
-  oceanak <- read_csv(OceanAK) %>% 
-    mutate("FISHID" = as.character(`Fish ID`))
+  oceanak <- readr::read_csv(OceanAK) %>% 
+    dplyr::mutate("FISHID" = as.character(`Fish ID`))
   
   # Combine oceanak and genotype data
-  combined_ocean_franz <- left_join( combined_df,
-                              oceanak,
-                              by = c(SILLY = "Silly Code",
-                                     "FISHID")) %>%
-    rename(SEX = "Sex")
+  combined_ocean_franz <- dplyr::left_join(combined_df,
+                                           oceanak,
+                                           by = c(SILLY = "Silly Code",
+                                                  "FISHID")) %>%
+    dplyr::rename(SEX = "Sex")
   
   # Convert SEX = "U" to "?" as this is what FRANz expects
   combined_ocean_franz$SEX[combined_ocean_franz$SEX == "U"] <- "?"
@@ -119,62 +119,62 @@ gind_df <- gind_df %>%
   # create the first lime of the FRANz file by combining: total # populations, total number of loci, "/", projectname. 
   # projectname is automatically assigned from the Genepop input filename for record keeping
   franz_first_line = set_names(
-    as_tibble(
+    tibble::as_tibble(
       paste(
         NROW(as.data.frame( table(STREAM))), # get counts of the number of unique streams
         NCOL(gind_df), # count number of loci
         "/",
-#  pull the filename of the genepop file by searching in the genepop object. Regex: search for any characters, to backslash,
-# then in group 1 ([^.]+), one or more characters until a period and anything after the period [.].*, returning only the 
-#group 1 [\\1] (Simply, get everything between slash and period...)
+        #  pull the filename of the genepop file by searching in the genepop object. Regex: search for any characters, to backslash,
+        # then in group 1 ([^.]+), one or more characters until a period and anything after the period [.].*, returning only the 
+        #group 1 [\\1] (Simply, get everything between slash and period...)
         gsub(".*[/]([^.]+)[.].*", "\\1", Genepop),
         sep = " ")
-      ),
+    ),
     "tmp")
   
   # Create dataframe with oceanak and filterd genotypes
-  FRANZ <- bind_cols(combined_ocean_franz, 
-                     filt_df) %>% 
-    select(contains("Sample"),
-           everything())
+  FRANZ <- dplyr::bind_cols(combined_ocean_franz,
+                            filt_df) %>%
+    dplyr::select(contains("Sample"),
+                  everything())
   
   # Filter by the number of individuals with the least missing data (i.e., minimum number of no calls). 
   # Note - I have no idea what happens if there is a tie for duplcates with missing data... perhaps it just picks one? 
   FRANZ <- FRANZ %>% 
-    group_by( franz_id ) %>% # goup same ids together
-    slice( which.min( NOCALLS )) %>% # only keep id with least number of no calls
-    select(-NOCALLS ) # remove column from df
+    dplyr::group_by( franz_id ) %>% # goup same ids together
+    dplyr::slice( which.min( NOCALLS )) %>% # only keep id with least number of no calls
+    dplyr::select(-NOCALLS ) # remove column from df
   
   # Create object containing all oceanak and franz data, for use with end output
   OCEANAK_FRANZ <- FRANZ
   
   # Order the franz columns, followed by genotypes [everything()]
   FRANZ <- FRANZ %>%
-    select(franz_id,
-           OBSERVED,
-           BIRTH_YR,
-           DEATH_YR,
-           SEX, 
-           everything(),
-           # remove unnecessary columns (have to do this because used everything to add genotypes)
-           -c( SILLY,
-               FISHID,
-               STREAM,
-               SPECIES,
-               contains('otolith'),
-               contains('Code'),
-               contains('Sample'),
-               contains('ID', ignore.case = FALSE),
-               starts_with("Length"),
-               starts_with("Tissue"),
-               starts_with("Is") 
-           )
+    dplyr::select(franz_id,
+                  OBSERVED,
+                  BIRTH_YR,
+                  DEATH_YR,
+                  SEX, 
+                  everything(),
+                  # remove unnecessary columns (have to do this because used everything to add genotypes)
+                  -c( SILLY,
+                      FISHID,
+                      STREAM,
+                      SPECIES,
+                      contains('otolith'),
+                      contains('Code'),
+                      contains('Sample'),
+                      contains('ID', ignore.case = FALSE),
+                      starts_with("Length"),
+                      starts_with("Tissue"),
+                      starts_with("Is") 
+                  )
     )
   
   # Combine all columns into a single column, seperated by a space
-  FRANZ <- unite(FRANZ,
-                 tmp,
-                 sep = " ")
+  FRANZ <- tidyr::unite(FRANZ,
+                        tmp,
+                        sep = " ")
   
   FRANZ$strms <- substr(FRANZ$tmp,1,2) # Create stream id using first two letters of franz_id (SPECIES&STREAM)
   
@@ -182,26 +182,26 @@ gind_df <- gind_df %>%
   
   f <- unique(FRANZ$strms)
   
-  file <- bind_rows( franz_first_line,
-                     bind_rows(
-                       lapply( f, function(s) {
-                         j <- FRANZ %>%
-                           filter(strms == s ) %>% 
-                           select(-strms)
-                         tmp = paste(nrow(j), s, sep = " ")
-                         rbind(tmp, j)
-                         }
-                         )
-                       )
-                     )
+  file <- dplyr::bind_rows( franz_first_line,
+                            dplyr::bind_rows(
+                              lapply( f, function(s) {
+                                j <- FRANZ %>%
+                                  dplyr::filter(strms == s ) %>% 
+                                  dplyr::select(-strms)
+                                tmp = paste(nrow(j), s, sep = " ")
+                                rbind(tmp, j)
+                              }
+                              )
+                            )
+  )
   
   # create franz directory
   if ( !dir.exists(paste0(
     output_dir, 
     "/Franz"))) { 
-  dir.create( paste0(
-    output_dir, 
-    "/Franz")
+    dir.create( paste0(
+      output_dir, 
+      "/Franz")
     )
   }
   
@@ -217,18 +217,18 @@ gind_df <- gind_df %>%
               col.names=FALSE, 
               sep = " ", 
               quote = FALSE
-              )
+  )
   
   # export the object combining OceanAK data and franz_id, for pairing FRANz output back to original data.
   write_csv(OCEANAK_FRANZ, path = paste0(output_dir, "/Franz/",
-                                  gsub(".*[/]([^.]+)[.].*", "\\1", 
-                                       Genepop),
-                                  "_OceanAK_paired_",
-                                  paste(Year, collapse ="_"), 
-                                  "_",
-                                  paste(Stream, collapse = "_"),
-                                       ".csv"),
+                                         gsub(".*[/]([^.]+)[.].*", "\\1", 
+                                              Genepop),
+                                         "_OceanAK_paired_",
+                                         paste(Year, collapse ="_"), 
+                                         "_",
+                                         paste(Stream, collapse = "_"),
+                                         ".csv"),
             col_names = TRUE
-            )
+  )
   
 }
