@@ -115,6 +115,8 @@ Here, we joined parentage data from *FRANz* with individual data so that we can 
                              `Otolith Mark Present.par` == "YES" ~ "Hatchery")) %>% 
    mutate(origin = factor(origin, c("Natural", "Hatchery"))))  # added hatchery/natural variable
 
+write_csv(parents_paired_13_15, "hogan_parents_paired_13_15.csv")
+
 # How many single-parent offspring pair assignments?
 parents_paired_13_15 %>% 
   count(Parent)
