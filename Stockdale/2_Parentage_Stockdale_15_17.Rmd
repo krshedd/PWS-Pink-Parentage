@@ -113,6 +113,8 @@ Here, we joined parentage data from *FRANz* with individual data so that we can 
                              `Otolith Mark Present.par` == "YES" ~ "Hatchery")) %>% 
    mutate(origin = factor(origin, c("Natural", "Hatchery"))))  # added hatchery/natural variable
 
+write_csv(parents_paired_15_17, "stock_parents_paired_15_17.csv")
+
 # How many single-parent offspring pair assignments?
 parents_paired_15_17 %>% 
   count(Parent)
@@ -779,6 +781,35 @@ parents_paired_15_17_cross_dam_sire %>%
   geom_jitter(size = 2, width = 0.2, height = 0.2) +
   ylab("Number of offspring") +
   ggtitle("Reproductive success of Sires with Dams\nof a different origin")
+```
+
+## Grandparentage
+
+Find the 2015 fish that were offspring from 2013 and see how many offspring those had returning in 2017!
+```{r}
+parents_paired_13_15 <- read_csv("stock_parents_paired_13_15.csv") %>% 
+  select(-origin)
+
+paired_15_17_filter_parents %>% 
+  right_join(parents_paired_13_15, by = c("franz_id" = "Offspring")) %>% 
+  count(origin.par, n)
+```
+
+None of the hatchery fish from 2013 produced grandoffspring. In 2013, hatchery-origin fish produced 10 offspring in 2015 and 3 grandoffspring in 2017. In 2013, natural-origin fish produced 119 offspring in 2015 and 19 grandoffspring in 2017.
+
+### RRS of fish with hatchery vs. natural parents
+
+Origin of 2013 fish, their F1 offspring, and their F2 offspring.
+```{r}
+paired_15_17_filter_parents %>% 
+  right_join(parents_paired_13_15, by = c("franz_id" = "Offspring")) %>% 
+  group_by(origin.par) %>% 
+  summarise(n_par = length(franz_id),
+            n_off = sum(n))
+```
+
+```{r}
+rrs_ci_kalinowski(n_h_off = 3, n_w_off = 19, n_h_par = 10, n_w_par = 119, alpha = 0.05)
 ```
 
 
