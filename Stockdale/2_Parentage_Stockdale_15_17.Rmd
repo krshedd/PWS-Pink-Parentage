@@ -16,6 +16,8 @@ library(tidyverse)
 library(leaflet)
 library(lubridate)
 library(ggExtra)
+
+knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
 ```
 
 Below are analyses of parentage results calculated separately for Odd (2015-2017) using *FRANz*. 
@@ -98,6 +100,24 @@ paired_15_17_filter %>%
   spread(origin, n, fill = 0)
 ```
 
+
+```{r odd_sample_sizes_plot}
+paired_15_17_filter %>% 
+  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>% 
+  mutate(Sex = case_when(SEX == "M" ~ "Male", SEX == "F" ~ "Female")) %>% 
+  mutate(date = dmy(`Sample Date`)) %>% 
+  mutate(DOY = yday(date)) %>% 
+  ggplot(aes(x = DOY)) +
+  theme_bw() +
+  geom_bar(aes(fill = origin), colour = "black") +
+  facet_grid(`Sample Year` ~ .) +
+  geom_hline(yintercept = 0, colour = "black") +
+  ylab("Number of Samples") +
+  xlab("Day of Year") +
+  labs(title= "Stockdale 2015/2017",
+       fill = "Origin") +
+  theme(text = element_text(size = 20))
+```
 
 ## Join parentage and individual data
 Here, we joined parentage data from *FRANz* with individual data so that we can match data to each offspring and parent. **Note** that any column ending in `.off` refers to offspring and `.par` refers to parent.  
@@ -272,18 +292,21 @@ rs_15_17_0 %>%
 # Plot histogram of proportion of parents with a given family size
 paired_15_17_filter_parents %>% 
   filter(SEX != "?") %>% 
-  count(SEX, origin, n) %>% 
-  group_by(SEX, origin) %>% 
+  mutate(Sex = case_when(SEX == "M" ~ "Male", SEX == "F" ~ "Female")) %>% 
+  count(Sex, origin, n) %>% 
+  group_by(Sex, origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x = n, y = p, fill = origin)) +
   geom_col(position = position_dodge2(preserve="single")) +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
-  facet_grid(~ SEX) +
-  labs(title="Distribution of Family Size by Females (F) and Males (M)\nProportion of Families",
-       fill = "Parent: Origin") +
+  facet_grid(~ Sex) +
+  labs(title="Distribution of Family Size",
+       fill = "Parent Origin") +
   xlab("Number of Offspring")+
-  ylab("Proportion of Parents") 
+  ylab("Proportion of Parents")  +
+  theme_bw() +
+  theme(text = element_text(size = 20))
 
 # Save RS values
 F_h_0_15_17 <- rs_15_17_0 %>% 

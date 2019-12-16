@@ -306,6 +306,7 @@ paired_13_15_filter_parents %>%
        fill = "Parent Origin") +
   xlab("Number of Offspring")+
   ylab("Proportion of Parents")  +
+  theme_bw() +
   theme(text = element_text(size = 20))
 
 # Save RS values
