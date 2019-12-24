@@ -927,3 +927,134 @@ save.image("../Extraction/eP009_Extraction_List_191210.RData")
 
 extraction_eP009 %>% 
   count(`Silly Code`, `Tissue Type`)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP010: Create extraction list for Hogan 2018 ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Our next priority was Hogan 2018, and now that we have a decision on 2020 sampling
+# (not doing it for Hogan, only Paddy + Erb), we can go ahead and extract all natural-origin
+# Hogan 2018 fish since it is our final year!!!
+
+#### Read in OceanAK data ####
+require(tidyverse)
+oceanak <- read_csv(file = "../OceanAK/Salmon Biological Data 2 - Kyle's Filter_Hogan_2018_20191224.csv")  # needed an updated pull from OceanAK, just Hogan 2018
+
+## Modify for extraction list prep
+oceanak <- oceanak %>% 
+  replace_na(list(`Well Has More Than One Sample` = 0, `Is Missing Paired Data Exists` = 0)) %>% 
+  mutate(`DNA Tray Code` = str_pad(string = `DNA Tray Code`, width = 10, pad = "0", side = "left")) %>% 
+  mutate(`DNA Tray Well Code` = str_pad(string = `DNA Tray Well Code`, width = 2, pad = "0", side = "left")) %>% 
+  mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>% 
+  unite(col = "SillySource", c("Silly Code", "Fish ID"), sep = "_", remove = FALSE) %>% 
+  filter(`Well Has More Than One Sample` != 1) %>% 
+  filter(`Is Missing Paired Data Exists` != 1)
+  # filter(Sex %in% c("M", "F"))  # doesn't have Sex in this data view (uggggggh)
+
+## How many samples we got?
+oceanak %>% 
+  count(`Location Code`, `Sample Year`) %>% 
+  spread(`Sample Year`, n, fill = 0)
+
+## How about what we want to extract
+oceanak %>% 
+  filter(`Silly Code` == "PHOGAN18") %>%  # we have deep sixed this year
+  count(`Silly Code`, `Otolith Mark Present`)
+
+## Were all trays read?
+oceanak %>% 
+  count(`DNA Tray Code`, `Otolith Mark Present`) %>% 
+  spread(`Otolith Mark Present`, n, fill = 0) %>% 
+  mutate(n = (NO + YES + `<NA>`),
+         p_na = `<NA>` / n) %>% 
+  arrange(desc(p_na))
+# Looks like a few trays don't have any reads, but after calling Crystal (CDV otolith lab manager), they have closed out Hogan 2018
+# These two trays probably got lost/dropped
+
+# Forge ahead with an extraction list!
+
+
+#### Filter for Hogan 2018 Natural-only Samples ####
+Hogan_18 <- oceanak %>% 
+  filter(`Silly Code` == "PHOGAN18" & `Otolith Mark Present` == "NO")
+
+Hogan_18 %>% 
+  count(`Silly Code`, `Otolith Mark Present`)
+
+#### Combine tibbles ####
+
+extraction_eP010 <- bind_rows(Hogan_18) %>% 
+  select(`Silly Code`, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Tissue Type`) %>% 
+  arrange(`Silly Code`, `Fish ID`)
+
+write_csv(x = extraction_eP010, path = "../Extraction/eP010_Extraction_List_191224.csv")
+
+save.image("../Extraction/eP010_Extraction_List_191224.RData")
+
+extraction_eP010 %>% 
+  count(`Silly Code`, `Tissue Type`)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP011: Create extraction list for Gimour 2015 ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# We already have created a list for Gilmour 2014-2018 (except for 2015)
+# At the time, the concern was that there may be "excess" hatchery-origin parents for 2015
+# But based on pHOS and our current extraction capacity, we should just move forward and extract all!
+
+#### Read in OceanAK data ####
+require(tidyverse)
+og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
+oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20191119_1053.csv")
+names(oceanak) <- og_names
+
+## Modify for extraction list prep
+oceanak <- oceanak %>% 
+  replace_na(list(`Well Has More Than One Sample` = 0, `Is Missing Paired Data Exists` = 0)) %>% 
+  mutate(`DNA Tray Code` = str_pad(string = `DNA Tray Code`, width = 10, pad = "0", side = "left")) %>% 
+  mutate(`DNA Tray Well Code` = str_pad(string = `DNA Tray Well Code`, width = 2, pad = "0", side = "left")) %>% 
+  mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>% 
+  unite(col = "SillySource", c("Silly Code", "Fish ID"), sep = "_", remove = FALSE) %>% 
+  filter(`Well Has More Than One Sample` != 1) %>% 
+  filter(`Is Missing Paired Data Exists` != 1) %>% 
+  filter(Sex %in% c("M", "F"))
+
+## How many samples we got?
+oceanak %>% 
+  count(`Location Code`, `Sample Year`) %>% 
+  spread(`Sample Year`, n, fill = 0)
+
+## How about what we want to extract
+oceanak %>% 
+  filter(`Sample Year` == 2015 & `Location Code` == "Gilmour Creek") %>%  # we have deep sixed this year
+  count(`Sample Year`, `Otolith Mark Present`, `Location Code`)
+
+# Just Gilmour 2015, calculate raw pHOS and estimate sample size of Hatchery vs. Natural
+oceanak %>% 
+  filter(`Sample Year` == 2015) %>%  # we have deep sixed this year
+  count(`Sample Year`, `Otolith Mark Present`, `Location Code`) %>%  # how many 
+  spread(`Otolith Mark Present`, n, fill = 0) %>%  # yes/no/na
+  mutate(pHOS = YES / (YES + NO),  # calculate pHOS
+         nTotal = YES + NO + `<NA>`) %>%  # total sample size
+  mutate(nHatchery = pHOS * nTotal,  # how many projected hatchery fish
+         nNatural = (1 - pHOS) * nTotal) %>%  # and how many project natural fish
+  filter(`Location Code` == "Gilmour Creek")
+
+# Just go ahead and extract all 2015 Gilmour
+# Also passing on 2019 until we get otolith reads
+
+#### Filter for Gilmour 2015 Samples ####
+Gilmour_15 <- oceanak %>% 
+  filter(`Location Code` %in% c("Gilmour Creek") & `Sample Year` == 2015)  # need NA's from 2015 as we don't have reads yet
+
+#### Combine tibbles ####
+
+extraction_eP011 <- bind_rows(Gilmour_15) %>% 
+  select(`Silly Code`, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Tissue Type`) %>% 
+  arrange(`Silly Code`, `Fish ID`)
+
+write_csv(x = extraction_eP011, path = "../Extraction/eP011_Extraction_List_191224.csv")
+
+save.image("../Extraction/eP011_Extraction_List_191224.RData")
+
+extraction_eP011 %>% 
+  count(`Silly Code`, `Tissue Type`)
