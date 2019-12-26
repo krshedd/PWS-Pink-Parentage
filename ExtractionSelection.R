@@ -994,6 +994,33 @@ save.image("../Extraction/eP010_Extraction_List_191224.RData")
 extraction_eP010 %>% 
   count(`Silly Code`, `Tissue Type`)
 
+#### Update with missing DNA Tray ####
+# Crystal found data that was miscoded for a "missing" tray
+
+require(tidyverse)
+load("../Extraction/eP010_Extraction_List_191224.RData")
+
+(lost_DWP <- read_csv("../OceanAK/Hogan_2018_missing_tray_CDV_29379_20191226.csv"))
+
+# add the leading 0 to DNA tray well code
+lost_DWP <- lost_DWP %>% 
+  mutate(CELL_NUMBER = str_pad(string = CELL_NUMBER, width = 2, side = "left", pad = "0"))
+
+# filter for this tray, need FISH_ID from LOKI and add to extraction list
+extraction_eP010_update <- oceanak %>% 
+  left_join(lost_DWP, by = c("DNA Tray Code" = "TRAY_ID", "DNA Tray Well Code" = "CELL_NUMBER")) %>% 
+  filter(`DNA Tray Code` == "0000029379" & MARK_PRESENT == "NO") %>% 
+  select(`Silly Code`, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Tissue Type`) %>% 
+  bind_rows(extraction_eP010) %>% 
+  arrange(`Silly Code`, `Fish ID`)
+
+write_csv(x = extraction_eP010_update, path = "../Extraction/eP010_Extraction_List_Update_191226.csv")
+
+save.image("../Extraction/eP010_Extraction_List_Update_191226.RData")
+
+extraction_eP010_update %>% 
+  count(`Silly Code`, `Tissue Type`)
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### eP011: Create extraction list for Gimour 2015 ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
