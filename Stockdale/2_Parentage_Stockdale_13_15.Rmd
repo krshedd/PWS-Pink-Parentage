@@ -561,6 +561,35 @@ paired_13_15_filter_parents %>%
 rrs_ci_kalinowski(n_h_off = 8, n_w_off = 70, n_h_par = 69, n_w_par = 418, alpha = 0.05)
 ```
 
+#### Calculate RRS and CI's for males and females combined
+```{r calculate RRS and CI's for males and females combined odd}
+
+
+# Mean RS including 0's
+rs_13_15_0 <- paired_13_15_filter_parents %>%
+  group_by(origin) %>% 
+  summarise(RS = mean(n, na.rm = TRUE))
+
+rs_13_15_0 %>%
+  mutate(RS = round(RS, 2)) %>% 
+  spread(RS)
+
+# Save RS values
+h_0_13_15 <- rs_13_15_0 %>% 
+  filter(origin == "Hatchery") %>% 
+  pull(RS)
+
+n_0_13_15 <- rs_13_15_0 %>% 
+  filter(origin == "Natural") %>% 
+  pull(RS)
+
+RRS_0_13_15 <- h_0_13_15/n_0_13_15
+
+#CI's
+rrs_ci_kalinowski(n_h_off = 10, n_w_off = 119, n_h_par = 163, n_w_par = 811, alpha = 0.05)
+
+```
+
 #### RS vs. field data plots
 
 ```{r paired_13_15_filter_parents_sex_odd}
