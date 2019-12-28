@@ -168,7 +168,7 @@ Simple plot of RS by parent sample date and distance (both origins and sexes com
 ```{r, out.width="100%"}
 riverdist_parentage_hogan %>% 
   ggplot(aes(x = `Sample Date`, y = Distance, size = n, colour = origin, alpha = 0.05)) +
-  geom_hline(aes(yintercept = dist2tide), size = 2) +
+  geom_hline(aes(yintercept = hitide), size = 2) +
   geom_jitter(width = 0.25) +
   theme_bw() +
   guides(alpha = FALSE) +
@@ -179,7 +179,7 @@ riverdist_parentage_hogan %>%
 ```{r}
 riverdist_parentage_hogan %>% 
   ggplot(aes(x = `Sample Date`, y = Distance, size = n, colour = origin, alpha = 0.01)) +
-  geom_hline(aes(yintercept = dist2tide), size = 1) +
+  geom_hline(aes(yintercept = hitide), size = 1) +
   geom_jitter(width = 0.25, height = 25) +
   theme_bw() +
   guides(alpha = FALSE) +
