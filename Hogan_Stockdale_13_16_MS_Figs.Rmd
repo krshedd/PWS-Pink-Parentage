@@ -327,11 +327,7 @@ riverdist_parentage_hogan <-
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>%
   mutate(SEX = case_when(SEX == "M" ~ "Male",
                          SEX == "F" ~ "Female"))
-riverdist_parentage_stock <-
-  read_csv("Stockdale/riverdist_parentage_stock.csv") %>%
-  mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>%
-  mutate(SEX = case_when(SEX == "M" ~ "Male",
-                         SEX == "F" ~ "Female"))
+
 
 Hogan_Location <- riverdist_parentage_hogan %>% 
   ggplot(aes(x = Distance, y = n, color = origin)) +
@@ -580,4 +576,472 @@ Figure_S2 <- grid.arrange(Hogan_Cross_Type, Stockdale_Cross_Type, nrow = 1)
 
 ggsave("Figure_S2.pdf", plot = Figure_S2, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
 
+```
+
+# ANOVAs for Covariates
+
+## Read data
+
+### OceanAK Data
+
+```{r}
+og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
+oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20191119_1053.csv")
+names(oceanak) <- og_names
+
+# add otolith_read logical, stream as factor, and year
+oceanak_mod <- oceanak  %>% 
+  unite(SillySource, `Silly Code`, `Fish ID`, sep = "_", remove = FALSE) %>% 
+  unite(TrayCodeID, `DNA Tray Code`, `DNA Tray Well Code`, sep = "_", remove = FALSE) %>% 
+  mutate(otolith_read = !is.na(`Otolith Mark Status Code`) & `Otolith Mark Status Code` != "n") %>% 
+  mutate(stream = factor(x = `Location Code`, levels = c("Gilmour Creek", "Paddy Creek", "Erb Creek", "Hogan Creek", "Stockdale Creek"))) %>% 
+  rename(year = `Sample Year`) %>% 
+  mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "natural",
+                            `Otolith Mark Present` == "YES" ~ "hatchery")) %>% 
+  mutate(origin = factor(origin, levels = c("natural", "hatchery"))) %>% 
+  mutate(date = dmy(`Sample Date`))
+```
+
+### Filter for Stockdale and Hogan
+
+```{r}
+(oceanak_mod <- oceanak_mod %>% 
+   filter(stream %in% c("Stockdale Creek", "Hogan Creek")))
+```
+
+### riverdist Data
+
+```{r}
+(stockdale_riverdist <- read_csv("../GIS/R/stockdale/stockdale_distances.csv") %>% 
+   mutate(Intertidal = case_when(dist2tide > 0 ~ "Upstream",
+                                 dist2tide <= 0 ~ "Intertidal")) %>% 
+   rename(Distance = mouthdist, Segment = seg))
+```
+
+```{r}
+(hogan_riverdist <- read_csv("../GIS/R/hogan/hogan_distances.csv") %>% 
+   mutate(Intertidal = case_when(dist2tide > 0 ~ "Upstream",
+                                 dist2tide <= 0 ~ "Intertidal")) %>% 
+   rename(Distance = mouthdist, Segment = seg, tidedist = hitide))
+```
+
+```{r}
+riverdist <- bind_rows(stockdale_riverdist, hogan_riverdist)
+```
+
+### Join
+
+```{r}
+(join <- oceanak_mod %>% 
+   mutate(dna_tray_code = str_pad(string = `DNA Tray Code`, width = 10, side = "left", pad = "0")) %>% 
+   unite(Sample, c(dna_tray_code, `DNA Tray Well Code`)) %>% 
+   inner_join(riverdist, by = "Sample") %>% 
+   mutate(DOY = yday(date))
+)
+```
+
+### Filter for genotyped fish
+
+Get genotyped fish from the paired data created when we create *FRANz* files.
+```{r}
+stock_odd <- read_csv("Franz/stockdale_13_15_postQA_OceanAK_paired_2013_2015_STOCK.csv") %>% 
+  filter(`Sample Year` == 2013) %>% 
+  mutate(dna_tray_code = str_pad(string = `DNA Tray Code`, width = 10, side = "left", pad = "0")) %>% 
+  unite(col = "Sample", c("dna_tray_code", "DNA Tray Well Code")) %>%
+  pull(Sample)
+stock_even <- read_csv("Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv") %>% 
+  filter(`Sample Year` == 2014) %>% 
+  mutate(dna_tray_code = str_pad(string = `DNA Tray Code`, width = 10, side = "left", pad = "0")) %>% 
+  unite(col = "Sample", c("dna_tray_code", "DNA Tray Well Code")) %>%
+  pull(Sample)
+hogan_odd <- read_csv("Franz/hogan_13_15_postQA_OceanAK_paired_2013_2015_HOGAN.csv") %>% 
+  filter(`Sample Year` == 2013) %>% 
+  mutate(dna_tray_code = str_pad(string = `DNA Tray Code`, width = 10, side = "left", pad = "0")) %>% 
+  unite(col = "Sample", c("dna_tray_code", "DNA Tray Well Code")) %>%
+  pull(Sample)
+hogan_even <- read_csv("Franz/hogan_postQA_OceanAK_paired_2014_2016_HOGAN.csv") %>% 
+  filter(`Sample Year` == 2014) %>% 
+  mutate(dna_tray_code = str_pad(string = `DNA Tray Code`, width = 10, side = "left", pad = "0")) %>% 
+  unite(col = "Sample", c("dna_tray_code", "DNA Tray Well Code")) %>%
+  pull(Sample)
+```
+
+Verify that all samples are in the Riverdist data.
+```{r}
+all(c(stock_odd, stock_even, hogan_odd, hogan_even) %in% join$Sample)
+```
+
+Compare with Table 1 sample sizes
+```{r}
+ANOVA <- join %>% 
+  filter(Sample %in% c(stock_odd, stock_even, hogan_odd, hogan_even)) %>% 
+  mutate(sex = factor(x = Sex, levels = c("M", "F")))
+
+ANOVA %>% 
+  count(year, stream) %>% 
+  spread(year, n)
+```
+
+
+Got this from [link](https://kieranhealy.org/blog/archives/2018/11/06/spreading-multiple-values/)
+```{r}
+multi_spread <- function(df, key, value) {
+    # quote key
+    keyq <- rlang::enquo(key)
+    # break value vector into quotes
+    valueq <- rlang::enquo(value)
+    s <- rlang::quos(!!valueq)
+    df %>% gather(variable, value, !!!s) %>%
+        unite(temp, !!keyq, variable) %>%
+        spread(temp, value)
+}
+```
+
+```{r}
+ANOVA %>% 
+  filter(`Length Mm` > 300) %>% 
+  group_by(stream, sex, year, origin) %>% 
+  summarise(length_mean = mean(`Length Mm`, na.rm = TRUE),
+            length_sd = sd(`Length Mm`, na.rm = TRUE),
+            date_sd = sd(date, na.rm = TRUE),
+            distance_mean = mean(Distance, na.rm = TRUE),
+            distance_sd = sd(Distance, na.rm = TRUE)) %>% 
+  multi_spread(origin, c(length_mean, length_sd, date_sd, distance_mean, distance_sd)) %>% 
+  write_csv("V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Tables/anova_means.csv")
+
+ANOVA %>% 
+  filter(`Length Mm` > 300) %>% 
+  group_by(stream, sex, year, origin) %>% 
+  summarise(date_mean = mean(date, na.rm = TRUE)) %>% 
+  multi_spread(origin, c(date_mean)) %>% 
+  write_csv("V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Tables/anova_means_date.csv")
+```
+
+
+Means and standard devaitions
+```{r}
+stockdale_ANOVA %>% 
+  filter(`Length Mm` > 300) %>% 
+  group_by(year, Sex, origin) %>% 
+  summarise(count = n(),
+            mean = mean(`Length Mm`, na.rm = TRUE),
+            sd = sd(`Length Mm`, na.rm = TRUE))
+```
+
+
+## Length
+
+Visualize density plots to see if there are outliers
+```{r}
+mu_hogan_length <- ANOVA %>% 
+  filter(stream == "Hogan Creek") %>% 
+  group_by(origin, year, sex) %>% 
+  summarise(length = mean(`Length Mm`, na.rm = TRUE))
+
+ANOVA %>% 
+  filter(stream == "Hogan Creek") %>% 
+  ggplot(aes(x = `Length Mm`, fill = origin)) +
+  geom_density(alpha = 0.5) +
+  geom_vline(data = mu_hogan_length, aes(xintercept = length, colour = origin), size = 1) +
+  xlim(c(300, 550)) +
+  facet_grid(year ~ sex) +
+  theme_bw() +
+  ggtitle("Hogan Creek")
+
+mu_stockdale_length <- ANOVA %>% 
+  filter(stream == "Stockdale Creek") %>% 
+  group_by(origin, year, sex) %>% 
+  summarise(length = mean(`Length Mm`, na.rm = TRUE))
+
+ANOVA %>% 
+  filter(stream == "Stockdale Creek") %>% 
+  ggplot(aes(x = `Length Mm`, fill = origin)) +
+  geom_density(alpha = 0.5) +
+  geom_vline(data = mu_stockdale_length, aes(xintercept = length, colour = origin), size = 1) +
+  xlim(c(300, 550)) +
+  facet_grid(year ~ sex) +
+  theme_bw() +
+  ggtitle("Stockdale Creek")
+```
+
+### t-tests
+
+```{r}
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA))$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "M", .data = ANOVA))$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "F", .data = ANOVA))$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "F", .data = ANOVA))$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "M", .data = ANOVA))$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "M", .data = ANOVA))$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "F", .data = ANOVA))$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "F", .data = ANOVA))$p.value < 0.05
+```
+
+### Date
+
+Visualize density plots to see if there are outliers
+```{r}
+mu_hogan_date <- ANOVA %>% 
+  filter(stream == "Hogan Creek") %>% 
+  group_by(origin, year, sex) %>% 
+  summarise(date = mean(DOY, na.rm = TRUE))
+
+ANOVA %>% 
+  filter(stream == "Hogan Creek") %>% 
+  ggplot(aes(x = DOY, fill = origin)) +
+  geom_density(alpha = 0.5) +
+  geom_vline(data = mu_hogan_date, aes(xintercept = date, colour = origin), size = 1) +
+  facet_grid(year ~ sex) +
+  theme_bw() +
+  ggtitle("Hogan Creek")
+
+mu_stockdale_date <- ANOVA %>% 
+  filter(stream == "Stockdale Creek") %>% 
+  group_by(origin, year, sex) %>% 
+  summarise(date = mean(DOY, na.rm = TRUE))
+
+ANOVA %>% 
+  filter(stream == "Stockdale Creek") %>% 
+  ggplot(aes(x = DOY, fill = origin)) +
+  geom_density(alpha = 0.5) +
+  geom_vline(data = mu_stockdale_date, aes(xintercept = date, colour = origin), size = 1) +
+  facet_grid(year ~ sex) +
+  theme_bw() +
+  ggtitle("Stockdale Creek")
+```
+
+### Wilcoxon tests
+
+```{r}
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA))$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "M", .data = ANOVA))$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "F", .data = ANOVA))$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "F", .data = ANOVA))$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "M", .data = ANOVA))$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "M", .data = ANOVA))$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "F", .data = ANOVA))$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "F", .data = ANOVA))$p.value < 0.05
+```
+
+### Distance
+
+Visualize density plots to see if there are outliers
+```{r}
+mu_hogan_distance <- ANOVA %>% 
+  filter(stream == "Hogan Creek") %>% 
+  group_by(origin, year, sex) %>% 
+  summarise(distance = mean(Distance, na.rm = TRUE))
+
+ANOVA %>% 
+  filter(stream == "Hogan Creek") %>% 
+  ggplot(aes(x = Distance, fill = origin)) +
+  geom_density(alpha = 0.5) +
+  geom_vline(data = mu_hogan_distance, aes(xintercept = distance, colour = origin), size = 1) +
+  facet_grid(year ~ sex) +
+  theme_bw() +
+  ggtitle("Hogan Creek")
+
+mu_stockdale_distance <- ANOVA %>% 
+  filter(stream == "Stockdale Creek") %>% 
+  group_by(origin, year, sex) %>% 
+  summarise(distance = mean(Distance, na.rm = TRUE))
+
+ANOVA %>% 
+  filter(stream == "Stockdale Creek") %>% 
+  ggplot(aes(x = Distance, fill = origin)) +
+  geom_density(alpha = 0.5) +
+  geom_vline(data = mu_stockdale_distance, aes(xintercept = distance, colour = origin), size = 1) +
+  facet_grid(year ~ sex) +
+  theme_bw() +
+  ggtitle("Stockdale Creek")
+```
+
+### Wilcoxon tests
+
+```{r}
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA))$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "M", .data = ANOVA))$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "F", .data = ANOVA))$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "F", .data = ANOVA))$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "M", .data = ANOVA))$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "M", .data = ANOVA))$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "F", .data = ANOVA))$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "F", .data = ANOVA))$p.value < 0.05
+```
+
+
+
+
+
+### ANOVAs - abandoned
+```{r}
+hogan_odd_male_length_fit <- aov(formula = `Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA))
+summary(hogan_odd_length_fit)
+```
+
+```{r}
+shapiro.test(
+  ANOVA %>% 
+    filter(`Silly Code` == "PHOGAN13" & sex == "M" & origin == "natural") %>% 
+    drop_na(`Length Mm`) %>% 
+    pull(`Length Mm`)
+)
+
+shapiro.test(
+  ANOVA %>% 
+    filter(`Silly Code` == "PHOGAN13" & sex == "M" & origin == "hatchery") %>% 
+    drop_na(`Length Mm`) %>% 
+    pull(`Length Mm`)
+)
+```
+
+```{r}
+var.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA))
+```
+
+```{r}
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA))
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA), var.equal = TRUE)
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA), var.equal = FALSE)
+```
+
+```{r}
+wilcox.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA))
+```
+
+
+
+
+```{r}
+hogan_odd_female_length_fit <- aov(formula = `Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "F", .data = ANOVA))
+summary(hogan_odd_female_length_fit)
+```
+
+```{r}
+hogan_even_male_length_fit <- aov(formula = `Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "M", .data = ANOVA))
+summary(hogan_even_male_length_fit)
+```
+
+```{r}
+hogan_even_female_length_fit <- aov(formula = `Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "F", .data = ANOVA))
+summary(hogan_even_female_length_fit)
+```
+
+### Date
+
+Visualize density plots to see if there are outliers
+```{r}
+mu_hogan_date <- ANOVA %>% 
+  filter(stream == "Hogan Creek") %>% 
+  group_by(origin, year, sex) %>% 
+  summarise(date = mean(DOY, na.rm = TRUE))
+
+ANOVA %>% 
+  filter(stream == "Hogan Creek") %>% 
+  ggplot(aes(x = DOY, fill = origin)) +
+  geom_density(alpha = 0.5) +
+  geom_vline(data = mu_hogan_date, aes(xintercept = date, colour = origin), size = 1) +
+  facet_grid(year ~ sex) +
+  theme_bw() +
+  ggtitle("Hogan Creek")
+```
+
+```{r}
+hogan_odd_date_fit <- aov(formula = DOY ~ Sex + origin, data = filter(`Silly Code` == "PHOGAN13", .data = ANOVA))
+summary(hogan_odd_date_fit)
+```
+
+```{r}
+hogan_even_date_fit <- aov(formula = DOY ~ Sex + origin, data = filter(`Silly Code` == "PHOGAN14", .data = ANOVA))
+summary(hogan_even_date_fit)
+```
+
+### Distance
+
+Visualize density plots to see if there are outliers
+```{r}
+mu_hogan_distance <- ANOVA %>% 
+  filter(stream == "Hogan Creek") %>% 
+  group_by(origin, year, sex) %>% 
+  summarise(distance = mean(Distance, na.rm = TRUE))
+
+ANOVA %>% 
+  filter(stream == "Hogan Creek") %>% 
+  ggplot(aes(x = Distance, fill = origin)) +
+  geom_density(alpha = 0.5) +
+  geom_vline(data = mu_hogan_distance, aes(xintercept = distance, colour = origin), size = 1) +
+  facet_grid(year ~ sex) +
+  theme_bw() +
+  ggtitle("Hogan Creek")
+```
+
+```{r}
+hogan_odd_distance_fit <- aov(formula = Distance ~ Sex + origin, data = filter(`Silly Code` == "PHOGAN13", .data = ANOVA))
+summary(hogan_odd_distance_fit)
+```
+
+```{r}
+hogan_even_distance_fit <- aov(formula = Distance ~ Sex + origin, data = filter(`Silly Code` == "PHOGAN14", .data = ANOVA))
+summary(hogan_even_distance_fit)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Extra ANOVA Assumption Checking
+
+```{r}
+plot(stock_odd_length_fit, 1)
+```
+
+```{r}
+plot(stock_odd_length_fit, 2)
+```
+
+```{r}
+car::leveneTest(`Length Mm` ~ Sex * origin, data = filter(year == 2013, .data = stockdale_ANOVA))
+```
+
+
+Visualize density plots to see if there are outliers
+```{r}
+mu_male <- ANOVA %>% 
+  filter(sex == "M") %>% 
+  group_by(origin, stream, year) %>% 
+  summarise(length = mean(`Length Mm`, na.rm = TRUE))
+
+ANOVA %>% 
+  filter(sex == "M") %>% 
+  ggplot(aes(x = `Length Mm`, fill = origin)) +
+  geom_density(alpha = 0.5) +
+  geom_vline(data = mu_male, aes(xintercept = length, colour = origin), size = 1) +
+  xlim(c(300, 550)) +
+  facet_grid(year ~ stream) +
+  theme_bw() +
+  ggtitle("Male")
+
+mu_female <- ANOVA %>% 
+  filter(sex == "F") %>% 
+  group_by(origin, stream, year) %>% 
+  summarise(length = mean(`Length Mm`, na.rm = TRUE))
+
+ANOVA %>% 
+  filter(sex == "F") %>% 
+  ggplot(aes(x = `Length Mm`, fill = origin)) +
+  geom_density(alpha = 0.5) +
+  xlim(c(300, 550)) +
+  geom_vline(data = mu_male, aes(xintercept = length, colour = origin), size = 1) +
+  facet_grid(year ~ stream) +
+  theme_bw() +
+  ggtitle("Female")
 ```
