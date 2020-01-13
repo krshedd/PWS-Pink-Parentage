@@ -63,7 +63,7 @@ oceanak_mod <- oceanak  %>%
   mutate(date = dmy(`Sample Date`))
 
 # table of stream, year, and otolith_read
-table(oceanak_mod$stream, oceanak_mod$otolith_read, oceanak_mod$year)
+addmargins(table(oceanak_mod$stream, oceanak_mod$year, oceanak_mod$otolith_read))
 
 # table of samples per stream per year
 addmargins(table(oceanak_mod$stream, oceanak_mod$year))
