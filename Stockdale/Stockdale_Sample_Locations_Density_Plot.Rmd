@@ -1,0 +1,114 @@
+---
+title: "Stockdale Sample Locations Density Plots"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+library(gridExtra)
+library(MuMIn)
+library(GGally)
+library(gganimate)
+
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+```
+
+
+# OceanAK Data
+```{r}
+og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
+oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20191119_1053.csv")
+names(oceanak) <- og_names
+
+# add otolith_read logical, stream as factor, and year
+oceanak_mod <- oceanak  %>% 
+  unite(SillySource, `Silly Code`, `Fish ID`, sep = "_", remove = FALSE) %>% 
+  unite(TrayCodeID, `DNA Tray Code`, `DNA Tray Well Code`, sep = "_", remove = FALSE) %>% 
+  mutate(otolith_read = !is.na(`Otolith Mark Status Code`) & `Otolith Mark Status Code` != "n") %>% 
+  mutate(stream = factor(x = `Location Code`, levels = c("Gilmour Creek", "Paddy Creek", "Erb Creek", "Hogan Creek", "Stockdale Creek"))) %>% 
+  rename(year = `Sample Year`) %>% 
+  mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "natural",
+                            `Otolith Mark Present` == "YES" ~ "hatchery")) %>% 
+  mutate(origin = factor(origin, levels = c("natural", "hatchery"))) %>% 
+  mutate(date = dmy(`Sample Date`))
+```
+
+## Filter for Stockdale
+```{r}
+(stockdale_oceanak <- oceanak_mod %>% 
+   filter(stream == "Stockdale Creek"))
+```
+
+How many without 2019?
+```{r}
+stockdale_oceanak %>% 
+  filter(year != 2019) %>% 
+  summarise(n = n())
+```
+
+
+# riverdist Data
+
+```{r}
+(riverdist <- read_csv("../GIS/R/stockdale/stockdale_distances.csv") %>% 
+   mutate(Intertidal = case_when(dist2tide > 0 ~ "Upstream",
+                                 dist2tide <= 0 ~ "Intertidal")) %>% 
+   rename(Distance = mouthdist, Segment = seg))
+```
+
+How many samples?
+```{r}
+n_distinct(riverdist$Sample)
+```
+
+# Join
+```{r}
+stockdale_riverdist <- stockdale_oceanak %>% 
+  mutate(dna_tray_code = str_pad(string = `DNA Tray Code`, width = 10, side = "left", pad = "0")) %>% 
+  unite(Sample, c(dna_tray_code, `DNA Tray Well Code`)) %>% 
+  inner_join(riverdist, by = "Sample") %>% 
+  mutate(DOY = yday(date))
+
+stockdale_riverdist %>% 
+  count(stream, year)
+```
+
+```{r}
+stockdale_riverdist
+```
+
+
+# Density Plot
+
+```{r fig.width = 10, fig.height=15}
+stockdale_riverdist %>% 
+  filter(origin %in% c("natural", "hatchery")) %>% 
+  ggplot(aes(x = DOY, y = Distance, colour = origin)) +
+  stat_density_2d(aes(fill = ..level..), geom = "polygon", alpha = 0.5) +
+  scale_fill_gradient(low = "grey50", high = "black") +
+  facet_grid(year ~ origin) +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
+
+```{r fig.width = 10, fig.height=15}
+stockdale_riverdist %>% 
+  filter(origin %in% c("natural", "hatchery")) %>% 
+  ggplot(aes(x = DOY, y = Distance, colour = origin)) +
+  stat_density_2d(geom = "polygon", alpha = 0.5) +
+  scale_fill_gradient(low = "grey50", high = "black") +
+  facet_grid(year ~ .) +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
