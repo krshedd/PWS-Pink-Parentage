@@ -79,7 +79,12 @@ paired_15_17_filter <- paired_15_17 %>%
   dplyr::select(franz_id, SILLY, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Sample Year`, `Sample Date`, SEX, `Length Mm`, `Otolith Mark Present`, `Otolith Mark ID`) %>% 
   mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "Natural",
                             `Otolith Mark Present` == "YES" ~ "Hatchery")) %>%  # add origin variable
-  mutate(origin = factor(origin, c("Natural", "Hatchery")))  # make factor to ensure hatchery != red
+  mutate(origin = factor(origin, c("Natural", "Hatchery"))) %>%  # make factor to ensure hatchery != red
+  mutate(Sex = case_when(SEX == "M" ~ "Male", SEX == "F" ~ "Female")) %>% 
+  mutate(date = dmy(`Sample Date`)) %>% 
+  mutate(DOY = yday(date)) 
+
+write_csv(paired_15_17_filter, "stock_paired_15_17_filter.csv")
 ```
 
 ```{r Filter parentage data Odd}
@@ -518,7 +523,7 @@ rrs_ci_kalinowski <- function(n_h_off, n_w_off, n_h_par, n_w_par, alpha){
 }
 ```
 
-##### Even 2015/2017
+##### Odd 2015/2017
 
 Calculate 95% CIs for Stockdale 15-17 females. RRS = 0.41 (0.29-0.58)
 

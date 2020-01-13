@@ -1,0 +1,88 @@
+---
+title: "Stockdale 2014/2016 Parentage Analysis with 298 Markers"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+
+knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
+```
+
+Below are analyses of parentage results calculated separately for Even (2013-2015) using *FRANz*. 
+
+# Even lineage (2014/2016)
+
+## *FRANz* parameters
+*FRANz* was run at 11:00 on February 13, 2019. We used the following parameters:
+FRANz.exe --Nmmax 2019 --Nfmax 2019 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2 --fullsibtest "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\stock_postQA_2014_2016_STOCK.dat"
+
+The parameters are defined as follows:
+--Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 4,150 and divided by 2 (*note: above we forgot to divide by 2 AND this is the odd-year parameter, not the even-year*). This escapement number came from the smaller of the two estimates (aerial survey AUC and stream walk AUC). This estimate is listed under 'pop est aerial' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx"   
+--femrepro and --malerepro specify the age range in which an individual can reproduce  
+--typingerror refers to the overall genotyping error rate. Ours was ~0.005 (for Stockdale was actually 0.006, from QC)
+--updatefreqs specifies that *FRANz* should update allele frequencies using MCMC sampling  
+--poutformat specifies that all potential parents should be listed, not just the most likely  
+--fullsibtest tests for full siblings among offspring   
+
+All output files can be found here: "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\Stockdale\Even_Run 2"  
+
+The summary file provides information about the power of our marker suite:   
+Cumulative exclusion probability when 1 to 7 fullsibs are genotyped  
+  First Parent              : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000   
+  Second Parent             : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000   
+  Parent Pair               : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000
+  
+According to the FRANz manual, marker sets are not considered powerful if these cumulative exclusion probabilities are less than 0.95, which indicates that the probability that a random pair of individuals in the population has a 5% chance of having a genotype pair compatible to an offspring genotype. Since all of our probabilities are 1, we can be **confident** in the power of our 298 amplicons to make parent assignments.  
+
+## Import data
+The first step is to read in .csv files for parentage assignments produced by *FRANz* as well as paired genotype and OceanAK data. 
+
+```{r Setup Even, message=FALSE, warning=FALSE}
+parentage_14_16 <- read_csv("../../Franz/Stockdale/Even_Run 2/parentage.csv")
+paired_14_16 <- read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv")
+```
+
+Plot a histogram of *FRANz* parentage posterior probabilities to show robustness of assignments
+```{r FRANz_posterior_plot_even}
+parentage_14_16  %>% 
+  filter(!is.na(`Parent 1`)) %>% 
+  ggplot(aes(x = Posterior)) +
+  geom_histogram(breaks = seq(0, 1, 0.01)) +
+  ggtitle("Histogram of FRANz posterior probabilities for parentage assignments")
+```
+
+All parentage assigments have a posterior probability of 1, which is very robust.  
+
+## Filter paired data
+The file containing paired genotype and OceanAK data has a lot of information that we do not need at this time (e.g. genotypes for each marker). We therefore separate out only the columns that contain identifying information for each individual.
+
+```{r Filter paired data Even}
+# What are the non-genotype columns
+grep(pattern = "RAD", x = colnames(paired_14_16), value = TRUE, invert = TRUE)
+
+# Filter for non-genotype columns
+paired_14_16_filter <- paired_14_16 %>% 
+  dplyr::select(franz_id, SILLY, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Sample Year`, `Sample Date`, SEX, `Length Mm`, `Otolith Mark Present`, `Otolith Mark ID`) %>% 
+  mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "Natural",
+                            `Otolith Mark Present` == "YES" ~ "Hatchery")) %>%  # add origin variable
+  mutate(origin = factor(origin, c("Natural", "Hatchery"))) %>%  # make factor to ensure hatchery != red
+  mutate(Sex = case_when(SEX == "M" ~ "Male", SEX == "F" ~ "Female")) %>% 
+  mutate(`Sample Date` = as.character(`Sample Date`)) %>% 
+  mutate(date = ymd(`Sample Date`)) %>% 
+  mutate(DOY = yday(date)) 
+
+write_csv(paired_14_16_filter, "stock_paired_14_16_filter.csv")
+```
+

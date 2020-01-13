@@ -81,7 +81,12 @@ paired_13_15_filter <- paired_13_15 %>%
   dplyr::select(franz_id, SILLY, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Sample Year`, `Sample Date`, SEX, `Length Mm`, `Otolith Mark Present`, `Otolith Mark ID`) %>% 
   mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "Natural",
                             `Otolith Mark Present` == "YES" ~ "Hatchery")) %>%  # add origin variable
-  mutate(origin = factor(origin, c("Natural", "Hatchery")))  # make factor to ensure hatchery != red
+  mutate(origin = factor(origin, c("Natural", "Hatchery"))) %>%  # make factor to ensure hatchery != red
+  mutate(Sex = case_when(SEX == "M" ~ "Male", SEX == "F" ~ "Female")) %>% 
+  mutate(date = dmy(`Sample Date`)) %>% 
+  mutate(DOY = yday(date)) 
+
+write_csv(paired_13_15_filter, "stock_paired_13_15_filter.csv")
 ```
 
 ```{r Filter parentage data Odd}
@@ -562,17 +567,14 @@ rrs_ci_kalinowski(n_h_off = 8, n_w_off = 70, n_h_par = 69, n_w_par = 418, alpha 
 ```
 
 #### Calculate RRS and CI's for males and females combined
-```{r calculate RRS and CI's for males and females combined odd}
-
-
+```{r calculate RRS and CIs for males and females combined odd}
 # Mean RS including 0's
 rs_13_15_0 <- paired_13_15_filter_parents %>%
   group_by(origin) %>% 
   summarise(RS = mean(n, na.rm = TRUE))
 
 rs_13_15_0 %>%
-  mutate(RS = round(RS, 2)) %>% 
-  spread(RS)
+  mutate(RS = round(RS, 2))
 
 # Save RS values
 h_0_13_15 <- rs_13_15_0 %>% 
