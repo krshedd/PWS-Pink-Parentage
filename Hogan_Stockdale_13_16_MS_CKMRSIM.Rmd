@@ -1,0 +1,333 @@
+---
+title: "Hogan + Stockdale 2013/2014 CKMRSIM"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+Re-running CKMRSIM with updated Hogan + Stockdale 2013 and 2014 parent data for Manuscript (Figure S3)
+
+```{r load libraries}
+library(tidyverse)
+library(readxl)
+library(CKMRsim)
+library(ggplot2)
+library(gridExtra)
+
+source("~/../R/Functions.GCL.R")
+```
+
+```{r pull data}
+load_sillys(path = "../Genotypes/Hogan_13_15/OceanAK_Origin_PostQA/", sillyvec = c("PHOGAN13h", "PHOGAN13n"))
+load_sillys(path = "../Genotypes/Hogan_13_14_15_16/298/OceanAK_Origin_PostQA/", sillyvec = c("PHOGAN14h", "PHOGAN14n"))
+load_sillys(path = "../Genotypes/Stockdale_13_15/OceanAK_Origin_PostQA/", sillyvec = c("PSTOCK13h", "PSTOCK13n"))
+load_sillys(path = "../Genotypes/Stockdale_13_14_15_16/OceanAK_Origin_PostQA/", sillyvec = c("PSTOCK14h", "PSTOCK14n"))
+load_objects(path = "../Objects/Hogan_13_14_15_16/", pattern = "LocusControl")
+load_objects(path = "../Objects/Hogan_13_14_15_16/", pattern = "loci298")
+```
+
+```{r combine files for each year}
+PoolCollections.GCL(collections = c("PHOGAN13h", "PHOGAN13n"), loci = loci298, newname = "PHOGAN13_postQA")
+PoolCollections.GCL(collections = c("PHOGAN14h", "PHOGAN14n"), loci = loci298, newname = "PHOGAN14_postQA")
+PoolCollections.GCL(collections = c("PSTOCK13h", "PSTOCK13n"), loci = loci298, newname = "PSTOCK13_postQA")
+PoolCollections.GCL(collections = c("PSTOCK14h", "PSTOCK14n"), loci = loci298, newname = "PSTOCK14_postQA")
+```
+
+# Odd and Even
+
+```{r make input file}
+# Hogan
+dose1_H13 <- PHOGAN13_postQA.gcl$scores[,,1] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose1, -ind)
+
+dose2_H13 <- PHOGAN13_postQA.gcl$scores[,,2] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose2, -ind)
+
+Hogan_13_input <- left_join(dose1_H13, dose2_H13, by = c("ind", "locus"))
+
+dose1_H14 <- PHOGAN14_postQA.gcl$scores[,,1] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose1, -ind)
+
+dose2_H14 <- PHOGAN14_postQA.gcl$scores[,,2] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose2, -ind)
+
+Hogan_14_input <- left_join(dose1_H14, dose2_H14, by = c("ind", "locus"))
+
+# Stockdale
+dose1_S13 <- PSTOCK13_postQA.gcl$scores[,,1] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose1, -ind)
+
+dose2_S13 <- PSTOCK13_postQA.gcl$scores[,,2] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose2, -ind)
+
+Stockdale_13_input <- left_join(dose1_S13, dose2_S13, by = c("ind", "locus"))
+
+dose1_S14 <- PSTOCK14_postQA.gcl$scores[,,1] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose1, -ind)
+
+dose2_S14 <- PSTOCK14_postQA.gcl$scores[,,2] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose2, -ind)
+
+Stockdale_14_input <- left_join(dose1_S14, dose2_S14, by = c("ind", "locus"))
+```
+
+## Computing allele frequencies
+
+To compute allele freqs we need to just count up the occurrences of the different types
+amongst haplotype.1 and haplotype.2.  So, we need to get them into a single column, and
+just for the extra challenge we will keep their read depths there as well.
+```{r tidyhaps}
+Hogan_haptidy_13 <- Hogan_13_input %>%
+  filter(dose1 != "0") %>%  # get rid of no-calls
+  gather(key = gene_copy, value = H, dose1, dose2) %>%
+  separate(H, into = "Allele") %>%
+  arrange(locus, ind, gene_copy)
+
+Hogan_haptidy_14 <- Hogan_14_input %>%
+  filter(dose1 != "0") %>%  # get rid of no-calls
+  gather(key = gene_copy, value = H, dose1, dose2) %>%
+  separate(H, into = "Allele") %>%
+  arrange(locus, ind, gene_copy)
+
+Stockdale_haptidy_13 <- Stockdale_13_input %>%
+  filter(dose1 != "0") %>%  # get rid of no-calls
+  gather(key = gene_copy, value = H, dose1, dose2) %>%
+  separate(H, into = "Allele") %>%
+  arrange(locus, ind, gene_copy)
+
+Stockdale_haptidy_14 <- Stockdale_14_input %>%
+  filter(dose1 != "0") %>%  # get rid of no-calls
+  gather(key = gene_copy, value = H, dose1, dose2) %>%
+  separate(H, into = "Allele") %>%
+  arrange(locus, ind, gene_copy)
+```
+
+So, now we just need to compute the frequencies for each of the haplotypes
+```{r hapfreqs}
+(Hogan_hapfreqs_13 <- Hogan_haptidy_13 %>%
+   group_by(locus, Allele) %>%
+   summarise(count = n()) %>%
+   mutate(Freq = count / sum(count))
+)
+
+(Hogan_hapfreqs_14 <- Hogan_haptidy_14 %>%
+   group_by(locus, Allele) %>%
+   summarise(count = n()) %>%
+   mutate(Freq = count / sum(count))
+)
+
+(Stockdale_hapfreqs_13 <- Stockdale_haptidy_13 %>%
+   group_by(locus, Allele) %>%
+   summarise(count = n()) %>%
+   mutate(Freq = count / sum(count))
+)
+
+(Stockdale_hapfreqs_14 <- Stockdale_haptidy_14 %>%
+   group_by(locus, Allele) %>%
+   summarise(count = n()) %>%
+   mutate(Freq = count / sum(count))
+)
+```
+
+
+## Do the CKMR sim analyses
+
+### Get it in the right format
+
+First we have to get that data frame in the right format and reindex the markers
+and make something that `CKMRsim` is expecting to be able to work with (i.e., it has 
+haplotypes in descending frequeny at each locus and it has locus and allele indices
+in there). To get loci to be ordered as they are, I have to throw `Pos` in there, even though they are not known to have a position on any Chrom.
+```{r prep4ckmr}
+Hogan_mhaps_13 <- Hogan_hapfreqs_13 %>%
+  ungroup() %>%
+  mutate(Chrom = "GTseq") %>%
+  rename(Locus = locus) %>%
+  dplyr::select(-count) %>%
+  mutate(Pos = as.integer(factor(Locus, levels = unique(Locus)))) %>%
+  mutate(LocIdx = 0,
+         AlleIdx = 0) %>%
+  CKMRsim::reindex_markers() %>%
+  dplyr::select(Chrom, Locus, Pos, Allele, LocIdx, AlleIdx, Freq)
+
+Hogan_mhaps_14 <- Hogan_hapfreqs_14 %>%
+  ungroup() %>%
+  mutate(Chrom = "GTseq") %>%
+  rename(Locus = locus) %>%
+  dplyr::select(-count) %>%
+  mutate(Pos = as.integer(factor(Locus, levels = unique(Locus)))) %>%
+  mutate(LocIdx = 0,
+         AlleIdx = 0) %>%
+  CKMRsim::reindex_markers() %>%
+  dplyr::select(Chrom, Locus, Pos, Allele, LocIdx, AlleIdx, Freq)
+
+Stockdale_mhaps_13 <- Stockdale_hapfreqs_13 %>%
+  ungroup() %>%
+  mutate(Chrom = "GTseq") %>%
+  rename(Locus = locus) %>%
+  dplyr::select(-count) %>%
+  mutate(Pos = as.integer(factor(Locus, levels = unique(Locus)))) %>%
+  mutate(LocIdx = 0,
+         AlleIdx = 0) %>%
+  CKMRsim::reindex_markers() %>%
+  dplyr::select(Chrom, Locus, Pos, Allele, LocIdx, AlleIdx, Freq)
+
+Stockdale_mhaps_14 <- Stockdale_hapfreqs_14 %>%
+  ungroup() %>%
+  mutate(Chrom = "GTseq") %>%
+  rename(Locus = locus) %>%
+  dplyr::select(-count) %>%
+  mutate(Pos = as.integer(factor(Locus, levels = unique(Locus)))) %>%
+  mutate(LocIdx = 0,
+         AlleIdx = 0) %>%
+  CKMRsim::reindex_markers() %>%
+  dplyr::select(Chrom, Locus, Pos, Allele, LocIdx, AlleIdx, Freq)
+```
+
+### Running through CKMRsim
+
+First we create a CKMR object. In the current version of the CKMRsim, this assumes an error model
+that is appropriate to microhaps and SNPs (0.005 per gene copy per snp, scaled by the number of SNPs).
+
+```{r create CKMR object}
+Hogan_CK_13 <- create_ckmr(Hogan_mhaps_13, kappa_matrix = kappas[c("PO", "FS", "HS", "U"), ])
+Hogan_CK_14 <- create_ckmr(Hogan_mhaps_14, kappa_matrix = kappas[c("PO", "FS", "HS", "U"), ])
+
+Stockdale_CK_13 <- create_ckmr(Stockdale_mhaps_13, kappa_matrix = kappas[c("PO", "FS", "HS", "U"), ])
+Stockdale_CK_14 <- create_ckmr(Stockdale_mhaps_14, kappa_matrix = kappas[c("PO", "FS", "HS", "U"), ])
+```
+
+Then we can simulate some Q values:
+
+```{r simulate Q odd_Hogan}
+Hogan_Qs_13 <- simulate_Qij(C = Hogan_CK_13, froms = c("PO", "FS", "HS", "U"), tos = c("PO", "FS", "HS", "U"), reps = 10^4)
+
+# then do the  sampling to get the FPRs
+mc_sample_simple(Hogan_Qs_13, nu = "PO", de = c("U", "FS"), tr = c("U", "FS"), method = "both")
+```
+
+```{r simulate Q even_Hogan}
+Hogan_Qs_14 <- simulate_Qij(C = Hogan_CK_14, froms = c("PO", "FS", "HS", "U"), tos = c("PO", "FS", "HS", "U"), reps = 10^4)
+
+# then do the  sampling to get the FPRs
+mc_sample_simple(Hogan_Qs_14, nu = "PO", de = c("U", "FS"), tr = c("U", "FS"), method = "both")
+```
+
+```{r simulate Q odd_Stockdale}
+Stockdale_Qs_13 <- simulate_Qij(C = Stockdale_CK_13, froms = c("PO", "FS", "HS", "U"), tos = c("PO", "FS", "HS", "U"), reps = 10^4)
+
+# then do the  sampling to get the FPRs
+mc_sample_simple(Stockdale_Qs_13, nu = "PO", de = c("U", "FS"), tr = c("U", "FS"), method = "both")
+```
+
+```{r simulate Q even_Stockdale}
+Stockdale_Qs_14 <- simulate_Qij(C = Stockdale_CK_14, froms = c("PO", "FS", "HS", "U"), tos = c("PO", "FS", "HS", "U"), reps = 10^4)
+
+# then do the  sampling to get the FPRs
+mc_sample_simple(Stockdale_Qs_14, nu = "PO", de = c("U", "FS"), tr = c("U", "FS"), method = "both")
+```
+
+If we want to plot the actual distributions, we can extract them and plot them. For example,
+to plot the PO/U Lambdas we can do:
+
+```{r format_density}
+Hogan_13_density <- extract_logls(Hogan_Qs_13, numer = c(PO = 1), denom = c(U = 1)) %>%
+  mutate(lineage = "Odd", stream = "Hogan") %>% 
+  mutate(true_relat_pub = case_when(true_relat == "FS" ~ "Full Sibling",
+                                    true_relat == "HS" ~ "Half Sibling",
+                                    true_relat == "PO" ~ "Parent-Offspring",
+                                    true_relat == "U" ~ "Unrelated")) %>% 
+  mutate(true_relat_pub = factor(x = true_relat_pub, levels = c("Parent-Offspring", "Full Sibling", "Half Sibling", "Unrelated")))
+
+Hogan_14_density <- extract_logls(Hogan_Qs_14, numer = c(PO = 1), denom = c(U = 1)) %>%
+  mutate(lineage = "Even", stream = "Hogan") %>% 
+  mutate(true_relat_pub = case_when(true_relat == "FS" ~ "Full Sibling",
+                                    true_relat == "HS" ~ "Half Sibling",
+                                    true_relat == "PO" ~ "Parent-Offspring",
+                                    true_relat == "U" ~ "Unrelated")) %>% 
+  mutate(true_relat_pub = factor(x = true_relat_pub, levels = c("Parent-Offspring", "Full Sibling", "Half Sibling", "Unrelated")))
+
+Stockdale_13_density <- extract_logls(Stockdale_Qs_13, numer = c(PO = 1), denom = c(U = 1)) %>%
+  mutate(lineage = "Odd", stream = "Stockdale") %>% 
+  mutate(true_relat_pub = case_when(true_relat == "FS" ~ "Full Sibling",
+                                    true_relat == "HS" ~ "Half Sibling",
+                                    true_relat == "PO" ~ "Parent-Offspring",
+                                    true_relat == "U" ~ "Unrelated")) %>% 
+  mutate(true_relat_pub = factor(x = true_relat_pub, levels = c("Parent-Offspring", "Full Sibling", "Half Sibling", "Unrelated")))
+
+Stockdale_14_density <- extract_logls(Stockdale_Qs_14, numer = c(PO = 1), denom = c(U = 1)) %>%
+  mutate(lineage = "Even", stream = "Stockdale") %>% 
+  mutate(true_relat_pub = case_when(true_relat == "FS" ~ "Full Sibling",
+                                    true_relat == "HS" ~ "Half Sibling",
+                                    true_relat == "PO" ~ "Parent-Offspring",
+                                    true_relat == "U" ~ "Unrelated")) %>% 
+  mutate(true_relat_pub = factor(x = true_relat_pub, levels = c("Parent-Offspring", "Full Sibling", "Half Sibling", "Unrelated")))
+```
+
+# Plot
+
+```{r plot distributions}
+Hogan_Odd <- Hogan_13_density %>% 
+  ggplot(aes(x = logl_ratio, fill = true_relat_pub)) +
+  geom_density(alpha = 0.3) +
+  scale_x_continuous(limits = c(-200, 100), breaks = seq(-200, 100, by = 100)) +
+  scale_y_continuous(limits = c(0, 0.06), breaks = seq(0, 0.6, by = 0.2)) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = c(0.15, 0.7),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        legend.key.size = unit(1, "line"),
+        panel.grid = element_blank(),
+        axis.title.x = element_blank()) + 
+  labs(title = "Hogan", y = "Density", fill = "True Relationship") +
+  ylab(expression(atop("Odd", paste("Density"))))
+
+Hogan_Even <- Hogan_14_density %>% 
+  ggplot(aes(x = logl_ratio, fill = true_relat_pub)) +
+  geom_density(alpha = 0.3) +
+  scale_x_continuous(limits = c(-200, 100), breaks = seq(-200, 100, by = 100)) +
+  scale_y_continuous(limits = c(0, 0.06), breaks = seq(0, 0.6, by = 0.2)) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = 'none',
+        panel.grid = element_blank()) +
+  labs(x = "Log Likelihood Ratio", y = "Density") +
+  ylab(expression(atop("Even", paste("Density"))))
+
+Stockdale_Odd <- Stockdale_13_density %>% 
+  ggplot(aes(x = logl_ratio, fill = true_relat_pub)) +
+  geom_density(alpha = 0.3) +
+  scale_x_continuous(limits = c(-200, 100), breaks = seq(-200, 100, by = 100)) +
+  scale_y_continuous(limits = c(0, 0.06), breaks = seq(0, 0.6, by = 0.2)) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = 'none',
+        panel.grid = element_blank(),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank()) +
+  labs(title = "Stockdale")
+
+Stockdale_Even <- Stockdale_14_density %>% 
+  ggplot(aes(x = logl_ratio, fill = true_relat_pub)) +
+  geom_density(alpha = 0.3) +
+  scale_x_continuous(limits = c(-200, 100), breaks = seq(-200, 100, by = 100)) +
+  scale_y_continuous(limits = c(0, 0.06), breaks = seq(0, 0.6, by = 0.2)) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = 'none',
+        panel.grid = element_blank(),
+        axis.title.y = element_blank()) +
+  labs(x = "Log Likelihood Ratio")
+
+Figure_S3 <- 
+  grid.arrange(Hogan_Odd, Stockdale_Odd, Hogan_Even, Stockdale_Even, nrow = 2, widths = c(1.10, 1))  # added width argument to get plot area equal
+
+
+ggsave("Figure_S3.pdf", plot = Figure_S3, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
+
+```
