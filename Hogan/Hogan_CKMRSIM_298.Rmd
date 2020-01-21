@@ -1,6 +1,8 @@
 ---
 title: "Hogan CKMRSIM"
 output: html_notebook
+editor_options: 
+  chunk_output_type: inline
 ---
 
 
@@ -10,85 +12,88 @@ library(readxl)
 library(CKMRsim)
 library(ggplot2)
 
-source("C:/Users/ealescak/Documents/R/functions.gcl.r")
+source("~/../R/Functions.GCL.R")
 ```
 
 ```{r pull data}
-load_sillys(path = "V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Genotypes/298/OceanAK_Origin_PostQA/")
+load_sillys(path = "../../Genotypes/Hogan_13_14_15_16/298/OceanAK_Origin_PostQA/", sillyvec = c("PHOGAN14h", "PHOGAN14n"))
+load_sillys(path = "../../Genotypes/Hogan_13_15/OceanAK_Origin_PostQA/", sillyvec = c("PHOGAN13h", "PHOGAN13n"))
+load_objects(path = "../../Objects/Hogan_13_14_15_16/", pattern = "LocusControl")
+load_objects(path = "../../Objects/Hogan_13_14_15_16/", pattern = "loci298")
 ```
 
 ```{r combine files for each year}
-.username <- "ealescak"
-.password <- "1234"
-markersuite <- "Pink_PWS_304"
-
-#CreateLocusControl.GCL(markersuite = markersuite, username = .username, password = .password)
-#loci <- LocusControl$locusnames
-#nalleles <- LocusControl$nalleles
-#ploidy <- LocusControl$ploidy
-#alleles <- LocusControl$alleles
-
-CreateLocusControl.GCL(markersuite = markersuite, username = .username, password = .password)
-loci304 <- LocusControl$locusnames
-loci6_remove <- c("Ogo_RAD8604", "Ogo_RAD25769", "Ogo_RAD25777", "Ogo_RAD42336", "Ogo_RAD75881", "Ogo_RAD9934")
-loci298 <- sort(setdiff(loci304, loci6_remove))
-rm(LocusControl)
-CreateLocusControl.GCL(locusnames = loci298, username = .username, password = .password)
-loci <- LocusControl$locusnames
-nalleles <- LocusControl$nalleles
-ploidy <- LocusControl$ploidy
-alleles <- LocusControl$alleles
-
-PoolCollections.GCL(collections = c("PHOGAN13h", "PHOGAN13n"), loci = loci, newname = "PHOGAN13_postQA")
-
-PoolCollections.GCL(collections = c("PHOGAN14h", "PHOGAN14n"), loci = loci, newname = "PHOGAN14_postQA")
+PoolCollections.GCL(collections = c("PHOGAN13h", "PHOGAN13n"), loci = loci298, newname = "PHOGAN13_postQA")
+PoolCollections.GCL(collections = c("PHOGAN14h", "PHOGAN14n"), loci = loci298, newname = "PHOGAN14_postQA")
 ```
 
-#Odd
+# Odd and Even
 
-```{r make input file odd}
-dose1 <- PHOGAN13_postQA.gcl$scores[,,1] %>% 
+```{r make input file}
+dose1_13 <- PHOGAN13_postQA.gcl$scores[,,1] %>% 
   as_tibble(rownames="ind") %>% 
   gather(locus, dose1, -ind)
 
-dose2 <- PHOGAN13_postQA.gcl$scores[,,2] %>% 
+dose2_13 <- PHOGAN13_postQA.gcl$scores[,,2] %>% 
   as_tibble(rownames="ind") %>% 
   gather(locus, dose2, -ind)
 
-Hogan_13_input <- left_join(dose1, dose2, by = c("ind", "locus"))
+Hogan_13_input <- left_join(dose1_13, dose2_13, by = c("ind", "locus"))
+
+dose1_14 <- PHOGAN14_postQA.gcl$scores[,,1] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose1, -ind)
+
+dose2_14 <- PHOGAN14_postQA.gcl$scores[,,2] %>% 
+  as_tibble(rownames="ind") %>% 
+  gather(locus, dose2, -ind)
+
+Hogan_14_input <- left_join(dose1_14, dose2_14, by = c("ind", "locus"))
 ```
 
-### Computing allele frequencies
+## Computing allele frequencies
+
 To compute allele freqs we need to just count up the occurrences of the different types
 amongst haplotype.1 and haplotype.2.  So, we need to get them into a single column, and
 just for the extra challenge we will keep their read depths there as well.
-```{r tidyhaps odd}
-
+```{r tidyhaps}
 haptidy_13 <- Hogan_13_input %>%
+  filter(dose1 != "0") %>%  # get rid of no-calls
   gather(key = gene_copy, value = H, dose1, dose2) %>%
   separate(H, into = "Allele") %>%
   arrange(locus, ind, gene_copy)
 
+haptidy_14 <- Hogan_14_input %>%
+  filter(dose1 != "0") %>%  # get rid of no-calls
+  gather(key = gene_copy, value = H, dose1, dose2) %>%
+  separate(H, into = "Allele") %>%
+  arrange(locus, ind, gene_copy)
 ```
 
 So, now we just need to compute the frequencies for each of the haplotypes
+```{r hapfreqs}
+(hapfreqs_13 <- haptidy_13 %>%
+   group_by(locus, Allele) %>%
+   summarise(count = n()) %>%
+   mutate(Freq = count / sum(count))
+)
 
-```{r hapfreqs odd}
-hapfreqs_13 <- haptidy_13 %>%
-  group_by(locus, Allele) %>%
-  summarise(count = n()) %>%
-  mutate(Freq = count / sum(count))
+(hapfreqs_14 <- haptidy_14 %>%
+   group_by(locus, Allele) %>%
+   summarise(count = n()) %>%
+   mutate(Freq = count / sum(count))
+)
 ```
 
 ## Do the CKMR sim analyses
 
 ### Get it in the right format
+
 First we have to get that data frame in the right format and reindex the markers
 and make something that `CKMRsim` is expecting to be able to work with (i.e., it has 
 haplotypes in descending frequeny at each locus and it has locus and allele indices
 in there). To get loci to be ordered as they are, I have to throw `Pos` in there, even though they are not known to have a position on any Chrom.
-
-```{r prep4ckmr odd}
+```{r prep4ckmr}
 mhaps_13 <- hapfreqs_13 %>%
   ungroup() %>%
   mutate(Chrom = "GTseq") %>%
@@ -100,6 +105,16 @@ mhaps_13 <- hapfreqs_13 %>%
   CKMRsim::reindex_markers() %>%
   dplyr::select(Chrom, Locus, Pos, Allele, LocIdx, AlleIdx, Freq)
 
+mhaps_14 <- hapfreqs_14 %>%
+  ungroup() %>%
+  mutate(Chrom = "GTseq") %>%
+  rename(Locus = locus) %>%
+  dplyr::select(-count) %>%
+  mutate(Pos = as.integer(factor(Locus, levels = unique(Locus)))) %>%
+  mutate(LocIdx = 0,
+         AlleIdx = 0) %>%
+  CKMRsim::reindex_markers() %>%
+  dplyr::select(Chrom, Locus, Pos, Allele, LocIdx, AlleIdx, Freq)
 ```
 
 ### Make Figure 1.
@@ -127,14 +142,29 @@ fig1 <- m_13 + theme(
 )
 
 fig1
-
-
-
 ```
 
-```{r filter out Allele 0 odd}
-mhaps_13_filter <- mhaps_13 %>% 
-  filter(Allele != "0")
+```{r mhaps-dist-for-fig-1 even1}
+m_14 <- mhaps_14 %>%
+  group_by(Locus) %>%
+  summarise(num_haplotypes = n()) %>%
+  group_by(num_haplotypes) %>%
+  summarise(num_loci = n()) %>% # plot this for figure 1
+  ggplot(., aes(num_haplotypes, num_loci)) +
+  geom_histogram(stat = "identity") +
+  theme_bw() +
+  xlab("Number of Haplotypes") +
+  ylab("Number of Loci") + 
+  scale_x_continuous(breaks = c(3,6,9,12))
+
+fig1 <- m_14 + theme(
+  axis.text.x=element_text(size=14),
+  axis.title.x=element_text(size=14, face="bold"),
+  axis.text.y=element_text(size=14),
+  axis.title.y=element_text(size=14, face="bold")
+)
+
+fig1
 ```
 
 ### Running through CKMRsim
@@ -142,8 +172,9 @@ mhaps_13_filter <- mhaps_13 %>%
 First we create a CKMR object. In the current version of the CKMRsim, this assumes an error model
 that is appropriate to microhaps and SNPs (0.005 per gene copy per snp, scaled by the number of SNPs).
 
-```{r create CKMR object odd}
-CK_13 <- create_ckmr(mhaps_13_filter, kappa_matrix = kappas[c("PO", "FS", "HS", "U"), ])
+```{r create CKMR object}
+CK_13 <- create_ckmr(mhaps_13, kappa_matrix = kappas[c("PO", "FS", "HS", "U"), ])
+CK_14 <- create_ckmr(mhaps_14, kappa_matrix = kappas[c("PO", "FS", "HS", "U"), ])
 ```
 
 Then we can simulate some Q values:
@@ -151,10 +182,15 @@ Then we can simulate some Q values:
 ```{r simulate Q odd}
 Qs_13 <- simulate_Qij(C = CK_13, froms = c("PO", "FS", "HS", "U"), tos = c("PO", "FS", "HS", "U"), reps = 10^4)
 
-
 # then do the  sampling to get the FPRs
 mc_sample_simple(Qs_13, nu = "PO", de = c("U", "FS"), tr = c("U", "FS"), method = "both")
+```
 
+```{r simulate Q even1}
+Qs_14 <- simulate_Qij(C = CK_14, froms = c("PO", "FS", "HS", "U"), tos = c("PO", "FS", "HS", "U"), reps = 10^4)
+
+# then do the  sampling to get the FPRs
+mc_sample_simple(Qs_14, nu = "PO", de = c("U", "FS"), tr = c("U", "FS"), method = "both")
 ```
 
 If we want to plot the actual distributions, we can extract them and plot them. For example,
@@ -162,13 +198,24 @@ to plot the PO/U Lambdas we can do:
 
 ```{r plot distributions odd}
 extract_logls(Qs_13, numer = c(PO = 1), denom = c(U = 1)) %>%
-  ggplot(aes(x = logl_ratio, fill = true_relat)) +
+  mutate(lineage = "Odd")
+  mutate(true_relat_pub = case_when(true_relat == "FS" ~ "Full Sibling",
+                                    true_relat == "HS" ~ "Half Sibling",
+                                    true_relat == "PO" ~ "Parent-Offspring",
+                                    true_relat == "U" ~ "Unrelated")) %>% 
+  mutate(true_relat_pub = factor(x = true_relat_pub, levels = c("Parent-Offspring", "Full Sibling", "Half Sibling", "Unrelated"))) %>% 
+  ggplot(aes(x = logl_ratio, fill = true_relat_pub)) +
   theme_bw() +
   geom_density(alpha = 0.3) +
   xlab("Log Likelihood Ratio") +
   ylab("Density") +
-  guides(fill = guide_legend(title = "True Relationship"))
-ggsave("Figure_S3.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Supplemental/Figures/")
+  guides(fill = guide_legend(title = "True Relationship")) +
+  theme_bw(base_size = 14) +
+  theme(legend.title = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        legend.key.size = unit(1, "line"),
+        panel.grid = element_blank())
+# ggsave("Figure_S3.pdf", path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/01.Hogan/0002.Figures&Tables/Supplemental/Figures/")
   
 ```
 
