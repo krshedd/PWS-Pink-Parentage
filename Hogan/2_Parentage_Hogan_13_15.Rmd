@@ -148,6 +148,11 @@ parents_paired_13_15 %>%
 # How many unique parents had offspring assigned?
 n_distinct(parents_paired_13_15$Parent_ID)
 
+# How many unique parents by origin had offspring assigned?
+parents_paired_13_15 %>% 
+  group_by(origin) %>% 
+  summarise(n = n_distinct(Parent_ID))
+
 # For each offspring assigment, what was the parent's origin?
 parents_paired_13_15 %>% 
   count(origin, `Otolith Mark ID.par`) %>% 
@@ -445,6 +450,7 @@ perm_1tail_pvalue_M_0 <- round(x = as.numeric(coin::pvalue(oneway_test(n ~ origi
 
 perm_1tail_pvalue_F_0 <- round(x = as.numeric(coin::pvalue(oneway_test(n ~ origin, data = mydata_F_0, distribution = approximate(B = 10000), alternative = "greater"))), digits = 4)
 
+perm_1tail_pvalue_both_0 <- round(x = as.numeric(coin::pvalue(oneway_test(n ~ origin, data = paired_13_15_filter_parents, distribution = approximate(B = 10000), alternative = "greater"))), digits = 4)
 #And to do a 1-tailed negative binomial GLM
 
 fit_M_0 <- glm.nb(n ~ origin, data = mydata_M_0, init.theta = 1, link = log)
@@ -453,10 +459,22 @@ nbGLM_1tail_pvalue_M_0 <- round(summary(fit_M_0)$coefficients[2, 4], 4)
 fit_F_0 <- glm.nb(n ~ origin, data = mydata_F_0, init.theta = 1, link = log)
 nbGLM_1tail_pvalue_F_0 <- round(summary(fit_F_0)$coefficients[2, 4], 4)
 
-RRS_0 <- tibble(Sex = c("M", "F", "M", "F"),
-                Test = c(rep("Permutation", 2), rep("Negative Binomial GLM", 2)),
-                p_value = c(perm_1tail_pvalue_M_0, perm_1tail_pvalue_F_0, nbGLM_1tail_pvalue_M_0, nbGLM_1tail_pvalue_F_0))
-RRS_0 %>% 
+fit_both_0 <- glm.nb(n ~ origin, data = paired_13_15_filter_parents, init.theta = 1, link = log)
+nbGLM_1tail_pvalue_both_0 <- round(summary(fit_both_0)$coefficients[2, 4], 4)
+
+RRS_0 <- tibble(
+  Sex = c("M", "F", "Both", "M", "F", "Both"),
+  Test = c(rep("Permutation", 3), rep("Negative Binomial GLM", 3)),
+  p_value = c(
+    perm_1tail_pvalue_M_0,
+    perm_1tail_pvalue_F_0,
+    perm_1tail_pvalue_both_0,
+    nbGLM_1tail_pvalue_M_0,
+    nbGLM_1tail_pvalue_F_0,
+    nbGLM_1tail_pvalue_both_0
+  )
+)
+RRS_0 %>%
   spread(Sex, p_value)
 
 # (RRS_0 <- tibble(perm_1tail_pvalue_F_0, perm_1tail_pvalue_M_0, nbGLM_1tail_pvalue_F_0, nbGLM_1tail_pvalue_M_0))
@@ -524,7 +542,7 @@ rrs_ci_kalinowski <- function(n_h_off, n_w_off, n_h_par, n_w_par, alpha){
 }
 ```
 
-##### Even 2013/2015
+##### Odd 2013/2015
 
 Calculate 95% CIs for Hogan 13-15 females. RRS = 0.03 (0.01-0.08)
 
