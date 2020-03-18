@@ -13,6 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
 library(DT)
+
+source("~/../R/Functions.GCL.R")
 ```
 
 # Purpose
@@ -38,3 +40,217 @@ Step 7 - travel to Juneau to develop a protocol
 Wei sent me the Fluidigm *SNPtype* order form to put the sequence data in
 Tyler is going to send me the sequence data for the GTseq amplicons
 I will format that data in the form Wei sent
+
+# Filtering
+
+Turns out that Tyler already formatted the RAD sequence data in to Fluidigm format for me and also filtered for single-SNP amplicons!
+
+All I need to do is apply the following two filters:  
+  * filter out loci with high error rate (from QC data)  
+  * filter out loci with high failure rate  
+
+## QC - Error Rate
+
+### Get QC project directories
+
+```{r}
+(QC_concordance_projects_all <-
+   grep(
+     pattern = "AHRP",
+     x = list.dirs(
+       path = "V:/Lab/Genotyping/SNP Projects/Pink/",
+       full.names = TRUE,
+       recursive = FALSE
+     ),
+     value = TRUE
+   ))
+```
+
+### Get QC concordance file paths
+
+```{r}
+(
+  QC_concordance_files_all <-
+    grep(
+      pattern = "XCheck",
+      x = unlist(sapply(QC_concordance_projects_all, function(dir) {
+        list.files(
+          path = paste0(dir, "/QC/Conflict Reports/"),
+          pattern = "Concordance_",
+          full.names = TRUE
+        )
+      })),
+      value = TRUE,
+      invert = TRUE
+    )
+)
+```
+
+### Read QC files
+
+Verify that no NAs
+```{r}
+# Read in concordance files as one filtered tibble
+concordance_all <- QC_concordance_files_all %>%  # loop over each file
+  purrr::map(function(x) readr::read_csv(file = x, col_types = cols(.default = "c"), na = c("", "NA", "0"))) %>%  # read in each file with default column type = "c" for character
+  dplyr::bind_rows() %>%  # bind each file together into one tibble
+  dplyr::rename(silly = `Silly Code`, 
+                fish_id = `Sample Number`,
+                locus = Locus,
+                file_allele_1 = `File: Allele 1`,
+                file_allele_2 = `File: Allele 2`,
+                db_allele_1 = `Database: Allele 1`,
+                db_allele_2 = `Database: Allele 2`,
+                concordance = Concordance,
+                concordance_type = `Concordance Type`) %>%  # rename for convenience
+  dplyr::select(silly, fish_id, locus, file_allele_1, file_allele_2, db_allele_1, db_allele_2, concordance, concordance_type) %>%  # only keep fields we need
+  # dplyr::filter(silly %in% sillyvec) %>%  # filter for only sillys in sillyvec
+  tidyr::unite(silly_source, c(silly, fish_id), sep = "_", remove = FALSE) # %>%  # create silly_source
+  # dplyr::filter(silly_source != "PHOGAN15_4424")  # remove PHOGAN15_4424, catastrophic conflict indiv from P014
+
+# Table to make sure no NA values
+concordance_all %>% 
+  dplyr::count(concordance, concordance_type) %>%
+  tidyr::spread(concordance, n, fill = 0, drop = FALSE)
+```
+
+### Get locus-specific error rate
+
+```{r}
+# Number of non-zero QC genotypes per locus
+n_geno_per_locus <- concordance_all %>% 
+  dplyr::filter(!is.na(file_allele_1) & !is.na(db_allele_1)) %>%  # only consider cases where we called genotypes for qc (file) and project (database) fish
+  dplyr::count(locus) %>%  # count instances by locus
+  dplyr::rename(n_qc = n)  # rename for convenience
+
+conflicts_by_locus <- concordance_all %>% 
+  dplyr::group_by(locus, concordance_type) %>%  # group 
+  dplyr::summarise(n = n()) %>%  # count instances by locus and type
+  tidyr::spread(concordance_type, n, fill = 0, drop = FALSE) %>%  #  go from "tall" to "wide" format
+  dplyr::mutate(conflict = sum(`Het-Het`, `Het-Homo`, `Homo-Het`, `Homo-Homo`)) %>%  # sum all conflicts to get overall rate
+  dplyr::ungroup()  # always ungroup when done
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Locus-specific error rate for FRANz
+(error_rate_by_locus_FRANz <- conflicts_by_locus %>%
+  dplyr::left_join(n_geno_per_locus, by = "locus") %>%  # join with number of qc genotypes per locus
+  dplyr::mutate(conflict_rate = conflict / n_qc) %>%  # conflict rate is number of conflicts / number of qc genotypes
+  dplyr::mutate(error_rate = conflict_rate / 2) %>%  # error rate is conflict rate / 2, because conflict could be due to error in "project fish" or "qc fish"
+  dplyr::select(locus, error_rate) %>%  # drop unnecessary variables
+  dplyr::arrange(desc(error_rate))
+)
+```
+
+Visualize
+```{r}
+error_rate_by_locus_FRANz %>% 
+  ggplot(aes(x = error_rate)) +
+  geom_histogram(binwidth = 0.0025) +
+  geom_vline(xintercept = 0.01, colour = "red") +
+  theme_bw() +
+  ggtitle("Locus-specific QC error rate")
+```
+
+### Loci to drop
+
+```{r}
+(loci_2_drop_error <- error_rate_by_locus_FRANz %>% 
+  filter(error_rate > 0.01) %>% 
+  pull(locus))
+```
+
+
+## QA - Failure Rate
+
+### Load sillys
+
+```{r}
+load_sillys(path = "../Genotypes/Hogan_13_15/")
+load_sillys(path = "../Genotypes/Hogan_13_14_15_16/298/", sillyvec = c("PHOGAN14", "PHOGAN16"))
+load_sillys(path = "../Genotypes/Hogan_15_17/")
+load_sillys(path = "../Genotypes/Stockdale_13_15/")
+load_sillys(path = "../Genotypes/Stockdale_13_14_15_16/", sillyvec = c("PSTOCK14", "PSTOCK16"))
+load_sillys(path = "../Genotypes/Stockdale_15_17/")
+
+```
+
+### Calculate failure rate
+
+```{r}
+(sillyvec <- str_split(string = objects(pattern = "\\.gcl"), pattern = ".gcl", simplify = TRUE)[, 1])
+
+(loci <- dget("../Objects/Hogan_15_17/loci.txt"))
+
+LocusControl <- dget("../Objects/Hogan_15_17/LocusControl.txt")
+```
+
+```{r}
+(failure_rate <- FailureRate.GCL(sillyvec = sillyvec))
+```
+
+Shit, doesn't work because the attributes tables are different shapes (different numbers of columns)
+```{r}
+View(FailureRate.GCL)
+```
+
+Do it the old fashion way, get scores from each silly
+```{r}
+x <- sapply(sillyvec, function(silly) {
+  as_tibble(get(paste0(silly, ".gcl"))$scores[, , "Dose1"])
+}, simplify = FALSE) %>% 
+  bind_rows(.id = "silly") %>% 
+  gather(locus, genotype, -silly)
+```
+
+Now calculate failure rate by locus
+```{r}
+(
+  fail_locus <- x %>%
+    dplyr::group_by(locus) %>%
+    dplyr::summarise(fail = sum(genotype == "0", na.rm = TRUE) / n()) %>%
+    dplyr::arrange(dplyr::desc(fail))
+)
+```
+
+Visualize failure rates
+```{r}
+fail_locus %>% 
+  ggplot(aes(x = fail)) +
+  geom_histogram(binwidth = 0.01) + 
+  theme_bw() +
+  ggtitle("Locus-specific failure rate")
+```
+
+### Loci to drop
+
+```{r}
+(loci_2_drop_fail <- fail_locus %>% 
+  filter(fail > 0.1) %>% 
+  pull(locus))
+```
+
+# Final list of sequences
+
+## Read in Tyler's data
+
+```{r}
+(RADseq <- read_csv("../SNPtype/PinkSingleAmpliconSNPtype.csv"))
+```
+
+## Filter out QC and QA issues
+
+```{r}
+(RADseq_filtered <- RADseq %>% 
+  filter(!MarkerName %in% c(loci_2_drop_error, loci_2_drop_fail)) %>% 
+  arrange(desc(BothIC)) %>% 
+  rename(Name = MarkerName, Sequence = SNPtype))
+```
+
+## Write final, ordered list
+
+```{r}
+RADseq_filtered  %>% 
+  select(Name, Sequence) %>% 
+  write_csv(path = "../SNPtype/PinkSingleAmpliconSNPtype_filtered_sorted.csv")
+```
+
