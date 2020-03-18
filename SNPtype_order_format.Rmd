@@ -1,0 +1,40 @@
+---
+title: "SNPtype order formating"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(DT)
+```
+
+# Purpose
+
+The purpose of this R Notebook is to format sequence data to order *SNPtype* probes for ~96 markers from the 298 GT-seq amplicons.
+
+# Background
+
+There was a major otolith DWP debacle that occurred when shipping PWS pink salmon otoliths to the MTA in Juneau for otolith reading. The DWPs had already been tissue separated (i.e. the hearts are safe in the correct location within a DWP). We were shipping these otoliths from 2015-2018 for Paddy, Erb, and Gilmour, because the Cordova otolith lab lacked the capacity to read them in a timely fashion and the MTA had excess capacity in the spring prior to fishing season starting in the summer. Many of the DWPs had been heat-sealed in the past, making it difficult to seal with the original impermamats. This difficulty in sealing the DPWs with impermamats and the overall expense of impermamats led us to order acetates to cover the DWPs (acetate + rubber band). Unfortunately for all involved, the boxes of DWPs were not paletized and clearly got some rough handling in shipment to Juneau. This meant that many DWPs had otoliths all over the place, losing the paired nature of the DNA (tissue) and origin (otolith) data.
+
+In an attempt to rectify this situation, we are going to try to pair these otoliths back with the appropriate heart tissue by genotyping DNA from the otolith for a subset of SNPs from the GT-seq panel. The idea is, if we can extract DNA from otoliths (without harming the otolith), we can genotype that DNA and pair the otolith back with the heart tissue (because we know what DWP the otolith came from, but not the cell it came from). We should be able to do this with <24 SNPs. In order to do this cost-effectively, the idea is to order 96 *SNPtype* assays and select a subset of 24 SNPs that score well so that we can genotype the otolith-DNA with 192.24 *Fluidigm* chips.
+
+Step 1 - send *Fluidigm* sequence information so they can design 96 *SNPtype* assays
+Step 2 - extract DNA from right-side otoliths of known origin, for tissues that have already been genotyped with GT-seq
+Step 3 - genotype this otolith-DNA for these 96 *SNPtype* assays
+Step 4 - pair otoliths and tissues with the genotypes
+Step 5 - send otoliths back to Cordova to verify they can still be read after going through DNA extraction
+Step 6 - pick 24 assays to order in bulk
+Step 7 - travel to Juneau to develop a protocol
+
+# Sequence formatting
+
+Wei sent me the Fluidigm *SNPtype* order form to put the sequence data in
+Tyler is going to send me the sequence data for the GTseq amplicons
+I will format that data in the form Wei sent
