@@ -22,16 +22,45 @@ sillyvec <- c("PSTOCK13", "PSTOCK14", "PSTOCK15", "PSTOCK16")  # collections to 
 
 # List the output.csv for each lab Project, P012-P016 from LOKI (conflicts + agreements)
 # Kyle had to open the "original" files and save as .csv files
-QC_concordance_files_all <- c(
-  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P012 AHRP Parentage GTSeq Part 1/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
-  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P014 AHRP Parentage GTSeq Part 2/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
-  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P015 AHRP Parentage GTSeq Part 3/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
-  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P016 AHRP Parentage GTSeq Part 4/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
-  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P017 AHRP Parentage GTSeq Part 5/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
-  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P018 AHRP Parentage GTSeq Part 6/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
-  list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P019 AHRP Parentage GTSeq Part 7/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE)
-  
+
+# Get QC project directories
+QC_concordance_projects_all <-
+  grep(
+    pattern = "AHRP",
+    x = list.dirs(
+      path = "V:/Lab/Genotyping/SNP Projects/Pink/",
+      full.names = TRUE,
+      recursive = FALSE
+    ),
+    value = TRUE
   )
+
+# Get QC concordance file paths
+QC_concordance_files_all <-
+  grep(
+    pattern = "XCheck",
+    x = unlist(sapply(QC_concordance_projects_all, function(dir) {
+      list.files(
+        path = paste0(dir, "/QC/Conflict Reports/"),
+        pattern = "Concordance_",
+        full.names = TRUE
+      )
+    })),
+    value = TRUE,
+    invert = TRUE
+  )
+
+# Original
+# QC_concordance_files_all <- c(
+#   list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P012 AHRP Parentage GTSeq Part 1/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
+#   list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P014 AHRP Parentage GTSeq Part 2/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
+#   list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P015 AHRP Parentage GTSeq Part 3/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
+#   list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P016 AHRP Parentage GTSeq Part 4/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
+#   list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P017 AHRP Parentage GTSeq Part 5/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
+#   list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P018 AHRP Parentage GTSeq Part 6/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE),
+#   list.files(path = "V:/Lab/Genotyping/SNP Projects/Pink/Project P019 AHRP Parentage GTSeq Part 7/QC/Conflict Reports/", pattern = "Concordance_", full.names = TRUE)
+#   
+#   )
 
 # Read in concordance files as one filtered tibble
 concordance_all <- QC_concordance_files_all %>%  # loop over each file
@@ -47,7 +76,7 @@ concordance_all <- QC_concordance_files_all %>%  # loop over each file
                 concordance = Concordance,
                 concordance_type = `Concordance Type`) %>%  # rename for convenience
   dplyr::select(silly, fish_id, locus, file_allele_1, file_allele_2, db_allele_1, db_allele_2, concordance, concordance_type) %>%  # only keep fields we need
-  dplyr::filter(silly %in% sillyvec) %>%  # filter for only sillys in sillyvec
+  # dplyr::filter(silly %in% sillyvec) %>%  # filter for only sillys in sillyvec
   tidyr::unite(silly_source, c(silly, fish_id), sep = "_", remove = FALSE) # %>%  # create silly_source
   # dplyr::filter(silly_source != "PHOGAN15_4424")  # remove PHOGAN15_4424, catastrophic conflict indiv from P014
 
