@@ -18,7 +18,7 @@ writeClipboard(paste(paste0("P", rep(streams, each = length(yrs)), yrs), collaps
 writeClipboard(paste(paste0("P", rep(streams, each = length(yrs)), yrs), collapse = "','"))
 
 og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
-oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20191119_1053.csv")
+oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20200129_1621.csv")
 names(oceanak) <- og_names
 
 # dups <- oceanak %>% 
@@ -114,16 +114,17 @@ oceanak_mod %>%
 oceanak_mod %>% 
   mutate(julian_date = yday(date)) %>% 
   ggplot(aes(x = julian_date, fill = origin)) +
-  geom_histogram(binwidth = 1) +
+  geom_histogram(binwidth = 1, ) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-  ylim(0, 1500) +
-  xlim(210, 260) +
+  scale_x_continuous(limits = c(210, 270), breaks = seq(213, 269, by = 14), labels = format(x = (as.Date("2012-12-31") + seq(213, 269, by = 14)), "%b %d")) +
+  ylim(0, 1501) +
+  # xlim(210, 270) +
   facet_grid(year ~ stream) +
   labs(fill = "Origin") +
   ylab("Number of Samples") +
-  xlab("Day of Year") +
-  theme(text = element_text(size = 20)) #+
+  xlab("Date") +
+  theme(text = element_text(size = 18)) #+
 ggtitle("AHRP PWS Pink Salmon - number of samples")
 yday(Sys.Date())  # today's Julian date
 
@@ -136,7 +137,6 @@ oceanak_mod %>%
   geom_histogram(binwidth = 1) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-  ylim(0, 1500) +
   xlim(210, 260) +
   facet_grid(year ~ stream) +
   labs(fill = "Origin") +
