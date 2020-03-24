@@ -36,7 +36,7 @@ knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
 
 ```{r}
 hogan_paired_15_17_filter_parents %>% 
-  count(origin, SEX) %>% 
+  count(origin, Sex) %>% 
   spread(origin, n)
 ```
 
@@ -44,25 +44,70 @@ hogan_paired_15_17_filter_parents %>%
 
 ```{r}
 rs_15_17_0 <- hogan_paired_15_17_filter_parents %>%
-  group_by(origin, SEX) %>% 
+  group_by(origin, Sex) %>% 
   summarise(RS = mean(n, na.rm = TRUE))
 
 rs_15_17_0 %>%
   mutate(RS = round(RS, 3)) %>% 
-  spread(origin, RS)
+  spread(origin, RS) %>% 
+  mutate(RRS = Hatchery / Natural)
 ```
+
+Plot distribution of RS
+```{r}
+hogan_paired_15_17_filter_parents %>% 
+  filter(SEX != "?") %>% 
+  count(Sex, origin, n) %>% 
+  group_by(Sex, origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x = n, y = p, fill = origin)) +
+  geom_col(position = position_dodge2(preserve="single")) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  facet_grid(~ Sex) +
+  labs(title="Distribution of Family Size",
+       fill = "Parent Origin") +
+  xlab("Number of Offspring")+
+  ylab("Proportion of Parents")  +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
+
 
 # With a reduced sample size
 
+Equal sample size among sexes
 ```{r}
-rrs_15_17_0_sub <- sapply(seq(from = 100, to = 1700, by = 100), function(samp_n) {
+rrs_15_17_0_sub <- sapply(seq(from = 10, to = 1700, by = 10), function(samp_n) {
   sapply(1:100, function(rep_n) {
     hogan_paired_15_17_filter_parents %>%
-      group_by(origin, SEX) %>%
+      group_by(origin, Sex) %>%
       sample_n(samp_n, replace = FALSE) %>%
+      # group_by(origin, Sex) %>%
       summarise(RS = mean(n, na.rm = TRUE)) %>%
       spread(origin, RS) %>% 
-      group_by(SEX) %>% 
+      group_by(Sex) %>% 
+      summarise(RRS = Hatchery / Natural) %>% 
+      ungroup() %>% 
+      mutate(samp_n = samp_n,
+             rep_n = rep_n)
+  }, simplify = FALSE) %>% 
+    dplyr::bind_rows()
+}, simplify = FALSE) %>%
+  bind_rows()
+```
+
+Random subsample
+```{r}
+rrs_15_17_0_sub_rand <- sapply(seq(from = 100, to = 8000, by = 100), function(samp_n) {
+  sapply(1:100, function(rep_n) {
+    hogan_paired_15_17_filter_parents %>%
+      # group_by(origin, Sex) %>%
+      sample_n(samp_n, replace = FALSE) %>%
+      group_by(origin, Sex) %>%
+      summarise(RS = mean(n, na.rm = TRUE)) %>%
+      spread(origin, RS) %>% 
+      group_by(Sex) %>% 
       summarise(RRS = Hatchery / Natural) %>% 
       ungroup() %>% 
       mutate(samp_n = samp_n,
@@ -75,14 +120,56 @@ rrs_15_17_0_sub <- sapply(seq(from = 100, to = 1700, by = 100), function(samp_n)
 
 ## Plot
 
+All data with 2d contour
 ```{r}
 rrs_15_17_0_sub %>% 
   ggplot(aes(x = samp_n, y = RRS)) +
   geom_point(alpha = 0.1) + 
   stat_density_2d(aes(fill = after_stat(nlevel)), geom = "polygon") +
   ylim(c(0, 1)) +
-  facet_grid(. ~ SEX) +
+  facet_grid(. ~ Sex) +
   scale_fill_viridis_c()+
   theme_bw()
 ```
 
+## Power plot
+
+### Equal sample size among origin
+
+This simulations what would happen if we **chose** to genotype a subset of samples. **Note** here we are assuming that we would take a random subsample of parents **within** each origin and sex (i.e. equal sample size by sex and origin)>
+
+Find 95% range of RRS (2.5-97.5% interval)
+```{r}
+rrs_15_17_0_sub %>% 
+  filter(!RRS %in% c("NaN", "Inf")) %>% 
+  group_by(Sex, samp_n) %>% 
+  summarise(high = quantile(RRS, probs = 0.975),
+            low = quantile(RRS, probs = 0.025)) %>% 
+  ggplot(aes(x = samp_n, ymin = low, ymax = high)) +
+  geom_ribbon(fill = "grey30") +
+  facet_grid(. ~ Sex) +
+  xlab("Sample Size of Parents for Each Origin") +
+  ylab("RRS Estimate") +
+  ggtitle("Equal Sample Sizes: Bootstrapped 95% Range of RRS Estimates") +
+  theme_bw()
+```
+
+### Random subsample of samples
+
+This simulates what would have happened if there had been less field sample (i.e. we only got a fraction of the samples, would be random with respect to origin and sex).
+
+Find 95% range of RRS (2.5-97.5% interval)
+```{r}
+rrs_15_17_0_sub_rand %>% 
+  filter(!RRS %in% c("NaN", "Inf")) %>% 
+  group_by(Sex, samp_n) %>% 
+  summarise(high = quantile(RRS, probs = 0.975),
+            low = quantile(RRS, probs = 0.025)) %>% 
+  ggplot(aes(x = samp_n, ymin = low, ymax = high)) +
+  geom_ribbon(fill = "grey30") +
+  facet_grid(. ~ Sex) +
+  xlab("Sample Size of Parents for Each Origin") +
+  ylab("RRS Estimate") +
+  ggtitle("Random: Bootstrapped 95% Range of RRS Estimates") +
+  theme_bw()
+```
