@@ -27,14 +27,17 @@ knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
 ```{r}
 (hogan_paired_15_17_filter <- read_csv("hogan_paired_15_17_filter.csv"))
 
-(hogan_paired_15_17_filter_parents <- read_csv("hogan_paired_15_17_filter_parents.csv"))
+(hogan_paired_15_17_filter_parents <- read_csv("hogan_paired_15_17_filter_parents.csv") %>% 
+    filter(SEX != "?")
+)
 ```
 
 # Sample Sizes
 
 ```{r}
 hogan_paired_15_17_filter_parents %>% 
-  count(origin, SEX)
+  count(origin, SEX) %>% 
+  spread(origin, n)
 ```
 
 # Calculate RS with all samples
@@ -46,7 +49,7 @@ rs_15_17_0 <- hogan_paired_15_17_filter_parents %>%
 
 rs_15_17_0 %>%
   mutate(RS = round(RS, 3)) %>% 
-  spread(SEX, RS)
+  spread(origin, RS)
 ```
 
 # With a reduced sample size
@@ -55,7 +58,6 @@ rs_15_17_0 %>%
 rrs_15_17_0_sub <- sapply(seq(from = 100, to = 1700, by = 100), function(samp_n) {
   sapply(1:100, function(rep_n) {
     hogan_paired_15_17_filter_parents %>%
-      filter(SEX != "?") %>%
       group_by(origin, SEX) %>%
       sample_n(samp_n, replace = FALSE) %>%
       summarise(RS = mean(n, na.rm = TRUE)) %>%
