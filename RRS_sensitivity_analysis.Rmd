@@ -1,5 +1,5 @@
 ---
-title: "Hogan 2015/2017 Sensitivity Analysis: How many parents to sample?"
+title: "RRS Sensitivity Analysis: How many parents to genotype?"
 output:
   html_notebook:
     theme: united
@@ -22,17 +22,49 @@ knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
 
 # Background
 
-# Read in data
+For many of the PWS pink salmon fitness streams, we have thousands of tissue samples from each origin and sex. The number of parents that we genotype by origin and sex is the number of draws we get from a given distribution of RS for each origin/sex (i.e. sample size). In some cases, we may have more parent samples for some origin/sex combinations than strictly necessary to estimate RRS. In this notebook, I'm going to go back and subsample fewer parents (*bootstrap*) to see how that would affect our estimates of RRS. The goal of this exercise is to determine if we can scale back some of the genotyping for parent years where we have several thousand samples for some origin/sex combinations. For example, do we really need to genotype 4,383 hatchery-origin parents from Hogan 2015 to get an accurate estimate of RRS?
+
+## Things to keep in mind
+
+Parent sample size is just **one** factor that affects power to detect RRS < 1. Others include:
+
+  * True RRS
+  * Sampled proportion of offspring
+  * Productivity (true R/S in a given BY)
+
+# Objectives
+
+  1) Estimate RRS with full sample size for Hogan 2015/2017 and Stockdale 2015/2017  
+  2) Bootstrap RRS estimates with subsamples of parents, equal sample size by sex and origin
+  3) Compare bootstrapped estimates to see what parent sample sizes were necessary to detect different levels of RRS
+
+# Read in parent data
 
 ```{r}
-(hogan_paired_15_17_filter <- read_csv("hogan_paired_15_17_filter.csv"))
+(
+  hogan_paired_15_17_filter_parents <-
+    read_csv("Hogan/hogan_paired_15_17_filter_parents.csv") %>%
+    filter(SEX != "?") %>%
+    mutate(origin = factor(
+      x = origin, levels = c("Natural", "Hatchery")
+    ))
+)
 
-(hogan_paired_15_17_filter_parents <- read_csv("hogan_paired_15_17_filter_parents.csv") %>% 
-    filter(SEX != "?")
+(
+  stock_paired_15_17_filter_parents <-
+    read_csv("Stockdale/stock_paired_15_17_filter_parents.csv") %>%
+    filter(SEX != "?") %>%
+    mutate(origin = factor(
+      x = origin, levels = c("Natural", "Hatchery")
+    ))
 )
 ```
 
 # Sample Sizes
+
+What were the sample sizes of parents by sex and origin? How many draws from the distribution of reproductive success were we getting?
+
+## Hogan 2015
 
 ```{r}
 hogan_paired_15_17_filter_parents %>% 
@@ -40,14 +72,24 @@ hogan_paired_15_17_filter_parents %>%
   spread(origin, n)
 ```
 
-# Calculate RS with all samples
+## Stockdale 2015
 
 ```{r}
-rs_15_17_0 <- hogan_paired_15_17_filter_parents %>%
+stock_paired_15_17_filter_parents %>% 
+  count(origin, Sex) %>% 
+  spread(origin, n)
+```
+
+# Calculate RS and RRS with all samples
+
+## Hogan 2015
+
+```{r}
+hogan_rs_15_17_0 <- hogan_paired_15_17_filter_parents %>%
   group_by(origin, Sex) %>% 
   summarise(RS = mean(n, na.rm = TRUE))
 
-rs_15_17_0 %>%
+hogan_rs_15_17_0 %>%
   mutate(RS = round(RS, 3)) %>% 
   spread(origin, RS) %>% 
   mutate(RRS = Hatchery / Natural)
@@ -73,17 +115,55 @@ hogan_paired_15_17_filter_parents %>%
   theme(text = element_text(size = 20))
 ```
 
+## Stockdale 2015
 
-# With a reduced sample size
-
-Equal sample size among sexes
 ```{r}
-rrs_15_17_0_sub <- sapply(seq(from = 10, to = 1700, by = 10), function(samp_n) {
-  sapply(1:100, function(rep_n) {
+stock_rs_15_17_0 <- stock_paired_15_17_filter_parents %>%
+  group_by(origin, Sex) %>% 
+  summarise(RS = mean(n, na.rm = TRUE))
+
+stock_rs_15_17_0 %>%
+  mutate(RS = round(RS, 3)) %>% 
+  spread(origin, RS) %>% 
+  mutate(RRS = Hatchery / Natural)
+```
+
+Plot distribution of RS
+```{r}
+stock_paired_15_17_filter_parents %>% 
+  filter(SEX != "?") %>% 
+  count(Sex, origin, n) %>% 
+  group_by(Sex, origin) %>% 
+  mutate(p = nn / sum(nn)) %>% 
+  ggplot(aes(x = n, y = p, fill = origin)) +
+  geom_col(position = position_dodge2(preserve="single")) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  facet_grid(~ Sex) +
+  labs(title="Distribution of Family Size",
+       fill = "Parent Origin") +
+  xlab("Number of Offspring")+
+  ylab("Proportion of Parents")  +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
+
+# Bootstrapped RRS with a reduced sample size of parents
+
+**Note** all of this is done with equal sample size among sexes and origins. The reason for this is that in any subsampling scheme we design, we want to maximize power by gettiNg equal sample sizes among all 4 distributions we are trying to estimate (hatchery females, natural females, hatchery males, and natural males). On the other hand, a random subsample would represent a decrease in field sampling (i.e. what if the crews did not sample as intensively). What we are trying to do here is simulate what would happen if we had explicitly chosen to genotype a subsample of the available field samples. All sampling is **with** replacement.
+
+## Hogan 2015
+
+This simulates what would happen if we **chose** to genotype a subset of samples. **Note** here we are assuming that we would take a random subsample of parents **within** each origin and sex (i.e. equal sample size by sex and origin).
+
+NEED TO ADD CODE FOR POWER: DID WE DETECT RRS < 1 OR NOT?
+```{r}
+hogan_rs_15_17_0_sub <- sapply(seq(from = 10, to = 1700, by = 10), function(samp_n) {
+  sapply(1:1000, function(rep_n) {
     hogan_paired_15_17_filter_parents %>%
-      group_by(origin, Sex) %>%
-      sample_n(samp_n, replace = FALSE) %>%
-      # group_by(origin, Sex) %>%
+      group_by(origin, Sex) %>%  # this gives us a stratified sample, random within origin and Sex
+      sample_n(samp_n, replace = TRUE) %>%
+      # group_by(origin, Sex) %>%  # this would give you a random sample
       summarise(RS = mean(n, na.rm = TRUE)) %>%
       spread(origin, RS) %>% 
       group_by(Sex) %>% 
@@ -97,14 +177,35 @@ rrs_15_17_0_sub <- sapply(seq(from = 10, to = 1700, by = 10), function(samp_n) {
   bind_rows()
 ```
 
-Random subsample
+### Bootstrap plot
+
+Find 95% range of RRS (2.5-97.5% interval). These stop at 1700 fish, because that is the lowest number of parents for any given origin/sex combination (i.e. only 1717 natural-origin females in Hogan 2015)
 ```{r}
-rrs_15_17_0_sub_rand <- sapply(seq(from = 100, to = 8000, by = 100), function(samp_n) {
-  sapply(1:100, function(rep_n) {
-    hogan_paired_15_17_filter_parents %>%
-      # group_by(origin, Sex) %>%
-      sample_n(samp_n, replace = FALSE) %>%
-      group_by(origin, Sex) %>%
+hogan_rs_15_17_0_sub %>% 
+  filter(!RRS %in% c("NaN", "Inf")) %>% 
+  group_by(Sex, samp_n) %>% 
+  summarise(high = quantile(RRS, probs = 0.975),
+            low = quantile(RRS, probs = 0.025)) %>% 
+  ggplot(aes(x = samp_n, ymin = low, ymax = high)) +
+  geom_ribbon(fill = "grey30") +
+  geom_hline(yintercept = 1, colour = "red") +
+  facet_grid(. ~ Sex) +
+  xlab("Sample Size of Parents for Each Origin") +
+  ylab("RRS Estimate") +
+  ggtitle("Bootstrapped 95% Range of RRS Estimates with Equal Sample Size by Origin") +
+  theme_bw()
+```
+
+## Stockdale 2015
+
+This simulates what would happen if we **chose** to genotype a subset of samples. **Note** here we are assuming that we would take a random subsample of parents **within** each origin and sex (i.e. equal sample size by sex and origin).
+```{r}
+stock_rs_15_17_0_sub <- sapply(seq(from = 10, to = 1700, by = 10), function(samp_n) {
+  sapply(1:1000, function(rep_n) {
+    stock_paired_15_17_filter_parents %>%
+      group_by(origin, Sex) %>%  # this gives us a stratified sample, random within origin and Sex
+      sample_n(samp_n, replace = TRUE) %>%
+      # group_by(origin, Sex) %>%  # this would give you a random sample
       summarise(RS = mean(n, na.rm = TRUE)) %>%
       spread(origin, RS) %>% 
       group_by(Sex) %>% 
@@ -118,58 +219,21 @@ rrs_15_17_0_sub_rand <- sapply(seq(from = 100, to = 8000, by = 100), function(sa
   bind_rows()
 ```
 
-## Plot
+### Bootstrap plot
 
-All data with 2d contour
+Find 95% range of RRS (2.5-97.5% interval). These stop at 1700 fish, because that is the lowest number of parents for any given origin/sex combination (i.e. only XXX natural-origin females in Stockdale 2015)
 ```{r}
-rrs_15_17_0_sub %>% 
-  ggplot(aes(x = samp_n, y = RRS)) +
-  geom_point(alpha = 0.1) + 
-  stat_density_2d(aes(fill = after_stat(nlevel)), geom = "polygon") +
-  ylim(c(0, 1)) +
-  facet_grid(. ~ Sex) +
-  scale_fill_viridis_c()+
-  theme_bw()
-```
-
-## Power plot
-
-### Equal sample size among origin
-
-This simulations what would happen if we **chose** to genotype a subset of samples. **Note** here we are assuming that we would take a random subsample of parents **within** each origin and sex (i.e. equal sample size by sex and origin)>
-
-Find 95% range of RRS (2.5-97.5% interval)
-```{r}
-rrs_15_17_0_sub %>% 
+stock_rs_15_17_0_sub %>% 
   filter(!RRS %in% c("NaN", "Inf")) %>% 
   group_by(Sex, samp_n) %>% 
   summarise(high = quantile(RRS, probs = 0.975),
             low = quantile(RRS, probs = 0.025)) %>% 
   ggplot(aes(x = samp_n, ymin = low, ymax = high)) +
   geom_ribbon(fill = "grey30") +
+  geom_hline(yintercept = 1, colour = "red") +
   facet_grid(. ~ Sex) +
   xlab("Sample Size of Parents for Each Origin") +
   ylab("RRS Estimate") +
-  ggtitle("Equal Sample Sizes: Bootstrapped 95% Range of RRS Estimates") +
-  theme_bw()
-```
-
-### Random subsample of samples
-
-This simulates what would have happened if there had been less field sample (i.e. we only got a fraction of the samples, would be random with respect to origin and sex).
-
-Find 95% range of RRS (2.5-97.5% interval)
-```{r}
-rrs_15_17_0_sub_rand %>% 
-  filter(!RRS %in% c("NaN", "Inf")) %>% 
-  group_by(Sex, samp_n) %>% 
-  summarise(high = quantile(RRS, probs = 0.975),
-            low = quantile(RRS, probs = 0.025)) %>% 
-  ggplot(aes(x = samp_n, ymin = low, ymax = high)) +
-  geom_ribbon(fill = "grey30") +
-  facet_grid(. ~ Sex) +
-  xlab("Sample Size of Parents for Each Origin") +
-  ylab("RRS Estimate") +
-  ggtitle("Random: Bootstrapped 95% Range of RRS Estimates") +
+  ggtitle("Bootstrapped 95% Range of RRS Estimates with Equal Sample Size by Origin") +
   theme_bw()
 ```
