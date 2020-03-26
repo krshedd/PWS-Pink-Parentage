@@ -40,6 +40,8 @@ Parent sample size is just **one** factor that affects power to detect RRS < 1. 
 
 # Read in parent data
 
+This is parent-centric data, one row = one potential parent (fish sampled in 2015), `n` is the number of returning adult offspring sampled in 2017 that were assigned to that potential parent via parentage analysis in `FRANz`.
+
 ```{r}
 (
   hogan_paired_15_17_filter_parents <-
@@ -66,6 +68,11 @@ What were the sample sizes of parents by sex and origin? How many draws from the
 
 ## Hogan 2015
 
+We purposely chose to genotype more potential parents than necessary for Hogan 2015 in order to do this type of sensitivity analysis. Since natural-origin fish represent parents for one generation and offspring from the previous generation, we chose to genotype all available natural-origin fish since we want to maximize the proportion of offspring genotyped for the previous generation. The main question for the sensitivity analysis is how many hatchery-origin parents do we need to genotype to:
+
+  1) determine if RRS < 1, and
+  2) get a precise estimate of RRS
+
 ```{r}
 hogan_paired_15_17_filter_parents %>% 
   count(origin, Sex) %>% 
@@ -82,7 +89,11 @@ stock_paired_15_17_filter_parents %>%
 
 # Calculate RS and RRS with all samples
 
+Average reproductive success (RS) by sex and origin, as well as the relative reproductive success (RRS).
+
 ## Hogan 2015
+
+RRS for Hogan 2015 is very low, ~16%. With this large of an effect size, it likely will not take very many parents genotyped to be able to conclude that RRS < 1.
 
 ```{r}
 hogan_rs_15_17_0 <- hogan_paired_15_17_filter_parents %>%
@@ -95,8 +106,11 @@ hogan_rs_15_17_0 %>%
   mutate(RRS = Hatchery / Natural)
 ```
 
-Plot distribution of RS
-```{r}
+### Plot distribution of RS
+
+Most potential parents did not have any offspring assigned (>95%). Family sizes were very small.
+
+```{r, fig.width=10}
 hogan_paired_15_17_filter_parents %>% 
   filter(SEX != "?") %>% 
   count(Sex, origin, n) %>% 
@@ -117,6 +131,8 @@ hogan_paired_15_17_filter_parents %>%
 
 ## Stockdale 2015
 
+RRS for Stockdale 2015 is higher than Hogan 2015. Given this smaller effect size, it will take more parents genotyped than Hogan 2015 to be able to conclude that RRS < 1.
+
 ```{r}
 stock_rs_15_17_0 <- stock_paired_15_17_filter_parents %>%
   group_by(origin, Sex) %>% 
@@ -128,8 +144,11 @@ stock_rs_15_17_0 %>%
   mutate(RRS = Hatchery / Natural)
 ```
 
-Plot distribution of RS
-```{r}
+### Plot distribution of RS
+
+Most potential parents did not have any offspring assigned (>95%). Family sizes were very small.
+
+```{r fig.width=10}
 stock_paired_15_17_filter_parents %>% 
   filter(SEX != "?") %>% 
   count(Sex, origin, n) %>% 
@@ -156,21 +175,37 @@ stock_paired_15_17_filter_parents %>%
 
 This simulates what would happen if we **chose** to genotype a subset of samples. **Note** here we are assuming that we would take a random subsample of parents **within** each origin and sex (i.e. equal sample size by sex and origin).
 
-NEED TO ADD CODE FOR POWER: DID WE DETECT RRS < 1 OR NOT?
 ```{r}
-hogan_rs_15_17_0_sub <- sapply(seq(from = 10, to = 1700, by = 10), function(samp_n) {
+hogan_rs_15_17_0_sub <- sapply(seq(from = 10, to = 2000, by = 10), function(samp_n) {
   sapply(1:1000, function(rep_n) {
-    hogan_paired_15_17_filter_parents %>%
+    
+    # stratified subsample by origin and sex for `samp_n` individuals
+    my_subsample <- hogan_paired_15_17_filter_parents %>%
       group_by(origin, Sex) %>%  # this gives us a stratified sample, random within origin and Sex
-      sample_n(samp_n, replace = TRUE) %>%
-      # group_by(origin, Sex) %>%  # this would give you a random sample
+      sample_n(samp_n, replace = TRUE) %>% 
+      ungroup()
+    
+    # p-value for permutation test by sex for RRS < 1 (coin package)
+    my_p_values <- my_subsample %>% 
+      split(.$Sex) %>% 
+      map(~coin::oneway_test(n ~ origin, data = ., distribution = approximate(nresample = 10000))) %>% 
+      map(~coin::pvalue(., alternative = "greater")) %>% 
+      map(as.numeric) %>% 
+      as_tibble() %>% 
+      gather(Sex, p_value)
+    
+    # calculate RS and RRS, join with p-value
+    my_subsample %>% 
+      group_by(origin, Sex) %>% 
       summarise(RS = mean(n, na.rm = TRUE)) %>%
       spread(origin, RS) %>% 
       group_by(Sex) %>% 
       summarise(RRS = Hatchery / Natural) %>% 
       ungroup() %>% 
       mutate(samp_n = samp_n,
-             rep_n = rep_n)
+             rep_n = rep_n) %>% 
+      left_join(my_p_values, by = "Sex")
+    
   }, simplify = FALSE) %>% 
     dplyr::bind_rows()
 }, simplify = FALSE) %>%
