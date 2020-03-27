@@ -176,45 +176,77 @@ stock_paired_15_17_filter_parents %>%
 This simulates what would happen if we **chose** to genotype a subset of samples. **Note** here we are assuming that we would take a random subsample of parents **within** each origin and sex (i.e. equal sample size by sex and origin).
 
 ```{r}
-hogan_rs_15_17_0_sub <- sapply(seq(from = 10, to = 2000, by = 10), function(samp_n) {
-  sapply(1:1000, function(rep_n) {
-    
-    # stratified subsample by origin and sex for `samp_n` individuals
-    my_subsample <- hogan_paired_15_17_filter_parents %>%
-      group_by(origin, Sex) %>%  # this gives us a stratified sample, random within origin and Sex
-      sample_n(samp_n, replace = TRUE) %>% 
-      ungroup()
-    
-    # p-value for permutation test by sex for RRS < 1 (coin package)
-    my_p_values <- my_subsample %>% 
-      split(.$Sex) %>% 
-      map(~coin::oneway_test(n ~ origin, data = ., distribution = approximate(nresample = 10000))) %>% 
-      map(~coin::pvalue(., alternative = "greater")) %>% 
-      map(as.numeric) %>% 
-      as_tibble() %>% 
-      gather(Sex, p_value)
-    
-    # calculate RS and RRS, join with p-value
-    my_subsample %>% 
-      group_by(origin, Sex) %>% 
-      summarise(RS = mean(n, na.rm = TRUE)) %>%
-      spread(origin, RS) %>% 
-      group_by(Sex) %>% 
-      summarise(RRS = Hatchery / Natural) %>% 
-      ungroup() %>% 
-      mutate(samp_n = samp_n,
-             rep_n = rep_n) %>% 
-      left_join(my_p_values, by = "Sex")
-    
-  }, simplify = FALSE) %>% 
-    dplyr::bind_rows()
-}, simplify = FALSE) %>%
-  bind_rows()
+hogan_rs_15_17_0_sub <-
+  sapply(seq(from = 50, to = 2000, by = 50), function(samp_n) {  # loop over number of subsamples
+    sapply(1:1000, function(rep_n) {  # loop over repetitions for a given number of subsamples
+      
+      # stratified subsample by origin and sex for `samp_n` individuals
+      my_subsample <- hogan_paired_15_17_filter_parents %>%
+        dplyr::group_by(origin, Sex) %>%  # this gives us a stratified sample, random within origin and Sex
+        dplyr::sample_n(samp_n, replace = TRUE) %>%
+        dplyr::ungroup()
+      
+      # p-value for permutation test by sex for RRS < 1 (coin package)
+      if (sum(subset(x = my_subsample, Sex == "Female")$n) == 0 |
+          sum(subset(x = my_subsample, Sex == "Male")$n) == 0)  # deal with n = 0 for all
+      {
+        my_p_values <-
+          tibble::tibble(Sex = c("Female", "Male"),
+                         p_value = c(1, 1))
+      } else {
+        my_p_values <- my_subsample %>%
+          base::split(.$Sex) %>%
+          purrr::map(~ coin::oneway_test(
+            n ~ origin,
+            data = .,
+            distribution = approximate(nresample = 10000)
+          )) %>%
+          purrr::map(~ coin::pvalue(., alternative = "greater")) %>%
+          purrr::map(as.numeric) %>%
+          tibble::as_tibble() %>%
+          tidyr::gather(Sex, p_value)
+      }
+      
+      # calculate RS and RRS, join with p-value
+      my_subsample %>%
+        dplyr::group_by(origin, Sex) %>%
+        dplyr::summarise(RS = mean(n, na.rm = TRUE)) %>%
+        tidyr::spread(origin, RS) %>%
+        dplyr::group_by(Sex) %>%
+        dplyr::summarise(RRS = Hatchery / Natural) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(samp_n = samp_n,
+                      rep_n = rep_n) %>%
+        dplyr::left_join(my_p_values, by = "Sex")
+      
+    }, simplify = FALSE) %>%
+      dplyr::bind_rows()
+  }, simplify = FALSE) %>%
+  dplyr::bind_rows()
+```
+
+### Power plot
+
+How often did we detect that RRS < 1 via a permutation test (*alpha* = 0.05)? **Note** our best estimate of RRS is ~ 16% for both males and females, thus we should expect that we need a relatively low sample size to detect RRS < 1.
+
+```{r}
+hogan_rs_15_17_0_sub %>% 
+  group_by(Sex, samp_n) %>% 
+  summarise(power = sum(p_value <= 0.05) / 1000) %>% 
+  ggplot(aes(x = samp_n, y = power)) +
+  geom_line() +
+  geom_hline(yintercept = 0.8, colour = "red") +
+  facet_grid(. ~ Sex) +
+  xlab("Sample Size of Parents for Each Origin") +
+  ylab("Power") +
+  ggtitle("Power to Detect RRS < 1 with Equal Sample Size by Origin") +
+  theme_bw()
 ```
 
 ### Bootstrap plot
 
-Find 95% range of RRS (2.5-97.5% interval). These stop at 1700 fish, because that is the lowest number of parents for any given origin/sex combination (i.e. only 1717 natural-origin females in Hogan 2015)
+Find 95% range of RRS (2.5-97.5% interval).
+
 ```{r}
 hogan_rs_15_17_0_sub %>% 
   filter(!RRS %in% c("NaN", "Inf")) %>% 
@@ -234,24 +266,73 @@ hogan_rs_15_17_0_sub %>%
 ## Stockdale 2015
 
 This simulates what would happen if we **chose** to genotype a subset of samples. **Note** here we are assuming that we would take a random subsample of parents **within** each origin and sex (i.e. equal sample size by sex and origin).
+
 ```{r}
-stock_rs_15_17_0_sub <- sapply(seq(from = 10, to = 1700, by = 10), function(samp_n) {
-  sapply(1:1000, function(rep_n) {
-    stock_paired_15_17_filter_parents %>%
-      group_by(origin, Sex) %>%  # this gives us a stratified sample, random within origin and Sex
-      sample_n(samp_n, replace = TRUE) %>%
-      # group_by(origin, Sex) %>%  # this would give you a random sample
-      summarise(RS = mean(n, na.rm = TRUE)) %>%
-      spread(origin, RS) %>% 
-      group_by(Sex) %>% 
-      summarise(RRS = Hatchery / Natural) %>% 
-      ungroup() %>% 
-      mutate(samp_n = samp_n,
-             rep_n = rep_n)
-  }, simplify = FALSE) %>% 
-    dplyr::bind_rows()
-}, simplify = FALSE) %>%
-  bind_rows()
+stock_rs_15_17_0_sub <-
+  sapply(seq(from = 50, to = 1000, by = 50), function(samp_n) {  # loop over number of subsamples
+    sapply(1:1000, function(rep_n) {  # loop over repetitions for a given number of subsamples
+      
+      # stratified subsample by origin and sex for `samp_n` individuals
+      my_subsample <- stock_paired_15_17_filter_parents %>%
+        dplyr::group_by(origin, Sex) %>%  # this gives us a stratified sample, random within origin and Sex
+        dplyr::sample_n(samp_n, replace = TRUE) %>%
+        dplyr::ungroup()
+      
+      # p-value for permutation test by sex for RRS < 1 (coin package)
+      if (sum(subset(x = my_subsample, Sex == "Female")$n) == 0 |
+          sum(subset(x = my_subsample, Sex == "Male")$n) == 0)  # deal with n = 0 for all
+      {
+        my_p_values <-
+          tibble::tibble(Sex = c("Female", "Male"),
+                         p_value = c(1, 1))
+      } else {
+        my_p_values <- my_subsample %>%
+          base::split(.$Sex) %>%
+          purrr::map(~ coin::oneway_test(
+            n ~ origin,
+            data = .,
+            distribution = approximate(nresample = 10000)
+          )) %>%
+          purrr::map(~ coin::pvalue(., alternative = "greater")) %>%
+          purrr::map(as.numeric) %>%
+          tibble::as_tibble() %>%
+          tidyr::gather(Sex, p_value)
+      }
+      
+      # calculate RS and RRS, join with p-value
+      my_subsample %>%
+        dplyr::group_by(origin, Sex) %>%
+        dplyr::summarise(RS = mean(n, na.rm = TRUE)) %>%
+        tidyr::spread(origin, RS) %>%
+        dplyr::group_by(Sex) %>%
+        dplyr::summarise(RRS = Hatchery / Natural) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(samp_n = samp_n,
+                      rep_n = rep_n) %>%
+        dplyr::left_join(my_p_values, by = "Sex")
+      
+    }, simplify = FALSE) %>%
+      dplyr::bind_rows()
+  }, simplify = FALSE) %>%
+  dplyr::bind_rows()
+```
+
+### Power plot
+
+How often did we detect that RRS < 1 via a permutation test (*alpha* = 0.05)? **Note** our best estimate of RRS is ~ 16% for both males and females, thus we should expect that we need a relatively low sample size to detect RRS < 1.
+
+```{r}
+stock_rs_15_17_0_sub %>% 
+  group_by(Sex, samp_n) %>% 
+  summarise(power = sum(p_value <= 0.05) / 1000) %>% 
+  ggplot(aes(x = samp_n, y = power)) +
+  geom_line() +
+  geom_hline(yintercept = 0.8, colour = "red") +
+  facet_grid(. ~ Sex) +
+  xlab("Sample Size of Parents for Each Origin") +
+  ylab("Power") +
+  ggtitle("Power to Detect RRS < 1 with Equal Sample Size by Origin") +
+  theme_bw()
 ```
 
 ### Bootstrap plot
