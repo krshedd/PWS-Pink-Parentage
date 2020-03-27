@@ -1087,7 +1087,7 @@ extraction_eP011 %>%
   count(`Silly Code`, `Tissue Type`)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### eP012: Create extraction list for Gimour 2019 ####
+#### eP011 part 2: Create extraction list for Gimour 2019 ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # We already have created a list for Gilmour 2014-2018
 # At the time, we did not have otolith reads for 2019 (natural-only)
@@ -1137,6 +1137,62 @@ extraction_eP012 <- bind_rows(Gilmour_19) %>%
 write_csv(x = extraction_eP012, path = "../Extraction/eP012_Extraction_List_200128.csv")
 
 save.image("../Extraction/eP012_Extraction_List_200128.RData")
+
+extraction_eP012 %>% 
+  count(`Silly Code`, `Tissue Type`)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP012: Create extraction list for Stockdale/Hogan 2019 ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# We already have created a list for Gilmour 2014-2018
+# At the time, we did not have otolith reads for 2019 (natural-only)
+
+#### Read in OceanAK data ####
+require(tidyverse)
+oceanak <- read_csv(file = "~/../Desktop/Local_PWS_pinks/OceanAK/Salmon Biological Data 2 - Kyle's Filter_PHOGAN19_PSTOCK19_20200326.csv")
+
+## Modify for extraction list prep
+oceanak <- oceanak %>% 
+  replace_na(list(`Well Has More Than One Sample` = 0, `Is Missing Paired Data Exists` = 0)) %>% 
+  mutate(`DNA Tray Code` = str_pad(string = `DNA Tray Code`, width = 10, pad = "0", side = "left")) %>% 
+  mutate(`DNA Tray Well Code` = str_pad(string = `DNA Tray Well Code`, width = 2, pad = "0", side = "left")) %>% 
+  mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>% 
+  unite(col = "SillySource", c("Silly Code", "Fish ID"), sep = "_", remove = FALSE) %>% 
+  filter(`Well Has More Than One Sample` != 1) %>% 
+  filter(`Is Missing Paired Data Exists` != 1) %>% 
+  filter(Sex %in% c("M", "F"))
+
+## How many samples we got?
+oceanak %>% 
+  count(`Location Code`, `Sample Year`) %>% 
+  spread(`Sample Year`, n, fill = 0)
+
+## How about what we want to extract
+oceanak %>% 
+  filter(`Sample Year` == 2019 & `Location Code` %in% c("Hogan Creek", "Stockdale Creek")) %>%  # we have deep sixed this year
+  count(`Sample Year`, `Otolith Mark Present`, `Location Code`)
+
+# Just go ahead and extract all 2019 Gilmour natural-origin
+
+#### Filter for Gilmour 2019 Samples ####
+Hogan_Stockdale_natural_2019 <- oceanak %>%
+  filter(
+    `Location Code` %in% c("Hogan Creek", "Stockdale Creek") &
+      `Sample Year` == 2019 &
+      `Otolith Mark Present` == "NO"
+  )  # need NA's from 2019 as we don't have reads yet
+
+
+#### Combine tibbles ####
+
+extraction_eP012 <- bind_rows(Hogan_Stockdale_natural_2019) %>% 
+  select(`Silly Code`, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Tissue Type`) %>% 
+  arrange(`Silly Code`, `Fish ID`)
+
+write_csv(x = extraction_eP012, path = "~/../Desktop/Local_PWS_pinks/Extraction/eP012_Extraction_List_200326.csv")
+
+save.image("~/../Desktop/Local_PWS_pinks/Extraction/eP012_Extraction_List_200326.RData")
 
 extraction_eP012 %>% 
   count(`Silly Code`, `Tissue Type`)
