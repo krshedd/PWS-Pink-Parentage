@@ -922,7 +922,9 @@ Get dam and sire for each offspring 2015/2017
 )
 ```
 
-### Plot pedigrees
+### Plot pedigrees with `kinship2`
+
+This failed because it won't plot for single parents...
 
 ```{r}
 pedigree_df <- bind_rows(
@@ -1014,23 +1016,25 @@ pedigree_df %>%
   
 ```
 
-
-
+### Plot pedigrees with `visPedigree`
 
 ```{r}
-parent1 <- parents_paired_15_17 %>% 
-  filter(Sex.par == "Male") %>%
-  spread(Sex.par, Parent_ID) %>% 
-  dplyr::select(Offspring, Male, Sex.off, origin.off)
-
-parent2 <- parents_paired_15_17 %>% 
-  filter(Sex.par == "Female") %>%
-  spread(Sex.par, Parent_ID) %>% 
-  dplyr::select(Offspring, Female, Sex.off, origin.off)
-
-parent1 %>% 
-  full_join(parent2, by = c("Offspring", "Sex.off", "origin.off"))
+(
+  pedigree_vis <- pedigree_df %>%
+    dplyr::rename(ID = Offspring) %>%
+    dplyr::select(ID, Sire, Dam, Sex)
+)
 ```
+
+```{r}
+(pedigree_tdy <- tidyped(pedigree_vis))
+```
+
+```{r}
+visped(pedigree_tdy)
+```
+
+
 
 ## Summary of odd lineage results
 1. Almost all exclusion probabilities were equal to 1, which means we can be confident in the ability of our marker set to correctly assign parents to offspring.  
