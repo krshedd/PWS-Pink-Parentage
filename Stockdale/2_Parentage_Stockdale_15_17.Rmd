@@ -1003,17 +1003,15 @@ pedigree_df <- bind_rows(
     
 )
 
-
 pedigree_df %>% 
+  replace_na(list(Sire = "0", Dam = "0")) %>% 
   with(.,
-     pedigree(id = Offspring, dadid = Sire, momid = Dam, sex = Sex, affected = Origin))
-  
-
-
-
-
-
-  
+       fixParents(id = Offspring, dadid = Sire, momid = Dam, sex = Sex, missid = "0")) %>% 
+  left_join(pedigree_df, by = c("id" = "Offspring")) %>% 
+  dplyr::select(-Sire, -Dam, -Sex) %>% 
+  with(.,
+     pedigree(id, dadid, momid, sex, missid = "0", affected = as.factor(Origin))) %>% 
+  plot
 ```
 
 ### Plot pedigrees with `visPedigree`
