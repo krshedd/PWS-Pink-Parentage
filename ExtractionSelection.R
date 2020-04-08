@@ -1196,3 +1196,37 @@ save.image("~/../Desktop/Local_PWS_pinks/Extraction/eP012_Extraction_List_200326
 
 extraction_eP012 %>% 
   count(`Silly Code`, `Tissue Type`)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP013: Create extraction list for Otolith DNA Experiment ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Need an extraction list for paired right-side otolith and heart tissues from known PSTOCK17 samples
+# This is the test to see if we can succesfully genotype otoltih DNA
+
+#### Read in OceanAK data ####
+require(tidyverse)
+
+#Inventory of otoliths
+inventory <- read_csv(file = "~/../Desktop/Local_PWS_pinks/AHRP PWS Otoliths for DNA Inventory.csv")
+
+inventory_mod <- inventory %>% 
+  dplyr::rename(`Silly Code` = SILLY, `DNA Tray Code` = Barcode, `DNA Tray Well Code` = `Well #`, Otolith = `Otolith Present?`) %>% 
+  filter(Otolith == 1)
+
+# Tissue table of hearts from OceanAK
+tissue <- read_csv("~/../Desktop/Local_PWS_pinks/OceanAK/PSTOCK17_GEN_SAMPLED_FISH_TISSUE.csv")
+
+# rename and filter for only non-consumed hearts
+tissue_mod <- tissue %>%
+  dplyr::rename(`Fish ID` = FK_FISH_ID, `Tissue Type` = PK_TISSUE_TYPE, `DNA Tray Code` = DNA_TRAY_CODE, `DNA Tray Well Code` = DNA_TRAY_WELL_CODE, Exhausted = EXHAUSTED_HOW) %>% 
+  dplyr::select(`Silly Code`, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Tissue Type`, Exhausted) %>% 
+  filter(`Tissue Type` == "Heart-bulbus arteriosus" & is.na(Exhausted)) %>% 
+  arrange(`Silly Code`, `Fish ID`)
+
+# Join and write
+inner_join(tissue_mod, inventory_mod) %>% 
+  arrange(`Fish ID`) %>% 
+  dplyr::select(`Silly Code`, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Tissue Type`, WBID) %>% 
+  write_csv(path = "~/../Desktop/Local_PWS_pinks/Extraction/eP013_Extraction_List_200407.csv")
+
+save.image("~/../Desktop/Local_PWS_pinks/Extraction/eP013_Extraction_List_200407.csv")
