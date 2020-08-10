@@ -16,6 +16,7 @@ library(tidyverse)
 library(leaflet)
 library(lubridate)
 library(ggExtra)
+library(pscl)
 
 knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
 ```
@@ -234,8 +235,8 @@ hogan_rs_15_17_0_sub %>%
   group_by(Sex, samp_n) %>% 
   summarise(power = sum(p_value <= 0.05) / 1000) %>% 
   ggplot(aes(x = samp_n, y = power)) +
-  geom_line() +
-  geom_hline(yintercept = 0.8, colour = "red") +
+  geom_line(lwd = 3) +
+  geom_hline(yintercept = 0.8, colour = "red", lwd = 2) +
   facet_grid(. ~ Sex) +
   xlab("Sample Size of Parents for Each Origin") +
   ylab("Power") +
@@ -255,12 +256,13 @@ hogan_rs_15_17_0_sub %>%
             low = quantile(RRS, probs = 0.025)) %>% 
   ggplot(aes(x = samp_n, ymin = low, ymax = high)) +
   geom_ribbon(fill = "grey30") +
-  geom_hline(yintercept = 1, colour = "red") +
+  geom_hline(yintercept = 1, colour = "red", lwd = 2) +
   facet_grid(. ~ Sex) +
   xlab("Sample Size of Parents for Each Origin") +
   ylab("RRS Estimate") +
   ggtitle("Bootstrapped 95% Range of RRS Estimates with Equal Sample Size by Origin") +
-  theme_bw()
+  # theme_bw()
+  theme_linedraw()
 ```
 
 ## Stockdale 2015
@@ -326,8 +328,8 @@ stock_rs_15_17_0_sub %>%
   group_by(Sex, samp_n) %>% 
   summarise(power = sum(p_value <= 0.05) / 1000) %>% 
   ggplot(aes(x = samp_n, y = power)) +
-  geom_line() +
-  geom_hline(yintercept = 0.8, colour = "red") +
+  geom_line(lwd = 3) +
+  geom_hline(yintercept = 0.8, colour = "red", lwd = 2) +
   facet_grid(. ~ Sex) +
   xlab("Sample Size of Parents for Each Origin") +
   ylab("Power") +
@@ -346,10 +348,207 @@ stock_rs_15_17_0_sub %>%
             low = quantile(RRS, probs = 0.025)) %>% 
   ggplot(aes(x = samp_n, ymin = low, ymax = high)) +
   geom_ribbon(fill = "grey30") +
-  geom_hline(yintercept = 1, colour = "red") +
+  geom_hline(yintercept = 1, colour = "red", lwd = 2) +
   facet_grid(. ~ Sex) +
   xlab("Sample Size of Parents for Each Origin") +
   ylab("RRS Estimate") +
   ggtitle("Bootstrapped 95% Range of RRS Estimates with Equal Sample Size by Origin") +
+  theme_linedraw()
+  # theme_bw()
+```
+
+# Conclusions
+
+Need ~ 250 samples to detect RRS < 1 when estimated RRS is ~17% (Hogan 2015/2017, both sexes), but didn't hit diminishing marginal returns of RRS until 500-1000 samples of each sex.
+
+For Stockdale females (RRS ~ 41%), we achieved power to reliably detect RRS < 1 by ~ 500 samples
+
+For Stockdale males (RRS ~ 67%), we never achieved power to reliably detect RRS < 1, even with 1000 samples per origin/sex (power ~ 0.4-0.5).
+
+# Building off of Bobby Hsu's Analyses
+
+## Bootstrap
+
+Bobby took a slightly different tack than I did in doing the sensitivity analyses. Whereas I used a permutation test to demonstrate what sample size would be necessary to have Power = 0.8 and plotted the 95% bootstrapped range of RRS estimates, Bobby estimated the following:  
+
+  * <1 - proportion of bootstrapped RRS values with RRS < 1
+  * Mean - mean of bootstrapped RRS values
+  * Median - median of bootstrapped RRS values
+  * SD - sd of bootstrapped RRS values
+  * q_0.05 - 5% quantile of bootstrapped RRS values
+  * q_0.95 - 95% quantile of bootstrapped RRS values
+  * CV - coefficient of variation (sd / mean) of bootstrapped RRS values
+  * a - proportion of bootstraps within 0.1 of the *true* RRS value
+
+Bobby displayed this data in tables, and histograms of RRS by sample size (see example below for Hogan Females)
+```{r}
+hogan_rs_15_17_0_sub %>%
+  filter(RRS < 100 & Sex == "Female") %>%
+  group_by(samp_n) %>%
+  summarise(
+    "<1" = mean(RRS < 1, na.rm = TRUE),
+    Mean = mean(RRS, na.rm = TRUE),
+    Median = median(RRS, na.rm = TRUE),
+    SD = sd(RRS, na.rm = TRUE),
+    q_0.05 = quantile(RRS, 0.05, na.rm = TRUE),
+    q_0.95 = quantile(RRS, 0.95, na.rm = TRUE),
+    CV = sd(RRS, na.rm = TRUE)/ mean(RRS, na.rm = TRUE),
+    a = mean(abs(RRS - 0.164) < 0.1) # estimated value ask calculated with full data set
+  ) %>% 
+  ungroup() %>% 
+  round(., 3)
+
+
+hogan_rs_15_17_0_sub %>% 
+  filter(!RRS %in% c("NaN", "Inf") & Sex == "Female" & RRS < 1) %>% 
+  ggplot(aes(x = RRS)) +
+  geom_histogram() +
+  facet_wrap(~samp_n) +
+  ggtitle("Bootstrapped 95% Range of RRS Estimates with Equal Sample Size by Origin") +
   theme_bw()
 ```
+
+## Simulation
+
+The main difference between Bobby's work and my own, was that I only focused on bootstrapping, while Bobby extended the bootstrap to data simulation. He used a zero-inflated Poisson distribution based on the parentage data to create simulated data. This would allow for exploring the sensitivity of RRS tests to other parameters.
+
+### Function
+```{r}
+# data simulation based on zero-inflated poisson
+dat_sim <-
+  function(n_dat,
+           p_nat = 0.5,
+           nat0f,
+           hat0f,
+           nat0m,
+           hat0m,
+           mu_nat_f,
+           mu_hat_f,
+           mu_nat_m,
+           mu_hat_m,
+           ...) {
+    ori <-
+      sample(
+        x = c("Natural", "Hatchery"),
+        size = n_dat,
+        prob = c(p_nat, 1 - p_nat),
+        replace = TRUE
+      )
+    
+    sex <-
+      sample(x = c("Female", "Male"),
+             size = n_dat,
+             replace = TRUE)
+    
+    p_0 <- rep(hat0m, n_dat)
+    p_0[ori == "Natural" & sex == "Female"] <- nat0f
+    p_0[ori == "Hatchery" & sex == "Female"] <- hat0f
+    p_0[ori == "Natural" & sex == "Male"] <- nat0m
+    
+    n_kid <- rbinom(n_dat, 1, prob = 1 - p_0)
+    n_kid[n_kid == 1 & ori == "Natural" & sex == "Female"] <-
+      rpois(length(n_kid[n_kid == 1 &
+                           ori == "Natural" & sex == "Female"]),
+            lambda = mu_nat_f)
+    n_kid[n_kid == 1 & ori == "Hatchery" & sex == "Female"] <-
+      rpois(length(n_kid[n_kid == 1 &
+                           ori == "Hatchery" & sex == "Female"]),
+            lambda = mu_hat_f)
+    n_kid[n_kid == 1 & ori == "Natural" & sex == "Male"] <-
+      rpois(length(n_kid[n_kid == 1 & ori == "Natural" &
+                           sex == "Male"]),
+            lambda = mu_nat_m)
+    n_kid[n_kid == 1 & ori == "Hatchery" & sex == "Male"] <-
+      rpois(length(n_kid[n_kid == 1 & ori == "Hatchery" &
+                           sex == "Male"]),
+            lambda = mu_hat_m)
+    
+    df <- data.frame(ori, sex, n_kid)
+    colnames(df) <- c("origin", "sex", "n_kid")
+    return(df)
+  }
+```
+
+### Fit Stockdale Data
+
+#### Zero-inflated Poisson
+```{r}
+mzip <-
+  pscl::zeroinfl(n ~ origin + Sex,
+                 dist = "poisson",
+                 link = "logit",
+                 data = stock_paired_15_17_filter_parents)
+
+summary(mzip)
+```
+
+Get model estimates for simulations
+```{r}
+mu_nf <- predict(mzip,
+                 newdata = data.frame(origin = "Natural", Sex = "Female"),
+                 type = "count") # exp(-0.34981)
+mu_nm <- predict(mzip,
+                 newdata = data.frame(origin = "Natural", Sex = "Male"),
+                 type = "count") # exp(-0.34981- 0.23937)
+mu_hf <- predict(mzip,
+                 newdata = data.frame(origin = "Hatchery", Sex = "Female"),
+                 type = "count") # exp(-0.34981- 0.06408)
+mu_hm <- predict(mzip,
+                 newdata = data.frame(origin = "Hatchery", Sex = "Male"),
+                 type = "count") # exp(-0.34981- 0.06408- 0.23937)
+n0f <- predict(mzip,
+               newdata = data.frame(origin = "Natural", Sex = "Female"),
+               type = "zero") # plogis(1.751)
+n0m <- predict(mzip,
+               newdata = data.frame(origin = "Natural", Sex = "Male"),
+               type = "zero") # plogis(1.751+ 0.0219)
+h0f <- predict(mzip,
+               newdata = data.frame(origin = "Hatchery", Sex = "Female"),
+               type = "zero") # plogis(1.751+ 0.6665)
+h0m <- predict(mzip,
+               newdata = data.frame(origin = "Hatchery", Sex = "Male"),
+               type = "zero") # plogis(1.751+ 0.6665+ 0.0219)
+```
+
+
+#### Zero-inflated Negative Binomial
+
+```{r}
+mzib <-
+  pscl::zeroinfl(n ~ origin + Sex,
+                 dist = "negbin",
+                 link = "logit",
+                 data = stock_paired_15_17_filter_parents)
+
+summary(mzib)
+```
+
+
+Get model estimates for simulations
+```{r}
+mu_nf <- predict(mzib,
+                 newdata = data.frame(origin = "Natural", Sex = "Female"),
+                 type = "count") # exp(-0.34981)
+mu_nm <- predict(mzib,
+                 newdata = data.frame(origin = "Natural", Sex = "Male"),
+                 type = "count") # exp(-0.34981- 0.23937)
+mu_hf <- predict(mzib,
+                 newdata = data.frame(origin = "Hatchery", Sex = "Female"),
+                 type = "count") # exp(-0.34981- 0.06408)
+mu_hm <- predict(mzib,
+                 newdata = data.frame(origin = "Hatchery", Sex = "Male"),
+                 type = "count") # exp(-0.34981- 0.06408- 0.23937)
+n0f <- predict(mzib,
+               newdata = data.frame(origin = "Natural", Sex = "Female"),
+               type = "zero") # plogis(1.751)
+n0m <- predict(mzib,
+               newdata = data.frame(origin = "Natural", Sex = "Male"),
+               type = "zero") # plogis(1.751+ 0.0219)
+h0f <- predict(mzib,
+               newdata = data.frame(origin = "Hatchery", Sex = "Female"),
+               type = "zero") # plogis(1.751+ 0.6665)
+h0m <- predict(mzib,
+               newdata = data.frame(origin = "Hatchery", Sex = "Male"),
+               type = "zero") # plogis(1.751+ 0.6665+ 0.0219)
+```
+
