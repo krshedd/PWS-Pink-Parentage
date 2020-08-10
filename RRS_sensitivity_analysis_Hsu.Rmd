@@ -1,0 +1,635 @@
+---
+title: "RRS Parents Sample Size"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
+library(tidyverse)
+```
+
+# Objectives
+In this document I focused mainly on:
+
+1) Bootstrap RRS estimates with subsamples of parents, equal sample size by sex and origin.
+2) Compare bootstrapped estimates to see what parent sample sizes were necessary to detect different levels of RRS.
+3) Develop a data simulation complementary to the resampling method.
+
+```{r data, eval=FALSE, include=FALSE}
+hogan_paired_15_17_filter_parents <- 
+  read_csv("hogan_paired_15_17_filter_parents.csv") %>%
+  filter(SEX != "?") %>%
+  mutate(
+    origin = factor(x = origin, levels = c("Natural", "Hatchery"))
+  )
+
+stock_paired_15_17_filter_parents <-
+  read_csv("stock_paired_15_17_filter_parents.csv") %>%
+  filter(SEX != "?") %>%
+  mutate(origin = factor(
+    x = origin, levels = c("Natural", "Hatchery")
+  ))
+```
+
+# Bootstrap Resampling
+I modified your bootstrap procedures for the RRS analysis. I did not end up using the permutation test, but I kept the same structures for resampling.
+
+I simulated new datasets by resampling the original data for Hogan Bay and Stockdale. Original datasets were stratified by origin and sex so there were four strata of equal sample sizes in each resample. resampled datasets ranged from 100 to 2,000 fish per stratum. I simulated 1,000 dataset for each sample size selected.
+
+```{r bootstarp-hogan-ori-sex, eval=FALSE}
+# resample by origin and sex
+hogan_origin_sex <-
+  sapply(c(seq(from= 200, to= 2000, by= 100),
+         seq(from= 2200, to= 4000, by= 200)),
+         function(samp_n) { # loop over number of subsamples
+            sexy <- "seg" # if segregate sexes for resampling
+            if (sexy== "seg") samp_n <- samp_n/ 2
+
+           sapply(1:1000,
+                  function(rep_n) { # n rep for a given subsamples
+            # stratified subsample by origin and sex
+            # for `samp_n` individuals
+            my_subsample <- hogan_paired_15_17_filter_parents %>%
+              {if (sexy== "seg") dplyr::group_by(., origin, Sex) 
+                else dplyr::group_by(., origin)} %>%
+              # this gives us a stratified sample
+              # random within origin and (optional) Sex
+              dplyr::sample_n(samp_n, replace = TRUE) %>%
+              dplyr::summarise(RS = mean(n, na.rm = TRUE)) %>%
+              tidyr::spread(origin, RS) %>%
+              {if (sexy== "seg") dplyr::group_by(., Sex)
+                else .} %>%
+              dplyr::summarise(RRS = Hatchery/ Natural) %>%
+              dplyr::ungroup() %>%
+              dplyr::mutate(samp_n = samp_n,
+                            rep_n = rep_n)
+          }, # rep_n
+          simplify = FALSE) %>%
+      dplyr::bind_rows()
+           
+    }, # samp_n
+    simplify = FALSE) %>%
+  dplyr::bind_rows()
+
+save(hogan_origin_sex, file= "hogan_origin_sex.Rdata")
+```
+
+```{r bootstarp-stockdale-ori-sex, eval=FALSE}
+stockdale_origin_sex <-
+  sapply(c(seq(from= 200, to= 2000, by= 100),
+         seq(from= 2200, to= 4000, by= 200)),
+         function(samp_n) { # loop over number of subsamples
+            sexy <- "seg" # if segregate sexes for resampling
+            if (sexy== "seg") samp_n <- samp_n/ 2
+
+           sapply(1:1000,
+                  function(rep_n) { # n rep for a given subsamples
+            # stratified subsample by origin and sex
+            # for `samp_n` individuals
+            my_subsample <- stock_paired_15_17_filter_parents %>%
+              {if (sexy== "seg") dplyr::group_by(., origin, Sex) 
+                else dplyr::group_by(., origin)} %>%
+              # this gives us a stratified sample
+              # random within origin and (optional) Sex
+              dplyr::sample_n(samp_n, replace = TRUE) %>%
+              dplyr::summarise(RS = mean(n, na.rm = TRUE)) %>%
+              tidyr::spread(origin, RS) %>%
+              {if (sexy== "seg") dplyr::group_by(., Sex)
+                else .} %>%
+              dplyr::summarise(RRS = Hatchery/ Natural) %>%
+              dplyr::ungroup() %>%
+              dplyr::mutate(samp_n = samp_n,
+                            rep_n = rep_n)
+          }, # rep_n
+          simplify = FALSE) %>%
+      dplyr::bind_rows()
+           
+    }, # samp_n
+    simplify = FALSE) %>%
+  dplyr::bind_rows()
+
+save(stockdale_origin_sex, file= "stockdale_origin_sex.Rdata")
+
+```
+
+To assess RRS estimates from the resamples, I calculated the mean, median, standard deviation (SD), 90% confidence interval (CI), coefficient of variation (CV), and portion of estimates within 0.1 from the true population RRS. I used the RRS calculated from the original dataset as the "true" population RRS.
+
+
+# Resampling Results
+## Hogan Bay Female
+The results were summarized in the following table. *samp_n* was the number of resamples per stratum (four strata in this case), *<1* was the portion of resampled datasets with RRS < 1, *q_0.05* and *q_0.95* were the 5^th^ and 95^th^ percentiles of simulated estimates, and *a* was the portion of estimates within 0.1 from the true population RRS. 
+
+```{r hogan-female}
+load("hogan_origin_sex.Rdata")
+
+f_out<- hogan_origin_sex %>%
+  filter(RRS< 100 & Sex== "Female") %>%
+  group_by(samp_n) %>%
+  summarise(
+    "<1" = mean(RRS< 1, na.rm= TRUE),
+    Mean = mean(RRS, na.rm= TRUE),
+    Median = median(RRS, na.rm= TRUE),
+    SD = sd(RRS, na.rm= TRUE),
+    q_0.05 = quantile(RRS, 0.05, na.rm= TRUE),
+    q_0.95 = quantile(RRS, 0.95, na.rm= TRUE),
+    CV = sd(RRS, na.rm=T)/ mean(RRS, na.rm= TRUE),
+    a = mean(abs(RRS- 0.164)< 0.1)
+  ) %>% 
+  ungroup()
+
+round(f_out, 3)
+```
+
+With a sample size of 250 or more, our resamples consistently got a RRS estimate < 1 more than 99% of the time. The precision of RRS estimates increased with more samples per stratum. However, CV got as low as 0.298.
+
+The means of resamples tended to overestimate RRS while the medians tended to be more accurate in this case, especially when the sample size was small.
+
+With a sample size more than 1,400 per stratum, our resamples showed that RRS estimates were within 0.1 of the true RRS at least 90% of the time for Hogan females.
+
+Below showed the distributions of RRS estimates for each given sample size for Hogan female. The x-axis was truncated at 1.
+
+```{r dist-female, message=FALSE}
+hogan_origin_sex %>%
+  filter(RRS< 1 & Sex== "Female") %>%
+  ggplot(aes(RRS)) +
+  geom_histogram() +
+  facet_wrap(vars(samp_n)) + 
+  ggtitle("Hogan Female")
+
+```
+
+The plot below showed the mean, median and 90% CI for resamples with given sample sizes for Hogan females. Confidence intervals were plotted in black vertical bars. Horizontal red dash line represented the true population RRS.
+
+```{r range-female}
+cols<- c("Median"= "black", "Mean"= "dodgerblue")
+
+f_out %>%
+  ggplot() +
+  geom_hline(
+    yintercept= 0.16, linetype= "dashed", color= "red", size= 1.2) +
+  geom_segment(
+    aes(x= samp_n, y= q_0.05, xend= samp_n, yend= q_0.95), size= 2) +
+  geom_point(aes(x= samp_n, y= Mean, color= "Mean"), size= 3.5) +
+  geom_point(aes(x= samp_n, y= Median, color= "Median"), size= 3.5) +
+  scale_colour_manual(name= "Est. RRS", values= cols) +
+  labs(title= "Hogan Female", x= "Sample per stratum", y= "RRS")
+
+```
+
+Below showed the portion of RRS estimates within 0.1 of the true RRS according to sample size for Hogan females. Horizontal red dash line indicated 0.9.
+
+```{r d-female}
+f_out %>%
+  ggplot(aes(x= samp_n, y= a)) +
+  geom_hline(
+    yintercept= 0.9, linetype= "dashed", color= "red", size= 1.2) +
+  geom_line(size= 2, color= "dodgerblue") +
+  geom_point(size= 2.2, color= "dodgerblue") +
+  labs(title= "Hogan Female",
+       x= "Sample per stratum",
+       y= "Precision") +
+  ylim(0, 1)
+
+```
+
+
+## Hogan Bay Male
+Below showed the summary table in the same fashion as the previous section.
+
+```{r hogan-male}
+m_out<- hogan_origin_sex %>%
+  filter(RRS< 100 & Sex== "Male") %>%
+  group_by(samp_n) %>%
+  summarise(
+    "<1" = mean(RRS< 1, na.rm= TRUE),
+    Mean = mean(RRS, na.rm= TRUE),
+    Median = median(RRS, na.rm= TRUE),
+    SD = sd(RRS, na.rm= TRUE),
+    q_0.05 = quantile(RRS, 0.05, na.rm= TRUE),
+    q_0.95 = quantile(RRS, 0.95, na.rm= TRUE),
+    CV = sd(RRS, na.rm=T)/ mean(RRS, na.rm= TRUE),
+    a = mean(abs(RRS- 0.161)< 0.1)
+  ) %>% 
+  ungroup()
+
+round(m_out, 3)
+
+```
+
+With a sample size greater than 200, our resamples consistently got a RRS estimate < 1 more than 99% of times for Hogan males. The precision of RRS estimates increased with more samples per stratum. CV got as low as 0.27 in our resamples.
+
+With a sample size of 950 or more per stratum, our resamples showed that RRS estimates were within 0.1 of the true RRS at least 90% of the time for Hogan males.
+
+Below showed the distributions of RRS estimates for given sample sizes for Hogan males. The x-axis was truncated at 1.
+
+```{r dist-male, message=FALSE}
+hogan_origin_sex %>%
+  filter(RRS< 1 & Sex== "Male") %>%
+  ggplot(aes(RRS)) +
+  geom_histogram() +
+  facet_wrap(vars(samp_n)) + 
+  ggtitle("Hogan Male")
+
+```
+
+The plot below showed the mean, median and 90% CI for resamples with given sample sizes for Hogan males. Confidence intervals were plotted in black vertical bars. Horizontal red dash line represented the true population value for RRS.
+
+```{r range-male}
+cols<- c("Median"= "black", "Mean"= "dodgerblue")
+
+m_out %>%
+  ggplot() +
+  geom_hline(
+    yintercept= 0.16, linetype= "dashed", color= "red", size= 1.2) +
+  geom_segment(
+    aes(x= samp_n, y= q_0.05, xend= samp_n, yend= q_0.95), size= 2) +
+  geom_point(aes(x= samp_n, y= Mean, color= "Mean"), size= 3.5) +
+  geom_point(aes(x= samp_n, y= Median, color= "Median"), size= 3.5) +
+  scale_colour_manual(name= "Est. RRS", values= cols) +
+  labs(title= "Hogan Male", x= "Sample per stratum", y= "RRS")
+
+```
+
+Below showed the portion of RRS estimates within 0.1 from the true RRS according to sample size for Hogan males. Horizontal red dash line indicated 0.9.
+
+```{r d-male}
+m_out %>%
+  ggplot(aes(x= samp_n, y= a)) +
+  geom_hline(
+    yintercept= 0.9, linetype= "dashed", color= "red", size= 1.2) +
+  geom_line(size= 2, color= "dodgerblue") +
+  geom_point(size= 2.2, color= "dodgerblue") +
+  labs(title= "Hogan Male",
+       x= "Sample per stratum",
+       y= "Precision") +
+  ylim(0, 1)
+
+```
+
+
+## Stockdale Female
+Below showed the summary table in the same fashion as previous sections.
+
+```{r stockdale-female}
+load("stockdale_origin_sex.Rdata")
+
+s_f_out<- stockdale_origin_sex %>%
+  filter(RRS< 100 & Sex== "Female") %>%
+  group_by(samp_n) %>%
+  summarise(
+    "<1" = mean(RRS< 1, na.rm= TRUE),
+    Mean = mean(RRS, na.rm= TRUE),
+    Median = median(RRS, na.rm= TRUE),
+    SD = sd(RRS, na.rm= TRUE),
+    q_0.05 = quantile(RRS, 0.05, na.rm= TRUE),
+    q_0.95 = quantile(RRS, 0.95, na.rm= TRUE),
+    CV = sd(RRS, na.rm=T)/ mean(RRS, na.rm= TRUE),
+    a = mean(abs(RRS- 0.411)< 0.1)
+  ) %>% 
+  ungroup()
+
+round(s_f_out, 3)
+```
+
+With a sample size of 350 or more, our resamples consistently got a RRS estimate < 1 more than 99% of times. It is worth noting that results simulated from a sample sizes of 150 or less had an upper bound of 90% CI greater than one. The precision of RRS estimates increased with more samples per stratum. CV in our resample got to as low as 0.168 in our resamples.
+
+We were unable to obtain a RRS estimate within 0.1 of the true RRS more than 90% of the time in our resamples for Stockdale females. The highest portion was 85.5% with 2,000 samples per stratum.
+
+Below showed the distributions of RRS estimates for each given sample size for Stockdale female. The x-axis was truncated at 2.
+
+```{r s-dist-female, message=FALSE}
+stockdale_origin_sex %>%
+  filter(RRS< 2 & Sex== "Female") %>%
+  ggplot(aes(RRS)) +
+  geom_histogram() +
+  facet_wrap(vars(samp_n)) + 
+  ggtitle("Stockdale Female")
+
+```
+
+The plot below showed the mean, median and 90% CI for resamples with given sample sizes for Stockdale females. Confidence intervals were plotted in black vertical bars. Horizontal red dash line represented the true population value for RRS.
+
+```{r s-range-female}
+cols<- c("Median"= "black", "Mean"= "dodgerblue")
+
+s_f_out %>%
+  ggplot() +
+  geom_hline(
+    yintercept= 0.41, linetype= "dashed", color= "red", size= 1.2) +
+  geom_segment(
+    aes(x= samp_n, y= q_0.05, xend= samp_n, yend= q_0.95), size= 2) +
+  geom_point(aes(x= samp_n, y= Mean, color= "Mean"), size= 3.5) +
+  geom_point(aes(x= samp_n, y= Median, color= "Median"), size= 3.5) +
+  scale_colour_manual(name= "Est. RRS", values= cols) +
+  labs(title= "Stockdale Female", x= "Sample per stratum", y= "RRS")
+
+```
+
+Below showed the portion of RRS estimates within 0.1 from the true RRS according sample size for Stockdale females. Horizontal red dash line indicated 0.9.
+
+```{r s-d-female}
+s_f_out %>%
+  ggplot(aes(x= samp_n, y= a)) +
+  geom_hline(
+    yintercept= 0.9, linetype= "dashed", color= "red", size= 1.2) +
+  geom_line(size= 2, color= "dodgerblue") +
+  geom_point(size= 2.2, color= "dodgerblue") +
+  labs(title= "Stockdale Female",
+       x= "Sample per stratum",
+       y= "Precision") +
+  ylim(0, 1)
+
+```
+
+
+## Stockdale Male
+Below showed the summary table in the same fashion as previous sections.
+
+```{r stockdale-male}
+s_m_out<- stockdale_origin_sex %>%
+  filter(RRS< 100 & Sex== "Male") %>%
+  group_by(samp_n) %>%
+  summarise(
+    "<1" = mean(RRS< 1, na.rm= TRUE),
+    Mean = mean(RRS, na.rm= TRUE),
+    Median = median(RRS, na.rm= TRUE),
+    SD = sd(RRS, na.rm= TRUE),
+    q_0.05 = quantile(RRS, 0.05, na.rm= TRUE),
+    q_0.95 = quantile(RRS, 0.95, na.rm= TRUE),
+    CV = sd(RRS, na.rm=T)/ mean(RRS, na.rm= TRUE),
+    a = mean(abs(RRS- 0.667)< 0.1)
+  ) %>% 
+  ungroup()
+
+round(s_m_out, 3)
+
+```
+
+With a sample size of 1,800 or more, our resamples were able to get RRS estimates < 1 more than 99% of the time for Stockdale males. Sample size of 850 or less has a 90% CIs that included one. The lowest CV in our resamples was 0.159.
+
+We were unable to obtain a RRS estimate within 0.1 of the true RRS more than 90% of the time in our resamples for Stockdale males. The highest portion was 65.6% with 2,000 samples per stratum.
+
+Below showed the distributions of RRS estimates for each given sample size for Stockdale males. The x-axis was truncated at 2.
+
+```{r s-dist-male, message=FALSE}
+stockdale_origin_sex %>%
+  filter(RRS< 2 & Sex== "Male") %>%
+  ggplot(aes(RRS)) +
+  geom_histogram() +
+  facet_wrap(vars(samp_n)) + 
+  ggtitle("Stockdale Male")
+
+```
+
+The plot below showed the mean, median and 90% CI for resamples with given sample sizes for Stockdale males. Confidence intervals were plotted in black vertical bars. Horizontal red dash line represented the true population value for RRS.
+
+```{r s-range-male}
+cols<- c("Median"= "black", "Mean"= "dodgerblue")
+
+s_m_out %>%
+  ggplot() +
+  geom_hline(
+    yintercept= 0.67, linetype= "dashed", color= "red", size= 1.2) +
+  geom_segment(
+    aes(x= samp_n, y= q_0.05, xend= samp_n, yend= q_0.95), size= 2) +
+  geom_point(aes(x= samp_n, y= Mean, color= "Mean"), size= 3.5) +
+  geom_point(aes(x= samp_n, y= Median, color= "Median"), size= 3.5) +
+  scale_colour_manual(name= "Est. RRS", values= cols) +
+  labs(title= "Stockdale Male", x= "Sample per stratum", y= "RRS")
+
+```
+
+Below showed the portion of RRS estimates within 0.1 from the true RRS according sample size for Stockdale males. Horizontal red dash line indicated 0.9.
+
+```{r s-d-male}
+s_m_out %>%
+  ggplot(aes(x= samp_n, y= a)) +
+  geom_hline(
+    yintercept= 0.9, linetype= "dashed", color= "red", size= 1.2) +
+  geom_line(size= 2, color= "dodgerblue") +
+  geom_point(size= 2.2, color= "dodgerblue") +
+  labs(title= "Stockdale Male",
+       x= "Sample per stratum",
+       y= "Precision") +
+  ylim(0, 1)
+
+```
+
+
+# Data Simulation
+In addition to the resampling, I developed a simulation method for RRS. The model behind the simulation was a zero-inflated Poisson distribution for the number of offspring from each parent.
+
+```{r zip-it-simulator}
+# data simulation based on zero-inflated poisson
+dat_sim<- function(n_dat, p_nat=0.5, nat0f, hat0f, nat0m, hat0m, mu_nat_f, mu_hat_f, mu_nat_m, mu_hat_m,...) {
+  ori<- sample(c("Natural","Hatchery"), n_dat,
+               prob= c(p_nat, 1- p_nat), replace= TRUE)
+  sex<- sample(c("Female","Male"), n_dat, replace= TRUE)
+
+  p_0<- rep(hat0m, n_dat)
+  p_0[ori=="Natural" & sex=="Female"]<- nat0f
+  p_0[ori=="Hatchery" & sex=="Female"]<- hat0f
+  p_0[ori=="Natural" & sex=="Male"]<- nat0m
+  
+  n_kid<- rbinom(n_dat, 1, prob= 1- p_0)
+  n_kid[n_kid==1 & ori=="Natural" & sex=="Female"]<-
+    rpois(length(n_kid[n_kid==1 & ori=="Natural" & sex=="Female"]),
+          lambda= mu_nat_f)
+  n_kid[n_kid==1 & ori=="Hatchery" & sex=="Female"]<-
+    rpois(length(n_kid[n_kid==1 & ori=="Hatchery" & sex=="Female"]),
+          lambda= mu_hat_f)
+  n_kid[n_kid==1 & ori=="Natural" & sex=="Male"]<-
+    rpois(length(n_kid[n_kid==1 & ori=="Natural" & sex=="Male"]),
+          lambda= mu_nat_m)
+  n_kid[n_kid==1 & ori=="Hatchery" & sex=="Male"]<-
+    rpois(length(n_kid[n_kid==1 & ori=="Hatchery" & sex=="Male"]),
+          lambda= mu_hat_m)
+
+    df<- data.frame(ori, sex, n_kid)
+  colnames(df) <- c("origin","sex","n_kid")
+  return(df)
+}
+
+```
+
+To illustrate, I fitted a zero-inflated Poisson regression model to the Stockdale data. And the parameter estimates were used for simulations of new datasets.
+
+```{r le-zi-poisson}
+mzip<- pscl::zeroinfl(n~ origin+ Sex, dist= "poisson", link= "logit", data= stock_paired_15_17_filter_parents)
+
+summary(mzip)
+
+mu_nf<- predict(mzip,
+               newdata= data.frame(origin= "Natural", Sex= "Female"),
+               type= "count") # exp(-0.34981)
+mu_nm<- predict(mzip,
+                newdata= data.frame(origin= "Natural", Sex= "Male"),
+                type= "count") # exp(-0.34981- 0.23937)
+mu_hf<- predict(mzip,
+               newdata= data.frame(origin= "Hatchery", Sex= "Female"),
+               type= "count") # exp(-0.34981- 0.06408)
+mu_hm<- predict(mzip,
+                newdata= data.frame(origin= "Hatchery", Sex= "Male"),
+                type= "count") # exp(-0.34981- 0.06408- 0.23937)
+n0f<- predict(mzip,
+             newdata= data.frame(origin= "Natural", Sex= "Female"),
+             type= "zero") # plogis(1.751)
+n0m<- predict(mzip,
+             newdata= data.frame(origin= "Natural", Sex= "Male"),
+             type= "zero") # plogis(1.751+ 0.0219)
+h0f<- predict(mzip,
+             newdata= data.frame(origin= "Hatchery", Sex= "Female"),
+             type= "zero") # plogis(1.751+ 0.6665)
+h0m<- predict(mzip,
+              newdata= data.frame(origin= "Hatchery", Sex= "Male"),
+              type= "zero") # plogis(1.751+ 0.6665+ 0.0219)
+
+```
+
+```{r data-sim-stockdale, eval=FALSE}
+pnat<- 0.5 # portion for natural origin
+stockdale_simout <-
+  sapply(c(seq(from= 400, to= 8000, by= 400)),
+         function(samp_n) { # loop over number of subsamples
+
+           sapply(1:1000,
+                  function(rep_n) { # n rep for a given subsamples
+                    sim_dat <- dat_sim(samp_n, p_nat=pnat, # zip it
+                                       nat0f=n0f, hat0f=h0f,
+                                       nat0m=n0m, hat0m=h0m,
+                                       mu_nat_f=mu_nf, mu_hat_f=mu_hf,
+                                       mu_nat_m=mu_nm, mu_hat_m=mu_hm) %>%
+                      dplyr::group_by(origin, sex) %>%
+                      dplyr::summarise(rs = mean(n_kid)) %>%
+                      tidyr::spread(origin, rs) %>%
+                      dplyr::group_by(sex) %>%
+                      dplyr::summarise(rrs = Hatchery/ Natural) %>%
+                      dplyr::ungroup() %>%
+                      dplyr::mutate(samp_n = samp_n,
+                                    rep_n = rep_n)
+                  }, # rep_n
+                  simplify = FALSE) %>%
+             dplyr::bind_rows() %>%
+          dplyr::mutate(
+            # rrs calculations for zip it
+            real_rrs_f= ((1-h0f)*mu_hf)/ ((1-n0f)*mu_nf),
+            real_rrs_m= ((1-h0m)*mu_hm)/ ((1-n0m)*mu_nm)
+          )
+           
+         }, # samp_n
+         simplify = FALSE) %>%
+  dplyr::bind_rows()
+
+save(stockdale_simout, file= "stockdale_simout.Rdata")
+
+```
+
+Below showed the summary table for the simulated datasets in the same fashion as previous.
+
+```{r stockdale-sim-male}
+load(file= "stockdale_simout.Rdata")
+
+s_m_simout<- stockdale_simout %>%
+  filter(rrs< 100 & sex== "Male") %>%
+  group_by(samp_n) %>%
+  summarise(
+    "<1" = mean(rrs< 1, na.rm= TRUE),
+    Mean = mean(rrs, na.rm= TRUE),
+    Median = median(rrs, na.rm= TRUE),
+    SD = sd(rrs, na.rm= TRUE),
+    q_0.05 = quantile(rrs, 0.05, na.rm= TRUE),
+    q_0.95 = quantile(rrs, 0.95, na.rm= TRUE),
+    CV = sd(rrs, na.rm=T)/ mean(rrs, na.rm= TRUE),
+    a = mean(abs(rrs- real_rrs_m)< 0.1)
+  ) %>% 
+  ungroup()
+
+round(s_m_simout, 3)
+
+```
+
+Compared to the real Stockdale data, the simulated datasets of the same sizes had a slightly smaller SD. Which indicated that the simulation model didn't capture all the dispersion in the real data. However, I'm hopeful that overall simulation results were similar to the resampling. I also compared the simulations with Hogan Bay dataset (results not shown here), and they were very close to each other.
+
+In the simulation for Stockdale males, we were still unable to obtain a RRS estimate within 0.1 of the true RRS more than 90% of the time. If nothing else, this simulation validated the results from resampling.
+
+Below showed the distributions of RRS estimates for each given sample size for simulated datasets based on Stockdale males. The x-axis was truncated at 2.
+
+```{r sim-dist-male, message=FALSE}
+stockdale_simout %>%
+  filter(rrs< 2 & sex== "Male") %>%
+  ggplot(aes(rrs)) +
+  geom_histogram() +
+  facet_wrap(vars(samp_n)) + 
+  ggtitle("Stockdale Male - Simulation")
+
+```
+
+The plot below showed the mean, median and 90% CI for resamples with given sample sizes for simulated datasets based on Stockdale males. Confidence intervals were plotted in black vertical bars. Horizontal red dash line represented the true population value for RRS.
+
+```{r sim-range-male}
+cols<- c("Median"= "black", "Mean"= "dodgerblue")
+
+s_m_simout %>%
+  ggplot() +
+  geom_hline(
+    yintercept= 0.518, linetype= "dashed", color= "red", size= 1.2) +
+  geom_segment(
+    aes(x= samp_n, y= q_0.05, xend= samp_n, yend= q_0.95), size= 2) +
+  geom_point(aes(x= samp_n, y= Mean, color= "Mean"), size= 3.5) +
+  geom_point(aes(x= samp_n, y= Median, color= "Median"), size= 3.5) +
+  scale_colour_manual(name= "Est. RRS", values= cols) +
+  labs(title= "Stockdale Male - Simulation", x= "Sample per stratum", y= "RRS")
+
+```
+
+Below showed the portion of RRS estimates within 0.1 from the true RRS according sample size for simulated datasets based on Stockdale males. Horizontal red dash line indicated 0.9.
+
+```{r sim-d-male}
+s_m_simout %>%
+  ggplot(aes(x= samp_n, y= a)) +
+  geom_hline(
+    yintercept= 0.9, linetype= "dashed", color= "red", size= 1.2) +
+  geom_line(size= 2, color= "dodgerblue") +
+  geom_point(size= 2.2, color= "dodgerblue") +
+  labs(title= "Stockdale Male - Simulation",
+       x= "Sample per stratum",
+       y= "Precision") +
+  ylim(0, 1)
+
+```
+
+
+# Conclusions
+Resampling showed that we can obtain a good accuracy for RRS estimates with a relatively small sample size for either Hogan Bay or Stockdale. However, it would take a larger sample size to have a desire precision for RRS estimates within 0.1 from the true value 90% of the time. For Hogan Bay, it would take about 1,000 to 1,400 fish per stratum to achieve that precision. For Stockdale, I resampled up to 2,000 fish per stratum and the results never exceeded the desire threshold.
+
+I also developed a simulation model to create reproductive success data. The simulation results were very close to resampling. And overall both methods pointed to the same conclusions.
+
+An advantage of the simulation was that we can set parameter values for reproductive success and sampling proportions. This would allow more flexibility to explore different scenarios. For example, I simulated datasets with different proportions for natural and hatchery origins (results not shown here). I noticed an increase in variance in the unbalanced samples compared to samples with equal proportions. It was possible that the poor precision for Stockdale dataset was related to its unbalanced proportion between origins. More analyses combining simulation and resampling can be done to explore Stockdale sample size.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
