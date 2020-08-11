@@ -65,8 +65,8 @@ rm(.username, .password)
 
 Save objects
 ```{r save_locus_control_sillys}
-save_objects(objects = c("LocusControl", "loci", "sillyvec", "ProjectSillys"), path = "../../Objects/Stockdale_13_15/")
-save_sillys(sillyvec = sillyvec, path = "../../Genotypes/Stockdale_13_15/")
+# save_objects(objects = c("LocusControl", "loci", "sillyvec", "ProjectSillys"), path = "../../Objects/Stockdale_13_15/")
+# save_sillys(sillyvec = sillyvec, path = "../../Genotypes/Stockdale_13_15/")
 ```
 # OceanAK
 
@@ -85,14 +85,14 @@ oceanak %>%
 Subset
 ```{r}
 stock_oceanak <- oceanak %>% 
-  dplyr::filter(`Location Code` == "Stockdale Creek" & `Sample Year` %in% c(2013, 2015)) %>% 
+  dplyr::filter(`Location Code` == "Stockdale Creek" & `Sample Year` %in% c(2014, 2016)) %>% 
   tidyr::unite(silly_source, c("Silly Code", "Fish ID"), sep = "_", remove = FALSE)
 ```
 
 Verify all genotypes in OceanAK
 ```{r}
-table(PSTOCK13.gcl$attributes$SillySource %in% stock_oceanak$silly_source)
-table(PSTOCK15.gcl$attributes$SillySource %in% stock_oceanak$silly_source)
+table(PSTOCK14.gcl$attributes$SillySource %in% stock_oceanak$silly_source)
+table(PSTOCK16.gcl$attributes$SillySource %in% stock_oceanak$silly_source)
 ```
 
 What attribute names do we have since we used `read_project_genotypes.GCL` rather than `LOKI2R.GCL`?
@@ -104,28 +104,28 @@ names(PSTOCK13.gcl$attributes)
 ## Join attributes table
 Join *stock_oceanak* data to the attributes table of each silly. Already looked to verify that no tissues were missing or duplicated, this makes sense because the lab can't genotype tissue that aren't there and they never genotype two samples in a well.
 ```{r join_oceanak_stock}
-PSTOCK13.gcl$attributes <- PSTOCK13.gcl$attributes %>% 
+PSTOCK14.gcl$attributes <- PSTOCK14.gcl$attributes %>% 
   dplyr::left_join(stock_oceanak, by = c("SillySource" = "silly_source")) %>% 
   dplyr::select(FK_FISH_ID, SILLY_CODE, PLATE_ID, `DNA Tray Code`, `DNA Tray Well Code`, SillySource, `Sample Date`, Sex, `Length Mm`, `Location Code`, `Otolith Mark Present`, `Otolith Mark ID`, `Sample Year`) %>% 
   dplyr::rename(DNA_TRAY_CODE = "DNA Tray Code",
                 DNA_TRAY_WELL_CODE = "DNA Tray Well Code")
 
-PSTOCK15.gcl$attributes <- PSTOCK15.gcl$attributes %>% 
+PSTOCK16.gcl$attributes <- PSTOCK16.gcl$attributes %>% 
   dplyr::left_join(stock_oceanak, by = c("SillySource" = "silly_source")) %>% 
   dplyr::select(FK_FISH_ID, SILLY_CODE, PLATE_ID, `DNA Tray Code`, `DNA Tray Well Code`, SillySource, `Sample Date`, Sex, `Length Mm`, `Location Code`, `Otolith Mark Present`, `Otolith Mark ID`, `Sample Year`) %>% 
   dplyr::rename(DNA_TRAY_CODE = "DNA Tray Code",
                 DNA_TRAY_WELL_CODE = "DNA Tray Well Code")
 
-save_sillys(sillyvec = sillyvec, path = "../../Genotypes/Stockdale_13_15/OceanAK")
+# save_sillys(sillyvec = sillyvec, path = "../../Genotypes/Stockdale_13_15/OceanAK")
 ```
 
 
 ## Split by otolith-origin
 
-First we need to verify that we only have hatchery and natural-origin fish for the **F0** year (2013), and only natural-origin fish for the **F1** year (2015).
+First we need to verify that we only have hatchery and natural-origin fish for the **F0** year (2014), and only natural-origin fish for the **F1** year (2016).
 ```{r view_origin}
-dplyr::bind_rows(PSTOCK13.gcl$attributes, 
-                 PSTOCK15.gcl$attributes) %>% 
+dplyr::bind_rows(PSTOCK14.gcl$attributes, 
+                 PSTOCK16.gcl$attributes) %>% 
   count(SILLY_CODE, `Otolith Mark Present`) %>% 
   spread(`Otolith Mark Present`, n, fill = 0)
 ```
