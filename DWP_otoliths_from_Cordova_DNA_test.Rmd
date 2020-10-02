@@ -164,3 +164,28 @@ stockdale_17_join %>%
   write_csv("../Otolith Separation/DWP_otoliths_from_Cordova_DNA_test_20200318.csv")
 ```
 
+## Round 2 10/1/20
+
+These are the DWPs Crystal pulled
+```{r}
+crystal_DWPs <- as.numeric(readClipboard())
+```
+
+Are they all in my joined table? Did I type them in correctly?
+```{r}
+all(crystal_DWPs %in% stockdale_17_join$`DNA Tray Code`)
+```
+
+Cool, filter and arrange by n_genotyped
+```{r}
+stockdale_17_join %>% 
+  filter(`DNA Tray Code` %in% crystal_DWPs) %>% 
+  arrange(desc(n_genotyped))
+```
+
+```{r}
+stockdale_17_join %>% 
+  filter(`DNA Tray Code` %in% crystal_DWPs) %>% 
+  arrange(desc(n_genotyped)) %>% 
+  write_csv("../Otolith Separation/DWP_otoliths_from_Cordova_DNA_test_20201001.csv")
+```
