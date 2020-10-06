@@ -189,3 +189,202 @@ stockdale_17_join %>%
   arrange(desc(n_genotyped)) %>% 
   write_csv("../Otolith Separation/DWP_otoliths_from_Cordova_DNA_test_20201001.csv")
 ```
+
+## Round 2 10/6/20
+
+These are the DWPs Crystal pulled
+```{r}
+crystal_DWPs_2 <- as.numeric(readClipboard())
+```
+
+Are they all in my joined table? Did I type them in correctly?
+```{r}
+all(crystal_DWPs_2 %in% stockdale_17_join$`DNA Tray Code`)
+```
+
+Cool, filter and arrange by n_genotyped
+```{r}
+stockdale_17_join %>% 
+  filter(`DNA Tray Code` %in% crystal_DWPs_2) %>% 
+  arrange(desc(n_genotyped))
+```
+
+```{r}
+stockdale_17_join %>% 
+  filter(`DNA Tray Code` %in% crystal_DWPs_2) %>% 
+  arrange(desc(n_genotyped)) %>% 
+  write_csv("../Otolith Separation/DWP_otoliths_from_Cordova_DNA_test_20201006.csv")
+```
+
+# Hogan 2017
+
+How many samples per DWP?
+```{r}
+(
+  hogan_17 <- oceanak_mod %>%
+    filter(stream == "Hogan Creek" & year == 2017 & otolith_read == TRUE) %>%
+    count(`DNA Tray Code`)
+)
+```
+
+Histogram of sample size by DWP
+```{r}
+hogan_17 %>% 
+  ggplot(aes(x = n)) +
+  geom_histogram()
+```
+
+
+# Read in Hogan 2017 genotypes
+
+```{r}
+load_sillys("../Genotypes/Hogan_15_17/OceanAK_Origin_PostQA/", sillyvec = "PHOGAN17")
+```
+
+How many samples genotyped per DWP?
+```{r}
+(
+  hogan_17_geno <- PHOGAN17.gcl$attributes %>% 
+    as_tibble() %>% 
+    count(DNA_TRAY_CODE) %>% 
+    rename("DNA Tray Code" = DNA_TRAY_CODE)
+)
+```
+
+
+Histogram of sample size by DWP
+```{r}
+hogan_17_geno %>% 
+  ggplot(aes(x = n)) +
+  geom_histogram()
+```
+
+Ugh, gross
+
+# Check Hogan/Stockdale 2015
+
+```{r}
+load_sillys("../Genotypes/Hogan_15_17/OceanAK_Origin_PostQA/", sillyvec = c("PHOGAN15h", "PHOGAN15n"))
+load_sillys("../Genotypes/Stockdale_15_17/OceanAK_Origin_PostQA/", sillyvec = c("PSTOCK15h", "PSTOCK15n"))
+```
+
+## Hogan 15
+
+Histogram of sample size by DWP
+```{r}
+hogan_15_geno <-
+  bind_rows(
+    PHOGAN15h.gcl$attributes %>%
+      as_tibble() %>%
+      count(DNA_TRAY_CODE) %>%
+      rename("DNA Tray Code" = DNA_TRAY_CODE),
+    PHOGAN15n.gcl$attributes %>%
+      as_tibble() %>%
+      count(DNA_TRAY_CODE) %>%
+      rename("DNA Tray Code" = DNA_TRAY_CODE)
+  )
+
+hogan_15_geno %>% 
+  ggplot(aes(x = n)) +
+  geom_histogram()
+```
+
+## Stockdale 15
+
+Histogram of sample size by DWP
+```{r}
+stockdale_15_geno <-
+  bind_rows(
+    PSTOCK15h.gcl$attributes %>%
+      as_tibble() %>%
+      count(DNA_TRAY_CODE) %>%
+      rename("DNA Tray Code" = DNA_TRAY_CODE),
+    PSTOCK15n.gcl$attributes %>%
+      as_tibble() %>%
+      count(DNA_TRAY_CODE) %>%
+      rename("DNA Tray Code" = DNA_TRAY_CODE)
+  )
+
+stockdale_15_geno %>% 
+  ggplot(aes(x = n)) +
+  geom_histogram()
+```
+
+# Check Hogan/Stockdale 2014/2016
+
+```{r}
+load_sillys("../Genotypes/Hogan_13_14_15_16/298/OceanAK_Origin_PostQA/", sillyvec = c("PHOGAN14h", "PHOGAN14n", "PHOGAN16"))
+load_sillys("../Genotypes/Stockdale_13_14_15_16//OceanAK_Origin_PostQA/", sillyvec = c("PSTOCK14h", "PSTOCK14n", "PSTOCK16"))
+```
+
+## Hogan 14
+
+Histogram of sample size by DWP
+```{r}
+hogan_14_geno <-
+  bind_rows(
+    PHOGAN14h.gcl$attributes %>%
+      as_tibble() %>%
+      count(DNA_TRAY_CODE) %>%
+      rename("DNA Tray Code" = DNA_TRAY_CODE),
+    PHOGAN14n.gcl$attributes %>%
+      as_tibble() %>%
+      count(DNA_TRAY_CODE) %>%
+      rename("DNA Tray Code" = DNA_TRAY_CODE)
+  )
+
+hogan_14_geno %>% 
+  ggplot(aes(x = n)) +
+  geom_histogram()
+```
+
+## Stockdale 14
+
+Histogram of sample size by DWP
+```{r}
+stockdale_14_geno <-
+  bind_rows(
+    PSTOCK14h.gcl$attributes %>%
+      as_tibble() %>%
+      count(DNA_TRAY_CODE) %>%
+      rename("DNA Tray Code" = DNA_TRAY_CODE),
+    PSTOCK14n.gcl$attributes %>%
+      as_tibble() %>%
+      count(DNA_TRAY_CODE) %>%
+      rename("DNA Tray Code" = DNA_TRAY_CODE)
+  )
+
+stockdale_14_geno %>% 
+  ggplot(aes(x = n)) +
+  geom_histogram()
+```
+
+## Hogan 16
+
+Histogram of sample size by DWP
+```{r}
+hogan_16_geno <-
+  PHOGAN16.gcl$attributes %>%
+  as_tibble() %>%
+  count(DNA_TRAY_CODE) %>%
+  rename("DNA Tray Code" = DNA_TRAY_CODE)
+
+hogan_16_geno %>%
+  ggplot(aes(x = n)) +
+  geom_histogram()
+```
+
+## Stockdale 16
+
+Histogram of sample size by DWP
+```{r}
+stockdale_16_geno <-
+  PSTOCK16.gcl$attributes %>%
+  as_tibble() %>%
+  count(DNA_TRAY_CODE) %>%
+  rename("DNA Tray Code" = DNA_TRAY_CODE)
+
+stockdale_16_geno %>%
+  ggplot(aes(x = n)) +
+  geom_histogram()
+```
