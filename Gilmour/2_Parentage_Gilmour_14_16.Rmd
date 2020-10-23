@@ -1,5 +1,5 @@
 ---
-title: "Stockdale 2016/2018 Parentage Analysis with 298 Markers"
+title: "Gilmour 2014/2016 Parentage Analysis with 298 Markers"
 output:
   html_notebook:
     theme: united
@@ -21,18 +21,18 @@ library(ggExtra)
 knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
 ```
 
-Below are analyses of parentage results for Even (2016-2018) using *FRANz*. 
+Below are analyses of parentage results for Even (2014-2016) using *FRANz*. 
 
 # Even lineage (2016/2018)
 
 ## *FRANz* parameters
-*FRANz* was run atWed Oct 21 18:00:14 2020. We used the following parameters:
-FRANz.exe --Nmmax 13000 --Nfmax 13000 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2 "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\stockdale_16_18_postQA_2016_2018_STOCK.dat"
+*FRANz* was run at ??????. We used the following parameters:
+FRANz.exe --Nmmax 5000 --Nfmax 5000 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2 "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\"
 
 Do not use --fullsibtest if running on Kyle's Genetics Domain Computer, it won't save output!!!
 
 The parameters are defined as follows:
---Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 26,000 and divided by 2 (*note: aerial survey was ??? and stream walk was 26,206*). This escapement number came from the stream walk AUC number, as I did not have an aerial survey AUC. This estimate is listed under 'pop est walk' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx"   
+--Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 10,000 and divided by 2, for lack of any solid data (*note: aerial survey was not done in 2014 as Gilmour was not an index stream and stream walk was 553, which is smaller than the number of samples we have. So not knowing how many fish were there or how many hatchery strays we have in 2016, or where any of our other fish came from we went with a big number to let the genotype data speak for itself*). This escapement number is a wild ass guess, as I did not have an aerial survey AUC. This estimate is listed under 'pop est walk' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx"   
 --femrepro and --malerepro specify the age range in which an individual can reproduce  
 --typingerror refers to the overall genotyping error rate. Ours was ~0.006 (for Stockdale was actually ???, from QC)
 --updatefreqs specifies that *FRANz* should update allele frequencies using MCMC sampling  
