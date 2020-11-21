@@ -1,0 +1,274 @@
+---
+title: "Stockdale + Hogan + Gilmour Even (2014/16) Parentage"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+```
+
+Below are analyses of parentage results for all Stockdale, Hogan, and Gilmour Even (2014-2016) lineage samples considered together as potential parents and offspring using *FRANz*. **Note** that since we do not have full otolith reads for Gilmour 2016, this analysis includes all fish sampled from Gilmour in 2016, since most otolith reads are still NA.
+
+# Even lineage (2014/2016)
+
+## *FRANz* parameters
+*FRANz* was run at Fri Oct 23 16:29:59 2020. We used the following parameters:
+FRANz.exe --Nmmax 13000 --Nfmax 13000 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2  "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\2014_2016_stockdale_hogan_gilmour\stockdale_hogan_gilmour_postQA_2014_2016.dat"
+
+The parameters are defined as follows:
+--Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, I added the values we used for Hogan and Stockdale together 
+--femrepro and --malerepro specify the age range in which an individual can reproduce  
+--typingerror refers to the overall genotyping error rate. Ours was ~0.005 (for Stockdale was actually 0.006, from QC)
+--updatefreqs specifies that *FRANz* should update allele frequencies using MCMC sampling  
+--poutformat specifies that all potential parents should be listed, not just the most likely  
+
+All output files can be found here: "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\2014_2016_stockdale_hogan_gilmour"  
+
+The summary file provides information about the power of our marker suite:   
+Cumulative exclusion probability when 1 to 7 fullsibs are genotyped  
+  First Parent              : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000   
+  Second Parent             : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000   
+  Parent Pair               : 1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000  1.0000000
+  
+According to the FRANz manual, marker sets are not considered powerful if these cumulative exclusion probabilities are less than 0.95, which indicates that the probability that a random pair of individuals in the population has a 5% chance of having a genotype pair compatible to an offspring genotype. Since all of our probabilities are 1, we can be **confident** in the power of our 298 amplicons to make parent assignments.  
+
+## Import data
+The first step is to read in .csv files for parentage assignments produced by *FRANz* as well as paired genotype and OceanAK data. 
+
+```{r Setup Even, message=FALSE, warning=FALSE}
+parentage_14_16 <- read_csv("../../Franz/2014_2016_stockdale_hogan_gilmour/parentage.csv")
+paired_14_16 <- bind_rows(
+  bind_rows(
+    read_csv(
+      "../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv"
+    ),
+    read_csv("../Franz/hogan_postQA_OceanAK_paired_2014_2016_HOGAN.csv")
+  ) %>%
+    mutate(`Sample Date` = ymd(`Sample Date`)),
+  read_csv(
+    "../Franz/Gilmour_14_16_postQA_OceanAK_paired_2014_2016_GILMOUR.csv"
+  ) %>%
+    mutate(`Sample Date` = dmy(`Sample Date`))
+)
+```
+
+Plot a histogram of *FRANz* parentage posterior probabilities to show robustness of assignments
+```{r FRANz_posterior_plot_even}
+parentage_14_16  %>% 
+  filter(!is.na(`Parent 1`)) %>% 
+  ggplot(aes(x = Posterior)) +
+  geom_histogram(breaks = seq(0, 1, 0.01)) +
+  ggtitle("Histogram of FRANz posterior probabilities for parentage assignments")
+```
+
+How many mismatches?
+```{r}
+parentage_14_16  %>% 
+  filter(!is.na(`Parent 1`)) %>% 
+  filter(Posterior > 0.9) %>% 
+  count(Mismatches)
+```
+
+All parentage assingments have a posterior probability of 1, which is very robust.  
+
+## Filter paired data
+The file containing paired genotype and OceanAK data has a lot of information that we do not need at this time (e.g. genotypes for each marker). We therefore separate out only the columns that contain identifying information for each individual.
+
+```{r Filter paired data Even}
+# What are the non-genotype columns
+grep(pattern = "RAD", x = colnames(paired_14_16), value = TRUE, invert = TRUE)
+
+# Filter for non-genotype columns
+paired_14_16_filter <- paired_14_16 %>% 
+  dplyr::select(franz_id, SILLY, `Fish ID`, `DNA Tray Code`, `DNA Tray Well Code`, `Sample Year`, `Sample Date`, SEX, `Length Mm`, `Otolith Mark Present`, `Otolith Mark ID`) %>% 
+  mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "Natural",
+                            `Otolith Mark Present` == "YES" ~ "Hatchery")) %>%  # add origin variable
+  mutate(origin = factor(origin, c("Natural", "Hatchery"))) %>%   # make factor to ensure hatchery != red
+  mutate(stream = case_when(str_sub(string = SILLY, start = 1, end = 2) == "PS" ~ "Stockdale",
+                            str_sub(string = SILLY, start = 1, end = 2) == "PH" ~ "Hogan",
+                            str_sub(string = SILLY, start = 1, end = 2) == "PG" ~ "Gilmour",))
+```
+
+```{r}
+paired_14_16_filter %>% 
+  count(stream, origin) %>% 
+  spread(origin, n)
+```
+
+
+## Filter for "extra" duplicates
+
+Filter for the "extra" duplicates that made it in to the parentage analysis that we need to remove before proceeding with RRS.
+```{r dups_even}
+duplicates_to_remove <-
+  bind_rows (
+    dget("../../Objects/Hogan_13_14_15_16/duplicates_to_remove.txt"),
+    dget("../../Objects/Stockdale_13_14_15_16/duplicates_to_remove.txt")
+  )
+    
+# Join `duplicates_to_remove` with the paired data, filter for only the "extra" duplicates that were NOT removed
+(duplicates_to_remove_even_extra <- duplicates_to_remove %>% 
+  dplyr::filter(SILLY_CODE %in% c("PHOGAN14", "PHOGAN16", "PSTOCK14", "PSTOCK16")) %>% 
+  dplyr::mutate(`DNA_TRAY_CODE` = as.numeric(`DNA_TRAY_CODE`)) %>% 
+  dplyr:: mutate(`DNA_TRAY_WELL_CODE` = as.numeric(`DNA_TRAY_WELL_CODE`)) %>% 
+  dplyr::left_join(paired_14_16_filter, by = c("DNA_TRAY_CODE" = "DNA Tray Code", "DNA_TRAY_WELL_CODE" = "DNA Tray Well Code")) %>% 
+  tidyr::drop_na(franz_id))
+
+dups_even_franz_id <- duplicates_to_remove_even_extra %>% 
+  pull(franz_id)
+
+# Remove these "extra" duplicates from `paired_14_16_filter`
+paired_14_16_filter <- paired_14_16_filter %>% 
+  filter(!franz_id %in% dups_even_franz_id)
+```
+
+## Filter parentage data
+
+```{r Filter parentage data Even}
+# Filter for posterior > 0.9 + make tidy relative to assigment (1 row per parentage assignment)
+parentage_14_16_filter <- parentage_14_16 %>% 
+  filter(Posterior > 0.9) %>% 
+  dplyr::select(Offspring, `Parent 1`, `Parent 2`) %>% 
+  gather(Parent, Parent_ID, - Offspring) %>% 
+  filter(!is.na(Parent_ID))
+```
+
+## Sample sizes
+
+Quick look at what our sample sizes are for potential parents (2014) and potential offspring (2016).
+```{r even_sample_sizes}
+paired_14_16_filter %>% 
+  count(`Sample Year`, stream, SEX, origin) %>% 
+  spread(origin, n, fill = 0)
+```
+
+
+## Join parentage and individual data
+
+Here, we joined parentage data from *FRANz* with individual data so that we can match data to each offspring and parent. **Note** that any column ending in `.off` refers to offspring and `.par` refers to parent.  
+```{r Join parentage and paired objects Even}
+# Creating a single, "tidy" object where each row is a parent-offspring relationship
+# Offspring with 2 parents have 2 rows
+# .off data is offspring, .par data is parents
+(parents_paired_14_16 <- parentage_14_16_filter %>% 
+   left_join(paired_14_16_filter, by = c("Offspring" = "franz_id")) %>% 
+   left_join(paired_14_16_filter, by = c("Parent_ID" = "franz_id"), suffix = c(".off", ".par")) %>% 
+   mutate(origin = case_when(`Otolith Mark Present.par` == "NO" ~ "Natural",
+                             `Otolith Mark Present.par` == "YES" ~ "Hatchery")) %>% 
+   mutate(origin = factor(origin, c("Natural", "Hatchery"))))  # added hatchery/natural variable
+
+# How many single-parent offspring pair assignments?
+parents_paired_14_16 %>% 
+  count(Parent)
+
+# How many unique parents had offspring assigned?
+n_distinct(parents_paired_14_16$Parent_ID)
+
+# For each offspring assigment, what was the parent's origin?
+parents_paired_14_16 %>% 
+  count(origin, `Otolith Mark ID.par`) %>% 
+  spread(origin, n)
+```
+
+**Note** that *FRANz* assigned 2,605 offspring to 917 parents. 1,751 of these offsrping have natural-origin parents and 1,352 offspring have hatchery-origin parents. The hatchery origin fish are from AFK12B, CCH12, and WNH12PINKB.
+
+How many parents by origin and stream?
+```{r}
+paired_14_16_filter %>% 
+  filter(`Sample Year` == 2014) %>% 
+  count(stream, origin)
+```
+
+How many offspring had parents from each stream?
+```{r}
+parents_paired_14_16 %>% 
+  count(stream.par, origin.par, stream.off) %>% 
+  spread(stream.off, n, fill = 0)
+```
+
+Filter for stray parent-offspring relationships
+```{r}
+parents_paired_14_16 %>% 
+  filter(stream.par != stream.off)
+```
+
+Get parents that produced strays
+```{r}
+stray_parents <- parents_paired_14_16 %>% 
+  filter(stream.par != stream.off) %>% 
+  select(Parent_ID) %>% 
+  distinct() %>% 
+  pull
+```
+
+How many offspring did each parent produce per stream?
+```{r}
+parents_paired_14_16 %>% 
+  filter(Parent_ID %in% stray_parents) %>% 
+  group_by(Parent_ID, stream.par, origin.par) %>% 
+  count(stream.off) %>% 
+  spread(stream.off, n, fill = 0)
+```
+
+Parent-pair trios that produced strays
+```{r}
+offspring_trio_14_16 <- parents_paired_14_16 %>% 
+  filter(Parent == "Parent 2") %>% 
+  pull(Offspring)
+
+parents_paired_14_16_cross <- parentage_14_16 %>% 
+  filter(Posterior > 0.9) %>% 
+  dplyr::select(Offspring, `Parent 1`, `Parent 2`) %>% 
+  filter(Offspring %in% offspring_trio_14_16) %>% 
+  left_join(paired_14_16_filter, by = c("Offspring" = "franz_id")) %>% 
+  left_join(paired_14_16_filter, by = c("Parent 1" = "franz_id"), suffix = c(".off", ".par1")) %>% 
+  left_join(paired_14_16_filter, by = c("Parent 2" = "franz_id")) %>% 
+  dplyr::mutate(cross = dplyr::case_when(
+                `Otolith Mark Present.par1` == "NO" & `Otolith Mark Present` == "NO" ~ "NN",
+                `Otolith Mark Present.par1`== "YES" & `Otolith Mark Present` == "YES" ~ "HH",
+                `Otolith Mark Present.par1` == "YES" & SEX.par1 == "F" & `Otolith Mark Present` == "NO" & SEX == "M" ~ "HN",
+                `Otolith Mark Present.par1` == "NO" & SEX.par1 == "F" & `Otolith Mark Present` == "YES" & SEX == "M" ~ "NH",
+                `Otolith Mark Present.par1` == "YES" & SEX.par1 == "M" & `Otolith Mark Present` == "NO" & SEX == "F" ~ "NH",
+                `Otolith Mark Present.par1` == "NO" & SEX.par1 == "M" & `Otolith Mark Present` == "YES" & SEX == "F" ~ "HN" ))
+
+parents_paired_14_16_cross %>% 
+  filter(stream.off != stream.par1)
+```
+
+## Proportion test
+Let's use a Chi-Square test to determine whether the proportions of offspring assigned to hatchery- and natural-origin parents significantly differ from the proportions of hatchery- and natural-origin parents sampled. 
+
+```{r proportion_even_data}
+# How many spawners from each origin?
+paired_14_16_filter %>% 
+  filter(`Sample Year` == 2014) %>% 
+  count(origin)
+
+# How many offspring from each origin?
+parents_paired_14_16 %>% 
+  count(origin)
+```
+
+```{r Chi square test even}
+O.even <- c("H", "N")
+Spawners.even <- c(1184, 810) #  number of hatchery- and natural-origin parents
+Offspring.even <- c(1352, 1751)  # number of offspring assigned to hatchery- and natural-origin parents
+
+df.even <- data.frame(Spawners.even, Offspring.even)  # made a data.frame because tibbles don't like rownames
+row.names(df.even) <- O.even
+
+df.even
+chisq.test(df.even)
+```
