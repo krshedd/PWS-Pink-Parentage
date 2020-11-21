@@ -824,17 +824,17 @@ ANOVA %>%
 ### t-tests
 
 ```{r}
-t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA))$p.value < 0.05
-t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "M", .data = ANOVA))$p.value < 0.05
-t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "F", .data = ANOVA))$p.value < 0.05
-t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "F", .data = ANOVA))$p.value < 0.05
-t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "M", .data = ANOVA))$p.value < 0.05
-t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "M", .data = ANOVA))$p.value < 0.05
-t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "F", .data = ANOVA))$p.value < 0.05
-t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "F", .data = ANOVA))$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "M", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "F", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "F", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "M", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "M", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "F", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+t.test(`Length Mm` ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "F", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
 ```
 
-### Date
+## Date
 
 Visualize density plots to see if there are outliers
 ```{r}
@@ -870,17 +870,17 @@ ANOVA %>%
 ### Wilcoxon tests
 
 ```{r}
-wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA))$p.value < 0.05
-wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "M", .data = ANOVA))$p.value < 0.05
-wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "F", .data = ANOVA))$p.value < 0.05
-wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "F", .data = ANOVA))$p.value < 0.05
-wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "M", .data = ANOVA))$p.value < 0.05
-wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "M", .data = ANOVA))$p.value < 0.05
-wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "F", .data = ANOVA))$p.value < 0.05
-wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "F", .data = ANOVA))$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "M", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "F", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "F", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "M", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "M", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "F", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(DOY ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "F", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
 ```
 
-### Distance
+## Distance
 
 Visualize density plots to see if there are outliers
 ```{r}
@@ -916,14 +916,14 @@ ANOVA %>%
 ### Wilcoxon tests
 
 ```{r}
-wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA))$p.value < 0.05
-wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "M", .data = ANOVA))$p.value < 0.05
-wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "F", .data = ANOVA))$p.value < 0.05
-wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "F", .data = ANOVA))$p.value < 0.05
-wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "M", .data = ANOVA))$p.value < 0.05
-wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "M", .data = ANOVA))$p.value < 0.05
-wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "F", .data = ANOVA))$p.value < 0.05
-wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "F", .data = ANOVA))$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "M", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "M", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PHOGAN13" & sex == "F", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PHOGAN14" & sex == "F", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "M", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "M", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PSTOCK13" & sex == "F", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
+wilcox.test(Distance ~ origin, data = filter(`Silly Code` == "PSTOCK14" & sex == "F", .data = ANOVA), alternative = "two.sided")$p.value < 0.05
 ```
 
 
