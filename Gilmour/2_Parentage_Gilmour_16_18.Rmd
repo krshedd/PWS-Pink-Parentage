@@ -10,6 +10,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 rm(list=ls())
+
 library(kinship2)
 library(coin)
 library(MASS)
@@ -27,13 +28,13 @@ Below are analyses of parentage results for Even (2016-2018) using *FRANz*.
 # Even lineage (2016/2018)
 
 ## *FRANz* parameters
-*FRANz* was run at Wed Oct 21 18:00:14 2020. We used the following parameters:
+*FRANz* was run at Mon Oct 26 13:45 2020. We used the following parameters:
 FRANz.exe --Nmmax 5000 --Nfmax 5000 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2 "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\Gilmour_2016_2018\Gilmour_16_18_postQA_2016_2018_GILMOUR.dat"
 
 Do not use --fullsibtest if running on Kyle's Genetics Domain Computer, it won't save output!!!
 
 The parameters are defined as follows:
---Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 26,000 and divided by 2 (*note: aerial survey was ??? and stream walk was 26,206*). This escapement number came from the stream walk AUC number, as I did not have an aerial survey AUC. This estimate is listed under 'pop est walk' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx"   
+--Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 10,000 and divided by 2 (*note: no aerial survey for 2016 and stream walk was 4,274*). This escapement number came from the stream walk AUC number, as I did not have an aerial survey AUC. This estimate is listed under 'pop est walk' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx"
 --femrepro and --malerepro specify the age range in which an individual can reproduce  
 --typingerror refers to the overall genotyping error rate. Ours was ~0.006 (for Gilmour was actually ???, from QC)
 --updatefreqs specifies that *FRANz* should update allele frequencies using MCMC sampling  
@@ -178,8 +179,8 @@ parents_paired_16_18 %>%
 
 ```{r Chi square test even}
 O.even <- c("H", "N")
-Spawners.even <- c(337, 5794) #  number of hatchery- and natural-origin parents
-Offspring.even <- c(15, 551)  # number of offspring assigned to hatchery- and natural-origin parents
+Spawners.even <- c(28, 278) #  number of hatchery- and natural-origin parents
+Offspring.even <- c(5, 80)  # number of offspring assigned to hatchery- and natural-origin parents
 
 df.even <- data.frame(Spawners.even, Offspring.even)  # made a data.frame because tibbles don't like rownames
 row.names(df.even) <- O.even
@@ -563,7 +564,7 @@ paired_16_18_filter_parents %>%
   summarise(n_off = sum(n)) %>% 
   spread(origin, n_off)
 
-rrs_ci_kalinowski(n_h_off = 7, n_w_off = 327, n_h_par = 181, n_w_par = 3156, alpha = 0.05)
+rrs_ci_kalinowski(n_h_off = 3, n_w_off = 48, n_h_par = 12, n_w_par = 119, alpha = 0.05)
 ```
 
 Calculate 95% CIs for Gilmour 16-18 males. RRS = 0.?? (0.??-0.??)
@@ -584,7 +585,7 @@ paired_16_18_filter_parents %>%
   summarise(n_off = sum(n)) %>% 
   spread(origin, n_off)
 
-rrs_ci_kalinowski(n_h_off = 8, n_w_off = 224, n_h_par = 156, n_w_par = 2638, alpha = 0.05)
+rrs_ci_kalinowski(n_h_off = 2, n_w_off = 32, n_h_par = 16, n_w_par = 159, alpha = 0.05)
 ```
 
 #### RS vs. field data plots
@@ -678,7 +679,8 @@ parents_paired_16_18_cross %>%
   geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
-  scale_x_continuous(breaks = 1:5) +
+  scale_x_continuous(breaks = 1:6) +
+  theme_bw() +
   # ylim(0, 40) +
   # xlim(0, 5) +
   labs(title = "Distribution of Family Size by Cross") +
@@ -714,10 +716,10 @@ parents_paired_16_18_cross %>%
 # rrs_ci_kalinowski(n_h_off = 16, n_w_off = 109, n_h_par = 15, n_w_par = 62, alpha = 0.05) # Significant!
 
 # HN vs. NN
-rrs_ci_kalinowski(n_h_off = 5, n_w_off = 61, n_h_par = 5, n_w_par = 55, alpha = 0.05) # NS
+#rrs_ci_kalinowski(n_h_off = 5, n_w_off = 61, n_h_par = 5, n_w_par = 55, alpha = 0.05) # NS
 
 # NH vs. NN
-rrs_ci_kalinowski(n_h_off = 2, n_w_off = 61, n_h_par = 2, n_w_par = 55, alpha = 0.05) # NS
+#rrs_ci_kalinowski(n_h_off = 2, n_w_off = 61, n_h_par = 2, n_w_par = 55, alpha = 0.05) # NS
 ```
 
 Investigate the potential for multiple matings
@@ -786,51 +788,51 @@ parents_paired_16_18_cross_dam_sire %>%
 How many Dams had multiple Sires of differing origin? What was their reproductive success?
 ```{r rs_dams_mult_sire_even}
 # How many Dams had multiple Sires of differing origin
-dams_with_mult_sire <- parents_paired_16_18_cross_dam_sire %>% 
-  group_by(Dam) %>% 
-  summarise(n_cross = n_distinct(cross)) %>% 
-  filter(n_cross > 1) %>% 
-  pull(Dam)
-
-parents_paired_16_18_cross_dam_sire %>% 
-  filter(Dam %in% dams_with_mult_sire) %>% 
-  group_by(Dam, Sire, cross) %>% 
-  summarise(n = n_distinct(Offspring)) %>% 
-  spread(cross, n)
-
-parents_paired_16_18_cross_dam_sire %>% 
-  filter(Dam %in% dams_with_mult_sire) %>% 
-  group_by(Dam, Sire, cross) %>% 
-  summarise(n = n_distinct(Offspring)) %>% 
-  ggplot(aes(x = Dam, y = n, colour = cross)) +
-  geom_jitter(size = 2, width = 0.2, height = 0.2) +
-  ylab("Number of offspring") +
-  ggtitle("Reproductive success of Dams with Sires\nof a different origin")
+# dams_with_mult_sire <- parents_paired_16_18_cross_dam_sire %>% 
+#   group_by(Dam) %>% 
+#   summarise(n_cross = n_distinct(cross)) %>% 
+#   filter(n_cross > 1) %>% 
+#   pull(Dam)
+# 
+# parents_paired_16_18_cross_dam_sire %>% 
+#   filter(Dam %in% dams_with_mult_sire) %>% 
+#   group_by(Dam, Sire, cross) %>% 
+#   summarise(n = n_distinct(Offspring)) %>% 
+#   spread(cross, n)
+# 
+# parents_paired_16_18_cross_dam_sire %>% 
+#   filter(Dam %in% dams_with_mult_sire) %>% 
+#   group_by(Dam, Sire, cross) %>% 
+#   summarise(n = n_distinct(Offspring)) %>% 
+#   ggplot(aes(x = Dam, y = n, colour = cross)) +
+#   geom_jitter(size = 2, width = 0.2, height = 0.2) +
+#   ylab("Number of offspring") +
+#   ggtitle("Reproductive success of Dams with Sires\nof a different origin")
 ```
 
 How many Sires had multiple Dams of differing origin? What was their reproductive success?
 ```{r rs_sires_mult_dam_even}
 # How many Sires had multiple Dams of differing origin
-sires_with_mult_dam <- parents_paired_16_18_cross_dam_sire %>% 
-  group_by(Sire) %>% 
-  summarise(n_cross = n_distinct(cross)) %>% 
-  filter(n_cross > 1) %>% 
-  pull(Sire)
-
-parents_paired_16_18_cross_dam_sire %>% 
-  filter(Sire %in% sires_with_mult_dam) %>% 
-  group_by(Dam, Sire, cross) %>% 
-  summarise(n = n_distinct(Offspring)) %>% 
-  spread(cross, n)
-
-parents_paired_16_18_cross_dam_sire %>% 
-  filter(Sire %in% sires_with_mult_dam) %>% 
-  group_by(Dam, Sire, cross) %>% 
-  summarise(n = n_distinct(Offspring)) %>% 
-  ggplot(aes(x = Sire, y = n, colour = cross)) +
-  geom_jitter(size = 2, width = 0.2, height = 0.2) +
-  ylab("Number of offspring") +
-  ggtitle("Reproductive success of Sires with Dams\nof a different origin")
+# sires_with_mult_dam <- parents_paired_16_18_cross_dam_sire %>% 
+#   group_by(Sire) %>% 
+#   summarise(n_cross = n_distinct(cross)) %>% 
+#   filter(n_cross > 1) %>% 
+#   pull(Sire)
+# 
+# parents_paired_16_18_cross_dam_sire %>% 
+#   filter(Sire %in% sires_with_mult_dam) %>% 
+#   group_by(Dam, Sire, cross) %>% 
+#   summarise(n = n_distinct(Offspring)) %>% 
+#   spread(cross, n)
+# 
+# parents_paired_16_18_cross_dam_sire %>% 
+#   filter(Sire %in% sires_with_mult_dam) %>% 
+#   group_by(Dam, Sire, cross) %>% 
+#   summarise(n = n_distinct(Offspring)) %>% 
+#   ggplot(aes(x = Sire, y = n, colour = cross)) +
+#   geom_jitter(size = 2, width = 0.2, height = 0.2) +
+#   ylab("Number of offspring") +
+#   ggtitle("Reproductive success of Sires with Dams\nof a different origin")
 ```
 
 ## Grandparentage
@@ -861,7 +863,7 @@ paired_16_18_filter_parents %>%
 ```
 
 ```{r}
-rrs_ci_kalinowski(n_h_off = 30, n_w_off = 74, n_h_par = 373, n_w_par = 865, alpha = 0.05)
+rrs_ci_kalinowski(n_h_off = 176, n_w_off = 197, n_h_par = 645, n_w_par = 604, alpha = 0.05)
 ```
 
 ### How many grandparents?

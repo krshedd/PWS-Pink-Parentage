@@ -9,6 +9,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
+rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
@@ -16,7 +17,7 @@ library(DT)
 library(abind)
 bbind <- function(...) { abind(..., along = 3) }
 
-.username <- "krshedd"
+.username <- "krshedd"  # revise in console, if needed
 .password <- ""
 source("~/../R/Functions.GCL.R")
 ```
@@ -341,7 +342,7 @@ het_tibble %>%
     ggplot2::ggtitle("Individual Heterozygosity By Lineage")
 ```
 
-How many fish would we lose if we went with these cutoffs?
+How many fish would we lose if we went with the +-3SD cutoffs?
 ```{r calculate how many individuals we would lose if we go with the 3SD cutoff}
 
 # Upper cutoff only, lower doesn't apply

@@ -17,9 +17,9 @@ library(DT)
 library(abind)
 bbind <- function(...) { abind(..., along = 3) }
 
-.username <- "kgruenthal"
+.username <- "krshedd"
 .password <- ""
-source("~/R/Functions.GCL.R")
+source("~/../R/Functions.GCL.R")
 ```
 
 # Introduction
@@ -142,7 +142,7 @@ dplyr::bind_rows(PGILMOUR16.gcl$attributes,
   spread(`Otolith Mark Present`, n, fill = 0)
 ```
 
-We want to remove any NA from 2016 and hatchery-origin fish, **but keep NA from 2016 and 2018**. We are going to leave all 2016 and 2018 fish in for now.
+We want to remove any NA from **F0** and hatchery-origin fish. **However, keep NA from 2016 and 2018**, leaving all 2016 and 2018 fish in for now.
 ```{r remove_stock_hatchery}
 # PGILMOUR16_ids_remove <- PGILMOUR16.gcl$attributes %>% 
 #   filter(is.na(`Otolith Mark Present`)) %>% 
