@@ -606,6 +606,9 @@ The incident ratios reveal that the RRS of hatchery-origin to natural-origin Pin
 Now that we know what our top model is, we want to know the independent contributions of each variable in our multivariate data set.
 
 Randy *hot wired* this to accept negative binomial GLM. **Note** needs to be numeric data.
+
+#### Top Model
+
 ```{r}
 Female.even_numeric <- Female.even %>%
   mutate(date = yday(`Sample Date`),
@@ -623,6 +626,30 @@ RS.glm.F.17_numeric <-
 hier.part(
   y = Female.even_numeric$n,
   xcan = select(Female.even_numeric, origin, intertidal, date, length),
+  family = "glm.nb",
+  gof = "logLik"
+) #nb
+```
+
+#### Model 1 (top model in Stockdale)
+
+```{r}
+Female.even_numeric <- Female.even %>%
+  mutate(date = yday(`Sample Date`),
+         origin = as.numeric(as.factor(origin)),
+         intertidal = as.numeric(as.factor(Intertidal))) %>%
+  rename(distance = Distance,
+         length = "Length Mm") %>%
+  select(n, date, length, origin, distance)
+
+RS.glm.F.17_numeric <-
+  glm.nb(n ~ date + length + origin + distance,
+         data = Female.even_numeric,
+         link = log)
+
+hier.part(
+  y = Female.even_numeric$n,
+  xcan = select(Female.even_numeric, origin, distance, date, length),
   family = "glm.nb",
   gof = "logLik"
 ) #nb
@@ -743,6 +770,9 @@ The percent change in the number of offspring increases by ~ 1.0% for every Mm i
 Now that we know what our top model is, we want to know the independent contributions of each variable in our multivariate data set.
 
 Randy *hot wired* this to accept negative binomial GLM. **Note** needs to be numeric data.
+
+#### Top Model
+
 ```{r}
 Male.even_numeric <- Male.even %>%
   mutate(date = yday(`Sample Date`),
@@ -759,6 +789,30 @@ RS.glm.M.9_numeric <-
 hier.part(
   y = Male.even_numeric$n,
   xcan = select(Male.even_numeric, length, distance),
+  family = "glm.nb",
+  gof = "logLik"
+) #nb
+```
+
+#### Model 1 (top model in Stockdale)
+
+```{r}
+Male.even_numeric <- Male.even %>%
+  mutate(date = yday(`Sample Date`),
+         origin = as.numeric(as.factor(origin)),
+         intertidal = as.numeric(as.factor(Intertidal))) %>%
+  rename(distance = Distance,
+         length = "Length Mm") %>%
+  select(n, date, length, origin, distance)
+
+RS.glm.F.11_numeric <-
+  glm.nb(n ~ date + length + origin + distance,
+         data = Male.even_numeric,
+         link = log)
+
+hier.part(
+  y = Male.even_numeric$n,
+  xcan = select(Male.even_numeric,distance, origin, length, date),
   family = "glm.nb",
   gof = "logLik"
 ) #nb
