@@ -26,7 +26,7 @@ Below are analyses of parentage results for Even (2016-2018) using *FRANz*.
 # Even lineage (2016/2018)
 
 ## *FRANz* parameters
-*FRANz* was run atWed Oct 21 18:00:14 2020. We used the following parameters:
+*FRANz* was run Wed Oct 21 17:55 2020. We used the following parameters:
 FRANz.exe --Nmmax 13000 --Nfmax 13000 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2 "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\stockdale_16_18_postQA_2016_2018_STOCK.dat"
 
 Do not use --fullsibtest if running on Kyle's Genetics Domain Computer, it won't save output!!!
@@ -678,6 +678,7 @@ parents_paired_16_18_cross %>%
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = 1:5) +
+  theme_bw() +
   # ylim(0, 40) +
   # xlim(0, 5) +
   labs(title = "Distribution of Family Size by Cross") +
