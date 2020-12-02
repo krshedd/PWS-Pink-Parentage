@@ -86,7 +86,7 @@ dataAll0 %>%
   count(SILLY_CODE, TISSUE_TYPE)  # sample size by silly code and tissue type, should only be hearts and occassionally other random tissues
 
 
-# Write out the data to
+# Write out the data to "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\OceanAK" with timestamp
 write_csv(
   x = dataAll0,
   path = paste0(

@@ -18,7 +18,7 @@ writeClipboard(paste(paste0("P", rep(streams, each = length(yrs)), yrs), collaps
 writeClipboard(paste(paste0("P", rep(streams, each = length(yrs)), yrs), collapse = "','"))
 
 og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
-oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20200129_1621.csv")
+oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20201028_094948.csv")
 names(oceanak) <- og_names
 
 # dups <- oceanak %>% 
@@ -61,7 +61,7 @@ oceanak_mod <- oceanak  %>%
   mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "natural",
                             `Otolith Mark Present` == "YES" ~ "hatchery")) %>% 
   mutate(origin = factor(origin, levels = c("natural", "hatchery"))) %>% 
-  mutate(date = dmy(`Sample Date`))
+  mutate(date = ymd(`Sample Date`))
 
 # table of stream, year, and otolith_read
 addmargins(table(oceanak_mod$stream, oceanak_mod$year, oceanak_mod$otolith_read))
