@@ -1,0 +1,89 @@
+---
+title: "Stockdale + Gilmour F2 Analysis"
+subtitle: "How many grandoffspring produced from cross matings?"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+
+library(kinship2)
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+
+knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
+```
+
+# Stockdale
+
+## 14/16 Cross Data
+
+Read offspring-centric cross type data in.
+```{r}
+(stock_parents_paired_14_16_cross <- read_csv("Stockdale/stock_parents_paired_14_16_cross.csv"))
+```
+
+How many offspring by cross type?
+```{r}
+stock_parents_paired_14_16_cross %>% 
+  count(cross)
+```
+
+## 16/18 Parentage Data
+
+Get parent-centric 2016/2018 parentage data
+```{r}
+(stock_paired_16_18_filter_parents <- read_csv("Stockdale/stock_paired_16_18_filter_parents.csv"))
+```
+
+Filter for parents that came from known crosses in 2014
+```{r}
+stock_paired_16_18_filter_parents %>% 
+  right_join(stock_parents_paired_14_16_cross, by = c("franz_id" = "Offspring")) %>% 
+  select(cross, n) %>% 
+  rename(n_off = n) %>% 
+  group_by(cross) %>% 
+  summarise(n_par = length(cross), n_off = sum(n_off))
+```
+
+# Gilmour
+
+## 14/16 Cross Data
+
+Read offspring-centric cross type data in.
+```{r}
+(gilmour_parents_paired_14_16_cross <- read_csv("Gilmour/gilmour_parents_paired_14_16_cross.csv"))
+```
+
+How many offspring by cross type?
+```{r}
+gilmour_parents_paired_14_16_cross %>% 
+  count(cross)
+```
+
+## 16/18 Parentage Data
+
+Get parent-centric 2016/2018 parentage data
+```{r}
+(gilmour_paired_16_18_filter_parents <- read_csv("Gilmour/gilmour_paired_16_18_filter_parents.csv"))
+```
+
+Filter for parents that came from known crosses in 2014
+```{r}
+gilmour_paired_16_18_filter_parents %>% 
+  right_join(gilmour_parents_paired_14_16_cross, by = c("franz_id" = "Offspring")) %>% 
+  select(cross, n) %>% 
+  rename(n_off = n) %>% 
+  group_by(cross) %>% 
+  summarise(n_par = length(cross), n_off = sum(n_off))
+```
