@@ -691,6 +691,55 @@ paired_14_16_filter_parents %>%
 
 We have 22 individuals who were assigned to 2 parents, but I don't have time to look at this now.
 
+```{r}
+parents_paired_14_16_cross <- read_csv(file = "parents_paired_14_16_cross.csv")
+```
+
+Distribution
+```{r cross_rs_even}
+parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
+  count(cross, n) %>% 
+  complete(cross, n, fill = list(nn = 0)) %>% 
+  ggplot(aes(x = n, y = nn, fill = cross))+
+  geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = 1:5) +
+  # ylim(0, 40) +
+  # xlim(0, 5) +
+  labs(title = "Distribution of Family Size by Cross") +
+  xlab("Number of Offspring") +
+  ylab("Number of Families") +
+  theme_bw()
+```
+
+How many families and offspring by cross? Is this significant?
+```{r RRS_confidence_intervals_14_16_setup}
+# How many matings by cross type?
+parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
+  rename(nn = n) %>% 
+  count(cross)
+
+# Get offspring sample sizes
+parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
+  group_by(cross) %>% 
+  summarise(nn = sum(n))
+```
+
+```{r RRS_confidence_intervals_14_16}
+# HH vs. NN
+rrs_ci_kalinowski(n_h_off = 5, n_w_off = 5, n_h_par = 3, n_w_par = 4, alpha = 0.05) # NS
+
+# HN vs. NN
+rrs_ci_kalinowski(n_h_off = 4, n_w_off = 5, n_h_par = 2, n_w_par = 4, alpha = 0.05) # NS
+
+# NH vs. NN
+rrs_ci_kalinowski(n_h_off = 8, n_w_off = 5, n_h_par = 5, n_w_par = 4, alpha = 0.05) # NS
+```
+
 
 ## Summary of even lineage results
 1. All exclusion probabilities were equal to 1, which means we can be confident in the ability of our marker set to correctly assign parents to offspring.  
