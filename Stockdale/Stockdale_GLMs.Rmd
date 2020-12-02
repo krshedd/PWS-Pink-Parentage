@@ -28,6 +28,9 @@ library(gridExtra)
 library(MuMIn)
 library(GGally)
 library(gganimate)
+library(QuantPsyc)
+library(hier.part)
+source("../hier.part_functions.R")
 
 knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.width = 10)
 ```
@@ -441,7 +444,7 @@ glm_model_summary %>%
   select(name, df, AIC_weight, deviance_explained, model) %>% 
   arrange(desc(AIC_weight))
 
-write_csv(glm_model_summary, "../Stockdale/stock_glm_summary.csv")
+write_csv(glm_model_summary, "stock_glm_summary.csv")
 ```
 
 It looks like all of the top models, to some degree, incorporate all potential explanatory variables. The proportion of deviance explained (1 - residual_deviance / null_deviance) ~ 30%.
@@ -574,7 +577,7 @@ female_glm_model_summary %>%
   select(name, df, AIC_weight, deviance_explained, model) %>% 
   arrange(desc(AIC_weight))
 
-write_csv(female_glm_model_summary, "../Stockdale/stock_glm_female_summary.csv")
+write_csv(female_glm_model_summary, "stock_glm_female_summary.csv")
 ```
 
 It looks like the top model has 99% of the Akaike Weight and incorporates all potential explanatory variables. The proportion of deviance explained (1 - residual_deviance / null_deviance) ~ 25%.
@@ -585,6 +588,24 @@ Here is the summary of the top female model, which includes parent body length, 
 ```{r}
 summary(RS.glm.F.1)
 ```
+
+Does it matter if origin and date are numeric?
+```{r}
+Female.even_numeric <- Female.even %>%
+  mutate(date = yday(`Sample Date`),
+         origin = as.numeric(as.factor(origin))) %>%
+  rename(distance = Distance,
+         length = "Length Mm") %>%
+  select(n, date, length, origin, distance)
+
+RS.glm.F.1_numeric <-
+  glm.nb(n ~ date + length + origin + distance,
+         data = Female.even_numeric,
+         link = log)
+summary(RS.glm.F.1_numeric)
+```
+
+Nope, it does not :)
 
 What are the coefficients and 95% CIs for each of the explanatory variables?
 ```{r}
@@ -597,6 +618,52 @@ exp(female_est)
 ```
 
 Looking at these incident ratios, we can see that the RRS of hatchery-origin females relative to natural-origin females is ~ 0.60 (0.45-0.79) holding the other variables constant (length, distance, and date). Also, the percent change in the number of offspring increases by ~ 0.0% for every Mm increase in length, decreases by ~ 0.2% for every meter further upstream a fish is sampled, and decreases ~ 3.0% for every day later in the season a fish is sampled.
+
+### Heirarchical Partitioning
+
+Now that we know what our top model is, we want to know the independent contributions of each variable in our multivariate data set.
+
+Randy *hot wired* this to accept negative binomial GLM. **Note** needs to be numeric data.
+```{r}
+Female.even_numeric <- Female.even %>%
+  mutate(date = yday(`Sample Date`),
+         origin = as.numeric(as.factor(origin))) %>%
+  rename(distance = Distance,
+         length = "Length Mm") %>%
+  select(n, date, length, origin, distance)
+
+RS.glm.F.1_numeric <-
+  glm.nb(n ~ date + length + origin + distance,
+         data = Female.even_numeric,
+         link = log)
+
+hier.part(
+  y = Female.even_numeric$n,
+  xcan = select(Female.even_numeric, distance, origin, date, length),
+  family = "glm.nb",
+  gof = "logLik"
+) #nb
+```
+
+### Beta Coefficients
+
+After going down numerous rabbit holes (prior to Randy's fix of `hier.part` above) trying to figure out the most appropriate way to determine the relative importance of our explanatory variables (dominance analysis didn't work for glm.nb, nor did relimpo), I came across the idea of using beta coefficients (see link below). I made all of our explanatory variables numeric, then scaled and centered them before running the GLM.
+
+[link](https://stats.stackexchange.com/questions/46096/how-to-compare-coefficients-of-a-negative-binomial-regression-for-determining-re)
+
+```{r}
+RS.glm.F.1_numeric_beta <-
+  glm.nb(n ~ scale(distance, center = TRUE) + scale(origin, center = TRUE) + scale(date, center = TRUE) + scale(length, center = TRUE),
+         data = Female.even_numeric,
+         link = log)
+summary(RS.glm.F.1_numeric_beta)
+```
+
+Can use `anova` to look at the deviance residuals, however, each variable is added sequentially, so the deviance residuals change depending on the order of your explanatory variables. This is *not* super useful in our circumstance.
+```{r}
+anova(RS.glm.F.1_numeric_beta)
+```
+
 
 ## Male
 
@@ -684,7 +751,7 @@ male_glm_model_summary %>%
   select(name, df, AIC_weight, deviance_explained, model) %>% 
   arrange(desc(AIC_weight))
 
-write_csv(male_glm_model_summary, "../Stockdale/stock_glm_male_summary.csv")
+write_csv(male_glm_model_summary, "stock_glm_male_summary.csv")
 ```
 
 It looks like the top model has 100% of the Akaike Weight and incorporates all potential explanatory variables. The proportion of deviance explained (1 - residual_deviance / null_deviance) ~ 36%.
@@ -707,6 +774,32 @@ exp(male_est)
 ```
 
 Looking at these incident ratios, we can see that the RRS of hatchery-origin males relative to natural-origin males is ~ 0.43 (0.31-0.60) holding the other variables constant (length, distance, and date). Also, the percent change in the number of offspring increases by ~ 1.6% for every Mm increase in length, decreases by ~ 0.2% for every meter further upstream a fish is sampled, and decreases ~ 5.4% for every day later in the season a fish is sampled.
+
+### Heirarchical Partitioning
+
+Now that we know what our top model is, we want to know the independent contributions of each variable in our multivariate data set.
+
+Randy *hot wired* this to accept negative binomial GLM. **Note** needs to be numeric data.
+```{r}
+Male.even_numeric <- Male.even %>%
+  mutate(date = yday(`Sample Date`),
+         origin = as.numeric(as.factor(origin))) %>%
+  rename(distance = Distance,
+         length = "Length Mm") %>%
+  select(n, date, length, origin, distance)
+
+RS.glm.M.1_numeric <-
+  glm.nb(n ~ date + length + origin + distance,
+         data = Male.even_numeric,
+         link = log)
+
+hier.part(
+  y = Male.even_numeric$n,
+  xcan = select(Male.even_numeric, distance, origin, date, length),
+  family = "glm.nb",
+  gof = "logLik"
+) #nb
+```
 
 # Summary
 

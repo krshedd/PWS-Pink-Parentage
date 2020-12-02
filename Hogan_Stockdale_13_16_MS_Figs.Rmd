@@ -1103,3 +1103,118 @@ ANOVA %>%
   theme_bw() +
   ggtitle("Female")
 ```
+
+# Table S3: Field Sample Sizes
+
+I did this from my local version, so the paths are weird
+```{r}
+oceanak <- read_csv(file = "../../Desktop/Local_PWS_pinks/OceanAK/AHRP Salmon Biological Data 20191119_1053_names.csv")
+
+oceanak_mod <- oceanak  %>%
+  unite(SillySource,
+        `Silly Code`,
+        `Fish ID`,
+        sep = "_",
+        remove = FALSE) %>%
+  unite(TrayCodeID,
+        `DNA Tray Code`,
+        `DNA Tray Well Code`,
+        sep = "_",
+        remove = FALSE) %>%
+  mutate(otolith_read = !is.na(`Otolith Mark Status Code`) &
+           `Otolith Mark Status Code` != "n") %>%
+  mutate(stream = factor(
+    x = `Location Code`,
+    levels = c(
+      "Gilmour Creek",
+      "Paddy Creek",
+      "Erb Creek",
+      "Hogan Creek",
+      "Stockdale Creek"
+    )
+  )) %>%
+  rename(year = `Sample Year`) %>%
+  mutate(
+    origin = case_when(
+      `Otolith Mark Present` == "NO" ~ "natural",
+      `Otolith Mark Present` == "YES" ~ "hatchery"
+    )
+  ) %>%
+  mutate(origin = factor(origin, levels = c("natural", "hatchery"))) %>%
+  mutate(date = dmy(`Sample Date`))
+
+x <-
+  oceanak_mod %>% filter(stream %in% c("Hogan Creek", "Stockdale Creek") &
+                           year %in% 2013:2016)
+
+x
+```
+
+Total fish collected
+```{r}
+x %>% count(stream)
+```
+
+Fish by stream and year
+```{r}
+x %>% count(stream, year)
+```
+
+Otoliths read by stream
+```{r}
+x %>% filter(!is.na(origin)) %>% count(stream)
+```
+
+
+Otoliths read by stream and year
+```{r}
+x %>% filter(!is.na(origin)) %>% count(stream, year)
+```
+
+Hatchery by stream
+```{r}
+x %>% filter(origin == "hatchery") %>% count(stream)
+```
+
+Hatchery by stream and year
+```{r}
+x %>% filter(origin == "hatchery") %>% count(stream, year)
+```
+
+Natural by stream
+```{r}
+x %>% filter(origin == "natural") %>% count(stream)
+```
+
+Natural by stream and year
+```{r}
+x %>% filter(origin == "natural") %>% count(stream, year)
+```
+
+Hatchery by stream and facility
+```{r}
+x %>%
+  filter(origin == "hatchery") %>%
+  mutate(otolith_mark_ID = str_sub(
+    string = `Otolith Mark ID`,
+    start = 1,
+    end = 3
+  )) %>%
+  mutate(otolith_mark_ID = factor(x = otolith_mark_ID, levels = c("AFK", "CCH", "WNH", "SGH"))) %>%
+  count(stream, otolith_mark_ID) %>% 
+  spread(otolith_mark_ID, n, fill = 0)
+```
+
+Hatchery by stream, year, and facility
+```{r}
+x %>%
+  filter(origin == "hatchery") %>%
+  mutate(otolith_mark_ID = str_sub(
+    string = `Otolith Mark ID`,
+    start = 1,
+    end = 3
+  )) %>%
+  mutate(otolith_mark_ID = factor(x = otolith_mark_ID, levels = c("AFK", "CCH", "WNH", "SGH"))) %>%
+  count(stream, year, otolith_mark_ID) %>% 
+  spread(otolith_mark_ID, n, fill = 0)
+```
