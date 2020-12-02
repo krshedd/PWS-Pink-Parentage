@@ -28,6 +28,9 @@ library(gridExtra)
 library(MuMIn)
 library(GGally)
 library(gganimate)
+library(QuantPsyc)
+library(hier.part)
+source("../hier.part_functions.R")
 
 knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.width = 10)
 ```
@@ -441,7 +444,7 @@ glm_model_summary %>%
   select(name, df, AIC_weight, deviance_explained, model) %>% 
   arrange(desc(AIC_weight))
 
-write_csv(glm_model_summary, "../Hogan/hogan_glm_summary.csv")
+write_csv(glm_model_summary, "hogan_glm_summary.csv")
 ```
 
 It looks like all of the top models, to some degree, incorporate all potential explanatory variables. The proportion of deviance explained (1 - residual_deviance / null_deviance) ~ 5%.
@@ -574,7 +577,7 @@ female_glm_model_summary %>%
   select(name, df, AIC_weight, deviance_explained, model) %>% 
   arrange(desc(AIC_weight))
 
-write_csv(female_glm_model_summary, "../Hogan/hogan_glm_female_summary.csv")
+write_csv(female_glm_model_summary, "hogan_glm_female_summary.csv")
 ```
 
 It looks like the top model has 25% of the Akaike Weight and incorporates all potential explanatory variables. The proportion of deviance explained (1 - residual_deviance / null_deviance) ~ 6%.
@@ -597,6 +600,33 @@ exp(female_est)
 ```
 
 The incident ratios reveal that the RRS of hatchery-origin to natural-origin Pink Salmon is ~0.42 (95% CI’s: 0.24 – 0.71), holding the other variables (length, distance, and date) constant. The number of offspring increased by ~1% for every day later that a parent was sampled and every mm in parent length and ~5% for parents sampled in the intertidal versus upstream.  
+
+### Heirarchical Partitioning
+
+Now that we know what our top model is, we want to know the independent contributions of each variable in our multivariate data set.
+
+Randy *hot wired* this to accept negative binomial GLM. **Note** needs to be numeric data.
+```{r}
+Female.even_numeric <- Female.even %>%
+  mutate(date = yday(`Sample Date`),
+         origin = as.numeric(as.factor(origin)),
+         intertidal = as.numeric(as.factor(Intertidal))) %>%
+  rename(distance = Distance,
+         length = "Length Mm") %>%
+  select(n, date, length, origin, intertidal)
+
+RS.glm.F.17_numeric <-
+  glm.nb(n ~ date + length + origin + intertidal,
+         data = Female.even_numeric,
+         link = log)
+
+hier.part(
+  y = Female.even_numeric$n,
+  xcan = select(Female.even_numeric, origin, intertidal, date, length),
+  family = "glm.nb",
+  gof = "logLik"
+) #nb
+```
 
 ## Male
 
@@ -684,7 +714,7 @@ male_glm_model_summary %>%
   select(name, df, AIC_weight, deviance_explained, model) %>% 
   arrange(desc(AIC_weight))
 
-write_csv(male_glm_model_summary, "../Hogan/hogan_glm_male_summary.csv")
+write_csv(male_glm_model_summary, "hogan_glm_male_summary.csv")
 ```
 
 It looks like the top model has 34% of the Akaike Weight and incorporates length and distance. The proportion of deviance explained (1 - residual_deviance / null_deviance) ~ 4%.
@@ -707,6 +737,32 @@ exp(male_est)
 ```
 
 The percent change in the number of offspring increases by ~ 1.0% for every Mm increase in length and increases by ~ 1.0% for every meter further upstream a fish is sampled.
+
+### Heirarchical Partitioning
+
+Now that we know what our top model is, we want to know the independent contributions of each variable in our multivariate data set.
+
+Randy *hot wired* this to accept negative binomial GLM. **Note** needs to be numeric data.
+```{r}
+Male.even_numeric <- Male.even %>%
+  mutate(date = yday(`Sample Date`),
+         origin = as.numeric(as.factor(origin))) %>%
+  rename(distance = Distance,
+         length = "Length Mm") %>%
+  select(n, length, distance)
+
+RS.glm.M.9_numeric <-
+  glm.nb(n ~ length + distance,
+         data = Male.even_numeric,
+         link = log)
+
+hier.part(
+  y = Male.even_numeric$n,
+  xcan = select(Male.even_numeric, length, distance),
+  family = "glm.nb",
+  gof = "logLik"
+) #nb
+```
 
 # Summary
 
