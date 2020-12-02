@@ -457,7 +457,9 @@ Figure_6 <- grid.arrange(Hogan_Even_Length, Stockdale_Even_Length, nrow = 1, wid
 ggsave("Figure_6.pdf", plot = Figure_6, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
 ```
 
-# Figure S1: Heterozygosity distribution
+# Figure S1: Study design schematic
+
+# Figure S2: Heterozygosity distribution
 ```{r Plot Het}
 Hogan_even_het_tibble <- dget("../Objects/Hogan_13_14_15_16/het_tibble.txt") %>% 
   filter(lineage == "even")
@@ -577,14 +579,17 @@ Stockdale_even_het <- Stockdale_het_tibble %>%
   ylab("")
 
 
-Figure_S1 <- 
+Figure_S2 <- 
   grid.arrange(Hogan_odd_het, Stockdale_odd_het, Hogan_even_het, Stockdale_even_het, nrow = 2, widths = c(1.10, 1))  # added width argument to get plot area equal
 
 
-ggsave("Figure_S1.pdf", plot = Figure_S1, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
+ggsave("Figure_S2.pdf", plot = Figure_S2, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
 ```
 
-# Figure S2: RS by cross type
+# Figure S3: CKMRSim plot
+This figure is created in a separate notebook "Hogan_Stockdale_13_16_MS_CKMRSIM.Rmd".
+
+# Figure S4: RS by cross type
 ``` {r Plot Cross Type}
 Hogan_parents_paired_14_16_cross <- read_csv("Hogan/parents_paired_14_16_cross.csv") %>% 
   mutate(cross = factor(x = cross, levels = c("NN", "NH", "HN", "HH"))) 
@@ -592,13 +597,21 @@ Hogan_parents_paired_14_16_cross <- read_csv("Hogan/parents_paired_14_16_cross.c
 Stockdale_parents_paired_14_16_cross <- read_csv("Stockdale/stock_parents_paired_14_16_cross.csv") %>% 
   mutate(cross = factor(x = cross, levels = c("NN", "NH", "HN", "HH"))) 
 
+Hogan_n <- Hogan_parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
+  rename(nn = n) %>% 
+  count(cross) %>% 
+  rename(samp = n)
+
 Hogan_Cross_Type <- Hogan_parents_paired_14_16_cross %>% 
   count(cross, `Fish ID`, `Fish ID.par1`) %>% 
   count(cross, n) %>% 
   complete(cross, n, fill = list(nn = 0)) %>% 
   group_by(cross) %>% 
   mutate(p = nn / sum(nn)) %>% 
-  ggplot(aes(x = n, y = p, fill = cross))+
+  left_join(Hogan_n, by = "cross") %>% 
+  mutate(cross_n = paste0(cross, " (n = ", samp, ")")) %>% 
+  ggplot(aes(x = n, y = p, fill = cross_n))+
   geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
   scale_x_continuous(limits = c(0,5), breaks = seq(0, 5, by = 1)) +
@@ -611,13 +624,21 @@ Hogan_Cross_Type <- Hogan_parents_paired_14_16_cross %>%
         legend.position = c(0.7, 0.75),
         panel.grid = element_blank())
 
+Stockdale_n <- Stockdale_parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`) %>% 
+  rename(nn = n) %>% 
+  count(cross) %>% 
+  rename(samp = n)
+
 Stockdale_Cross_Type <- Stockdale_parents_paired_14_16_cross %>% 
   count(cross, `Fish ID`, `Fish ID.par1`) %>% 
   count(cross, n) %>% 
   complete(cross, n, fill = list(nn = 0)) %>% 
   group_by(cross) %>% 
   mutate(p = nn / sum(nn)) %>% 
-  ggplot(aes(x = n, y = p, fill = cross))+
+  left_join(Stockdale_n, by = "cross") %>% 
+  mutate(cross_n = paste0(cross, " (n = ", samp, ")")) %>% 
+  ggplot(aes(x = n, y = p, fill = cross_n))+
   geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
   scale_x_continuous(limits = c(0,5), breaks = seq(0, 5, by = 1)) +
@@ -627,12 +648,12 @@ Stockdale_Cross_Type <- Stockdale_parents_paired_14_16_cross %>%
   ylab(" ") +
   theme_bw() +
   theme(text = element_text(size = 20),
-        legend.position = 'none',
+        legend.position = c(0.7, 0.75),
         panel.grid = element_blank())
 
-Figure_S2 <- grid.arrange(Hogan_Cross_Type, Stockdale_Cross_Type, nrow = 1)
+Figure_S4 <- grid.arrange(Hogan_Cross_Type, Stockdale_Cross_Type, nrow = 1)
 
-ggsave("Figure_S2.pdf", plot = Figure_S2, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
+ggsave("Figure_S4.pdf", plot = Figure_S4, path = "V:/Documents/5_Coastwide/Multispecies/AHRP/Manuscripts/02.Hogan_Stockdale_EA/0002.Figures&Tables/Figures", height = 6, width = 12)
 
 ```
 
