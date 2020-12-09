@@ -1,5 +1,6 @@
 ---
-title: "RRS Results to Date for Science Panel"
+title: "RRS Results to Date for Science Panel v1.0"
+date: "24 November 2020"
 output:
   html_notebook:
     theme: united
