@@ -304,7 +304,7 @@ chisq.test(Stockdale_16_18_spawners_and_offspring)
 
 ## Single parent-offspring pairs (dyads)
 ### Reproductive success (RS)
-First, we calculated family size for parents of both sexes. Female parents produced **0-7** offspring, while known male parents produced **0-8**. Next, we calculated sex- and origin-specific reproductive success (RS) and relative reproductive success (RRS) with 95% CIs. For both metrics, we included sampled fish from the parental generation to which offspring were not assigned in addition to known parents. Finally, we plotted a histogram of the proportion of parents with a given family size, including lines showing mean RS from the table.
+First, we calculated family size for parents of both sexes. Female parents produced **0-7** offspring, while known male parents produced **0-8**. Next, we calculated sex- and origin-specific mean reproductive success (RS; table below and vertical lines in histograms) and relative reproductive success (RRS) with 95% CIs. For both metrics, we included sampled fish from the parental generation to which offspring were not assigned in addition to known parents. Finally, we plotted a histogram of the proportion of parents with a given family size, including lines showing mean RS from the table.
 ```{r Re-calculate RS stockdale including 0s, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.keep='all'}
 # Transform to one row per parent with n = number of offspring produced
 stock_parentage_paired_16_18_count <- stock_parentage_paired_16_18 %>% 
@@ -399,7 +399,7 @@ stock_paired_16_18_filt_parents %>%
 
 ### Relative reproductive success (RRS)
 #### *Test for significant differences in RRS*
-First, we calculated RRS for females and males. Next, we tested for significant differences in RRS between male and female hatchery and natural origin fish. To do this, we performed two different statistical tests on the results in the top panel, including 1) a non-parametric permutation test and 2) a parametric negative binomial GLM. P-values are presented for each test.
+First, we calculated RRS for females and males (top table). Next, we tested for significant differences in RRS between female and male hatchery and natural origin fish (bottom table). To do this, we performed two different statistical tests on the results in the top panel, including 1) a non-parametric permutation test (aka randomization test) and 2) a parametric negative binomial GLM (with no additional covariates). P-values are presented for each test.
 ```{r RRS statistical testing including 0s stockdale, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
 # The format of the data to test was very simple, it was a data.frame called “stock” with 2 columns
 # 1.	nOff = number of offspring per family
@@ -550,13 +550,14 @@ rrs_s1618 <- cbind(rrs_sf1618, rrs_sm1618)
 colnames(rrs_s1618) <- c("Stockdale_fem_16_18", "Stockdale_male_16_18")
 rownames(rrs_s1618) <- c("Lower 95% Confidence Limit", "RRS", "Upper 95% Confidence Limit")
 
-rrs_s1618
+rrs_s1618 %>% 
+  round(2)
 ```
 
 **Results:** Female RRS was **`r round(rrs_sf1618[2,1], 2)` (95% CI [`r round(rrs_sf1618[1,1], 2)`-`r round(rrs_sf1618[3,1], 2)`])** and male RRS was **`r round(rrs_sm1618[2,1], 2)` (95% CI [`r round(rrs_sm1618[1,1], 2)`-`r round(rrs_sm1618[3,1], 2)`])**.
 
 ### RS by field data
-We evaluated the potential for association between RS and parental sample date and/or body length.
+We evaluated the potential for association between RS and parental sample date and/or body length. **Note** we have not examined sample location for these data yet, but intend to in a future notebook.
 ```{r Examine reproductive success by sample date and body length with 0s stockdale, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.keep='all'}
 stock_paired_16_18_filt_parents <- stock_paired_16_18_filt_parents %>% 
   filter(SEX != "?") %>% 
@@ -589,12 +590,12 @@ stock_paired_16_18_filt_parents %>%
   theme_bw() 
 ```
 
-**Results:** Natural-origin females may have marginally higher RS late in the season, and there appears to be no trend in RS associated with body length.
+**Results:** Natural-origin females may have marginally higher RS late in the season, and there appears to be no trend in RS associated with body length. Given the high number of parents assigned 0 offspring, it is hard for the trend lines to get pulled off the x-axis.
 
 ## Parent pair-offspring trios (triads)
 Because we have **67** individuals assigned two parents, we examined instances of four potential types of crosses. Crosses may be between hatchery fish (HH), between natural fish (NN), and between natural and hatchery fish, with NH indicating a natural-origin mother and hatchery-origin father and HN indicating a hatchery-origin mother and natural-origin father. 
 
-### Apparent cross types
+### Cross types observed
 ```{r Create cross as new grouping variable stockdale, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.keep='all'}
 # Which offspring have 2 parents?
 stock_offspring_trio_16_18 <- stock_parentage_paired_16_18 %>%
@@ -646,7 +647,7 @@ stock_parentage_paired_16_18_cross %>%
 **Results:** Offspring from two types of crosses (NN and NH) are represented in our dataset. Only one family was from a natural female and hatchery male, while the remaining crosses were among natural fish. 
 
 ### Cross type RRS plus 95% CIs
-Below, we report the RS of each cross type and RRS (95% CI).
+Below, we report the mean RS of each cross type and RRS (95% CI).
 ```{r RRS_confidence_intervals_16_18_setup stockdale, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, results='hide'}
 # RS of cross types
 (stock_parentage_paired_16_18_cross %>% 
@@ -678,7 +679,8 @@ rrs_sNH1618 <- as.data.frame(rrs_ci_kalinowski(n_h_off = as.integer(stock_Xtype_
 colnames(rrs_sNH1618) <- c("Stockdale_NHvsNN_16_18")
 rownames(rrs_sNH1618) <- c("Lower 95% Confidence Limit", "RRS", "Upper 95% Confidence Limit")
 
-rrs_sNH1618
+rrs_sNH1618 %>% 
+  round(2)
 ```
 
 **Results:** RRS for the comparison was **`r round(rrs_sNH1618[2,1], 2)` (95% CI [`r round(rrs_sNH1618[1,1], 2)`-`r round(rrs_sNH1618[3,1], 2)`])**, indicating no significant difference in RS relative to the NN cross type
@@ -735,7 +737,9 @@ stock_n_dams_and_sires1618
 
 ## Grandparentage
 ### RRS plus 95% CI
-We found the F1 fish that had F0 parents assigned as well as F2 offspring that returned in 2018. We then estimated RRS according to grandparental origin. The set of panels below include 1) how many grandparents of each origin contributed to a particular number of offspring that in turn contributed to a particular number of grandoffspring and 2) how many of those grandoffspring had a particular number of grandparents assigned to them.
+We found the F1 fish (2016) that were assigned to F0 parents (2014) and determined how many F2 offspring (2018) were assigned to them . We then estimated RRS according to grandparental origin. The set of panels below include:  
+  1) how many grandparents of each origin contributed to a particular number of offspring that in turn contributed to a particular number of grandoffspring, and  
+  2) how many of those grandoffspring had a particular number of grandparents assigned to them.  
 ```{r stock_gparents_counts_and_rrs, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, results='hide'}
 stock_parents_paired_14_16 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_parents_paired_14_16.csv") %>% 
   dplyr::select(-origin)
@@ -814,7 +818,7 @@ stock_grandparentage %>%
   rename(Num_grandparents_assigned = num_grandparents, Num_offpring = n)
 ```
 
-**Results:** Each assigned grandparent contributed to **1-5** grandoffspring. A total of **167** unique hatchery-origin grandparents were assigned to **373** F1 parents, **20** of which assigned to **30** F2 offspring, and **238** unique natural-origin grandparents assigned to **865** F1 parents, **51** of which assigned to **74** F2 offspring. RRS between hatchery- and natural-origin grandparents was **`r round(rrs_sgpar1618[2,1], 2)` (95% CI [`r round(rrs_sgpar1618[1,1], 2)`-`r round(rrs_sgpar1618[3,1], 2)`])**. Finally, a total of **76** F2 offspring had one grandparent assigned, while **14** had two grandparents assigned. Unfortunately, no F2 offspring had >2 grandparents assigned.
+**Results:** Each assigned grandparent contributed to **1-5** grandoffspring. A total of **167** unique hatchery-origin grandparents were assigned to **373** F1 parents, **20** of which assigned to **30** F2 offspring, and **238** unique natural-origin grandparents assigned to **865** F1 parents, **51** of which assigned to **74** F2 offspring. RRS from the F1 to F2 was **`r round(rrs_sgpar1618[2,1], 2)` (95% CI [`r round(rrs_sgpar1618[1,1], 2)`-`r round(rrs_sgpar1618[3,1], 2)`])**. However, please note that a total of **76** F2 offspring had one grandparent assigned, while **14** had two grandparents assigned. Unfortunately, no F2 offspring had >2 grandparents assigned.
 
 ## Summary for Stockdale Creek
 
@@ -823,7 +827,7 @@ stock_grandparentage %>%
 2. Of 4,048 total offspring genotyped, 499 were assigned to 383 total parents, for an assignment rate of 12.3%.  
 3. A total of 67 offspring were assigned to two parents (triads).  
 4. RRS (with 0s) was significant for females at 0.37 (95% CI [0.16, 0.73]) but not males at 0.60 (95% CI [0.27, 1.14]).  
-5. There were not enough triads to make meaningful comparisons among cross types.  
+5. There were not enough triads to make meaningful comparisons among cross types (only NN and NH were observed).  
 6. Family size varied from 0-7 for females and 0-8 for males.
 
 ### 2014-2016-2018 (Grandparentage)
@@ -1378,7 +1382,7 @@ gil_paired_16_18_filt_parents %>%
 ## Parent pair-offspring trios (triads)
 Because we have **274** and **168** individuals who were assigned two parents in 2016 and 2018, respectively, we examined instances of four potential types of crosses. Crosses may be between hatchery fish (HH), between natural fish (NN), and between natural and hatchery fish, with NH indicating a natural-origin mother and hatchery-origin father and HN indicating a hatchery-origin mother and natural-origin father. These analyses are more satifying for the 2014-2016 data due to the missing otolith information from 2018 (NA).
 
-### Apparent cross types
+### Cross types observed
 ```{r Create cross as new grouping variable gilmour, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.keep='all'}
 # 2014-2016
 # Which offspring have 2 parents?
