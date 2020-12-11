@@ -1,5 +1,6 @@
 ---
 title: "RRS Results to Date for Science Panel v2.2"
+author: "Kristen Gruenthal & Kyle Shedd"
 date: "9 December 2020"
 output:
   html_notebook:
@@ -28,9 +29,9 @@ knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
 # **Intro**
 Below is an overview of analyses of parentage results for even lineages in Stockdale (2016-2018) and Gilmour (2014-2016-2018) Creeks alone, as well as Stockdale, Hogan, and Gilmour 2014-2016 considered together as potential parents and offspring to explore the parental contribution of natural strays. Please note that, since we do not have full otolith reads for Gilmour 2016 or 2018, these analyses include all fish sampled from Gilmour in both years. 
 
-# Background
+# **Background**
 ## Quality Assurance
-Initial data manipulation and filtering of all project gentoypes included:
+Initial data manipulation and filtering of all project genotypes included:
 
 * Removing fish missing >= 20% of genotypes
 * Removing within collection duplicates
@@ -39,7 +40,7 @@ Initial data manipulation and filtering of all project gentoypes included:
 Along with the paired metadata, final post-QA genotypes are exported as a *Genepop* file to feed into Chase Jalbert's *genepop2franz.GCL.r* script.
 
 ## Parentage
-Here, we provide a rundown of how the parentage results were generated using *FRANz* for even lineages in Stockdale (2016-2018) and Gilmour (2014-2016-2018) Creeks alone and Stockdale, Hogan, and Gilmour 2014-2016 combined. All three datasets were evaluated together as these initial steps are largely conserved and results are independent of study system. Subsequent sections include statistical analyses tailored to each study system.
+Here, we provide a rundown of how the parentage results were generated using *FRANz* for even lineages in Stockdale (2016-2018) and Gilmour (2014-2016-2018) Creeks alone and Stockdale, Hogan, and Gilmour 2014-2016 combined. All three datasets were plotted together here as these initial steps are largely conserved and results are independent of study system. Subsequent sections include statistical analyses tailored to each study system.
 
 **Stockdale:** *FRANz* was run Wed Oct 21 17:55 2020, with the following parameters:
 FRANz.exe --Nmmax 13000 --Nfmax 13000 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2 "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\stockdale_16_18_postQA_2016_2018_STOCK.dat"
@@ -50,7 +51,9 @@ FRANz.exe --Nmmax 5000 --Nfmax 5000 --femrepro 1:2 --malerepro 1:2 --typingerror
 **Stockdale-Hogan-Gilmour:** *FRANz* was run at Fri Oct 23 16:29 2020, with the following parameters:
 FRANz.exe --Nmmax 31000 --Nfmax 31000 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2  "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\2014_2016_stockdale_hogan_gilmour\stockdale_hogan_gilmour_postQA_2014_2016.dat"
 
-**Power:** According to the *FRANz* manual, marker sets are not considered powerful if these cumulative exclusion probabilities are less than 0.95, indicating the probability a random pair of individuals in the population has a 5% chance of having a genotype pair compatible to an offspring genotype. Here, we create a grouped bar plot of *FRANz* parentage posterior probabilities to show robustness of assignments for 1) Stockdale 2016-2018 and Gilmour 2014-2016-2018 and 2) Stockdale-Hogan-Gilmour 2014-2016. Note that Stockdale-Hogan-Gilmour 2014-2016 includes replotted data from Gilmour 2014-2016.
+**Power:** According to the *FRANz* manual, marker sets are not considered powerful if these cumulative exclusion probabilities are less than 0.95, indicating the probability a random pair of individuals in the population has a 5% chance of having a genotype pair compatible to an offspring genotype. All cumulative exclusion probabilities in our study were equal to 1.00.  
+
+Another indication of the robustness of our parentage assignments comes from the high posterior probabilities of each parentage assignment. Here, we create a grouped bar plot of *FRANz* parentage posterior probabilities to show robustness of assignments for 1) Stockdale 2016-2018 and Gilmour 2014-2016-2018 and 2) Stockdale-Hogan-Gilmour 2014-2016. Note that Stockdale-Hogan-Gilmour 2014-2016 includes re-plotted data from Gilmour 2014-2016.
 ```{r FRANz_posterior_plot, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, results='hide', fig.keep='all'}
 # Read in the data
 stock_parentage_16_18 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/Stockdale_2016_2018/parentage.csv")
@@ -75,13 +78,19 @@ ggplot(alldata, aes(x = Posterior, fill = Stream)) +
   geom_histogram(pos="dodge", breaks = seq(0, 1, 0.02)) +
   scale_y_log10() +
   theme_bw() +
+  xlab("Posterior Probability") +
+  ylab("Count") +
   annotation_logticks(sides = "l")
 ```
 
-**Result:** Almost all parentage assigments have a posterior probability of 1, which is very robust; few offspring assignments for any dataset were split among multiple potential parents. We can therefore be confident in the power of our 298 amplicons to make parent assignments.
+**Result:** Almost all parentage assignments have a posterior probability of 1, which is very robust; few offspring assignments for any dataset were split among multiple potential parents. We can therefore be confident in the power of our 298 amplicons to make parent assignments.
 
 ## Sample sizes
-After pulling out the columns from the OceanAK metadata that contain identifying information for each individual, as well as filtering the parentage data for posterior probabilities > 0.9, we calculated sample sizes for potential parents and potential offspring for each stream and year. Tables below are for 1) Stockdale 2016-2018, 2) Gilmour 2014-2016, 3) Gilmour 2016-2018, and 4) Stockdale-Hogan-Gilmour 2014-2016, respectively.
+After pulling out the columns from the OceanAK metadata that contain identifying information for each individual, as well as filtering the parentage data for posterior probabilities > 0.9, we calculated sample sizes for potential parents and potential offspring for each stream and year. **Note** <NA> represents otoliths that have not been read yet. Tables below are for:  
+1) Stockdale 2016-2018  
+2) Gilmour 2014-2016  
+3) Gilmour 2016-2018  
+4) Stockdale-Hogan-Gilmour 2014-2016
 ```{r Filter paired data, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, results='hide'}
 # Read in the OceanAK data
 stock_paired_16_18 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Franz/stockdale_16_18_postQA_OceanAK_paired_2016_2018_STOCK.csv")
@@ -267,7 +276,7 @@ stock4 <- stock_parentage_paired_16_18 %>%
   spread(origin, n)
 ```
 
-**Results:** Of the **4,048** offspring genotyped in 2018, *FRANz* assigned **499** to **383** parents (**374** natural and **9** hatchery), for an assignment rate of **12.3%**. Most assignments (**432**) were to one parent (*single parent-offspring dyads*), but there were **67** two-parent assignments (*parent pair-offspring triads*). A total of **551** assignments yielded a natural-origin parent and **15** yielded a hatchery-origin parent. All **15** were from AFK14B, with **none** from CCH14 or WNH14PINKB.
+**Results:** Of the **4,048** offspring genotyped in 2018, *FRANz* assigned **499** to **383** parents (**374** natural and **9** hatchery), for an assignment rate of **12.3%**. Most assignments (**432**) were to one parent (*single parent-offspring dyads*), but there were **67** two-parent assignments (*parent pair-offspring triads*). A total of **551** offspring assignments were to a natural-origin parent and **15** were to a hatchery-origin parent. All **15** were from AFK14B, with **none** from CCH14 or WNH14PINKB.
 
 ## Proportion test
 We performed a chi-square test on the data in the top panel to determine whether the proportions of offspring assigned to hatchery- and natural-origin parents significantly differ from the proportions of hatchery- and natural-origin parents sampled. Note that for this analysis, the data were not divided out by sex.
@@ -725,6 +734,7 @@ stock_n_dams_and_sires1618
 **Results:** There were **56** unique matings, and both sexes mated with multiple partners. While the bulk of each sex mated with a single partner, males appeared marginally more promiscuous, mating with **1-4** different females, than females, who mated with only **1-2** males. Note also that the question can be further conceptualized, if warranted, using a pedigree visualization platform (e.g. Helium). 
 
 ## Grandparentage
+### RRS plus 95% CI
 We found the F1 fish that had F0 parents assigned as well as F2 offspring that returned in 2018. We then estimated RRS according to grandparental origin. The set of panels below include 1) how many grandparents of each origin contributed to a particular number of offspring that in turn contributed to a particular number of grandoffspring and 2) how many of those grandoffspring had a particular number of grandparents assigned to them.
 ```{r stock_gparents_counts_and_rrs, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, results='hide'}
 stock_parents_paired_14_16 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_parents_paired_14_16.csv") %>% 
@@ -920,7 +930,7 @@ chisq.test(Gilmour_16_18_spawners_and_offspring)
 Meanwhile, for 2016-2018, there was no significant difference in the proportions of offspring assigned to any parental grouping relative to the proportions of potential parents sampled, but too many otolith reads are still missing and this should not be considered a valid result. At this time, **`r round(Gilmour_16_18_spawners_and_offspring["Hatchery", "Gilmour_F1_spawners"] / sum(Gilmour_16_18_spawners_and_offspring[, "Gilmour_F1_spawners"]), 2) * 100`%** of potential parents genotyped were of hatchery-origin, with **`r round(Gilmour_16_18_spawners_and_offspring["Hatchery", "Gilmour_F2_offspring"] / sum(Gilmour_16_18_spawners_and_offspring[, "Gilmour_F2_offspring"]), 2) * 100`%** of potential offspring assigned to hatchery-origin parents.
 
 ## Single parent-offspring pairs (dyads)
-### RS
+### Reproductive success (RS)
 First, we calculated family size for parents of both sexes. In 2014, females produced **0-18** offspring, while males produced **0-21**. In 2016, females produced **0-14** offspring and males produced **0-11**. Next, we calculated sex- and origin-specific reproductive success (RS) and relative reproductive success (RRS) plus 95% CIs. For both metrics, we included sampled fish from the parental generation to which offspring were not assigned in addition to known parents. We then plotted a histogram of the proportion of parents with a given family size, including lines showing mean RS from the table. As a reminder, most potential offspring from both 2016 and 2018 do not yet have otolith reads (gray bars).
 ```{r Family size by sex gilmour, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.keep='all'}
 # 2014-2016
@@ -1105,7 +1115,7 @@ gil_paired_16_18_filt_parents %>%
 
 **Results:** RS for both females and males was still quite high overall for 2014-2016 and much lower for 2016-2018. although this excluded potential parents for whom origin was unknown. In both year sets, RS for natural-origin fish was higher than for hatchery-origin fish. Again, note the large number of potential parents assigned no offspring.
 
-### RRS
+### Relative reproductive success (RRS)
 #### *Test for significant differences in RRS*
 First, we calculated RRS for females and males. Next, we tested for significant differences in RRS between male and female hatchery and natural origin fish. To do this, we performed two different statistical tests on the RRS estimates in the first and third panels, including 1) a non-parametric permutation test and 2) a parametric negative binomial GLM. P-values are presented for each test. Results for 2014-2016 are presented first and 2016-2018 follows. 
 ```{r RRS statistical testing including 0s gilmour, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.keep='all'}
