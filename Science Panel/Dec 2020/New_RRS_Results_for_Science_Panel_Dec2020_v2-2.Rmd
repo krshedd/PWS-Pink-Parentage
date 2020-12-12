@@ -12,7 +12,6 @@ editor_options:
 
 ```{r setup, include=FALSE}
 rm(list=ls())
-# setwd("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage")
 
 library(kinship2)
 library(coin)
@@ -53,13 +52,18 @@ FRANz.exe --Nmmax 31000 --Nfmax 31000 --femrepro 1:2 --malerepro 1:2 --typingerr
 
 **Power:** According to the *FRANz* manual, marker sets are not considered powerful if these cumulative exclusion probabilities are less than 0.95, indicating the probability a random pair of individuals in the population has a 5% chance of having a genotype pair compatible to an offspring genotype. All cumulative exclusion probabilities in our study were equal to 1.00.  
 
-Another indication of the robustness of our parentage assignments comes from the high posterior probabilities of each parentage assignment. Here, we create a grouped bar plot of *FRANz* parentage posterior probabilities to show robustness of assignments for 1) Stockdale 2016-2018 and Gilmour 2014-2016-2018 and 2) Stockdale-Hogan-Gilmour 2014-2016. Note that Stockdale-Hogan-Gilmour 2014-2016 includes re-plotted data from Gilmour 2014-2016.
+Another indication of the robustness of our parentage assignments comes from the high posterior probabilities of each parentage assignment. Here, we create a grouped bar plot of *FRANz* parentage posterior probabilities to show robustness of assignments for 
+
+1) Stockdale 2016-2018 and Gilmour 2014-2016-2018 and 
+2) Stockdale-Hogan-Gilmour 2014-2016. 
+
+**Note** that Stockdale-Hogan-Gilmour 2014-2016 includes re-plotted data from Gilmour 2014-2016.
 ```{r FRANz_posterior_plot, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, results='hide', fig.keep='all'}
 # Read in the data
-stock_parentage_16_18 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/Stockdale_2016_2018/parentage.csv")
-gil_parentage_14_16 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/Gilmour_2014_2016/parentage.csv")
-gil_parentage_16_18 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/Gilmour_2016_2018/parentage.csv")
-shg_parentage_14_16 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/2014_2016_stockdale_hogan_gilmour/parentage.csv")
+stock_parentage_16_18 <- read_csv("../../../Franz/Stockdale_2016_2018/parentage.csv")
+gil_parentage_14_16 <- read_csv("../../../Franz/Gilmour_2014_2016/parentage.csv")
+gil_parentage_16_18 <- read_csv("../../../Franz/Gilmour_2016_2018/parentage.csv")
+shg_parentage_14_16 <- read_csv("../../../Franz/2014_2016_stockdale_hogan_gilmour/parentage.csv")
 
 sp1618 <- data.frame(stock_parentage_16_18)
 gp1416 <- data.frame(gil_parentage_14_16)
@@ -80,28 +84,31 @@ ggplot(alldata, aes(x = Posterior, fill = Stream)) +
   theme_bw() +
   xlab("Posterior Probability") +
   ylab("Count") +
-  annotation_logticks(sides = "l")
+  annotation_logticks(sides = "l") +
+  theme(legend.position = c(0.25, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 ```
 
 **Result:** Almost all parentage assignments have a posterior probability of 1, which is very robust; few offspring assignments for any dataset were split among multiple potential parents. We can therefore be confident in the power of our 298 amplicons to make parent assignments.
 
 ## Sample sizes
-After pulling out the columns from the OceanAK metadata that contain identifying information for each individual, as well as filtering the parentage data for posterior probabilities > 0.9, we calculated sample sizes for potential parents and potential offspring for each stream and year. **Note** <NA> represents otoliths that have not been read yet. Tables below are for:  
-1) Stockdale 2016-2018  
-2) Gilmour 2014-2016  
-3) Gilmour 2016-2018  
-4) Stockdale-Hogan-Gilmour 2014-2016
+After pulling out the columns from the OceanAK metadata that contain identifying information for each individual, as well as filtering the parentage data for posterior probabilities > 0.9, we calculated sample sizes for potential parents and potential offspring for each stream and year. **Note** "<NA>" represents otoliths that have not been read yet. Tables below are for:
+
+1. Stockdale 2016-2018  
+2. Gilmour 2014-2016  
+3. Gilmour 2016-2018  
+4. Stockdale-Hogan-Gilmour 2014-2016
+
 ```{r Filter paired data, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, results='hide'}
 # Read in the OceanAK data
-stock_paired_16_18 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Franz/stockdale_16_18_postQA_OceanAK_paired_2016_2018_STOCK.csv")
-gil_paired_14_16 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Franz/Gilmour_14_16_postQA_OceanAK_paired_2014_2016_GILMOUR.csv")
-gil_paired_16_18 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Franz/Gilmour_16_18_postQA_OceanAK_paired_2016_2018_GILMOUR.csv")
+stock_paired_16_18 <- read_csv("../../Franz/stockdale_16_18_postQA_OceanAK_paired_2016_2018_STOCK.csv")
+gil_paired_14_16 <- read_csv("../../Franz/Gilmour_14_16_postQA_OceanAK_paired_2014_2016_GILMOUR.csv")
+gil_paired_16_18 <- read_csv("../../Franz/Gilmour_16_18_postQA_OceanAK_paired_2016_2018_GILMOUR.csv")
 
 # For Stockdale, Hogan, and Gilmour, we have to bind the three OceanAK datasets together
 shg_paired_14_16 <- bind_rows(
-  read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK_mod.csv"),
-  read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Franz/hogan_postQA_OceanAK_paired_2014_2016_HOGAN_mod.csv"),
-  read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Franz/Gilmour_14_16_postQA_OceanAK_paired_2014_2016_GILMOUR.csv"))
+  read_csv("../../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK_mod.csv"),
+  read_csv("../../Franz/hogan_postQA_OceanAK_paired_2014_2016_HOGAN_mod.csv"),
+  read_csv("../../Franz/Gilmour_14_16_postQA_OceanAK_paired_2014_2016_GILMOUR.csv"))
 
 # Finding and retaining the non-genotype columns from the paired genotype/OceanAK data
 grep(pattern = "RAD", x = colnames(stock_paired_16_18), value = TRUE, invert = TRUE)
@@ -134,8 +141,8 @@ shg_paired_14_16_filt <- paired_data_filt(shg_paired_14_16)
 
 # Stockdale-Hogan_Gilmour filter for the "extra" duplicates that made it in to the parentage analysis that need removal before proceeding
 shg_duplicates_to_remove <- bind_rows(
-  dget("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Hogan_13_14_15_16/duplicates_to_remove.txt"),
-  dget("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Objects/Stockdale_13_14_15_16/duplicates_to_remove.txt"))
+  dget("../../../Objects/Hogan_13_14_15_16/duplicates_to_remove.txt"),
+  dget("../../../Objects/Stockdale_13_14_15_16/duplicates_to_remove.txt"))
     
 # Join `shg_duplicates_to_remove` with the paired data, filter for only the "extra" duplicates that were NOT removed
 (shg_duplicates_to_remove_extra <- shg_duplicates_to_remove %>% 
@@ -199,15 +206,15 @@ sample_size_plot <- function(indata = stock_paired_16_18_filt, title = "Stockdal
   mutate(Sex = case_when(SEX == "M" ~ "Male", SEX == "F" ~ "Female")) %>%
   mutate(date = dmy(`Sample Date`)) %>%
   mutate(DOY = yday(date)) %>%
-  mutate(DOM = format(as.Date(date), "%b-%d")) %>%
-  ggplot(aes(x = DOM)) +
-  theme_bw() +
+  ggplot(aes(x = DOY)) +
   geom_bar(aes(fill = origin), colour = "black") +
+  scale_x_continuous(breaks = seq(180, 320, by = 5), labels = format(x = (as.Date("2012-12-31") + seq(180, 320, by = 5)), "%b %d")) +
   facet_grid(`Sample Year` ~ .) +
   geom_hline(yintercept = 0, colour = "black") +
   ylab("Number of Samples") +
   xlab("") +
   labs(title = title, fill = "Origin") +
+  theme_bw() +
   theme(text = element_text(size = 15), axis.text.x = element_text(angle = 90))
 }
 
@@ -371,7 +378,8 @@ stock_paired_16_18_filt_parents %>%
  geom_vline(xintercept=stock_fem_hatch_16_18, size=2) +
  geom_vline(xintercept=stock_fem_hatch_16_18, color=gg_color_hue(2)[2], linetype = "dashed", size = 2) +
  annotate("text", x = stock_fem_natur_16_18 + 0.5, y = .250, label = paste("fem_natur_RS =", round(stock_fem_natur_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
- annotate("text", x = stock_fem_hatch_16_18 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(stock_fem_hatch_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+ annotate("text", x = stock_fem_hatch_16_18 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(stock_fem_hatch_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) +
+  theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # Males
 stock_paired_16_18_filt_parents %>%
@@ -392,14 +400,20 @@ stock_paired_16_18_filt_parents %>%
  geom_vline(xintercept=stock_male_hatch_16_18, size=2) +
  geom_vline(xintercept=stock_male_hatch_16_18, color=gg_color_hue(2)[2], linetype = "dashed", size = 2) +
  annotate("text", x = stock_male_natur_16_18 + 0.5, y = .250, label = paste("male_natur_RS =", round(stock_male_natur_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
- annotate("text", x = stock_male_hatch_16_18 + 0.5, y = .300, label = paste("male_hatch_RS =", round(stock_male_hatch_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2])
+ annotate("text", x = stock_male_hatch_16_18 + 0.5, y = .300, label = paste("male_hatch_RS =", round(stock_male_hatch_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) +
+  theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 ```
 
 **Results:** RS for both females and males was quite low overall, with RS for natural-origin fish somewhat higher than for hatchery-origin fish. In the histograms, note the large number of potential parents assigned no offspring that were absent from the family size plots above.
 
 ### Relative reproductive success (RRS)
 #### *Test for significant differences in RRS*
-First, we calculated RRS for females and males (top table). Next, we tested for significant differences in RRS between female and male hatchery and natural origin fish (bottom table). To do this, we performed two different statistical tests on the results in the top panel, including 1) a non-parametric permutation test (aka randomization test) and 2) a parametric negative binomial GLM (with no additional covariates). P-values are presented for each test.
+First, we calculated RRS for females and males (top table). Next, we tested for significant differences in RRS between female and male hatchery and natural origin fish (bottom table). To do this, we performed two different statistical tests on the results in the top panel, including
+
+1. a non-parametric permutation test (aka randomization test) and
+2. a parametric negative binomial GLM (with no additional covariates).
+
+P-values are presented for each test.
 ```{r RRS statistical testing including 0s stockdale, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
 # The format of the data to test was very simple, it was a data.frame called “stock” with 2 columns
 # 1.	nOff = number of offspring per family
@@ -643,7 +657,7 @@ stock_parentage_paired_16_18_cross %>%
   xlab("Number of Offspring (RS)")+
   ylab("Proportion of Families per Cross Type") +
   theme_bw() +
-  theme(text = element_text(size = 15), legend.position = c(0.7, 0.75))
+  theme(text = element_text(size = 15), legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 ```
 
 **Results:** Offspring from two types of crosses (NN and NH) are represented in our dataset. Only one family was from a natural female and hatchery male, while the remaining crosses were among natural fish. 
@@ -688,7 +702,7 @@ rrs_sNH1618 %>%
 **Results:** RRS for the comparison was **`r round(rrs_sNH1618[2,1], 2)` (95% CI [`r round(rrs_sNH1618[1,1], 2)`-`r round(rrs_sNH1618[3,1], 2)`])**, indicating no significant difference in RS relative to the NN cross type
 
 ### Mating dynamics
-We set out to discover who is mating with whom and when. Multiple matings clearly occur, but it can be difficult to understand whether it's  males and/or females that have multiple partners. We thus set out to assess promiscuity within the sexes, first determining whether the cross data made sense in light of the sample date for each parent. Because the relationship between dam and sire sample date was generally linear, indicating the cross data are likely correct, we next calculated the number of mates for each known female and male parent (dams and sires).
+We set out to discover who is mating with whom and when. Multiple matings clearly occur, but it can be difficult to understand whether it's  males and/or females that have multiple partners. We thus set out to assess promiscuity within the sexes, first determining whether the cross data made sense in light of the sample date for each parent. We next calculated the number of mates for each known female and male parent (dams and sires).
 ```{r multiple_matings_stock, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, results='hide', fig.keep='all'}
 # List of offspring with two parents
 stock_parentage_paired_16_18_cross_dam_sire <- stock_parentage_paired_16_18_cross %>% 
@@ -713,42 +727,43 @@ stock_parentage_paired_16_18_cross_dam_sire %>%
   summarise(n = n_distinct(Offspring)) %>% 
   ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, colour = cross)) +
   geom_jitter(size = 2) +
-  theme_bw() 
+  geom_abline(intercept = 0, slope = 1) +
+  theme_bw() +
+  theme(text = element_text(size = 15), legend.position = c(0.2, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # How many dams had multiple sires
 stock_n_sires1618 <- stock_parentage_paired_16_18_cross_dam_sire %>% 
   group_by(Dam) %>% 
   summarise(n_sires = n_distinct(Sire)) %>% 
-  count(n_sires)
+  count(n_sires) %>% 
+  rename(Num_mates = n_sires, Num_dams_16_18 = n)
 
 # How many sires had multiple dams
 stock_n_dams1618 <- stock_parentage_paired_16_18_cross_dam_sire %>% 
   group_by(Sire) %>% 
   summarise(n_dams = n_distinct(Dam)) %>% 
-  count(n_dams)
+  count(n_dams) %>%
+  rename(Num_mates = n_dams, Num_sires_16_18 = n)
 
-stock_n_sires1618 <- as.data.frame(stock_n_sires1618)
-stock_n_dams1618 <- as.data.frame(stock_n_dams1618)
-stock_n_dams_and_sires1618 <- merge(stock_n_sires1618, stock_n_dams1618, by = 0, all = TRUE)[-1] # merge 2016-2018
-stock_n_dams_and_sires1618 <- stock_n_dams_and_sires1618[, c(3, 2, 4)]
-colnames(stock_n_dams_and_sires1618) <- c("Num_mates",  "Num_dams_16_18", "Num_sires_16_18")
-stock_n_dams_and_sires1618
+(stock_n_dams_and_sires1618 <- full_join(stock_n_sires1618, stock_n_dams1618, by = "Num_mates"))
 ```
 
-**Results:** There were **56** unique matings, and both sexes mated with multiple partners. While the bulk of each sex mated with a single partner, males appeared marginally more promiscuous, mating with **1-4** different females, than females, who mated with only **1-2** males. Note also that the question can be further conceptualized, if warranted, using a pedigree visualization platform (e.g. Helium). 
+**Results:** The relationship between dam and sire sample date was generally linear, indicating the cross data are likely correct. There were **56** unique matings, and both sexes mated with multiple partners. While the bulk of each sex mated with a single partner, males appeared marginally more promiscuous, mating with **1-4** different females, than females, who mated with only **1-2** males. Note also that the question can be further conceptualized, if warranted, using a pedigree visualization platform (e.g. Helium). 
 
 ## Grandparentage
 ### RRS plus 95% CI
-We found the F1 fish (2016) that were assigned to F0 parents (2014) and determined how many F2 offspring (2018) were assigned to them . We then estimated RRS according to grandparental origin. The set of panels below include:  
-  1) how many grandparents of each origin contributed to a particular number of offspring that in turn contributed to a particular number of grandoffspring, and  
-  2) how many of those grandoffspring had a particular number of grandparents assigned to them.  
+We found the F1 fish (2016) that were assigned to F0 parents (2014) and determined how many F2 offspring (2018) were assigned to them . We then estimated RRS according to grandparental origin. The set of panels below include 
+
+  1. how many grandparents of each origin contributed to a particular number of offspring that in turn contributed to a particular number of grandoffspring, and  
+  2. how many of those grandoffspring had a particular number of grandparents assigned to them.  
+  
 ```{r stock_gparents_counts_and_rrs, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, results='hide'}
-stock_parents_paired_14_16 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_parents_paired_14_16.csv") %>% 
+stock_parents_paired_14_16 <- read_csv("../../Stockdale/stock_parents_paired_14_16.csv") %>% 
   dplyr::select(-origin)
 
-stock_paired_16_18_filt_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Science Panel/Dec 2020/stock_paired_16_18_filt_parents.csv")
+stock_paired_16_18_filt_parents <- read_csv("stock_paired_16_18_filt_parents.csv")
 
-stock_parentage_paired_16_18 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Science Panel/Dec 2020/stock_parentage_paired_16_18.csv")%>% 
+stock_parentage_paired_16_18 <- read_csv("stock_parentage_paired_16_18.csv")%>% 
   dplyr::select(-origin)
 
 # Who were the grandoffspring, their parents, and their grandparents?
@@ -825,6 +840,7 @@ stock_grandparentage %>%
 ## Summary for Stockdale Creek
 
 ### 2016-2018
+
 1. Almost all exclusion probabilities were equal to 1; we are confident our marker set will correctly assign parents to offspring.  
 2. Of 4,048 total offspring genotyped, 499 were assigned to 383 total parents, for an assignment rate of 12.3%.  
 3. A total of 67 offspring were assigned to two parents (triads).  
@@ -833,9 +849,9 @@ stock_grandparentage %>%
 6. Family size varied from 0-7 for females and 0-8 for males.
 
 ### 2014-2016-2018 (Grandparentage)
+
 1. A total of 63 unique grandparents were identified that produced 90 F2 offspring, 76 of which had one grandparent assigned and 14 of which had two grandparents assigned.
 2. F1 to F2 RRS was 0.94 (95% CI [0.61, 1.42]).
-
 
 # **Gilmour 2014-2016-2018 Analyses (preliminary)**
 Much of the following must be interpreted in light of the fact that otolith reads are not yet available for the majority of the 2016 and 2018 Gilmour samples. As a reminder, all fish are thus included, regardless of origin, in these analyses.
@@ -885,7 +901,7 @@ gil4b <- gil_parentage_paired_16_18 %>%
 Meanwhile, of the **2,710** offspring genotyped in *2018*, *FRANz* assigned **635** to **395** parents (**34** natural, **4** hatchery, and **357** of unknown origin), for an assignment rate of **23.4%**. Most assignments (**467**) were to one parent (*single parent-offspring dyads*), but there were **168** two-parent assignments (*parent pair-offspring triads*). All known hatchery-origin assignments at this time (**5**) were from AFK14B, with **none** from CCH14 or WNH14PINKB.
 
 ## Proportion test
-We performed chi-square tests on the counts for each year set (top panel, 2014-2016; bottom panel, 2016-2018) to determine whether the proportions of offspring assigned to hatchery- and natural-origin parents significantly differ from the proportions of hatchery- and natural-origin parents sampled. Note again that the data were not divided out by sex.
+We performed chi-square tests on the counts for each year set (top panel, 2014-2016; bottom panel, 2016-2018) to determine whether the proportions of offspring assigned to hatchery- and natural-origin parents significantly differ from the proportions of hatchery- and natural-origin parents sampled. **Note again** that the data were not divided out by sex.
 ```{r Chi square test gilmour, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
 # 2014-2018
 # How many spawners from each origin?
@@ -1005,7 +1021,8 @@ gil_paired_14_16_filt_parents %>%
   geom_vline(xintercept=gil_fem_hatch_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
   annotate("text", x = gil_fem_natur_14_16 + 0.5, y = .250, label = paste("fem_natur_RS =", round(gil_fem_natur_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
   annotate("text", x = gil_fem_hatch_14_16 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(gil_fem_hatch_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) +
-  theme_bw() 
+  theme_bw() +
+  theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # Males
 gil_paired_14_16_filt_parents %>% 
@@ -1027,7 +1044,8 @@ gil_paired_14_16_filt_parents %>%
   geom_vline(xintercept=gil_male_hatch_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
   annotate("text", x = gil_male_natur_14_16 + 0.5, y = .250, label = paste("male_natur_RS =", round(gil_male_natur_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
   annotate("text", x = gil_male_hatch_14_16 + 0.5, y = .300, label = paste("male_hatch_RS =", round(gil_male_hatch_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) +
-  theme_bw() 
+  theme_bw() +
+  theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # 2016-2018
 # Transform to one row per parent with n = number of offspring produced
@@ -1095,7 +1113,8 @@ gil_paired_16_18_filt_parents %>%
   geom_vline(xintercept=gil_fem_hatch_16_18, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
   annotate("text", x = gil_fem_natur_16_18 + 0.5, y = .250, label = paste("fem_natur_RS =", round(gil_fem_natur_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
   annotate("text", x = gil_fem_hatch_16_18 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(gil_fem_hatch_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) +
-  theme_bw() 
+  theme_bw() +
+  theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # Males
 gil_paired_16_18_filt_parents %>% 
@@ -1116,14 +1135,20 @@ gil_paired_16_18_filt_parents %>%
   geom_vline(xintercept=gil_male_hatch_16_18, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
   annotate("text", x = gil_male_natur_16_18 + 0.5, y = .250, label = paste("male_natur_RS =", round(gil_male_natur_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
   annotate("text", x = gil_male_hatch_16_18 + 0.5, y = .300, label = paste("male_hatch_RS =", round(gil_male_hatch_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) +
-  theme_bw() 
+  theme_bw() +
+  theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 ```
 
 **Results:** RS for both females and males was still quite high overall for 2014-2016 and much lower for 2016-2018, although this excluded potential parents for whom origin was unknown. In both year sets, RS for natural-origin fish was higher than for hatchery-origin fish. Again, note the large number of potential parents assigned no offspring.
 
 ### Relative reproductive success (RRS)
 #### *Test for significant differences in RRS*
-First, we calculated RRS for females and males. Next, we tested for significant differences in RRS between male and female hatchery and natural origin fish. To do this, we performed two different statistical tests on the RRS estimates in the first and third panels, including 1) a non-parametric permutation test (aka randomization test) and 2) a parametric negative binomial GLM (with no additional covariates). P-values are presented for each test. Results for 2014-2016 are presented first and 2016-2018 follows. 
+First, we calculated RRS for females and males. Next, we tested for significant differences in RRS between male and female hatchery and natural origin fish. To do this, we performed two different statistical tests on the RRS estimates in the first and third panels, including 
+
+1. a non-parametric permutation test (aka randomization test) and 
+2. a parametric negative binomial GLM (with no additional covariates). 
+
+P-values are presented for each test. Results for 2014-2016 are presented first and 2016-2018 follows. 
 ```{r RRS statistical testing including 0s gilmour, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.keep='all'}
 # The format of the data to test was very simple, it was a data.frame called “gil” with 2 columns
 # 1.	nOff = number of offspring per family
@@ -1227,7 +1252,13 @@ RRS_gil_16_18 %>%
 **Results:** In 2014, RRS for males was **`r round(gil_RRS_male_14_16, 2)`** and RRS for females **`r round(gil_RRS_fem_14_16, 2)`**. There is a borderline significant difference overall between hatchery- and natural-origin RS with permutation testing. In 2016, RRS for males was **`r round(gil_RRS_male_16_18, 2)`** and RRS for females **`r round(gil_RRS_fem_16_18, 2)`**. There were no significant differences. 
 
 #### *RRS plus 95% CIs for females and males*
-We calculated 95% CIs for RRS based on Kalinowski and Taper (2005) for 1) 2014-2016 females, 2) 2014-2016 males, 3) 2016-2018 females, and 4) 2016-2018 males.
+We calculated 95% CIs for RRS based on Kalinowski and Taper (2005) for 
+
+1. 2014-2016 females, 
+2. 2014-2016 males, 
+3. 2016-2018 females, and 
+4. 2016-2018 males.
+
 ```{r RRS_confidence_intervals_function gilmour, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
 # 2014-2016
 # Females
@@ -1436,7 +1467,7 @@ gil_parentage_paired_14_16_cross %>%
   xlab("Number of Offspring (RS)")+
   ylab("Proportion of Families per Cross Type") +
   theme_bw() +
-  theme(text = element_text(size = 15), legend.position = c(0.7, 0.75))
+  theme(text = element_text(size = 15), legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # 2016-2018
 # Which offspring have 2 parents?
@@ -1484,13 +1515,17 @@ gil_parentage_paired_16_18_cross %>%
   xlab("Number of Offspring (RS)")+
   ylab("Proportion of Families per Cross Type") +
   theme_bw() +
-  theme(text = element_text(size = 15), legend.position = c(0.7, 0.75))
+  theme(text = element_text(size = 15), legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 ```
 
 **Results:** For the 2014-2016 data, offspring resulting from **all four cross types (NN, NH, HN, and HH)** are represented. For 2016-2018, although a few NN crosses are apparent, the distribution of cross types overall is inconclusive at this time.
 
 ### Cross type RRS plus 95% CIs (2014-2016 only)
-The panels below include 1) the mean RS of each cross type and 2) the RRS with 95% CIs for NN vs. HH, HN, and NH, respectively.
+The panels below include 
+
+1. the mean RS of each cross type and 
+2. the RRS with 95% CIs for NN vs. HH, HN, and NH, respectively.
+
 ```{r RRS_confidence_intervals_16_18_setup gilmour, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
 # 2014-2016
 # RS of cross types
@@ -1532,7 +1567,7 @@ rrs_gXt1416 %>%
 **Results:** RS was **1.79** for HH crosses, **1.85** for HN, **2.36** for NH, and **2.55** for NN. RRS was **`r round(rrs_gHH1416[2,1], 2)` (95% CI [`r round(rrs_gHH1416[1,1], 2)`-`r round(rrs_gHH1416[3,1], 2)`])** for NN vs HH, **`r round(rrs_gHN1416[2,1], 2)` (95% CI [`r round(rrs_gHN1416[1,1], 2)`-`r round(rrs_gHN1416[3,1], 2)`])** for NN vs HN, and **`r round(rrs_gNH1416[2,1], 2)` (95% CI [`r round(rrs_gNH1416[1,1], 2)`-`r round(rrs_gNH1416[3,1], 2)`])** for NN vs NH for 2014-2016. Comparisons of NN vs HN and NN vs HH were borderline significant. These results suggest potentially intermediate fitness among hatchery/natural crosses, with NH higher than HN. Results from 2016-2018 are not included at this time.
 
 ### Mating dynamics
-We set out to discover who is mating with whom and when. Multiple matings clearly occur, but it can be difficult to understand whether it's males and/or females that have multiple partners. We thus set out to assess promiscuity within the sexes, first determining whether the cross data made sense in light of the sample date for each parent. The relationship between dam and sire sample date was generally linear, indicating the cross data are likely correct, so we next calculated the number of mates for each known female and male parent (dams and sires) from each year.
+We set out to discover who is mating with whom and when. Multiple matings clearly occur, but it can be difficult to understand whether it's males and/or females that have multiple partners. We thus set out to assess promiscuity within the sexes, first determining whether the cross data made sense in light of the sample date for each parent. We next calculated the number of mates for each known female and male parent (dams and sires) from each year.
 ```{r multiple_matings_gil, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, results='hide', fig.keep='none'}
 # 2014-2016
 # List of offspring with two parents
@@ -1550,33 +1585,33 @@ gil_parentage_paired_14_16_cross_dam_sire <- gil_parentage_paired_14_16_cross %>
 gil_unique_matings_14_16 <- gil_parentage_paired_14_16_cross_dam_sire %>% 
   count(Dam, Sire)
 
-# # Do the sample dates for cross types make sense?
-# gil_parentage_paired_14_16_cross_dam_sire %>% 
-#   mutate(`Sample Date_dam` = dmy(`Sample Date_dam`),
-#          `Sample Date_sire` = dmy(`Sample Date_sire`)) %>% 
-#   group_by(Dam, Sire, `Sample Date_dam`, `Sample Date_sire`, cross) %>% 
-#   summarise(n = n_distinct(Offspring)) %>% 
-#   ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, colour = cross)) +
-#   geom_jitter(size = 2) +
-#   theme_bw() 
+# Do the sample dates for cross types make sense?
+gil_parentage_paired_14_16_cross_dam_sire %>%
+  mutate(`Sample Date_dam` = dmy(`Sample Date_dam`),
+         `Sample Date_sire` = dmy(`Sample Date_sire`)) %>%
+  group_by(Dam, Sire, `Sample Date_dam`, `Sample Date_sire`, cross) %>%
+  summarise(n = n_distinct(Offspring)) %>%
+  ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, colour = cross)) +
+  geom_jitter(size = 2) +
+  geom_abline(intercept = 0, slope = 1) +
+  theme_bw() +
+  theme(text = element_text(size = 15), legend.position = c(0.1, 0.8), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # How many dams had multiple sires
 gil_n_sires1416 <- gil_parentage_paired_14_16_cross_dam_sire %>% 
   group_by(Dam) %>% 
   summarise(n_sires = n_distinct(Sire)) %>% 
-  count(n_sires)
+  count(n_sires) %>% 
+  rename(Num_mates = n_sires, Num_dams_14_16 = n)
 
 # How many sires had multiple dams
 gil_n_dams1416 <- gil_parentage_paired_14_16_cross_dam_sire %>% 
   group_by(Sire) %>% 
   summarise(n_dams = n_distinct(Dam)) %>% 
-  count(n_dams)
+  count(n_dams) %>% 
+  rename(Num_mates = n_dams, Num_sires_14_16 = n)
 
-gil_n_sires1416 <- as.data.frame(gil_n_sires1416)
-gil_n_dams1416 <- as.data.frame(gil_n_dams1416)
-gil_n_dams_and_sires1416 <- merge(gil_n_sires1416, gil_n_dams1416, by = 0, all = TRUE)[-1] # merge 2014-2016
-gil_n_dams_and_sires1416 <- gil_n_dams_and_sires1416[, c(3, 2, 4)]
-colnames(gil_n_dams_and_sires1416) <- c("Num_mates", "Num_dams_14_16", "Num_sires_14_16")
+gil_n_dams_and_sires1416 <- full_join(gil_n_sires1416, gil_n_dams1416, by = "Num_mates")
 
 # 2016-2018
 # List of offspring with two parents
@@ -1594,52 +1629,54 @@ gil_parentage_paired_16_18_cross_dam_sire <- gil_parentage_paired_16_18_cross %>
 gil_unique_matings_16_18 <- gil_parentage_paired_16_18_cross_dam_sire %>% 
   count(Dam, Sire)
 
-# # Do the sample dates for cross types make sense?
-# gil_parentage_paired_16_18_cross_dam_sire %>% 
-#   mutate(`Sample Date_dam` = dmy(`Sample Date_dam`),
-#          `Sample Date_sire` = dmy(`Sample Date_sire`)) %>% 
-#   group_by(Dam, Sire, `Sample Date_dam`, `Sample Date_sire`, cross) %>% 
-#   summarise(n = n_distinct(Offspring)) %>% 
-#   ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, colour = cross)) +
-#   geom_jitter(size = 2) +
-#   theme_bw() 
+# Do the sample dates for cross types make sense?
+gil_parentage_paired_16_18_cross_dam_sire %>%
+  mutate(`Sample Date_dam` = dmy(`Sample Date_dam`),
+         `Sample Date_sire` = dmy(`Sample Date_sire`)) %>%
+  group_by(Dam, Sire, `Sample Date_dam`, `Sample Date_sire`, cross) %>%
+  summarise(n = n_distinct(Offspring)) %>%
+  ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, colour = cross)) +
+  geom_jitter(size = 2) +
+  geom_abline(intercept = 0, slope = 1) +
+  theme_bw() +
+  theme(text = element_text(size = 15), legend.position = c(0.1, 0.8), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # How many dams had multiple sires
 gil_n_sires1618 <- gil_parentage_paired_16_18_cross_dam_sire %>% 
   group_by(Dam) %>% 
   summarise(n_sires = n_distinct(Sire)) %>% 
-  count(n_sires)
+  count(n_sires) %>% 
+  rename(Num_mates = n_sires, Num_dams_16_18 = n)
 
 # How many sires had multiple dams
 gil_n_dams1618 <- gil_parentage_paired_16_18_cross_dam_sire %>% 
   group_by(Sire) %>% 
   summarise(n_dams = n_distinct(Dam)) %>% 
-  count(n_dams)
+  count(n_dams) %>% 
+  rename(Num_mates = n_dams, Num_sires_16_18 = n)
 
-gil_n_sires1618 <- as.data.frame(gil_n_sires1618)
-gil_n_dams1618 <- as.data.frame(gil_n_dams1618)
-gil_n_dams_and_sires1618 <- merge(gil_n_sires1618, gil_n_dams1618, by = 0, all = TRUE)[-1] # merge 2016-2018
-gil_n_dams_and_sires1618 <- gil_n_dams_and_sires1618[, c(3, 2, 4)]
-colnames(gil_n_dams_and_sires1618) <- c("Num_mates",  "Num_dams_16_18", "Num_sires_16_18")
+gil_n_dams_and_sires1618 <- full_join(gil_n_sires1618, gil_n_dams1618, by = "Num_mates")
 
-(gil_n_dams_and_sires1418 <- merge(gil_n_dams_and_sires1416, gil_n_dams_and_sires1618, by = "Num_mates")) # merge 2014-2018
+(gil_n_dams_and_sires1418 <- full_join(gil_n_dams_and_sires1416, gil_n_dams_and_sires1618, by = "Num_mates"))
 ```
 
-**Results:** There were **129** unique matings represented in 2014-2016 and **106** in 2016-2018. Both sexes mated with multiple partners and seemed equally promicuous, each successfully producing offspring primarily with **1** and up to **4** partners, depending on year and sex.
+**Results:** The relationship between dam and sire sample date was generally linear (though overplotted for 2014-2016), indicating the cross data are likely correct. There were **129** unique matings represented in 2014-2016 and **106** in 2016-2018. Both sexes mated with multiple partners and seemed equally promicuous, each successfully producing offspring primarily with **1** and up to **4** partners, depending on year and sex.
 
 ## Grandparentage
 
 ### RRS plus 95% CI
-We found the F1 fish that had F0 parents assigned as well as F2 offspring that returned in 2018. We then estimated RRS according to grandparental origin. The set of panels below include:  
-  1) how many grandparents of each origin contributed to a particular number of offspring that in turn contributed to a particular number of grandoffspring and  
-  2) how many of those grandoffspring had a particular number of grandparents assigned to them.  
+We found the F1 fish that had F0 parents assigned as well as F2 offspring that returned in 2018. We then estimated RRS according to grandparental origin. The set of panels below include
+
+  1. how many grandparents of each origin contributed to a particular number of offspring that in turn contributed to a particular number of grandoffspring and  
+  2. how many of those grandoffspring had a particular number of grandparents assigned to them.
+  
 ```{r gil_gparents_rrs, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, results='hide'}
-gil_parentage_paired_14_16 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Science Panel/Dec 2020/gil_parentage_paired_14_16.csv") %>%
+gil_parentage_paired_14_16 <- read_csv("gil_parentage_paired_14_16.csv") %>%
   dplyr::select(-origin)
 
-gil_paired_16_18_filt_parents <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Science Panel/Dec 2020/gil_paired_16_18_filt_parents.csv")
+gil_paired_16_18_filt_parents <- read_csv("gil_paired_16_18_filt_parents.csv")
 
-gil_parentage_paired_16_18 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Science Panel/Dec 2020/gil_parentage_paired_16_18.csv")%>%
+gil_parentage_paired_16_18 <- read_csv("gil_parentage_paired_16_18.csv")%>%
   dplyr::select(-origin)
 
 # Who were the grandoffspring, their parents, and their grandparents?
@@ -1716,6 +1753,7 @@ gil_grandparentage %>%
 ## Summary for Gilmour Creek
 
 ### 2014-2016
+
 1. Almost all exclusion probabilities were equal to 1; we are confident our marker set will correctly assign parents to offspring.  
 2. Of 3,345 successfully genotyped, 975 offspring were assigned to 309 parents for an assignment rate of **29.2%**.  
 3. A total of 274 offspring were assigned to two parents (triads).  
@@ -1726,6 +1764,7 @@ gil_grandparentage %>%
 6. Family size varied from 0-18 for females and 0-21 for males.
 
 ### 2016-2018
+
 1. Again, almost all exclusion probabilities were equal to 1.  
 2. Of 2,710 total offspring genotyped, 635 were assigned to 395 total parents, for an assignment rate of 23.4%.  
 3. A total of 168 offspring were assigned to two parents (triads).  
@@ -1734,12 +1773,16 @@ gil_grandparentage %>%
 6. Family size varied from 0-14 for females and 0-11 for males.
 
 ### 2014-2016-2018 (Grandparentage)
+
 1. A total of 129 unique F0 grandparents were identified that produced 269 F2 offspring, 175 of which had one, 84 of which had two, and 10 of which had three grandparents assigned.
 2. F1 to F2 RRS was 0.84 (95% CI [0.68, 1.02]).
 
-
 # **Hogan-Stockdale-Gilmour 2014-2016 Analyses (preliminary)**
-Here, we partition the parent and offspring data from 2014 2016 among three different streams, including Hogan, stockdale, and Gilmour, to assess whether staying may have an impact on our ability to assign parentage as best possible. Panels below include 1) the number of offspring detected in each stream from a particular source population (stream and origin) and 2) the number and location of offspring per a particular parent.
+Here, we partition the parent and offspring data from 2014 2016 among three different streams, including Hogan, stockdale, and Gilmour, to assess whether staying may have an impact on our ability to assign parentage as best possible. Panels below include 
+
+1. the number of offspring detected in each stream from a particular source population (stream and origin) and 
+2. the number and location of offspring per a particular parent.
+
 ```{r shg_14_16, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, results='hide'}
 # How many parent offspring pair assignments?
 shg1 <- shg_parentage_paired_14_16 %>% 
@@ -1815,15 +1858,15 @@ shg_parentage_paired_14_16_cross <- shg_parentage_14_16 %>%
 shg7 <- shg_parentage_paired_14_16_cross %>% 
   filter(stream.off != stream.par1)
 ```
-**Results:** Out of **3,103** parent offspring assignments, only **141** indicated straying; the vast majority of assignment indicated return to natal streams (**>95%** overall). Of the **122** actual strays, there were **103** dyad assignments and **19** triads. Most parents were assigned to only **1-2** stray offspring, if any. However, it does appear that **5.8%** of offspring that assigned to Stockdale-origin parents strayed in to Hogan (**2.1%**) or Gilmour (**3.7**), whereas offspring assigned to Hogan-origin parents were not found to stray much at all(**<1%**). Offspring that assigned to Gilmour-origin parents that were found outside of Gilmour were predominately found in Stockdale (**4.2%**), which is a neighboring stream, versus Hogan (**<1%**). It should also be noted that some individual parents produced both offspring that home and offspring that strayed.
+**Results:** Out of **3,103** parent offspring assignments, only **141** indicated straying; the vast majority of assignment indicated return to natal streams (**>95%** overall). Of the **122** actual strays, there were **103** dyad assignments and **19** triads. Most parents were assigned to only **1-2** stray offspring, if any. However, it does appear that **5.8%** of offspring that assigned to Stockdale-origin parents strayed into Hogan (**2.1%**) or Gilmour (**3.7**), whereas offspring assigned to Hogan-origin parents were not found to stray much at all(**<1%**). Offspring that assigned to Gilmour-origin parents that were found outside of Gilmour were predominately found in Stockdale (**4.2%**), which is a neighboring stream, versus Hogan (**<1%**). It should also be noted that some individual parents produced both offspring that home and offspring that strayed.
 
 ## Summary for Stockdale-Hogan-Gilmour Creeks
+
 1. Almost all exclusion probabilities were equal to 1; we are confident our marker set will correctly assign parents to offspring.  
 2. Of over 12K successfully genotyped, 2,605 offspring were assigned to 917 parents for an assignment rate of **20.8%**.  
 3. A total of 498 offspring were assigned to two parents (triads).  
 4. There was a highly significant difference in the proportion of offspring assigned to hatchery- and natural-origin parents relative that of potential parents sampled. 
 5. Over 94% of fish return to their natal streams, but differential straying did occur among the streams, with Stockdale and Gilmour straying more than Hogan.
-
 
 # **Summary of RRS Results to Date**
 
