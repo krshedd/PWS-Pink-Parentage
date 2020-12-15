@@ -91,7 +91,7 @@ ggplot(alldata, aes(x = Posterior, fill = Stream)) +
 **Result:** Almost all parentage assignments have a posterior probability of 1, which is very robust; few offspring assignments for any dataset were split among multiple potential parents. We can therefore be confident in the power of our 298 amplicons to make parent assignments.
 
 ## Sample sizes
-After pulling out the columns from the OceanAK metadata that contain identifying information for each individual, as well as filtering the parentage data for posterior probabilities > 0.9, we calculated sample sizes for potential parents and potential offspring for each stream and year. **Note** "<NA>" represents otoliths that have not been read yet. Tables below are for:
+After pulling out the columns from the OceanAK metadata that contain identifying information for each individual, as well as filtering the parentage data for posterior probabilities > 0.9, we calculated sample sizes for potential parents and potential offspring for each stream and year. **Note** `<NA>` represents otoliths that have not been read yet. Tables below are for:
 
 1. Stockdale 2016-2018  
 2. Gilmour 2014-2016  
@@ -652,7 +652,7 @@ stock_parentage_paired_16_18_cross %>%
   ggplot(aes(x = n, y = p, fill = cross_n))+
   geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
-  scale_x_continuous(limits = c(1,5), breaks = seq(1, 5, by = 1)) +
+  scale_x_continuous(limits = c(0,5), breaks = seq(0, 5, by = 1)) +
   labs(title = "Stockdale_16_18", fill = "Cross Type") +
   xlab("Number of Offspring (RS)")+
   ylab("Proportion of Families per Cross Type") +
@@ -1462,7 +1462,7 @@ gil_parentage_paired_14_16_cross %>%
   ggplot(aes(x = n, y = p, fill = cross_n))+
   geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0, 1, by = 0.1)) +
-  scale_x_continuous(limits = c(1,10), breaks = seq(1, 10, by = 1)) +
+  scale_x_continuous(limits = c(0,10), breaks = seq(0, 10, by = 1)) +
   labs(title = "Gilmour_14_16", fill = "Cross Type") +
   xlab("Number of Offspring (RS)")+
   ylab("Proportion of Families per Cross Type") +
@@ -1510,7 +1510,7 @@ gil_parentage_paired_16_18_cross %>%
   scale_fill_manual(values=c("#8c8c8c", "#F8766D")) +
   geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0, 1, by = 0.1)) +
-  scale_x_continuous(limits = c(1,6), breaks = seq(1, 6, by = 1)) +
+  scale_x_continuous(limits = c(0,6), breaks = seq(0, 6, by = 1)) +
   labs(title = "Gilmour_16_18", fill = "Cross Type") +
   xlab("Number of Offspring (RS)")+
   ylab("Proportion of Families per Cross Type") +
@@ -1532,7 +1532,7 @@ The panels below include
 (gil_Xtype_14_16 <- gil_parentage_paired_14_16_cross %>% 
   count(cross, `Fish ID`, `Fish ID.par1`) %>% 
   group_by(cross) %>% 
-  summarise(rs = mean(n)))
+  summarise(rs = round(mean(n), 2)))
 
 # How many matings by cross type?
 gil_Xtype_mat_14_16 <- gil_parentage_paired_14_16_cross %>% 
