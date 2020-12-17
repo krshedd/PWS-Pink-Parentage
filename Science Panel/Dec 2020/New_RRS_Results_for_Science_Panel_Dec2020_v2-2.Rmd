@@ -78,8 +78,9 @@ shgp1416$Stream <- "Stockdale-Hogan-Gilmour_14_16"
 alldata <- rbind(sp1618, gp1416, gp1618, shgp1416) %>%
   filter(!is.na(`Parent.1`))
 
-# colorblind palette
-cbPalette <- c("#CC79A7", "#0072b2", "#d55e00", "#F0E442")
+# colorblindness friendly palettes
+cbPalette1 <- c("#0072b2", "#d55e00", "#F0E442", "#CC79A7") # blue, orange, yellow, and pink
+cbPalette2 <- c("#CC79A7", "#0072b2") # pink and blue
 
 ggplot(alldata, aes(x = Posterior, fill = Stream)) + 
   geom_histogram(pos="dodge", breaks = seq(0, 1, 0.02), color = "black") +
@@ -89,7 +90,7 @@ ggplot(alldata, aes(x = Posterior, fill = Stream)) +
   ylab("Count") +
   annotation_logticks(sides = "l") +
   theme(legend.position = c(0.25, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1)) +
-  scale_fill_manual(values=cbPalette)
+  scale_fill_manual(values=cbPalette1)
 ```
 
 **Result:** Almost all parentage assignments have a posterior probability of 1, which is very robust; few offspring assignments for any dataset were split among multiple potential parents. We can therefore be confident in the power of our 298 amplicons to make parent assignments.
@@ -220,7 +221,7 @@ sample_size_plot <- function(indata = stock_paired_16_18_filt, title = "Stockdal
   labs(title = title, fill = "Origin") +
   theme_bw() +
   theme(text = element_text(size = 15), axis.text.x = element_text(angle = 90)) +
-  scale_fill_manual(values = cbPalette)
+  scale_fill_manual(values = cbPalette2)
 }
 
 sample_size_plot(indata = stock_paired_16_18_filt)
@@ -379,13 +380,13 @@ stock_paired_16_18_filt_parents %>%
  ylab("Proportion of Females") +
  labs(title="Number of Offspring for Females", fill = "Parent: Origin") +
  geom_vline(xintercept=stock_fem_natur_16_18, size=2) +
- geom_vline(xintercept=stock_fem_natur_16_18, color=cbPalette[1], linetype = "dashed", size = 2) +
+ geom_vline(xintercept=stock_fem_natur_16_18, color=cbPalette2[1], linetype = "dashed", size = 2) +
  geom_vline(xintercept=stock_fem_hatch_16_18, size=2) +
- geom_vline(xintercept=stock_fem_hatch_16_18, color=cbPalette[2], linetype = "dashed", size = 2) +
- annotate("text", x = stock_fem_natur_16_18 + 0.5, y = .250, label = paste("fem_natur_RS =", round(stock_fem_natur_16_18, 2)), hjust = 0, size = 6, color = cbPalette[1]) +
- annotate("text", x = stock_fem_hatch_16_18 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(stock_fem_hatch_16_18, 2)), hjust = 0, size = 6, color = cbPalette[2]) +
+ geom_vline(xintercept=stock_fem_hatch_16_18, color=cbPalette2[2], linetype = "dashed", size = 2) +
+ annotate("text", x = stock_fem_natur_16_18 + 0.5, y = .250, label = paste("fem_natur_RS =", round(stock_fem_natur_16_18, 2)), hjust = 0, size = 6, color = cbPalette2[1]) +
+ annotate("text", x = stock_fem_hatch_16_18 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(stock_fem_hatch_16_18, 2)), hjust = 0, size = 6, color = cbPalette2[2]) +
   theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1)) +
-  scale_fill_manual(values=cbPalette)
+  scale_fill_manual(values=cbPalette2)
 
 # Males
 stock_paired_16_18_filt_parents %>%
@@ -402,13 +403,13 @@ stock_paired_16_18_filt_parents %>%
  ylab("Proportion of Males") +
  labs(title="Number of Offspring for Males", fill = "Parent: Origin") +
  geom_vline(xintercept=stock_male_natur_16_18, size=2) +
- geom_vline(xintercept=stock_male_natur_16_18, color=cbPalette[1], linetype = "dashed", size = 2) +
+ geom_vline(xintercept=stock_male_natur_16_18, color=cbPalette2[1], linetype = "dashed", size = 2) +
  geom_vline(xintercept=stock_male_hatch_16_18, size=2) +
- geom_vline(xintercept=stock_male_hatch_16_18, color=cbPalette[2], linetype = "dashed", size = 2) +
- annotate("text", x = stock_male_natur_16_18 + 0.5, y = .250, label = paste("male_natur_RS =", round(stock_male_natur_16_18, 2)), hjust = 0, size = 6, color = cbPalette[1]) +
- annotate("text", x = stock_male_hatch_16_18 + 0.5, y = .300, label = paste("male_hatch_RS =", round(stock_male_hatch_16_18, 2)), hjust = 0, size = 6, color = cbPalette[2]) +
+ geom_vline(xintercept=stock_male_hatch_16_18, color=cbPalette2[2], linetype = "dashed", size = 2) +
+ annotate("text", x = stock_male_natur_16_18 + 0.5, y = .250, label = paste("male_natur_RS =", round(stock_male_natur_16_18, 2)), hjust = 0, size = 6, color = cbPalette2[1]) +
+ annotate("text", x = stock_male_hatch_16_18 + 0.5, y = .300, label = paste("male_hatch_RS =", round(stock_male_hatch_16_18, 2)), hjust = 0, size = 6, color = cbPalette2[2]) +
   theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1)) +
-  scale_fill_manual(values = cbPalette)
+  scale_fill_manual(values = cbPalette2)
 ```
 
 **Results:** RS for both females and males was quite low overall, with RS for natural-origin fish somewhat higher than for hatchery-origin fish. In the histograms, note the large number of potential parents assigned no offspring that were absent from the family size plots above.
@@ -589,30 +590,32 @@ stock_paired_16_18_filt_parents <- stock_paired_16_18_filt_parents %>%
 # Females and males separated
 stock_paired_16_18_filt_parents %>% 
   ggplot(aes(x = date, y = n, fill = origin)) +
-  geom_hline(yintercept = 0) +
+  geom_hline(yintercept = 0, color = "gray") +
   geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
-  geom_smooth() +
+  geom_smooth(color = "black", size = 0.5) +
   facet_grid(sex ~ .) +
   labs(title = "Reproductive Success by Parental Sample Date\n(females and males separate)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Sample Date") +
   ylab("Reproductive Success") +
   theme_bw() +
-  scale_fill_manual(values = cbPalette)
+  theme(panel.grid.minor = element_blank()) +
+  scale_fill_manual(values = cbPalette2)
 
 stock_paired_16_18_filt_parents %>% 
   filter(`Length Mm` > 300) %>% 
   ggplot(aes(x = `Length Mm`, y = n, fill = origin)) +
-  geom_hline(yintercept = 0) +
+  geom_hline(yintercept = 0, color = "gray") +
   geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
-  geom_smooth() +
+  geom_smooth(color = "black", size = 0.5) +
   facet_grid(sex ~ .) +
   labs(title = "Reproductive Success by Parental Length (mm)\n(females and males separate)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Length (mm)") +
   ylab("Reproductive Success") +
   theme_bw() +
-  scale_fill_manual(values = cbPalette)
+  theme(panel.grid.minor = element_blank()) +
+  scale_fill_manual(values = cbPalette2)
 ```
 
 **Results:** Natural-origin females may have marginally higher RS late in the season, and there appears to be no trend in RS associated with body length. Given the high number of parents assigned 0 offspring, it is hard for the trend lines to get pulled off the x-axis.
@@ -667,7 +670,7 @@ stock_parentage_paired_16_18_cross %>%
   ylab("Proportion of Families per Cross Type") +
   theme_bw() +
   theme(text = element_text(size = 15), legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1)) +
-  scale_fill_manual(values = cbPalette)
+  scale_fill_manual(values = c("#F0E442", "#CC79A7"))
 ```
 
 **Results:** Offspring from two types of crosses (NN and NH) are represented in our dataset. Only one family was from a natural female and hatchery male, while the remaining crosses were among natural fish. 
@@ -739,7 +742,7 @@ stock_parentage_paired_16_18_cross_dam_sire %>%
   geom_jitter(size = 4, shape = 21, color = "black") +
   geom_abline(intercept = 0, slope = 1) +
   theme_bw() +
-  scale_fill_manual(values = cbPalette) +
+  scale_fill_manual(values = c("#F0E442", "#CC79A7")) +
   theme(text = element_text(size = 15), legend.position = c(0.2, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # How many dams had multiple sires
@@ -795,8 +798,8 @@ stock_gparents2 <- stock_paired_16_18_filt_parents %>%
 (stock_gparents_origin <- stock_paired_16_18_filt_parents %>% 
   right_join(stock_parents_paired_14_16, by = c("franz_id" = "Offspring")) %>% 
   group_by(origin.par) %>% 
-  summarise(num_F0_grandparents = length(unique(Parent_ID)), num_F1_parents = length(franz_id), num_F2_offspring = sum(n, na.rm = TRUE)) %>%
-  rename(Parental_origin = origin.par))
+  summarise(Num_F0_grandparents = length(unique(Parent_ID)), Num_F1_parents = length(franz_id), Num_F2_offspring = sum(n, na.rm = TRUE)) %>%
+  rename(Grandparental_origin = origin.par))
 
 # RRS plus 95% CIs based on summary table
 rrs_sgpar1618 <- as.data.frame(rrs_ci_kalinowski(n_h_off = as.integer(stock_gparents_origin[1,4]), n_w_off = as.integer(stock_gparents_origin[2,4]), n_h_par = as.integer(stock_gparents_origin[1,3]), n_w_par = as.integer(stock_gparents_origin[2,3]), alpha = 0.05))
@@ -846,7 +849,7 @@ stock_grandparentage %>%
   rename(Num_grandparents_assigned = num_grandparents, Num_offpring = n)
 ```
 
-**Results:** Each assigned grandparent contributed to **1-5** grandoffspring. A total of **167** unique hatchery-origin grandparents were assigned to **373** F1 parents, **20** of which assigned to **30** F2 offspring, and **238** unique natural-origin grandparents assigned to **865** F1 parents, **51** of which assigned to **74** F2 offspring. RRS from the F1 to F2 was **`r round(rrs_sgpar1618[2,1], 2)` (95% CI [`r round(rrs_sgpar1618[1,1], 2)`-`r round(rrs_sgpar1618[3,1], 2)`])**. However, please note that a total of **76** F2 offspring had one grandparent assigned, while **14** had two grandparents assigned. Unfortunately, no F2 offspring had >2 grandparents assigned.
+**Results:** As a reminder, all F1 parents and F2 offspring are natural-origin in this analysis; only the F0 grandparental generation contains any hatchery-origin fish. A total of **167** unique hatchery-origin grandparents were assigned to **373** F1 parents, **20** of which assigned to **30** F2 offspring, and **238** unique natural-origin grandparents assigned to **865** F1 parents, **51** of which assigned to **74** F2 offspring. Each assigned grandparent contributed to **1-5** grandoffspring. RRS from the F1 to F2 was **`r round(rrs_sgpar1618[2,1], 2)` (95% CI [`r round(rrs_sgpar1618[1,1], 2)`-`r round(rrs_sgpar1618[3,1], 2)`])**. However, this result requires circumspection and interpretation. It is not a pure RRS estimate because it is based on a fraction of full familial origin information. Only one F1 parent is known for the majority of F2 offpring; an unknown parent may be of either origin and may have been sampled or unsampled. Compounding that, **76** F2 offspring had one grandparent assigned, while only **14** had two grandparents assigned, but **zero** F2 offspring had >2 grandparents assigned. Again, the unknown grandparent(s) are of unknown origin.
 
 ## Summary for Stockdale Creek
 
@@ -1022,13 +1025,13 @@ gil_paired_14_16_filt_parents %>%
   labs(title="Number of Offspring for Females 2014-2016",
        fill = "Parent: Origin") +
   geom_vline(xintercept=gil_fem_natur_14_16, size=2) +
-  geom_vline(xintercept=gil_fem_natur_14_16, color=cbPalette[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=gil_fem_natur_14_16, color=cbPalette2[1], linetype = "dashed", size=2) +
   geom_vline(xintercept=gil_fem_hatch_14_16, size=2) +
-  geom_vline(xintercept=gil_fem_hatch_14_16, color=cbPalette[2], linetype = "dashed", size=2) +
-  annotate("text", x = gil_fem_natur_14_16 + 0.5, y = .250, label = paste("fem_natur_RS =", round(gil_fem_natur_14_16, 2)), hjust = 0, size = 6, color = cbPalette[1]) +
-  annotate("text", x = gil_fem_hatch_14_16 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(gil_fem_hatch_14_16, 2)), hjust = 0, size = 6, color = cbPalette[2]) +
+  geom_vline(xintercept=gil_fem_hatch_14_16, color=cbPalette2[2], linetype = "dashed", size=2) +
+  annotate("text", x = gil_fem_natur_14_16 + 0.5, y = .250, label = paste("fem_natur_RS =", round(gil_fem_natur_14_16, 2)), hjust = 0, size = 6, color = cbPalette2[1]) +
+  annotate("text", x = gil_fem_hatch_14_16 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(gil_fem_hatch_14_16, 2)), hjust = 0, size = 6, color = cbPalette2[2]) +
   theme_bw() +
-  scale_fill_manual(values = cbPalette) +
+  scale_fill_manual(values = cbPalette2) +
   theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # Males
@@ -1046,13 +1049,13 @@ gil_paired_14_16_filt_parents %>%
   labs(title="Number of Offspring for Males 2014-2016",
        fill = "Parent: Origin") +
   geom_vline(xintercept=gil_male_natur_14_16, size=2) +
-  geom_vline(xintercept=gil_male_natur_14_16, color=cbPalette[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=gil_male_natur_14_16, color=cbPalette2[1], linetype = "dashed", size=2) +
   geom_vline(xintercept=gil_male_hatch_14_16, size=2) +
-  geom_vline(xintercept=gil_male_hatch_14_16, color=cbPalette[2], linetype = "dashed", size=2) +
-  annotate("text", x = gil_male_natur_14_16 + 0.5, y = .250, label = paste("male_natur_RS =", round(gil_male_natur_14_16, 2)), hjust = 0, size = 6, color = cbPalette[1]) +
-  annotate("text", x = gil_male_hatch_14_16 + 0.5, y = .300, label = paste("male_hatch_RS =", round(gil_male_hatch_14_16, 2)), hjust = 0, size = 6, color = cbPalette[2]) +
+  geom_vline(xintercept=gil_male_hatch_14_16, color=cbPalette2[2], linetype = "dashed", size=2) +
+  annotate("text", x = gil_male_natur_14_16 + 0.5, y = .250, label = paste("male_natur_RS =", round(gil_male_natur_14_16, 2)), hjust = 0, size = 6, color = cbPalette2[1]) +
+  annotate("text", x = gil_male_hatch_14_16 + 0.5, y = .300, label = paste("male_hatch_RS =", round(gil_male_hatch_14_16, 2)), hjust = 0, size = 6, color = cbPalette2[2]) +
   theme_bw() +
-  scale_fill_manual(values = cbPalette) +
+  scale_fill_manual(values = cbPalette2) +
   theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # 2016-2018
@@ -1111,13 +1114,13 @@ gil_paired_16_18_filt_parents %>%
   labs(title="Number of Offspring for Females 2016-2018",
        fill = "Parent: Origin") +
   geom_vline(xintercept=gil_fem_natur_16_18, size=2) +
-  geom_vline(xintercept=gil_fem_natur_16_18, color=cbPalette[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=gil_fem_natur_16_18, color=cbPalette2[1], linetype = "dashed", size=2) +
   geom_vline(xintercept=gil_fem_hatch_16_18, size=2) +
-  geom_vline(xintercept=gil_fem_hatch_16_18, color=cbPalette[2], linetype = "dashed", size=2) +
-  annotate("text", x = gil_fem_natur_16_18 + 0.5, y = .250, label = paste("fem_natur_RS =", round(gil_fem_natur_16_18, 2)), hjust = 0, size = 6, color = cbPalette[1]) +
-  annotate("text", x = gil_fem_hatch_16_18 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(gil_fem_hatch_16_18, 2)), hjust = 0, size = 6, color = cbPalette[2]) +
+  geom_vline(xintercept=gil_fem_hatch_16_18, color=cbPalette2[2], linetype = "dashed", size=2) +
+  annotate("text", x = gil_fem_natur_16_18 + 0.5, y = .250, label = paste("fem_natur_RS =", round(gil_fem_natur_16_18, 2)), hjust = 0, size = 6, color = cbPalette2[1]) +
+  annotate("text", x = gil_fem_hatch_16_18 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(gil_fem_hatch_16_18, 2)), hjust = 0, size = 6, color = cbPalette2[2]) +
   theme_bw() +
-  scale_fill_manual(values = cbPalette) +
+  scale_fill_manual(values = cbPalette2) +
   theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # Males
@@ -1134,13 +1137,13 @@ gil_paired_16_18_filt_parents %>%
   ylab("Proportion of Males") +
   labs(title="Number of Offspring for Males 2016-2018", fill = "Parent: Origin") +
   geom_vline(xintercept=gil_male_natur_16_18, size=2) +
-  geom_vline(xintercept=gil_male_natur_16_18, color=cbPalette[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=gil_male_natur_16_18, color=cbPalette2[1], linetype = "dashed", size=2) +
   geom_vline(xintercept=gil_male_hatch_16_18, size=2) +
-  geom_vline(xintercept=gil_male_hatch_16_18, color=cbPalette[2], linetype = "dashed", size=2) +
-  annotate("text", x = gil_male_natur_16_18 + 0.5, y = .250, label = paste("male_natur_RS =", round(gil_male_natur_16_18, 2)), hjust = 0, size = 6, color = cbPalette[1]) +
-  annotate("text", x = gil_male_hatch_16_18 + 0.5, y = .300, label = paste("male_hatch_RS =", round(gil_male_hatch_16_18, 2)), hjust = 0, size = 6, color = cbPalette[2]) +
+  geom_vline(xintercept=gil_male_hatch_16_18, color=cbPalette2[2], linetype = "dashed", size=2) +
+  annotate("text", x = gil_male_natur_16_18 + 0.5, y = .250, label = paste("male_natur_RS =", round(gil_male_natur_16_18, 2)), hjust = 0, size = 6, color = cbPalette2[1]) +
+  annotate("text", x = gil_male_hatch_16_18 + 0.5, y = .300, label = paste("male_hatch_RS =", round(gil_male_hatch_16_18, 2)), hjust = 0, size = 6, color = cbPalette2[2]) +
   theme_bw() +
-  scale_fill_manual(values = cbPalette) +
+  scale_fill_manual(values = cbPalette2) +
   theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 ```
 
@@ -1347,7 +1350,7 @@ rrs_g1418 %>%
 **Results:** For 2014-2016, female RRS was **`r round(rrs_gf1416[2,1], 2)` (95% CI [`r round(rrs_gf1416[1,1], 2)`-`r round(rrs_gf1416[3,1], 2)`])** and male RRS was **`r round(rrs_gm1416[2,1], 2)` (95% CI [`r round(rrs_gm1416[1,1], 2)`-`r round(rrs_gm1416[3,1], 2)`])**. For 2016-2018, Female RRS was **`r round(rrs_gf1618[2,1], 2)` (95% CI [`r round(rrs_gf1618[1,1], 2)`-`r round(rrs_gf1618[3,1], 2)`])** and male RRS was **`r round(rrs_gm1618[2,1], 2)` (95% CI [`r round(rrs_gm1618[1,1], 2)`-`r round(rrs_gm1618[3,1], 2)`])**.
 
 ### RS by field data
-We explored the potential for an association between RS and parental sample date and/or body length. Results for 2014-2016 are presented first and 2016-2018 follows. Note again the gray (NA) indicates fish for whom we do not yet have otolith reads. Addtiionally, we have not examined sample location for these data yet, but intend to in a future notebook.
+We explored the potential for an association between RS and parental sample date and/or body length. Results for 2014-2016 are presented first and 2016-2018 follows. Note again the gray (NA) indicates fish for whom we do not yet have otolith reads. Additionally, we have not examined sample location for these data yet, but intend to in a future notebook.
 ```{r Examine reproductive success by sample date with 0s gilmour, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.keep='all'}
 # 2014-2016
 gil_paired_14_16_filt_parents <- gil_paired_14_16_filt_parents %>% 
@@ -1360,31 +1363,33 @@ gil_paired_14_16_filt_parents <- gil_paired_14_16_filt_parents %>%
 # Females and males separated
 gil_paired_14_16_filt_parents %>% 
   ggplot(aes(x = date, y = n, fill = origin)) +
-  geom_hline(yintercept = 0) +
+  geom_hline(yintercept = 0, color = "gray") +
   geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
-  geom_smooth() +
+  geom_smooth(color = "black", size = 0.5) +
   facet_grid(sex ~ .)+
   labs(title = "Reproductive Success by Parental Sample Date for 2014-2016\n(Females and males separate)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Sample Date") +
   ylab("Reproductive Success") +
   theme_bw() +
-  scale_fill_manual(values=cbPalette)
+  theme(panel.grid.minor = element_blank()) +
+  scale_fill_manual(values=cbPalette2)
 
 # By body length
 gil_paired_14_16_filt_parents %>% 
   filter(`Length Mm` > 300) %>% 
   ggplot(aes(x = `Length Mm`, y = n, fill = origin)) +
-  geom_hline(yintercept = 0) +
+  geom_hline(yintercept = 0, color = "gray") +
   geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
-  geom_smooth() +
+  geom_smooth(color = "black", size = 0.5) +
   facet_grid(sex ~ .) +
   labs(title = "Reproductive Success by Parental Length (mm) for 2014-2016\n(Females and males separate)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Length (mm)") +
   ylab("Reproductive Success") +
   theme_bw() +
-  scale_fill_manual(values = cbPalette)
+  theme(panel.grid.minor = element_blank()) +
+  scale_fill_manual(values = cbPalette2)
 
 # 2016-2018
 gil_paired_16_18_filt_parents <- gil_paired_16_18_filt_parents %>% 
@@ -1399,16 +1404,17 @@ df_gil_paired_16_18_filt_parents <- tibble(gil_paired_16_18_filt_parents)
 df_gil_paired_16_18_filt_parents %>%
   replace_na(list(cross = "NA")) %>%
   ggplot(aes(x = date, y = n, fill = origin)) +
-  geom_hline(yintercept = 0) +
+  geom_hline(yintercept = 0, color = "gray") +
   geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
-  geom_smooth() +
+  geom_smooth(color = "black", size = 0.5) +
   facet_grid(sex ~ .)+
   labs(title = "Reproductive Success by Parental Sample Date for 2016-2018\n(Females and males separate)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Sample Date") +
   ylab("Reproductive Success")+
   theme_bw() +
-  scale_fill_manual(values = cbPalette)
+  theme(panel.grid.minor = element_blank()) +
+  scale_fill_manual(values = cbPalette2)
 
 # By body length
 df_gil_paired_16_18_filt_parents <- tibble(gil_paired_16_18_filt_parents)
@@ -1416,16 +1422,17 @@ df_gil_paired_16_18_filt_parents %>%
   replace_na(list(cross = "NA")) %>%
   filter(`Length Mm` > 300) %>% 
   ggplot(aes(x = `Length Mm`, y = n, fill = origin)) +
-  geom_hline(yintercept = 0) +
+  geom_hline(yintercept = 0, color = "gray") +
   geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
-  geom_smooth() +
+  geom_smooth(color = "black", size = 0.5) +
   facet_grid(sex ~ .) +
   labs(title = "Reproductive Success by Parental Length (mm) for 2016-2018\n(Females and males separate)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Length (mm)") +
   ylab("Reproductive Success") +
   theme_bw() +
-  scale_fill_manual(values = cbPalette)
+  theme(panel.grid.minor = element_blank()) +
+  scale_fill_manual(values = cbPalette2)
 ```
 
 **Results:** For 2014-2016 only, females may have had higher RS later in the season, and larger fish (especially natural-origin males) may have been more successful. The 2016-2018 results are inconclusive at this time.
@@ -1480,7 +1487,7 @@ gil_parentage_paired_14_16_cross %>%
   xlab("Number of Offspring (RS)")+
   ylab("Proportion of Families per Cross Type") +
   theme_bw() +
-  scale_fill_manual(values = cbPalette) +
+  scale_fill_manual(values = cbPalette1) +
   theme(text = element_text(size = 15), legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # 2016-2018
@@ -1528,7 +1535,7 @@ gil_parentage_paired_16_18_cross %>%
   xlab("Number of Offspring (RS)")+
   ylab("Proportion of Families per Cross Type") +
   theme_bw() +
-  scale_fill_manual(values = c("#FFFFFF", "#F0E442")) +
+  scale_fill_manual(values = c("#FFFFFF", "#CC79A7")) +
   theme(text = element_text(size = 15), legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 ```
 
@@ -1609,7 +1616,7 @@ gil_parentage_paired_14_16_cross_dam_sire %>%
   geom_jitter(size = 4, shape = 21, color = "black") +
   geom_abline(intercept = 0, slope = 1) +
   theme_bw() +
-  scale_fill_manual(values = cbPalette) +
+  scale_fill_manual(values = cbPalette1) +
   theme(text = element_text(size = 15), legend.position = c(0.1, 0.8), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # How many dams had multiple sires
@@ -1656,7 +1663,7 @@ df_gil_parentage_paired_16_18_cross_dam_sire %>%
   geom_jitter(size = 4, shape = 21, color = "black") +
   geom_abline(intercept = 0, slope = 1) +
   theme_bw() +
-  scale_fill_manual(values = c("#FFFFFF", "#F0E442")) +
+  scale_fill_manual(values = c("#FFFFFF", "#CC79A7")) +
   theme(text = element_text(size = 15), legend.position = c(0.1, 0.8), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # How many dams had multiple sires
@@ -1715,8 +1722,8 @@ gil_gparents2 <- gil_paired_16_18_filt_parents %>%
 (gil_gparents_origin <- gil_paired_16_18_filt_parents %>% 
   right_join(gil_parentage_paired_14_16, by = c("franz_id" = "Offspring")) %>% 
   group_by(origin.par) %>% 
-  summarise(num_F0_grandparents = length(unique(Parent_ID)), num_F1_parents = length(franz_id), num_F2_offspring = sum(n, na.rm = TRUE)) %>%
-  rename(Parental_origin = origin.par))
+  summarise(Num_F0_grandparents = length(unique(Parent_ID)), Num_F1_parents = length(franz_id), Num_F2_offspring = sum(n, na.rm = TRUE)) %>%
+  rename(Grandparental_origin = origin.par))
 
 # RRS plus 95% CIs based on summary table
 rrs_ggpar1618 <- as.data.frame(rrs_ci_kalinowski(n_h_off = as.integer(gil_gparents_origin[1,4]), n_w_off = as.integer(gil_gparents_origin[2,4]), n_h_par = as.integer(gil_gparents_origin[1,3]), n_w_par = as.integer(gil_gparents_origin[2,3]), alpha = 0.05))
@@ -1766,7 +1773,7 @@ gil_grandparentage %>%
   rename(Num_grandparents_assigned = num_grandparents, Num_offpring = n)
 ```
 
-**Results:** Each assigned grandparent contributed to **1-13** grandoffspring. A total of **160** unique hatchery-origin grandparents were assigned to **645** F1 parents, **85** of which assigned to **176** F2 offspring, while **149** unique natural-origin grandparents assigned to **604** F1 parents, **92** of which went on to contribute to **197** F2 offspring. RRS from F1 to F2 was **`r round(rrs_ggpar1618[2,1], 2)` (95% CI [`r round(rrs_ggpar1618[1,1], 2)`-`r round(rrs_ggpar1618[3,1], 2)`])**. However, please note that **175** F2 offspring had one, **84** had two, and **10** had three grandparents assigned, but no F2 offspring had all four grandparents assigned.
+**Results:** As a reminder, all F1 parents and F2 offspring are natural-origin in this analysis; only the F0 grandparental generation contains any hatchery-origin fish. A total of **160** unique hatchery-origin grandparents were assigned to **645** F1 parents, **85** of which assigned to **176** F2 offspring, while **149** unique natural-origin grandparents assigned to **604** F1 parents, **92** of which went on to contribute to **197** F2 offspring. Each assigned grandparent contributed to **1-13** grandoffspring. RRS from the F1 to F2 was **`r round(rrs_ggpar1618[2,1], 2)` (95% CI [`r round(rrs_ggpar1618[1,1], 2)`-`r round(rrs_ggpar1618[3,1], 2)`])**. However, this result again requires interpretation. It is not a pure RRS estimate. Although more data is available than for Stockdale, it is again based on a lack of full familial origin information. Only one F1 parent is known for the majority of F2 offpring; an unknown parent may be of either origin and may have been sampled or unsampled. Compounding that, a total of **175** F2 offspring had one, **84** had two, and **10** had three grandparents assigned, but **zero** F2 offspring had all four grandparents assigned. Again, the unknown grandparent(s) are of unknown origin.
 
 ## Summary for Gilmour Creek
 
@@ -1890,8 +1897,8 @@ shg7 <- shg_parentage_paired_14_16_cross %>%
 
 ## Single-generation RRS
 Below is a summary of all parentage analyses and single-generation RRS estimates to date.
-![an image caption Single-generation RRS Results to Date](RRS_Parents.png)
+![Single-generation RRS Results to Date](RRS_Parents.png)
 
 ## Multi-generation RRS
 Below is a summary of all parentage analyses and multi-generation RRS estimates to date.
-![an image caption Multigeneration RRS Results to Date](RRS_Grandparents.png){#id .class width=40% height=40%}
+![Multi-generation RRS Results to Date](RRS_Grandparents.png){#id .class width=35% height=35%}
