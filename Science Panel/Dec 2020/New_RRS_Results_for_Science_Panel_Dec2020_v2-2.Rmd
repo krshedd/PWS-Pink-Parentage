@@ -1,7 +1,7 @@
 ---
 title: "RRS Results to Date for Science Panel"
 author: "Kristen Gruenthal & Kyle Shedd"
-date: "14 December 2020"
+date: "17 December 2020"
 output:
   html_notebook:
     theme: united
@@ -78,14 +78,18 @@ shgp1416$Stream <- "Stockdale-Hogan-Gilmour_14_16"
 alldata <- rbind(sp1618, gp1416, gp1618, shgp1416) %>%
   filter(!is.na(`Parent.1`))
 
+# colorblind palette
+cbPalette <- c("#CC79A7", "#0072b2", "#d55e00", "#F0E442")
+
 ggplot(alldata, aes(x = Posterior, fill = Stream)) + 
-  geom_histogram(pos="dodge", breaks = seq(0, 1, 0.02)) +
+  geom_histogram(pos="dodge", breaks = seq(0, 1, 0.02), color = "black") +
   scale_y_log10() +
   theme_bw() +
   xlab("Posterior Probability") +
   ylab("Count") +
   annotation_logticks(sides = "l") +
-  theme(legend.position = c(0.25, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
+  theme(legend.position = c(0.25, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1)) +
+  scale_fill_manual(values=cbPalette)
 ```
 
 **Result:** Almost all parentage assignments have a posterior probability of 1, which is very robust; few offspring assignments for any dataset were split among multiple potential parents. We can therefore be confident in the power of our 298 amplicons to make parent assignments.
@@ -215,7 +219,8 @@ sample_size_plot <- function(indata = stock_paired_16_18_filt, title = "Stockdal
   xlab("") +
   labs(title = title, fill = "Origin") +
   theme_bw() +
-  theme(text = element_text(size = 15), axis.text.x = element_text(angle = 90))
+  theme(text = element_text(size = 15), axis.text.x = element_text(angle = 90)) +
+  scale_fill_manual(values = cbPalette)
 }
 
 sample_size_plot(indata = stock_paired_16_18_filt)
@@ -354,10 +359,10 @@ stock_male_natur_16_18 <- stock_rs_16_18 %>%
   pull(RS)
 
 # Plot histograms of proportion of female and male parents with a given family size, including mean RS lines
-gg_color_hue <- function(n) {
- hues = seq(15, 375, length = n + 1)
- hcl(h = hues, l = 65, c = 100)[1:n]
-}
+# gg_color_hue <- function(n) {
+#  hues = seq(15, 375, length = n + 1)
+#  hcl(h = hues, l = 65, c = 100)[1:n]
+# }
 
 # Females
 stock_paired_16_18_filt_parents %>%
@@ -366,7 +371,7 @@ stock_paired_16_18_filt_parents %>%
  group_by(origin) %>%
  mutate(p = nn / sum(nn)) %>%
  ggplot(aes(x=n, y=p, fill = origin)) +
- geom_col(position = position_dodge2(preserve="single")) +
+ geom_col(position = position_dodge2(preserve="single"), color = "black") +
  theme_bw() +
  scale_y_continuous(breaks = pretty_breaks()) +
  scale_x_continuous(breaks = pretty_breaks()) +
@@ -374,12 +379,13 @@ stock_paired_16_18_filt_parents %>%
  ylab("Proportion of Females") +
  labs(title="Number of Offspring for Females", fill = "Parent: Origin") +
  geom_vline(xintercept=stock_fem_natur_16_18, size=2) +
- geom_vline(xintercept=stock_fem_natur_16_18, color=gg_color_hue(2)[1], linetype = "dashed", size = 2) +
+ geom_vline(xintercept=stock_fem_natur_16_18, color=cbPalette[1], linetype = "dashed", size = 2) +
  geom_vline(xintercept=stock_fem_hatch_16_18, size=2) +
- geom_vline(xintercept=stock_fem_hatch_16_18, color=gg_color_hue(2)[2], linetype = "dashed", size = 2) +
- annotate("text", x = stock_fem_natur_16_18 + 0.5, y = .250, label = paste("fem_natur_RS =", round(stock_fem_natur_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
- annotate("text", x = stock_fem_hatch_16_18 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(stock_fem_hatch_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) +
-  theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
+ geom_vline(xintercept=stock_fem_hatch_16_18, color=cbPalette[2], linetype = "dashed", size = 2) +
+ annotate("text", x = stock_fem_natur_16_18 + 0.5, y = .250, label = paste("fem_natur_RS =", round(stock_fem_natur_16_18, 2)), hjust = 0, size = 6, color = cbPalette[1]) +
+ annotate("text", x = stock_fem_hatch_16_18 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(stock_fem_hatch_16_18, 2)), hjust = 0, size = 6, color = cbPalette[2]) +
+  theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1)) +
+  scale_fill_manual(values=cbPalette)
 
 # Males
 stock_paired_16_18_filt_parents %>%
@@ -388,7 +394,7 @@ stock_paired_16_18_filt_parents %>%
  group_by(origin) %>%
  mutate(p = nn / sum(nn)) %>%
  ggplot(aes(x=n, y=p, fill = origin)) +
- geom_col(position = position_dodge2(preserve="single")) +
+ geom_col(position = position_dodge2(preserve="single"), color = "black") +
  theme_bw() +
  scale_y_continuous(breaks = pretty_breaks()) +
  scale_x_continuous(breaks = pretty_breaks()) +
@@ -396,12 +402,13 @@ stock_paired_16_18_filt_parents %>%
  ylab("Proportion of Males") +
  labs(title="Number of Offspring for Males", fill = "Parent: Origin") +
  geom_vline(xintercept=stock_male_natur_16_18, size=2) +
- geom_vline(xintercept=stock_male_natur_16_18, color=gg_color_hue(2)[1], linetype = "dashed", size = 2) +
+ geom_vline(xintercept=stock_male_natur_16_18, color=cbPalette[1], linetype = "dashed", size = 2) +
  geom_vline(xintercept=stock_male_hatch_16_18, size=2) +
- geom_vline(xintercept=stock_male_hatch_16_18, color=gg_color_hue(2)[2], linetype = "dashed", size = 2) +
- annotate("text", x = stock_male_natur_16_18 + 0.5, y = .250, label = paste("male_natur_RS =", round(stock_male_natur_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
- annotate("text", x = stock_male_hatch_16_18 + 0.5, y = .300, label = paste("male_hatch_RS =", round(stock_male_hatch_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) +
-  theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
+ geom_vline(xintercept=stock_male_hatch_16_18, color=cbPalette[2], linetype = "dashed", size = 2) +
+ annotate("text", x = stock_male_natur_16_18 + 0.5, y = .250, label = paste("male_natur_RS =", round(stock_male_natur_16_18, 2)), hjust = 0, size = 6, color = cbPalette[1]) +
+ annotate("text", x = stock_male_hatch_16_18 + 0.5, y = .300, label = paste("male_hatch_RS =", round(stock_male_hatch_16_18, 2)), hjust = 0, size = 6, color = cbPalette[2]) +
+  theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1)) +
+  scale_fill_manual(values = cbPalette)
 ```
 
 **Results:** RS for both females and males was quite low overall, with RS for natural-origin fish somewhat higher than for hatchery-origin fish. In the histograms, note the large number of potential parents assigned no offspring that were absent from the family size plots above.
@@ -583,27 +590,29 @@ stock_paired_16_18_filt_parents <- stock_paired_16_18_filt_parents %>%
 stock_paired_16_18_filt_parents %>% 
   ggplot(aes(x = date, y = n, color = origin)) +
   geom_hline(yintercept = 0) +
-  geom_jitter(height = 0) +
+  geom_jitter(height = 0, size = 3) +
   geom_smooth() +
-  facet_grid(sex ~ .)+
+  facet_grid(sex ~ .) +
   labs(title = "Reproductive Success by Parental Sample Date\n(females and males separate)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Sample Date") +
   ylab("Reproductive Success") +
-  theme_bw() 
+  theme_bw() +
+  scale_colour_manual(values = cbPalette)
 
 stock_paired_16_18_filt_parents %>% 
   filter(`Length Mm` > 300) %>% 
   ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
   geom_hline(yintercept = 0) +
-  geom_jitter(height = 0) +
+  geom_jitter(height = 0, size = 3) +
   geom_smooth() +
   facet_grid(sex ~ .) +
   labs(title = "Reproductive Success by Parental Length (mm)\n(females and males separate)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Length (mm)") +
   ylab("Reproductive Success") +
-  theme_bw() 
+  theme_bw() +
+  scale_colour_manual(values = cbPalette)
 ```
 
 **Results:** Natural-origin females may have marginally higher RS late in the season, and there appears to be no trend in RS associated with body length. Given the high number of parents assigned 0 offspring, it is hard for the trend lines to get pulled off the x-axis.
@@ -650,14 +659,15 @@ stock_parentage_paired_16_18_cross %>%
   left_join(stock_16_18_n, by = "cross") %>% 
   mutate(cross_n = paste0(cross, " (n = ", samp, ")")) %>% 
   ggplot(aes(x = n, y = p, fill = cross_n))+
-  geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
+  geom_col(position = position_dodge2(preserve = "single"), width = 0.5, color = "black") +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
   scale_x_continuous(limits = c(0,5), breaks = seq(0, 5, by = 1)) +
   labs(title = "Stockdale_16_18", fill = "Cross Type") +
   xlab("Number of Offspring (RS)")+
   ylab("Proportion of Families per Cross Type") +
   theme_bw() +
-  theme(text = element_text(size = 15), legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
+  theme(text = element_text(size = 15), legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1)) +
+  scale_fill_manual(values = cbPalette)
 ```
 
 **Results:** Offspring from two types of crosses (NN and NH) are represented in our dataset. Only one family was from a natural female and hatchery male, while the remaining crosses were among natural fish. 
@@ -726,9 +736,10 @@ stock_parentage_paired_16_18_cross_dam_sire %>%
   group_by(Dam, Sire, `Sample Date_dam`, `Sample Date_sire`, cross) %>% 
   summarise(n = n_distinct(Offspring)) %>% 
   ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, colour = cross)) +
-  geom_jitter(size = 2) +
+  geom_jitter(size = 4) +
   geom_abline(intercept = 0, slope = 1) +
   theme_bw() +
+  scale_colour_manual(values = cbPalette) +
   theme(text = element_text(size = 15), legend.position = c(0.2, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # How many dams had multiple sires
@@ -997,11 +1008,6 @@ gil_male_natur_14_16 <- gil_rs_14_16 %>%
   pull(RS)
 
 # Plot histograms of proportion of female and male parents with a given family size, including mean RS lines
-gg_color_hue <- function(n) {
-  hues = seq(15, 375, length = n + 1)
-  hcl(h = hues, l = 65, c = 100)[1:n]
-}
-
 # Females
 gil_paired_14_16_filt_parents %>% 
   filter(SEX == "F") %>% 
@@ -1009,19 +1015,20 @@ gil_paired_14_16_filt_parents %>%
   group_by(origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x=n, y=p, fill = origin)) +
-  geom_col(position = position_dodge2(preserve="single")) +
+  geom_col(position = position_dodge2(preserve="single"), color = "black") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +xlab("Number of Offspring") +
   ylab("Proportion of Females") +
   labs(title="Number of Offspring for Females 2014-2016",
        fill = "Parent: Origin") +
   geom_vline(xintercept=gil_fem_natur_14_16, size=2) +
-  geom_vline(xintercept=gil_fem_natur_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=gil_fem_natur_14_16, color=cbPalette[1], linetype = "dashed", size=2) +
   geom_vline(xintercept=gil_fem_hatch_14_16, size=2) +
-  geom_vline(xintercept=gil_fem_hatch_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
-  annotate("text", x = gil_fem_natur_14_16 + 0.5, y = .250, label = paste("fem_natur_RS =", round(gil_fem_natur_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
-  annotate("text", x = gil_fem_hatch_14_16 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(gil_fem_hatch_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) +
+  geom_vline(xintercept=gil_fem_hatch_14_16, color=cbPalette[2], linetype = "dashed", size=2) +
+  annotate("text", x = gil_fem_natur_14_16 + 0.5, y = .250, label = paste("fem_natur_RS =", round(gil_fem_natur_14_16, 2)), hjust = 0, size = 6, color = cbPalette[1]) +
+  annotate("text", x = gil_fem_hatch_14_16 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(gil_fem_hatch_14_16, 2)), hjust = 0, size = 6, color = cbPalette[2]) +
   theme_bw() +
+  scale_fill_manual(values = cbPalette) +
   theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # Males
@@ -1031,7 +1038,7 @@ gil_paired_14_16_filt_parents %>%
   group_by(origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x=n, y=p, fill = origin)) +
-  geom_col(position = position_dodge2(preserve="single")) +
+  geom_col(position = position_dodge2(preserve="single"), color = "black") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   xlab("Number of Offspring") +
@@ -1039,12 +1046,13 @@ gil_paired_14_16_filt_parents %>%
   labs(title="Number of Offspring for Males 2014-2016",
        fill = "Parent: Origin") +
   geom_vline(xintercept=gil_male_natur_14_16, size=2) +
-  geom_vline(xintercept=gil_male_natur_14_16, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=gil_male_natur_14_16, color=cbPalette[1], linetype = "dashed", size=2) +
   geom_vline(xintercept=gil_male_hatch_14_16, size=2) +
-  geom_vline(xintercept=gil_male_hatch_14_16, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
-  annotate("text", x = gil_male_natur_14_16 + 0.5, y = .250, label = paste("male_natur_RS =", round(gil_male_natur_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
-  annotate("text", x = gil_male_hatch_14_16 + 0.5, y = .300, label = paste("male_hatch_RS =", round(gil_male_hatch_14_16, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) +
+  geom_vline(xintercept=gil_male_hatch_14_16, color=cbPalette[2], linetype = "dashed", size=2) +
+  annotate("text", x = gil_male_natur_14_16 + 0.5, y = .250, label = paste("male_natur_RS =", round(gil_male_natur_14_16, 2)), hjust = 0, size = 6, color = cbPalette[1]) +
+  annotate("text", x = gil_male_hatch_14_16 + 0.5, y = .300, label = paste("male_hatch_RS =", round(gil_male_hatch_14_16, 2)), hjust = 0, size = 6, color = cbPalette[2]) +
   theme_bw() +
+  scale_fill_manual(values = cbPalette) +
   theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # 2016-2018
@@ -1089,11 +1097,6 @@ gil_male_natur_16_18 <- gil_rs_16_18 %>%
   pull(RS)
 
 # Plot histograms of proportion of female and male parents with a given family size, including mean RS lines
-gg_color_hue <- function(n) {
-  hues = seq(15, 375, length = n + 1)
-  hcl(h = hues, l = 65, c = 100)[1:n]
-}
-
 # Females
 gil_paired_16_18_filt_parents %>% 
   filter(SEX == "F") %>% 
@@ -1101,19 +1104,20 @@ gil_paired_16_18_filt_parents %>%
   group_by(origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x=n, y=p, fill = origin)) +
-  geom_col(position = position_dodge2(preserve="single")) +
+  geom_col(position = position_dodge2(preserve="single"), color = "black") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +xlab("Number of Offspring") +
   ylab("Proportion of Females") +
   labs(title="Number of Offspring for Females 2016-2018",
        fill = "Parent: Origin") +
   geom_vline(xintercept=gil_fem_natur_16_18, size=2) +
-  geom_vline(xintercept=gil_fem_natur_16_18, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=gil_fem_natur_16_18, color=cbPalette[1], linetype = "dashed", size=2) +
   geom_vline(xintercept=gil_fem_hatch_16_18, size=2) +
-  geom_vline(xintercept=gil_fem_hatch_16_18, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
-  annotate("text", x = gil_fem_natur_16_18 + 0.5, y = .250, label = paste("fem_natur_RS =", round(gil_fem_natur_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
-  annotate("text", x = gil_fem_hatch_16_18 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(gil_fem_hatch_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) +
+  geom_vline(xintercept=gil_fem_hatch_16_18, color=cbPalette[2], linetype = "dashed", size=2) +
+  annotate("text", x = gil_fem_natur_16_18 + 0.5, y = .250, label = paste("fem_natur_RS =", round(gil_fem_natur_16_18, 2)), hjust = 0, size = 6, color = cbPalette[1]) +
+  annotate("text", x = gil_fem_hatch_16_18 + 0.5, y = .300, label = paste("fem_hatch_RS =", round(gil_fem_hatch_16_18, 2)), hjust = 0, size = 6, color = cbPalette[2]) +
   theme_bw() +
+  scale_fill_manual(values = cbPalette) +
   theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # Males
@@ -1123,19 +1127,20 @@ gil_paired_16_18_filt_parents %>%
   group_by(origin) %>% 
   mutate(p = nn / sum(nn)) %>% 
   ggplot(aes(x=n, y=p, fill = origin)) +
-  geom_col(position = position_dodge2(preserve="single")) +
+  geom_col(position = position_dodge2(preserve="single"), color = "black") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   xlab("Number of Offspring") +
   ylab("Proportion of Males") +
   labs(title="Number of Offspring for Males 2016-2018", fill = "Parent: Origin") +
   geom_vline(xintercept=gil_male_natur_16_18, size=2) +
-  geom_vline(xintercept=gil_male_natur_16_18, color=gg_color_hue(2)[1], linetype = "dashed", size=2) +
+  geom_vline(xintercept=gil_male_natur_16_18, color=cbPalette[1], linetype = "dashed", size=2) +
   geom_vline(xintercept=gil_male_hatch_16_18, size=2) +
-  geom_vline(xintercept=gil_male_hatch_16_18, color=gg_color_hue(2)[2], linetype = "dashed", size=2) +
-  annotate("text", x = gil_male_natur_16_18 + 0.5, y = .250, label = paste("male_natur_RS =", round(gil_male_natur_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[1]) +
-  annotate("text", x = gil_male_hatch_16_18 + 0.5, y = .300, label = paste("male_hatch_RS =", round(gil_male_hatch_16_18, 2)), hjust = 0, size = 6, color = gg_color_hue(2)[2]) +
+  geom_vline(xintercept=gil_male_hatch_16_18, color=cbPalette[2], linetype = "dashed", size=2) +
+  annotate("text", x = gil_male_natur_16_18 + 0.5, y = .250, label = paste("male_natur_RS =", round(gil_male_natur_16_18, 2)), hjust = 0, size = 6, color = cbPalette[1]) +
+  annotate("text", x = gil_male_hatch_16_18 + 0.5, y = .300, label = paste("male_hatch_RS =", round(gil_male_hatch_16_18, 2)), hjust = 0, size = 6, color = cbPalette[2]) +
   theme_bw() +
+  scale_fill_manual(values = cbPalette) +
   theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 ```
 
@@ -1356,28 +1361,30 @@ gil_paired_14_16_filt_parents <- gil_paired_14_16_filt_parents %>%
 gil_paired_14_16_filt_parents %>% 
   ggplot(aes(x = date, y = n, color = origin)) +
   geom_hline(yintercept = 0) +
-  geom_jitter(height = 0) +
+  geom_jitter(height = 0, size = 3) +
   geom_smooth() +
   facet_grid(sex ~ .)+
   labs(title = "Reproductive Success by Parental Sample Date for 2014-2016\n(Females and males separate)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Sample Date") +
   ylab("Reproductive Success") +
-  theme_bw() 
+  theme_bw() +
+  scale_colour_manual(values=cbPalette)
 
 # By body length
 gil_paired_14_16_filt_parents %>% 
   filter(`Length Mm` > 300) %>% 
   ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
   geom_hline(yintercept = 0) +
-  geom_jitter(height = 0) +
+  geom_jitter(height = 0, size = 3) +
   geom_smooth() +
   facet_grid(sex ~ .) +
   labs(title = "Reproductive Success by Parental Length (mm) for 2014-2016\n(Females and males separate)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Length (mm)") +
   ylab("Reproductive Success") +
-  theme_bw() 
+  theme_bw() +
+  scale_colour_manual(values = cbPalette)
 
 # 2016-2018
 gil_paired_16_18_filt_parents <- gil_paired_16_18_filt_parents %>% 
@@ -1391,21 +1398,21 @@ gil_paired_16_18_filt_parents <- gil_paired_16_18_filt_parents %>%
 gil_paired_16_18_filt_parents %>% 
   ggplot(aes(x = date, y = n, color = origin)) +
   geom_hline(yintercept = 0) +
-  geom_jitter(height = 0) +
+  geom_jitter(height = 0, size = 3) +
   geom_smooth() +
   facet_grid(sex ~ .)+
   labs(title = "Reproductive Success by Parental Sample Date for 2016-2018\n(Females and males separate)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Sample Date") +
   ylab("Reproductive Success")+
-  theme_bw() 
+  theme_bw()
 
 # By body length
 gil_paired_16_18_filt_parents %>% 
   filter(`Length Mm` > 300) %>% 
   ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
   geom_hline(yintercept = 0) +
-  geom_jitter(height = 0) +
+  geom_jitter(height = 0, size = 3) +
   geom_smooth() +
   facet_grid(sex ~ .) +
   labs(title = "Reproductive Success by Parental Length (mm) for 2016-2018\n(Females and males separate)",  colour = "Parent: Origin",
@@ -1460,13 +1467,14 @@ gil_parentage_paired_14_16_cross %>%
   left_join(gil_14_16_n, by = "cross") %>% 
   mutate(cross_n = paste0(cross, " (n = ", samp, ")")) %>% 
   ggplot(aes(x = n, y = p, fill = cross_n))+
-  geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
+  geom_col(position = position_dodge2(preserve = "single"), width = 0.5, color = "black") +
   scale_y_continuous(limits = c(0,1), breaks = seq(0, 1, by = 0.1)) +
   scale_x_continuous(limits = c(0,10), breaks = seq(0, 10, by = 1)) +
   labs(title = "Gilmour_14_16", fill = "Cross Type") +
   xlab("Number of Offspring (RS)")+
   ylab("Proportion of Families per Cross Type") +
   theme_bw() +
+  scale_fill_manual(values = cbPalette) +
   theme(text = element_text(size = 15), legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # 2016-2018
@@ -1507,14 +1515,14 @@ gil_parentage_paired_16_18_cross %>%
   left_join(gil_16_18_n, by = "cross") %>% 
   mutate(cross_n = paste0(cross, " (n = ", samp, ")")) %>% 
   ggplot(aes(x = n, y = p, fill = cross_n)) +
-  scale_fill_manual(values=c("#8c8c8c", "#F8766D")) +
-  geom_col(position = position_dodge2(preserve = "single"), width = 0.5) +
+  geom_col(position = position_dodge2(preserve = "single"), width = 0.5, color = "black") +
   scale_y_continuous(limits = c(0,1), breaks = seq(0, 1, by = 0.1)) +
   scale_x_continuous(limits = c(0,6), breaks = seq(0, 6, by = 1)) +
   labs(title = "Gilmour_16_18", fill = "Cross Type") +
   xlab("Number of Offspring (RS)")+
   ylab("Proportion of Families per Cross Type") +
   theme_bw() +
+  scale_fill_manual(values = c("#FFFFFF", "#F0E442")) +
   theme(text = element_text(size = 15), legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 ```
 
@@ -1592,9 +1600,10 @@ gil_parentage_paired_14_16_cross_dam_sire %>%
   group_by(Dam, Sire, `Sample Date_dam`, `Sample Date_sire`, cross) %>%
   summarise(n = n_distinct(Offspring)) %>%
   ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, colour = cross)) +
-  geom_jitter(size = 2) +
+  geom_jitter(size = 4) +
   geom_abline(intercept = 0, slope = 1) +
   theme_bw() +
+  scale_colour_manual(values = cbPalette) +
   theme(text = element_text(size = 15), legend.position = c(0.1, 0.8), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # How many dams had multiple sires
@@ -1636,7 +1645,7 @@ gil_parentage_paired_16_18_cross_dam_sire %>%
   group_by(Dam, Sire, `Sample Date_dam`, `Sample Date_sire`, cross) %>%
   summarise(n = n_distinct(Offspring)) %>%
   ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, colour = cross)) +
-  geom_jitter(size = 2) +
+  geom_jitter(size = 4) +
   geom_abline(intercept = 0, slope = 1) +
   theme_bw() +
   theme(text = element_text(size = 15), legend.position = c(0.1, 0.8), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
