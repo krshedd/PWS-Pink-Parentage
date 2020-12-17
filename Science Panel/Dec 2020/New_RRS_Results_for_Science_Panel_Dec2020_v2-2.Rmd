@@ -588,9 +588,9 @@ stock_paired_16_18_filt_parents <- stock_paired_16_18_filt_parents %>%
 
 # Females and males separated
 stock_paired_16_18_filt_parents %>% 
-  ggplot(aes(x = date, y = n, color = origin)) +
+  ggplot(aes(x = date, y = n, fill = origin)) +
   geom_hline(yintercept = 0) +
-  geom_jitter(height = 0, size = 3) +
+  geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
   geom_smooth() +
   facet_grid(sex ~ .) +
   labs(title = "Reproductive Success by Parental Sample Date\n(females and males separate)",  colour = "Parent: Origin",
@@ -598,13 +598,13 @@ stock_paired_16_18_filt_parents %>%
   xlab("Parental Sample Date") +
   ylab("Reproductive Success") +
   theme_bw() +
-  scale_colour_manual(values = cbPalette)
+  scale_fill_manual(values = cbPalette)
 
 stock_paired_16_18_filt_parents %>% 
   filter(`Length Mm` > 300) %>% 
-  ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
+  ggplot(aes(x = `Length Mm`, y = n, fill = origin)) +
   geom_hline(yintercept = 0) +
-  geom_jitter(height = 0, size = 3) +
+  geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
   geom_smooth() +
   facet_grid(sex ~ .) +
   labs(title = "Reproductive Success by Parental Length (mm)\n(females and males separate)",  colour = "Parent: Origin",
@@ -612,7 +612,7 @@ stock_paired_16_18_filt_parents %>%
   xlab("Parental Length (mm)") +
   ylab("Reproductive Success") +
   theme_bw() +
-  scale_colour_manual(values = cbPalette)
+  scale_fill_manual(values = cbPalette)
 ```
 
 **Results:** Natural-origin females may have marginally higher RS late in the season, and there appears to be no trend in RS associated with body length. Given the high number of parents assigned 0 offspring, it is hard for the trend lines to get pulled off the x-axis.
@@ -735,11 +735,11 @@ stock_parentage_paired_16_18_cross_dam_sire %>%
          `Sample Date_sire` = dmy(`Sample Date_sire`)) %>% 
   group_by(Dam, Sire, `Sample Date_dam`, `Sample Date_sire`, cross) %>% 
   summarise(n = n_distinct(Offspring)) %>% 
-  ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, colour = cross)) +
-  geom_jitter(size = 4) +
+  ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, fill = cross)) +
+  geom_jitter(size = 4, shape = 21, color = "black") +
   geom_abline(intercept = 0, slope = 1) +
   theme_bw() +
-  scale_colour_manual(values = cbPalette) +
+  scale_fill_manual(values = cbPalette) +
   theme(text = element_text(size = 15), legend.position = c(0.2, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # How many dams had multiple sires
@@ -1359,9 +1359,9 @@ gil_paired_14_16_filt_parents <- gil_paired_14_16_filt_parents %>%
 # By sample date
 # Females and males separated
 gil_paired_14_16_filt_parents %>% 
-  ggplot(aes(x = date, y = n, color = origin)) +
+  ggplot(aes(x = date, y = n, fill = origin)) +
   geom_hline(yintercept = 0) +
-  geom_jitter(height = 0, size = 3) +
+  geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
   geom_smooth() +
   facet_grid(sex ~ .)+
   labs(title = "Reproductive Success by Parental Sample Date for 2014-2016\n(Females and males separate)",  colour = "Parent: Origin",
@@ -1369,14 +1369,14 @@ gil_paired_14_16_filt_parents %>%
   xlab("Parental Sample Date") +
   ylab("Reproductive Success") +
   theme_bw() +
-  scale_colour_manual(values=cbPalette)
+  scale_fill_manual(values=cbPalette)
 
 # By body length
 gil_paired_14_16_filt_parents %>% 
   filter(`Length Mm` > 300) %>% 
-  ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
+  ggplot(aes(x = `Length Mm`, y = n, fill = origin)) +
   geom_hline(yintercept = 0) +
-  geom_jitter(height = 0, size = 3) +
+  geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
   geom_smooth() +
   facet_grid(sex ~ .) +
   labs(title = "Reproductive Success by Parental Length (mm) for 2014-2016\n(Females and males separate)",  colour = "Parent: Origin",
@@ -1384,7 +1384,7 @@ gil_paired_14_16_filt_parents %>%
   xlab("Parental Length (mm)") +
   ylab("Reproductive Success") +
   theme_bw() +
-  scale_colour_manual(values = cbPalette)
+  scale_fill_manual(values = cbPalette)
 
 # 2016-2018
 gil_paired_16_18_filt_parents <- gil_paired_16_18_filt_parents %>% 
@@ -1395,31 +1395,37 @@ gil_paired_16_18_filt_parents <- gil_paired_16_18_filt_parents %>%
 
 # By sample date
 # Females and males separated
-gil_paired_16_18_filt_parents %>% 
-  ggplot(aes(x = date, y = n, color = origin)) +
+df_gil_paired_16_18_filt_parents <- tibble(gil_paired_16_18_filt_parents)
+df_gil_paired_16_18_filt_parents %>%
+  replace_na(list(cross = "NA")) %>%
+  ggplot(aes(x = date, y = n, fill = origin)) +
   geom_hline(yintercept = 0) +
-  geom_jitter(height = 0, size = 3) +
+  geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
   geom_smooth() +
   facet_grid(sex ~ .)+
   labs(title = "Reproductive Success by Parental Sample Date for 2016-2018\n(Females and males separate)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Sample Date") +
   ylab("Reproductive Success")+
-  theme_bw()
+  theme_bw() +
+  scale_fill_manual(values = cbPalette)
 
 # By body length
-gil_paired_16_18_filt_parents %>% 
+df_gil_paired_16_18_filt_parents <- tibble(gil_paired_16_18_filt_parents)
+df_gil_paired_16_18_filt_parents %>% 
+  replace_na(list(cross = "NA")) %>%
   filter(`Length Mm` > 300) %>% 
-  ggplot(aes(x = `Length Mm`, y = n, color = origin)) +
+  ggplot(aes(x = `Length Mm`, y = n, fill = origin)) +
   geom_hline(yintercept = 0) +
-  geom_jitter(height = 0, size = 3) +
+  geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
   geom_smooth() +
   facet_grid(sex ~ .) +
   labs(title = "Reproductive Success by Parental Length (mm) for 2016-2018\n(Females and males separate)",  colour = "Parent: Origin",
        shape = "Parent: Sex") +
   xlab("Parental Length (mm)") +
   ylab("Reproductive Success") +
-  theme_bw() 
+  theme_bw() +
+  scale_fill_manual(values = cbPalette)
 ```
 
 **Results:** For 2014-2016 only, females may have had higher RS later in the season, and larger fish (especially natural-origin males) may have been more successful. The 2016-2018 results are inconclusive at this time.
@@ -1599,11 +1605,11 @@ gil_parentage_paired_14_16_cross_dam_sire %>%
          `Sample Date_sire` = dmy(`Sample Date_sire`)) %>%
   group_by(Dam, Sire, `Sample Date_dam`, `Sample Date_sire`, cross) %>%
   summarise(n = n_distinct(Offspring)) %>%
-  ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, colour = cross)) +
-  geom_jitter(size = 4) +
+  ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, fill = cross)) +
+  geom_jitter(size = 4, shape = 21, color = "black") +
   geom_abline(intercept = 0, slope = 1) +
   theme_bw() +
-  scale_colour_manual(values = cbPalette) +
+  scale_fill_manual(values = cbPalette) +
   theme(text = element_text(size = 15), legend.position = c(0.1, 0.8), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # How many dams had multiple sires
@@ -1639,15 +1645,18 @@ gil_unique_matings_16_18 <- gil_parentage_paired_16_18_cross_dam_sire %>%
   count(Dam, Sire)
 
 # Do the sample dates for cross types make sense?
-gil_parentage_paired_16_18_cross_dam_sire %>%
+df_gil_parentage_paired_16_18_cross_dam_sire <- tibble(gil_parentage_paired_16_18_cross_dam_sire)
+df_gil_parentage_paired_16_18_cross_dam_sire %>% 
+  replace_na(list(cross = "NA")) %>%
   mutate(`Sample Date_dam` = dmy(`Sample Date_dam`),
          `Sample Date_sire` = dmy(`Sample Date_sire`)) %>%
   group_by(Dam, Sire, `Sample Date_dam`, `Sample Date_sire`, cross) %>%
   summarise(n = n_distinct(Offspring)) %>%
-  ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, colour = cross)) +
-  geom_jitter(size = 4) +
+  ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, fill = cross)) +
+  geom_jitter(size = 4, shape = 21, color = "black") +
   geom_abline(intercept = 0, slope = 1) +
   theme_bw() +
+  scale_fill_manual(values = c("#FFFFFF", "#F0E442")) +
   theme(text = element_text(size = 15), legend.position = c(0.1, 0.8), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1))
 
 # How many dams had multiple sires
