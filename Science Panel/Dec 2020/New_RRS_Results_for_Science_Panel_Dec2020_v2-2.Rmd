@@ -212,7 +212,7 @@ sample_size_plot <- function(indata = stock_paired_16_18_filt, title = "Stockdal
   mutate(date = dmy(`Sample Date`)) %>%
   mutate(DOY = yday(date)) %>%
   ggplot(aes(x = DOY)) +
-  geom_bar(aes(fill = origin), colour = "black") +
+  geom_bar(aes(fill = origin, group = interaction(DOY, origin)), colour = "black") +
   scale_x_continuous(breaks = seq(180, 320, by = 5), labels = format(x = (as.Date("2012-12-31") + seq(180, 320, by = 5)), "%b %d")) +
   facet_grid(`Sample Year` ~ .) +
   geom_hline(yintercept = 0, colour = "black") +
@@ -590,7 +590,7 @@ stock_paired_16_18_filt_parents <- stock_paired_16_18_filt_parents %>%
 # Females and males separated
 stock_paired_16_18_filt_parents %>% 
   ggplot(aes(x = date, y = n, fill = origin)) +
-  geom_hline(yintercept = 0, color = "gray") +
+  geom_hline(yintercept = 0, color = "grey50") +
   geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
   geom_smooth(color = "black", size = 0.5) +
   facet_grid(sex ~ .) +
@@ -605,7 +605,7 @@ stock_paired_16_18_filt_parents %>%
 stock_paired_16_18_filt_parents %>% 
   filter(`Length Mm` > 300) %>% 
   ggplot(aes(x = `Length Mm`, y = n, fill = origin)) +
-  geom_hline(yintercept = 0, color = "gray") +
+  geom_hline(yintercept = 0, color = "grey50") +
   geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
   geom_smooth(color = "black", size = 0.5) +
   facet_grid(sex ~ .) +
@@ -766,7 +766,7 @@ stock_n_dams1618 <- stock_parentage_paired_16_18_cross_dam_sire %>%
 
 ## Grandparentage
 ### RRS plus 95% CI
-We found the F1 fish (2016) that were assigned to F0 parents (2014) and determined how many F2 offspring (2018) were assigned to them . We then estimated RRS according to grandparental origin. The set of panels below include 
+We found the F~1~ fish (2016) that were assigned to F~0~ parents (2014) and determined how many F~2~ offspring (2018) were assigned to them . We then estimated RRS according to grandparental origin. The set of panels below include 
 
   1. how many grandparents of each origin contributed to a particular number of offspring that in turn contributed to a particular number of grandoffspring, and  
   2. how many of those grandoffspring had a particular number of grandparents assigned to them.  
@@ -849,7 +849,7 @@ stock_grandparentage %>%
   rename(Num_grandparents_assigned = num_grandparents, Num_offpring = n)
 ```
 
-**Results:** As a reminder, all F1 parents and F2 offspring are natural-origin in this analysis; only the F0 grandparental generation contains any hatchery-origin fish. A total of **167** unique hatchery-origin grandparents were assigned to **373** F1 parents, **20** of which assigned to **30** F2 offspring, and **238** unique natural-origin grandparents assigned to **865** F1 parents, **51** of which assigned to **74** F2 offspring. Each assigned grandparent contributed to **1-5** grandoffspring. RRS from the F1 to F2 was **`r round(rrs_sgpar1618[2,1], 2)` (95% CI [`r round(rrs_sgpar1618[1,1], 2)`-`r round(rrs_sgpar1618[3,1], 2)`])**. However, this result requires circumspection and interpretation. It is not a pure RRS estimate because it is based on a fraction of full familial origin information. Only one F1 parent is known for the majority of F2 offpring; an unknown parent may be of either origin and may have been sampled or unsampled. Compounding that, **76** F2 offspring had one grandparent assigned, while only **14** had two grandparents assigned, but **zero** F2 offspring had >2 grandparents assigned. Again, the unknown grandparent(s) are of unknown origin.
+**Results:** As a reminder, all F~1~ parents and F~2~ offspring are natural-origin in this analysis; only the F~0~ grandparental generation contains any known hatchery-origin fish. A total of **167** unique hatchery-origin grandparents were assigned to **373** F~1~ parents, **20** of which assigned to **30** F~2~ offspring, and **238** unique natural-origin grandparents assigned to **865** F~1~ parents, **51** of which assigned to **74** F~2~ offspring. Each assigned grandparent contributed to **1-5** grandoffspring. RRS from the F~1~ to F~2~ was **`r round(rrs_sgpar1618[2,1], 2)` (95% CI [`r round(rrs_sgpar1618[1,1], 2)`-`r round(rrs_sgpar1618[3,1], 2)`])**. However, this result requires circumspection and cautious interpretation. It is not a pure RRS estimate because it is based on a fraction of full familial origin/ancestry information. Only one F~1~ parent is known for the majority of F~2~ offpring; an unknown parent may be of either origin and may have been sampled or unsampled. Compounding that, **76** F~2~ offspring had one grandparent assigned, while only **14** had two grandparents assigned, but **zero** F~2~ offspring had >2 grandparents assigned. Again, the unknown grandparent(s) are of unknown origin.
 
 ## Summary for Stockdale Creek
 
@@ -864,8 +864,8 @@ stock_grandparentage %>%
 
 ### 2014-2016-2018 (Grandparentage)
 
-1. A total of 63 unique grandparents were identified that produced 90 F2 offspring, 76 of which had one grandparent assigned and 14 of which had two grandparents assigned.
-2. F1 to F2 RRS was 0.94 (95% CI [0.61, 1.42]).
+1. A total of 63 unique grandparents were identified that produced 90 F~2~ offspring, 76 of which had one grandparent assigned and 14 of which had two grandparents assigned.
+2. F~1~ to F~2~ RRS was 0.94 (95% CI [0.61, 1.42]).
 
 # **Gilmour 2014-2016-2018 Analyses (preliminary)**
 Much of the following must be interpreted in light of the fact that otolith reads are not yet available for the majority of the 2016 and 2018 Gilmour samples. As a reminder, all fish are thus included, regardless of origin, in these analyses.
@@ -1363,7 +1363,7 @@ gil_paired_14_16_filt_parents <- gil_paired_14_16_filt_parents %>%
 # Females and males separated
 gil_paired_14_16_filt_parents %>% 
   ggplot(aes(x = date, y = n, fill = origin)) +
-  geom_hline(yintercept = 0, color = "gray") +
+  geom_hline(yintercept = 0, color = "grey50") +
   geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
   geom_smooth(color = "black", size = 0.5) +
   facet_grid(sex ~ .)+
@@ -1379,7 +1379,7 @@ gil_paired_14_16_filt_parents %>%
 gil_paired_14_16_filt_parents %>% 
   filter(`Length Mm` > 300) %>% 
   ggplot(aes(x = `Length Mm`, y = n, fill = origin)) +
-  geom_hline(yintercept = 0, color = "gray") +
+  geom_hline(yintercept = 0, color = "grey50") +
   geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
   geom_smooth(color = "black", size = 0.5) +
   facet_grid(sex ~ .) +
@@ -1404,7 +1404,7 @@ df_gil_paired_16_18_filt_parents <- tibble(gil_paired_16_18_filt_parents)
 df_gil_paired_16_18_filt_parents %>%
   replace_na(list(cross = "NA")) %>%
   ggplot(aes(x = date, y = n, fill = origin)) +
-  geom_hline(yintercept = 0, color = "gray") +
+  geom_hline(yintercept = 0, color = "grey50") +
   geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
   geom_smooth(color = "black", size = 0.5) +
   facet_grid(sex ~ .)+
@@ -1422,7 +1422,7 @@ df_gil_paired_16_18_filt_parents %>%
   replace_na(list(cross = "NA")) %>%
   filter(`Length Mm` > 300) %>% 
   ggplot(aes(x = `Length Mm`, y = n, fill = origin)) +
-  geom_hline(yintercept = 0, color = "gray") +
+  geom_hline(yintercept = 0, color = "grey50") +
   geom_jitter(height = 0, size = 4, shape = 21, color = "black") +
   geom_smooth(color = "black", size = 0.5) +
   facet_grid(sex ~ .) +
@@ -1690,7 +1690,7 @@ gil_n_dams_and_sires1618 <- full_join(gil_n_sires1618, gil_n_dams1618, by = "Num
 ## Grandparentage
 
 ### RRS plus 95% CI
-We found the F1 fish that had F0 parents assigned as well as F2 offspring that returned in 2018. We then estimated RRS according to grandparental origin. The set of panels below include
+We found the F~1~ fish that had F~0~ parents assigned as well as F~2~ offspring that returned in 2018. We then estimated RRS according to grandparental origin. The set of panels below include
 
   1. how many grandparents of each origin contributed to a particular number of offspring that in turn contributed to a particular number of grandoffspring and  
   2. how many of those grandoffspring had a particular number of grandparents assigned to them.
@@ -1773,7 +1773,7 @@ gil_grandparentage %>%
   rename(Num_grandparents_assigned = num_grandparents, Num_offpring = n)
 ```
 
-**Results:** As a reminder, all F1 parents and F2 offspring are natural-origin in this analysis; only the F0 grandparental generation contains any hatchery-origin fish. A total of **160** unique hatchery-origin grandparents were assigned to **645** F1 parents, **85** of which assigned to **176** F2 offspring, while **149** unique natural-origin grandparents assigned to **604** F1 parents, **92** of which went on to contribute to **197** F2 offspring. Each assigned grandparent contributed to **1-13** grandoffspring. RRS from the F1 to F2 was **`r round(rrs_ggpar1618[2,1], 2)` (95% CI [`r round(rrs_ggpar1618[1,1], 2)`-`r round(rrs_ggpar1618[3,1], 2)`])**. However, this result again requires interpretation. It is not a pure RRS estimate. Although more data is available than for Stockdale, it is again based on a lack of full familial origin information. Only one F1 parent is known for the majority of F2 offpring; an unknown parent may be of either origin and may have been sampled or unsampled. Compounding that, a total of **175** F2 offspring had one, **84** had two, and **10** had three grandparents assigned, but **zero** F2 offspring had all four grandparents assigned. Again, the unknown grandparent(s) are of unknown origin.
+**Results:** As a reminder, all F~1~ parents and F~2~ offspring are natural-origin in this analysis; only the F~0~ grandparental generation contains any known hatchery-origin fish. A total of **160** unique hatchery-origin grandparents were assigned to **645** F~1~ parents, **85** of which assigned to **176** F~2~ offspring, while **149** unique natural-origin grandparents assigned to **604** F~1~ parents, **92** of which went on to contribute to **197** F~2~ offspring. Each assigned grandparent contributed to **1-13** grandoffspring. RRS from the F~1~ to F~2~ was **`r round(rrs_ggpar1618[2,1], 2)` (95% CI [`r round(rrs_ggpar1618[1,1], 2)`-`r round(rrs_ggpar1618[3,1], 2)`])**. However, this result again requires cautious interpretation. It is not a pure RRS estimate. Although more data is available than for Stockdale, it is again based on a lack of full familial origin and ancestry information. Only one F~1~ parent is known for the majority of F~2~ offpring; an unknown parent may be of either origin and may have been sampled or unsampled. Compounding that, a total of **175** F~2~ offspring had one, **84** had two, and **10** had three grandparents assigned, but **zero** F~2~ offspring had all four grandparents assigned. Again, the unknown grandparent(s) are of unknown origin.
 
 ## Summary for Gilmour Creek
 
@@ -1799,8 +1799,8 @@ gil_grandparentage %>%
 
 ### 2014-2016-2018 (Grandparentage)
 
-1. A total of 129 unique F0 grandparents were identified that produced 269 F2 offspring, 175 of which had one, 84 of which had two, and 10 of which had three grandparents assigned.
-2. F1 to F2 RRS was 0.84 (95% CI [0.68, 1.02]).
+1. A total of 129 unique F~0~ grandparents were identified that produced 269 F~2~ offspring, 175 of which had one, 84 of which had two, and 10 of which had three grandparents assigned.
+2. F~1~ to F~2~ RRS was 0.84 (95% CI [0.68, 1.02]).
 
 # **Hogan-Stockdale-Gilmour 2014-2016 Analyses (preliminary)**
 Here, we partition the parent and offspring data from 2014 2016 among three different streams, including Hogan, stockdale, and Gilmour, to assess whether staying may have an impact on our ability to assign parentage as best possible. Panels below include 
