@@ -1,7 +1,7 @@
 ---
 title: "RRS Results to Date for Science Panel"
 author: "Kristen Gruenthal & Kyle Shedd"
-date: "17 December 2020"
+date: "18 December 2020"
 output:
   html_notebook:
     theme: united
@@ -1901,4 +1901,4 @@ Below is a summary of all parentage analyses and single-generation RRS estimates
 
 ## Multi-generation RRS
 Below is a summary of all parentage analyses and multi-generation RRS estimates to date.
-![Multi-generation RRS Results to Date](RRS_Grandparents.png){#id .class width=35% height=35%}
+![Multi-generation RRS Results to Date](RRS_Grandparents.png){#id .class width=40% height=40%}
