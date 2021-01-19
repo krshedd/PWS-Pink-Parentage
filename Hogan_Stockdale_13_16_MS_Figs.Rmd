@@ -31,15 +31,18 @@ Try PBSmapping, clunky, but great basemap for AK coastlines. Got the idea from B
 
 ```{r map of study area, message=FALSE, warning=FALSE}
 # Load data
-dat <- read_csv("map_data_2.csv")
+dat <- read_csv("map_data.csv")
 
 dat <- dat %>%
   mutate(Legend = case_when(type == "Hogan" ~ "Hogan Bay",
-                            type == "Stockdale" ~ "Stockdale Creek",
-                            type == "Fitness Stream" ~ "Fitness Streams",
-                            type == "Hatchery" & name != "VFDA" ~ "PWSAC",
-                            name == "VFDA" ~ "VFDA")) %>% 
-  mutate(Legend = factor(x = Legend, levels = c("Hogan Bay", "Stockdale Creek", "Fitness Streams", "VFDA", "PWSAC"))) %>% 
+                            type == "Fitness Stream" & name == "Stockdale" ~ "Stockdale Creek",
+                            type == "Fitness Stream" & name != "Stockdale"~ "Other fitness streams",
+                            type == "Hatchery" & name != "VFDA" ~ "PWSAC hatchery",
+                            name == "VFDA" ~ "VFDA hatchery")) %>% 
+  mutate(Legend = factor(x = Legend, levels = c("Hogan Bay", "Stockdale Creek", "Other fitness streams", "VFDA hatchery", "PWSAC hatchery"))) %>% 
+  mutate(type = case_when(type == "Hogan" ~ "Current study",
+                          name == "Stockdale" ~ "Current study",
+                          TRUE ~ type)) %>% 
   mutate(abbr = case_when(name == "AFK" ~ "AFK",
                           name == "WHN" ~ "WN",
                           name == "Cannery Creek" ~ "CC",
@@ -65,7 +68,8 @@ maptheme <- theme(
 # PWS map
 pws_map <- ggplot() + 
   geom_polygon(data = ak, aes(long, lat, group = group), fill = "grey90", color = "black", lwd = 0.3) +
-  geom_point(data = dat, aes(x = long, y = lat, fill = Legend), shape = 21, colour = "black", stroke = 2, size = 5) +
+  geom_point(data = dat, aes(x = long, y = lat, fill = Legend, shape = type), stroke = 2, size = 5) +  # shape = 21, colour = "black",
+  scale_shape_manual(values = c(21, 22, 24)) +
   geom_label(data = filter(dat, type == "Hatchery"), aes(long, lat, label = abbr), hjust = 0, nudge_x = 0.1) +
   geom_segment(aes(x = -148.7, xend = -148.7, y = 59.85, yend = 60.02), lineend = "butt", linejoin = "round", size = 2, arrow = arrow(length = unit(0.2, "inches"))) +
   annotate("text", label = "Prince\nWilliam\nSound", x = -147, y = 60.6, size = 5, colour = "black") +
