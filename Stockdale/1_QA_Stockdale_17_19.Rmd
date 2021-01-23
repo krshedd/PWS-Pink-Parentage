@@ -133,8 +133,9 @@ dplyr::bind_rows(PSTOCK17.gcl$attributes,
   count(SILLY_CODE, `Otolith Mark Present`) %>% 
   spread(`Otolith Mark Present`, n, fill = 0)
 ```
+There are 44 NAs from 2017.
 
-We want to remove any NA from 2017 and hatchery-origin fish + NA from 2019. We'll need those hatchery-origin fish from 2017 for looking at 2017/2019 parentage. The NAs must be from second reads.
+We want to remove any NAs from 2017 and hatchery-origin fish + NA from 2019. We'll need those hatchery-origin fish from 2017 for looking at 2017/2019 parentage. The NAs must be from second reads.
 ```{r remove_stock_hatchery}
 PSTOCK17_ids_remove <- PSTOCK17.gcl$attributes %>%
   filter(is.na(`Otolith Mark Present`)) %>%
@@ -314,12 +315,19 @@ het_tibble %>%
 ### Remove fish outside of the IQR cutoffs
 How many fish are we going to remove from each silly?
 ```{r table_het_cutoff}
+# Calculate 1.5 IQR
+het_IQR_cutoffs <- het_tibble %>% 
+  dplyr::group_by(lineage) %>% 
+  dplyr::summarise(low_1.5_IQR = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))),
+            high_1.5_IQR = quantile(het, probs = 0.75) + 1.5 * diff(quantile(het, probs = c(0.25, 0.75))))
+
 # Get list of fish to remove
 het_tibble %>% 
   dplyr::left_join(het_IQR_cutoffs, by = "lineage") %>% 
   dplyr::filter(het < low_1.5_IQR | het > high_1.5_IQR) %>% 
   dplyr::count(silly)
 ```
+We'll remove another 161 fish total.
 
 To remove these fish, we first need to identify them and convert *SillySource* to *FK_FISH_ID* (**note**: the values for *FK_FISH_ID* got reassigned after pooling) before removal.
 ```{r remove_het_cutoff}
@@ -357,6 +365,7 @@ ProjectSillys_Origin_SampleSizes[, "Final"] <- sapply(paste0(ProjectSillys_Origi
 ProjectSillys_Origin_SampleSizes
 save_objects("ProjectSillys_Origin_SampleSizes", path = "../../Objects/Stockdale_17_19/")
 ```
+Final dataset contains 6,424 total fish: 9,620 from 2017 and 6,804 from 2019 (that's a lot!).
 
 Let's save the post-QA genotypes.
 ```{r save_postQA_genotypes}
