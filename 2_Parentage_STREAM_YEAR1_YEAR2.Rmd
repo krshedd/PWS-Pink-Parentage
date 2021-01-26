@@ -17,8 +17,8 @@ editor_options:
 # This script has been standardized for ease of use with subsequent parentage, grandparentage, and great granparentage analyses for PINK SALMON
 # 1. Copy file to correct stream folder in "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\GitHub-PWS-Pink-Parentage" and rename
 # 2. Replace names, dates, and other information where applicable in script
-#    a. Specific terms requiring replacement in the Introduction and below for future use include: "Stockdale", "2013", "2015", 2017", "2019", "_13", "_15", "_17", "_19"
-#    b. Please also be sure to update any usernames and passwords, paths, SILLY codes, and filenames, as well as **Results:** text for the notebook
+#    a. Specific terms requiring replacement in the Introduction and below for future use include: "Stockdale", "STOCK", "stock_" 2013", "2015", 2017", "2019", "_13", "_15", "_17", "_19"
+#    b. Please also be sure to update any usernames and passwords, paths, SILLY codes, hatchery designations, and filenames, as well as **Results:** text for the notebook
 #    c. Do not use this notebook for multiple streams without renaming objects for specificity
 # 3. Comment out any sections you do not wish to run (e.g. grandparentage or great grandparentage, if multigenerational data are not available)
 #
@@ -99,7 +99,7 @@ paired_17_19_filter <- as_tibble(paired_17_19) %>%
                             `Otolith Mark Present` == "YES" ~ "Hatchery")) %>%  # add origin variable
   mutate(origin = factor(origin, c("Natural", "Hatchery"))) %>%  # make factor to ensure hatchery != red
   mutate(Sex = case_when(SEX == "M" ~ "Male", SEX == "F" ~ "Female")) %>% 
-  mutate(date = mdy_hm(`Sample Date`)) %>%
+  mutate(date = mdy_hm(`Sample Date`)) %>% # check data format
   mutate(DOY = yday(date))
  
 write_csv(paired_17_19_filter, "Stockdale_paired_17_19_filter.csv")
@@ -130,7 +130,7 @@ sample_size_plot <- function(indata = paired_XX_XX_filter, title = "Stream Year-
   indata %>%
   mutate(origin = factor(x = origin, levels = c("Natural", "Hatchery"))) %>%
   mutate(Sex = case_when(SEX == "M" ~ "Male", SEX == "F" ~ "Female")) %>%
-  mutate(date = mdy_hm(`Sample Date`)) %>% # imported data format for Sample Date changing - make sure to check
+  mutate(date = mdy_hm(`Sample Date`)) %>% # check date format
   mutate(DOY = yday(date)) %>%
   ggplot(aes(x = DOY)) +
   geom_bar(aes(fill = origin, group = interaction(DOY, origin)), colour = "black") +
@@ -181,7 +181,7 @@ parents_paired_17_19 %>%
   count(origin, `Otolith Mark ID.par`) %>% 
   spread(origin, n)
 ```
-**Results:** Of the **6,804** natural-origin offspring genotyped in 2019, *FRANz* assigned **604**, for an assignment rate of **8.9%**, to **602** parents (**576** natural and **26** hatchery). Most assignments (**479**) were to one parent (*single parent-offspring dyads*), but there were **125** two-parent assignments (*parent pair-offspring triads*). A total of **699** offspring assignments were to a natural-origin parent and **30** were to a hatchery-origin parent, with **20** were from AFK15B, **4** from CCH15, **4** from SGH15, and **2** from WNH14PINKB.
+**Results:** Of the **6,804** natural-origin offspring genotyped in 2019, *FRANz* assigned **604**, for an assignment rate of **8.9%**, to **602** parents (**576** natural and **26** hatchery). Most assignments (**479**) were to one parent, but there were **125** two-parent assignments. A total of **699** offspring assignments were to a natural-origin parent and **30** were to a hatchery-origin parent, with **20** from AFK15B, **4** from CCH15, **4** from SGH15, and **2** from WNH15PINKB.
 
 ## Proportion test
 We performed a chi-square test on the data to determine whether the proportions of offspring assigned to hatchery- and natural-origin parents significantly differ from the proportions of hatchery- and natural-origin parents sampled. Note that for this analysis, the data were not divided out by sex. 
@@ -506,7 +506,7 @@ paired_17_19_filter_parents <- paired_17_19_filter_parents %>%
   filter(SEX != "?") %>% 
   mutate(sex = case_when(SEX == "M" ~ "Male",
                          SEX == "F" ~ "Female")) %>% 
-  mutate(date = mdy_hm(`Sample Date`))
+  mutate(date = mdy_hm(`Sample Date`)) # check date format
 ```
 
 ### *RS by sample date*
@@ -680,7 +680,7 @@ We set out to discover who is mating with whom and when. We know multiple mating
 # Do the sample dates for cross types make sense?
 parents_paired_17_19_cross_dam_sire %>% 
   mutate(`Sample Date_dam` = mdy_hm(`Sample Date_dam`),
-         `Sample Date_sire` = mdy_hm(`Sample Date_sire`)) %>% 
+         `Sample Date_sire` = mdy_hm(`Sample Date_sire`)) %>% # check date format
   group_by(Dam, Sire, `Sample Date_dam`, `Sample Date_sire`, cross) %>% 
   summarise(n = n_distinct(Offspring)) %>% 
   ggplot(aes(x = `Sample Date_dam`, y = `Sample Date_sire`, fill = cross)) +
@@ -770,7 +770,7 @@ We find the parents (2017) that were assigned to grandparents (2015) and determi
 parents_paired_15_17 <- read_csv("stock_parents_paired_15_17.csv") %>% 
   dplyr::select(-origin)
 
-paired_17_19_filt_parents <- read_csv("Stockdale_paired_17_19_filter_parents.csv")
+paired_17_19_filter_parents <- read_csv("Stockdale_paired_17_19_filter_parents.csv")
 
 parentage_paired_17_19 <- read_csv("Stockdale_parents_paired_17_19.csv")%>% 
   dplyr::select(-origin)
@@ -783,7 +783,7 @@ parentage_paired_17_19 <- read_csv("Stockdale_parents_paired_17_19.csv")%>%
   inner_join(parents_paired_15_17, by = c("Parent_ID" = "Offspring"), suffix = c("_17", "_15")))
 ```
  
-  2. How many grandparents (nn), independent of origin, produced a certain number of grandoffspring (n)
+  2. How many grandparents, independent of origin, produced a certain number of grandoffspring
  
 ```{r gpar_2, echo=FALSE, warning=FALSE, message=FALSE}
 (gparents1 <- gparent_table %>% 
@@ -795,7 +795,7 @@ parentage_paired_17_19 <- read_csv("Stockdale_parents_paired_17_19.csv")%>%
   3. How many parents produced a certain number of grandoffspring, with a grandparent of a particular origin
   
 ```{r gpar_3, echo=FALSE, warning=FALSE, message=FALSE}
-(gparents2 <- paired_17_19_filt_parents %>% 
+(gparents2 <- paired_17_19_filter_parents %>% 
   right_join(parents_paired_15_17, by = c("franz_id" = "Offspring")) %>% 
   count(origin.par, n) %>% 
   rename(Grandparental_origin = origin.par, n_parents = nn, n_grandoffspring = n))
@@ -805,7 +805,7 @@ parentage_paired_17_19 <- read_csv("Stockdale_parents_paired_17_19.csv")%>%
   
 ```{r gpar_4, echo=FALSE, warning=FALSE, message=FALSE}
 # Origin (origin.par) and numbers of F0 grandparents, their assigned F1 offspring, and assigned F2 grandoffspring
-(gparents_origin <- paired_17_19_filt_parents %>% 
+(gparents_origin <- paired_17_19_filter_parents %>% 
   right_join(parents_paired_15_17, by = c("franz_id" = "Offspring")) %>% 
   group_by(origin.par) %>% 
   summarise(n_grandparents = length(unique(Parent_ID)), n_parents = length(franz_id), n_offspring = sum(n, na.rm = TRUE)) %>%
@@ -827,35 +827,35 @@ rrs_gpar_17_19 %>%
   6. Origin of the parents and grandparents for each grandoffspring
   
 ```{r gpar_6, echo=FALSE, warning=FALSE, message=FALSE}
-# F1 offspring, F0 sire, and sire origin
+# Offspring (sire and dam generation), grandsire, and grandsire origin
 sires_15 <- parents_paired_15_17 %>%
     filter(Sex.par == "Male") %>%
     rename(Sire = Parent_ID, Sire_origin = origin.par) %>%
     dplyr::select(Offspring, Sire, Sire_origin)
 
-# F1 offspring, F0 dam, and dam origin
+# Offspring (sire and dam generation), granddam, and granddam origin
 dams_15 <- parents_paired_15_17 %>%
     filter(Sex.par == "Female") %>%
     rename(Dam = Parent_ID, Dam_origin = origin.par) %>%
     dplyr::select(Offspring, Dam, Dam_origin)
 
-# F0 sire and dam data combined
+# Grandsire and granddam data combined
 parents_15_17 <- full_join(sires_15, dams_15, by = "Offspring") %>%
     arrange(Offspring)
 
-# F2 offspring, F1 sire, and sire origin
+# Grandoffspring, sire, and sire origin
 sires_17 <- parentage_paired_17_19 %>%
     filter(Sex.par == "Male") %>%
     rename(Sire = Parent_ID, Sire_origin = origin.par) %>%
     dplyr::select(Offspring, Sire, Sire_origin)
 
-# F2 offspring, F1 dam, and dam origin
+# Grandoffspring, dam, and dam origin
 dams_17 <- parentage_paired_17_19 %>%
     filter(Sex.par == "Female") %>%
     rename(Dam = Parent_ID, Dam_origin = origin.par) %>%
     dplyr::select(Offspring, Dam, Dam_origin)
 
-# F0 and F1 sire and dam data combined
+# Grandsire, granddam, sire, and dam data combined
 (grandparentage <- full_join(sires_17, dams_17, by = "Offspring") %>% 
     arrange(Offspring) %>% 
     left_join(parents_15_17, by = c("Sire" = "Offspring"), suffix = c("", "_paternal")) %>% 
@@ -865,6 +865,8 @@ dams_17 <- parentage_paired_17_19 %>%
            n_grandparents = sum(!is.na(Sire_paternal), !is.na(Sire_maternal), !is.na(Dam_paternal), !is.na(Dam_maternal))) %>% 
     ungroup() %>% 
     filter(n_grandparents > 0))
+
+write_csv(grandparentage, "Stockdale_17_19_grandparentage.csv")
 ```
   
   7. Number of grandparents assigned to each grandoffspring
@@ -874,16 +876,66 @@ dams_17 <- parentage_paired_17_19 %>%
   count(n_grandparents) %>%
   rename(n_grandparents_assigned = n_grandparents, n_offpring = n))
 ```
-**Results:** A total of **54** unique hatchery-origin grandparents were assigned to **71** parents, **10** of which assigned to **11** grandoffspring, and **414** unique natural-origin grandparents assigned to **561** parents, **54** of which assigned to **74** grandoffspring. Each assigned grandparent contributed to **1-XX** grandoffspring. RRS from the parental to grandoffspring generation was **`r round(rrs_gpar_17_19[2,1], 2)` (95% CI [`r round(rrs_gpar_17_19[1,1], 2)`-`r round(rrs_gpar_17_19[3,1], 2)`])**. However, this result requires circumspection and cautious interpretation. It is not a pure RRS estimate because it is based on a fraction of full familial origin/ancestry information. Only one F~1~ parent is known for the majority of grandoffpring; an unknown parent may be of either origin and may have been sampled or unsampled. Compounding that, **52** grandoffspring had one grandparent assigned, **13** had two grandparents assigned, **one** grandoffspring each had three and four grandparents assigned. Again, any unknown grandparent(s) are of unknown origin.
+**Results:** A total of **54** unique hatchery-origin grandparents were assigned to **71** parents, **10** of which assigned to **11** grandoffspring, and **414** unique natural-origin grandparents assigned to **561** parents, **54** of which assigned to **74** grandoffspring. Each assigned grandparent contributed to **1-XX** grandoffspring. RRS from the parental to grandoffspring generation was **`r round(rrs_gpar_17_19[2,1], 2)` (95% CI [`r round(rrs_gpar_17_19[1,1], 2)`-`r round(rrs_gpar_17_19[3,1], 2)`])**. However, this result requires circumspection and cautious interpretation. It is not a pure RRS estimate because it is based on a fraction of full familial origin/ancestry information. Only one F~1~ parent is known for the majority of grandoffpring; an unknown parent may be of either origin and may have been sampled or unsampled. Compounding that, **52** grandoffspring had one, **13** had two, and **one** grandoffspring each had three and four grandparents assigned. Again, any unknown grandparent(s) are of unknown origin.
 
 # **Great Grandparentage**
 
-WORK IN PROGRESS
+WORK IN PROGRESS - What are we trying to do here and what can we do here?
 
-```{r stock_ggparents_counts_and_rrs, echo=FALSE, warning=FALSE, message=FALSE}
+```{r import_great_grandparental_data, echo=FALSE, warning=FALSE, message=FALSE}
+# Read in data
+parents_paired_13_15 <- read_csv("stock_parents_paired_13_15.csv") %>% 
+  dplyr::select(-origin)
 
+parents_paired_15_17 <- read_csv("stock_parents_paired_15_17.csv") %>% 
+  dplyr::select(-origin)
+
+parents_paired_17_19 <- read_csv("Stockdale_parents_paired_17_19.csv") %>% 
+  dplyr::select(-origin)
+
+paired_17_19_filter_parents <- read_csv("Stockdale_paired_17_19_filter_parents.csv")
+
+paired_15_17_filter_parents <- read_csv("stock_paired_15_17_filter_parents.csv")
 ```
-**Results:** ...
+  
+  1. IDs of the great grandoffspring, their parents, their grandparents, and their great grandparents
+  
+```{r ggpar_1, echo=FALSE, warning=FALSE, message=FALSE}
+
+# Who were the grandoffspring, their parents, and their grandparents?
+ggparents_IDs <- parents_paired_15_17 %>%
+  inner_join(parents_paired_13_15, by = c("Parent_ID" = "Offspring"), suffix = c("_15", "_13"))
+
+(ggparents_table <- parents_paired_17_19 %>% 
+  inner_join(parents_paired_15_17, by = c("Parent_ID" = "Offspring"), suffix = c("_17", "_15")) %>% # same as in gparent_table from Grandparentage above 
+  inner_join(ggparents_IDs, by = c("Parent_ID_15" = "Parent_ID")))
+```
+ 
+  2. How many great grandparents, independent of origin, produced a certain number of great grandoffspring
+ 
+```{r ggpar_2, echo=FALSE, warning=FALSE, message=FALSE}
+# How many great grandparents, independent of origin, produced a certain number of great grandoffspring
+(ggparents_ggoffspring <- ggparents_table %>% 
+  count(Parent_ID_13) %>% 
+  count(n) %>% 
+  rename(n_greatgrandparents = nn, n_greatgrandoffspring = n))
+```
+
+  3. How many of those grandoffspring had a particular number of grandparents assigned to them
+  
+```{r ggpar_3, echo=FALSE, warning=FALSE, message=FALSE}
+# Origin (origin.par.x) and numbers of F0 great grandparents, their assigned F1 offspring, assigned F2 grandoffspring, and assigned F3 great grandoffspring
+(ggparents_origin <- paired_17_19_filter_parents %>% 
+  full_join(parents_paired_15_17, by = c("franz_id" = "Offspring")) %>% 
+  right_join(parents_paired_13_15, by = c("Parent_ID" = "Offspring")) %>% 
+  group_by(origin.par.y) %>% 
+  summarise(n_great_grandparents = length(unique(Parent_ID.y)),
+            n_grandparents = length(which(!is.na(Parent_ID))),
+            n_parents = length(which(!is.na(franz_id))), 
+            n_offspring = sum(n, na.rm = TRUE)) %>%
+  rename(Great_grandparental_origin = origin.par.y))
+```
+**Results:** We couldn't do much with this remaining data. We found two great grandparents, both natural-origin, each tied to one great grandoffspring.
 
 # **Summary of Results**
 
@@ -897,10 +949,9 @@ WORK IN PROGRESS
 
 ## 2015-2017-2019 (Grandparentage)
 
-1. A total of 468 unique grandparents were identified that produced 84 grandoffspring, 52 of which had one grandparent assigned, 13 of which had two grandparents assigned, and one each of which had three and four grandparents assigned.
+1. A total of 468 unique grandparents were identified that produced 84 grandoffspring, 52 of which had one, 13 of which had two, and one each of which had three and four grandparents assigned.
 2. 2017 to 2019 RRS was 1.17 (95% CI [0.59, 2.12]) when taken in light of grandparental origin.
 
 ## 2013-2015-2017-2019 (Great grandparentage)
 
-1. ...
-2. ...
+1. 2 natural-origin great grandparents (2013) were assigned to 2 offspring (2019)
