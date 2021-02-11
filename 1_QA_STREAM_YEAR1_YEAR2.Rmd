@@ -17,7 +17,7 @@ editor_options:
 # This script has been standardized for ease of use with subsequent QA analyses for PINK SALMON
 # 1. Copy file to correct stream folder in "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\GitHub-PWS-Pink-Parentage" and rename
 # 2. Replace names, dates, and other information where applicable in script
-#    a. Specific terms requiring replacement in the Introduction and below for future use include: "Stockdale", "2017", "2019", "_17", "_19"
+#    a. Specific terms requiring replacement in the Introduction and below for future use include: "Stockdale", "PSTOCK", "STOCK", 2017", "2019", "17", "19"
 #    b. Please also be sure to update any usernames and passwords, paths, SILLY codes, and filenames, as well as **Results:** text for the notebook
 #    c. Do not use this notebook for multiple streams without renaming objects for specificity
 #
