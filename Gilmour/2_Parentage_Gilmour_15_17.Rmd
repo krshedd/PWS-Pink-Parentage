@@ -47,7 +47,7 @@ We use the program *FRANz* [https://www.bioinf.uni-leipzig.de/Software/FRANz/Abo
 
 The parameters are defined as follows:
 
-* --Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 9,000 and divided by 2. This escapement number came from rounding up the aerial survey AUC number of 8,576; there was no stream walk survey AUC. This estimate is listed under 'pop est walk' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx".    
+* --Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 6,000 and divided by 2. This escapement number came from splitting the difference between the aerial survey AUC number of 5,460 and stream walk survey AUC of 6,120. These estimates are listed under 'pop est walk' and 'pop est aerial' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx".    
 * --femrepro and --malerepro specify the age range in which an individual can reproduce  
 * --typingerror refers to the overall genotyping error rate, where ours is usually ~0.5% (can obtained from QC; 0.006 has been used as a default of sorts)
 * --updatefreqs specifies that *FRANz* should update allele frequencies using MCMC sampling  
@@ -113,6 +113,7 @@ parentage_15_17_filter <- parentage_15_17 %>%
   gather(Parent, Parent_ID, - Offspring) %>% 
   filter(!is.na(Parent_ID))
 ```
+
 ## Sample sizes
 
   * Quick look at sample sizes for potential parents (2015) and potential offspring (2017)
@@ -122,6 +123,7 @@ paired_15_17_filter %>%
   count(`Sample Year`, SEX, origin) %>% 
   spread(origin, n, fill = 0)
 ```
+**Results:** Apparently there is no otolith data for any of these guys. What can we do from here?...
 
   * Seasonal sample size plots
 
@@ -147,6 +149,7 @@ sample_size_plot <- function(indata = paired_XX_XX_filter, title = "Stream Year-
 
 sample_size_plot(indata = paired_15_17_filter, title = "Gilmour 2015-2017")
 ```
+
 # **Basic Statistics**
 
 ## Joining parentage with subsetted paired data
@@ -181,7 +184,7 @@ parents_paired_15_17 %>%
   count(origin, `Otolith Mark ID.par`) %>% 
   spread(origin, n)
 ```
-**Results:** Of the **6,804** natural-origin offspring genotyped in 2017, *FRANz* assigned **604**, for an assignment rate of **8.9%**, to **602** parents (**576** natural and **26** hatchery). Most assignments (**479**) were to one parent, but there were **125** two-parent assignments. A total of **699** offspring assignments were to a natural-origin parent and **30** were to a hatchery-origin parent, with **20** from AFK15B, **4** from CCH15, **4** from SGH15, and **2** from WNH15PINKB.
+**Results:** Of the **5,075** natural-origin offspring genotyped in 2017, *FRANz* assigned **224**, for an assignment rate of **4.4%**. That's pretty terrible. A total of **174** unique parents were assigned offspring, with **204** offspring assigned one parent and **22** assigned both parents. All parents assigned offspring are of unknown origin at this time.
 
 ## Proportion test
 We performed a chi-square test on the data to determine whether the proportions of offspring assigned to hatchery- and natural-origin parents significantly differ from the proportions of hatchery- and natural-origin parents sampled. Note that for this analysis, the data were not divided out by sex. 
@@ -232,7 +235,7 @@ parents_paired_15_17 %>%
   scale_fill_manual(values = cbPalette2) +
   theme_bw()
 ```
-**Results:** Female parents produced **0-5** offspring, while known male parents produced **0-4**.  
+**Results:** Female parents produced **0-6** offspring, while known male parents produced **0-4**.  
 
 # **Reproductive Success (RS)**
 
@@ -329,7 +332,9 @@ paired_15_17_filter_parents %>%
   theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1)) +
   scale_fill_manual(values = cbPalette2)
 ```
-**Results:** RSs for natural-origin fish for both sexes were higher than for hatchery-origin fish. In the histograms, note the large number of potential parents assigned no offspring that were absent from the family size plots above.
+**Results:** RSs for females was **0.05** and for males was **0.04**. In the histograms, note the large number of potential parents assigned no offspring that were absent from the family size plots above.
+
+**NOTE: ANALYSIS STOPPED HERE UNTIL WE CAN GAIN INFORMATION ON ORIGIN FROM OTOLITHS, PENDING RESOLUTION OF THE GOD EVENT.**
 
 ## Relative reproductive success (RRS)
 
@@ -548,7 +553,7 @@ paired_15_17_filter_parents %>%
 **Results:** Larger males and females appear to be more successful.
 
 ## Parent pair-offspring trios (triads)
-Because we have **125** individuals assigned two parents, we examined instances of four potential types of crosses. Crosses may be between hatchery fish (HH), between natural fish (NN), and between natural and hatchery fish, with NH indicating a natural-origin mother and hatchery-origin father and HN indicating a hatchery-origin mother and natural-origin father. 
+Because we have **24** individuals assigned two parents, we examined instances of four potential types of crosses. Crosses may be between hatchery fish (HH), between natural fish (NN), and between natural and hatchery fish, with NH indicating a natural-origin mother and hatchery-origin father and HN indicating a hatchery-origin mother and natural-origin father. 
 
 ### *Cross types observed*
 ```{r cross_as_new_grouping_variable, echo=FALSE, warning=FALSE, message=FALSE}

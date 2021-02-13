@@ -63,7 +63,7 @@ All output files can also be found here: V:\Analysis\5_Coastwide\Multispecies\Al
   * Read in .csv files for parentage assignments produced by *FRANz* as well as paired genotype and OceanAK data
 
 ```{r data_import, echo=FALSE, warning=FALSE, message=FALSE}
-parentage_17_19 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/Gilmour_2017_1019/parentage.csv") # for some reason, I keep getting and error with a relative path
+parentage_17_19 <- read_csv("V:\\Analysis\\5_Coastwide\\Multispecies\\Alaska Hatchery Research Program\\PWS Pink\\Franz\\Gilmour_2017_2019\\parentage.csv") # for some reason, I keep getting and error with a relative path
 paired_17_19 <- read_csv("../Franz/Gilmour_17_19_postQA_OceanAK_paired_2017_2019_GILMOUR.csv") # works for this one, tho
 ```
 
@@ -181,7 +181,7 @@ parents_paired_17_19 %>%
   count(origin, `Otolith Mark ID.par`) %>% 
   spread(origin, n)
 ```
-**Results:** Of the **6,804** natural-origin offspring genotyped in 2019, *FRANz* assigned **604**, for an assignment rate of **8.9%**, to **602** parents (**576** natural and **26** hatchery). Most assignments (**479**) were to one parent, but there were **125** two-parent assignments. A total of **699** offspring assignments were to a natural-origin parent and **30** were to a hatchery-origin parent, with **20** from AFK15B, **4** from CCH15, **4** from SGH15, and **2** from WNH15PINKB.
+**Results:** Of the **5,063** natural-origin offspring genotyped in 2019, *FRANz* assigned **249**, for an assignment rate of **4.9%**, to **602** parents (**576** natural and **26** hatchery). Most assignments (**479**) were to one parent, but there were **125** two-parent assignments. A total of **699** offspring assignments were to a natural-origin parent and **30** were to a hatchery-origin parent, with **20** from AFK15B, **4** from CCH15, **4** from SGH15, and **2** from WNH15PINKB.
 
 ## Proportion test
 We performed a chi-square test on the data to determine whether the proportions of offspring assigned to hatchery- and natural-origin parents significantly differ from the proportions of hatchery- and natural-origin parents sampled. Note that for this analysis, the data were not divided out by sex. 
@@ -879,63 +879,61 @@ write_csv(grandparentage, "Gilmour_17_19_grandparentage.csv")
 **Results:** A total of **54** unique hatchery-origin grandparents were assigned to **71** parents, **10** of which assigned to **11** grandoffspring, and **414** unique natural-origin grandparents assigned to **561** parents, **54** of which assigned to **74** grandoffspring. Each assigned grandparent contributed to **1-XX** grandoffspring. RRS from the parental to grandoffspring generation was **`r round(rrs_gpar_17_19[2,1], 2)` (95% CI [`r round(rrs_gpar_17_19[1,1], 2)`-`r round(rrs_gpar_17_19[3,1], 2)`])**. However, this result requires circumspection and cautious interpretation. It is not a pure RRS estimate because it is based on a fraction of full familial origin/ancestry information. Only one F~1~ parent is known for the majority of grandoffpring; an unknown parent may be of either origin and may have been sampled or unsampled. Compounding that, **52** grandoffspring had one, **13** had two, and **one** grandoffspring each had three and four grandparents assigned. Again, any unknown grandparent(s) are of unknown origin.
 
 # **Great Grandparentage**
-
 WORK IN PROGRESS - What are we trying to do here and what can we do here?
-
 ```{r import_great_grandparental_data, echo=FALSE, warning=FALSE, message=FALSE}
-# Read in data
-parents_paired_13_15 <- read_csv("gilmour_parents_paired_13_15.csv") %>% 
-  dplyr::select(-origin)
-
-parents_paired_15_17 <- read_csv("gilmour_parents_paired_15_17.csv") %>% 
-  dplyr::select(-origin)
-
-parents_paired_17_19 <- read_csv("Gilmour_parents_paired_17_19.csv") %>% 
-  dplyr::select(-origin)
-
-paired_17_19_filter_parents <- read_csv("Gilmour_paired_17_19_filter_parents.csv")
-
-paired_15_17_filter_parents <- read_csv("gilmour_paired_15_17_filter_parents.csv")
+# # Read in data
+# parents_paired_13_15 <- read_csv("gilmour_parents_paired_13_15.csv") %>% 
+#   dplyr::select(-origin)
+# 
+# parents_paired_15_17 <- read_csv("gilmour_parents_paired_15_17.csv") %>% 
+#   dplyr::select(-origin)
+# 
+# parents_paired_17_19 <- read_csv("Gilmour_parents_paired_17_19.csv") %>% 
+#   dplyr::select(-origin)
+# 
+# paired_17_19_filter_parents <- read_csv("Gilmour_paired_17_19_filter_parents.csv")
+# 
+# paired_15_17_filter_parents <- read_csv("gilmour_paired_15_17_filter_parents.csv")
 ```
   
   1. IDs of the great grandoffspring, their parents, their grandparents, and their great grandparents
   
 ```{r ggpar_1, echo=FALSE, warning=FALSE, message=FALSE}
 
-# Who were the grandoffspring, their parents, and their grandparents?
-ggparents_IDs <- parents_paired_15_17 %>%
-  inner_join(parents_paired_13_15, by = c("Parent_ID" = "Offspring"), suffix = c("_15", "_13"))
-
-(ggparents_table <- parents_paired_17_19 %>% 
-  inner_join(parents_paired_15_17, by = c("Parent_ID" = "Offspring"), suffix = c("_17", "_15")) %>% # same as in gparent_table from Grandparentage above 
-  inner_join(ggparents_IDs, by = c("Parent_ID_15" = "Parent_ID")))
+# # Who were the grandoffspring, their parents, and their grandparents?
+# ggparents_IDs <- parents_paired_15_17 %>%
+#   inner_join(parents_paired_13_15, by = c("Parent_ID" = "Offspring"), suffix = c("_15", "_13"))
+# 
+# (ggparents_table <- parents_paired_17_19 %>% 
+#   inner_join(parents_paired_15_17, by = c("Parent_ID" = "Offspring"), suffix = c("_17", "_15")) %>% # same as in gparent_table from Grandparentage above 
+#   inner_join(ggparents_IDs, by = c("Parent_ID_15" = "Parent_ID")))
 ```
  
   2. How many great grandparents, independent of origin, produced a certain number of great grandoffspring
  
 ```{r ggpar_2, echo=FALSE, warning=FALSE, message=FALSE}
-# How many great grandparents, independent of origin, produced a certain number of great grandoffspring
-(ggparents_ggoffspring <- ggparents_table %>% 
-  count(Parent_ID_13) %>% 
-  count(n) %>% 
-  rename(n_greatgrandparents = nn, n_greatgrandoffspring = n))
+# # How many great grandparents, independent of origin, produced a certain number of great grandoffspring
+# (ggparents_ggoffspring <- ggparents_table %>% 
+#   count(Parent_ID_13) %>% 
+#   count(n) %>% 
+#   rename(n_greatgrandparents = nn, n_greatgrandoffspring = n))
 ```
 
   3. How many of those grandoffspring had a particular number of grandparents assigned to them
   
 ```{r ggpar_3, echo=FALSE, warning=FALSE, message=FALSE}
-# Origin (origin.par.x) and numbers of F0 great grandparents, their assigned F1 offspring, assigned F2 grandoffspring, and assigned F3 great grandoffspring
-(ggparents_origin <- paired_17_19_filter_parents %>% 
-  full_join(parents_paired_15_17, by = c("franz_id" = "Offspring")) %>% 
-  right_join(parents_paired_13_15, by = c("Parent_ID" = "Offspring")) %>% 
-  group_by(origin.par.y) %>% 
-  summarise(n_great_grandparents = length(unique(Parent_ID.y)),
-            n_grandparents = length(which(!is.na(Parent_ID))),
-            n_parents = length(which(!is.na(franz_id))), 
-            n_offspring = sum(n, na.rm = TRUE)) %>%
-  rename(Great_grandparental_origin = origin.par.y))
+# # Origin (origin.par.x) and numbers of F0 great grandparents, their assigned F1 offspring, assigned F2 grandoffspring, and assigned F3 great grandoffspring
+# (ggparents_origin <- paired_17_19_filter_parents %>% 
+#   full_join(parents_paired_15_17, by = c("franz_id" = "Offspring")) %>% 
+#   right_join(parents_paired_13_15, by = c("Parent_ID" = "Offspring")) %>% 
+#   group_by(origin.par.y) %>% 
+#   summarise(n_great_grandparents = length(unique(Parent_ID.y)),
+#             n_grandparents = length(which(!is.na(Parent_ID))),
+#             n_parents = length(which(!is.na(franz_id))), 
+#             n_offspring = sum(n, na.rm = TRUE)) %>%
+#   rename(Great_grandparental_origin = origin.par.y))
 ```
-**Results:** We couldn't do much with this remaining data. We found two great grandparents, both natural-origin, each tied to one great grandoffspring.
+**Results:** N/A
 
 # **Summary of Results**
 
@@ -954,4 +952,4 @@ ggparents_IDs <- parents_paired_15_17 %>%
 
 ## 2013-2015-2017-2019 (Great grandparentage)
 
-1. 2 natural-origin great grandparents (2013) were assigned to 2 offspring (2019)
+N/A
