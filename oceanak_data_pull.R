@@ -5,7 +5,7 @@ rm(list = ls())
 
 # Begin user input ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-username = "krshedd"  # LOKI username
+username = "kmgruenthal"  # LOKI username
 
 password = ""  # LOKI passowrd
 
@@ -20,7 +20,7 @@ sillyvec <- paste0(species, rep(streams, each = length(yrs)), yrs)  # put it all
 
 not_tissues = "Otolith"  # OceanAK has 1 row of data per tissue, including both otolith and genetic tissues, we do not want the otolith stuff (this is different than otolith reads)
 
-source("~/../R/Functions.GCL.R")  # set to your own path as necessary
+source("~/R/Functions.GCL.R")  # set to your own path as necessary
 
 # End user input ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
