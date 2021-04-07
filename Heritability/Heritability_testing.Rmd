@@ -10,7 +10,7 @@ editor_options:
   chunk_output_type: inline
 ---
 
-# Introduction
+# **Introduction**
 The purpose of these analyses are to more fully explore the parent-pair offspring trio/triad data (i.e. cross data) in terms of spatiotemporal patterning.
 ```{r setup, include=FALSE}
 rm(list=ls())
@@ -30,11 +30,11 @@ library(gganimate)
 knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.width = 10)
 ```
 
-# Mating patterns in the parental generation according to cross type
+# **Mating patterns in the parental generation according to cross type**
 
 ## Who
 Who are the two-parents, both dam and sire, for each cross type offspring?
-```{r}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 stock_riverdist <- read_csv("../../GIS/R/stockdale/stockdale_distances.csv") %>% 
   mutate(Intertidal = case_when(dist2tide > 0 ~ "Upstream",
                                 dist2tide <= 0 ~ "Intertidal")) %>% 
@@ -122,7 +122,7 @@ parents_paired_cross_riverdist_spacetime <- function(indata_spacetime = stock_pa
 
 ## Body Length
 Was there evidence of size assortative mating?
-```{r}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 parents_paired_cross_riverdist_length <- function(indata_length = stock_parents_paired_14_16_cross_riverdist_spacetime, title = "Parent Length by Cross Type: Stockdale") {
   indata_length%>% 
   filter(length.sire > 300 & length.dam > 300) %>% 
@@ -156,7 +156,7 @@ parents_paired_cross_riverdist_length <- function(indata_length = stock_parents_
 
 ## When
 When were Dams and Sires that mated together sampled? We would expected that they would be sampled within the same time frame.
-```{r}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 parents_paired_cross_riverdist_date <- function(indata_date = stock_parents_paired_14_16_cross_riverdist_spacetime) {
   indata_date %>% 
   ggplot(aes(x = sample_date.sire, y = sample_date.dam)) +
@@ -188,7 +188,7 @@ parents_paired_cross_riverdist_date <- function(indata_date = stock_parents_pair
 
 ## Where
 Where were Dams and Sires that mated sampled? We would expected that they would be sampled within the same area.
-```{r}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 parents_paired_cross_riverdist_location <- function(indata_location = stock_parents_paired_14_16_cross_riverdist_spacetime) {
   indata_location %>% 
   ggplot(aes(x = distance.sire, y = distance.dam), alpha = 0.05) +
@@ -218,12 +218,12 @@ parents_paired_cross_riverdist_location <- function(indata_location = stock_pare
 5. Erb -- TBD
 
 
-# Parent-offspring analyses
+# **Parent-offspring analyses**
 
 ## Who
 
 ### Offspring, dam, and sire relationships
-```{r}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # dyad relationships - one row per offspring
 stock_parents_paired_14_16 <- read_csv("../Stockdale/stock_parents_paired_14_16.csv") %>% 
      mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
@@ -315,7 +315,7 @@ parents_paired_dam_sire <- function(indata_ods2 = stock_offspring_dam_sire_14_16
 ```
 
 ### Triads - used for remaining analyses
-```{r}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 triads <- function(indata_triads = stock_parents_paired_14_16_dam_sire) {
   indata_triads %>% 
   filter(!is.na(Parent_ID.dam) & !is.na(Parent_ID.sire)) 
@@ -332,7 +332,7 @@ triads <- function(indata_triads = stock_parents_paired_14_16_dam_sire) {
 ## Body Length
 
 ### Correlation between parent-offspring body length
-```{r, fig.width=10}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 parents_paired_length <- function(indata_parents_paired_length = stock_parents_paired_14_16) {
   indata_parents_paired_length %>% 
   rename(length.par = "Length Mm.par", 
@@ -367,20 +367,20 @@ parents_paired_length_graph <- function(indata_parents_paired_length_graph = sto
   theme(text = element_text(size = 20))
 }
 
-(stock_parents_paired2_14_16_length_graph <- parents_paired_length_graph())
-(stock_parents_paired2_14_16_length <- parents_paired_length())
+(stock_parents_paired_14_16_length_graph <- parents_paired_length_graph())
+(stock_parents_paired_14_16_length <- parents_paired_length())
 
-(hogan_parents_paired2_14_16_length_graph <- parents_paired_length_graph(hogan_parents_paired_14_16, title = "Hogan_14_16\n\nRegression of Body Length"))
-(hogan_parents_paired2_14_16_length <- parents_paired_length(hogan_parents_paired_14_16))
+(hogan_parents_paired_14_16_length_graph <- parents_paired_length_graph(hogan_parents_paired_14_16, title = "Hogan_14_16\n\nRegression of Body Length"))
+(hogan_parents_paired_14_16_length <- parents_paired_length(hogan_parents_paired_14_16))
 
-(gilmour_parents_paired2_14_16_length_graph <- parents_paired_length_graph(gilmour_parents_paired_14_16, title = "Gilmour_14_16\n\nRegression of Body Length"))
-(gilmour_parents_paired2_14_16_length <- parents_paired_length(gilmour_parents_paired_14_16))
+(gilmour_parents_paired_14_16_length_graph <- parents_paired_length_graph(gilmour_parents_paired_14_16, title = "Gilmour_14_16\n\nRegression of Body Length"))
+(gilmour_parents_paired_14_16_length <- parents_paired_length(gilmour_parents_paired_14_16))
 
-# (paddy_parents_paired2_14_16_length_graph <- parents_paired_length_graph(paddy_parents_paired_14_16, title = "Paddy_14_16\n\nRegression of Body Length"))
-# (paddy_parents_paired2_14_16_length <- parents_paired_length(paddy_parents_paired_14_16))
+# (paddy_parents_paired_14_16_length_graph <- parents_paired_length_graph(paddy_parents_paired_14_16, title = "Paddy_14_16\n\nRegression of Body Length"))
+# (paddy_parents_paired_14_16_length <- parents_paired_length(paddy_parents_paired_14_16))
 
-# (erb_parents_paired2_14_16_length_graph <- parents_paired_length_graph(erb_parents_paired_14_16, title = "Erb_14_16\n\nRegression of Body Length"))
-# (erb_parents_paired2_14_16_length <- parents_paired_length(erb_parents_paired_14_16))
+# (erb_parents_paired_14_16_length_graph <- parents_paired_length_graph(erb_parents_paired_14_16, title = "Erb_14_16\n\nRegression of Body Length"))
+# (erb_parents_paired_14_16_length <- parents_paired_length(erb_parents_paired_14_16))
 ```
 
 **Results:**
@@ -393,7 +393,7 @@ parents_paired_length_graph <- function(indata_parents_paired_length_graph = sto
 
 ### Narrow-sense heritability of body length
 For traits associated with fitness in natural populations, heritability is typically 0.1–0.2 (Wray and Visscher 2008 [https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/] per Visscher et al. 2008). We estimate narrow-sense heritability here, as well as for location and sample date, from r = √(½)h^2.
-```{r, fig.width=10}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # mid-parent trait values and cross info
 triads_length <- function(indata_triads_length = stock_triads) {
   indata_triads_length %>%
@@ -489,7 +489,7 @@ gilmour_r_and_h2_length
 ## When
 
 ### Correlation between parent-offspring sample dates
-```{r, fig.width=10}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 parents_paired_date <- function(indata_parents_paired_date = stock_parents_paired_14_16) {
   indata_parents_paired_date %>% 
   mutate(sex.par = case_when(SEX.par == "F" ~ "Female",
@@ -531,7 +531,7 @@ parents_paired_date_graph(gilmour_parents_paired_14_16, title = "Gilmour_14_16\n
 (gilmour_parents_paired_14_16_date <- parents_paired_date(gilmour_parents_paired_14_16))
 
 # parents_paired_date_graph(paddy_parents_paired_14_16, title = "Paddy_14_16\n\nRegression of Sample Date")
-# (paddy_parents_paired2_14_16_date <- parents_paired_date(paddy_parents_paired_14_16))
+# (paddy_parents_paired_14_16_date <- parents_paired_date(paddy_parents_paired_14_16))
 
 # parents_paired_date_graph(erb_parents_paired_14_16, title = "Erb_14_16\n\nRegression of Sample Date")
 # (erb_parents_paired_14_16_date <- parents_paired_date(erb_parents_paired_14_16))
@@ -547,7 +547,7 @@ parents_paired_date_graph(gilmour_parents_paired_14_16, title = "Gilmour_14_16\n
 
 ### Narrow-sense heritability of sample date
 For traits associated with fitness in natural populations, heritability is typically 0.1–0.2 (Wray and Visscher 2008 [https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/] per Visscher et al. 2008). We estimate narrow-sense heritability here, as well as for location and body length, from r = √(½)h^2.
-```{r, fig.width=10}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # mid-parent trait values and cross info
 triads_date <- function(indata_triads_date = stock_triads) {
   indata_triads_date %>%
@@ -644,7 +644,7 @@ gilmour_r_and_h2_date
 
 ### Correlation between parent-offspring sample location
 Location is reported as distance from stream mouth. 
-```{r, fig.width=10}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
 
 
@@ -661,7 +661,7 @@ Location is reported as distance from stream mouth.
 
 ### Narrow-sense heritability of sample location
 For traits associated with fitness in natural populations, heritability is typically 0.1–0.2 (Wray and Visscher 2008 [https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/] per Visscher et al. 2008). We estimate narrow-sense heritability here, as well as for sample date and body length, from r = √(½)h^2.
-```{r, fig.width=10}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
 
 
@@ -675,19 +675,150 @@ For traits associated with fitness in natural populations, heritability is typic
 4. Paddy -- TBD
 5. Erb -- TBD
 
+
 ## Fitness
 
 ### Narrow-sense heritability of RS
-```{r, fig.width=10}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Read in data
+stock_paired_14_16_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_paired_14_16_filter_parents.csv") %>% 
+  select(franz_id, n) %>% 
+  rename(n_14 = n)
+stock_paired_16_18_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_paired_16_18_filter_parents.csv") %>% 
+  select(franz_id, n) %>% 
+  rename(n.off = n)
 
+# hogan_paired_14_16_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/hogan_paired_14_16_filter_parents.csv") %>% 
+#   select(franz_id, n) %>% 
+#   rename(n_14 = n)
+# hogan_paired_16_18_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/hogan_paired_16_18_filter_parents.csv") %>% 
+#   select(franz_id, n) %>% 
+#   rename(n.off = n)
 
+gilmour_paired_14_16_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Gilmour/gilmour_paired_14_16_filter_parents.csv") %>% 
+  select(franz_id, n) %>% 
+  rename(n_14 = n)
+gilmour_paired_16_18_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Gilmour/gilmour_paired_16_18_filter_parents.csv") %>% 
+  select(franz_id, n) %>% 
+  rename(n.off = n)
+
+# paddy_paired_14_16_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Paddy/paddy_paired_14_16_filter_parents.csv") %>% 
+#   select(franz_id, n) %>% 
+#   rename(n_14 = n)
+# paddy_paired_16_18_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Paddy/paddy_paired_16_18_filter_parents.csv") %>% 
+#   select(franz_id, n) %>% 
+#   rename(n.off = n)
+# 
+# erb_paired_14_16_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Erb/erb_paired_14_16_filter_parents.csv") %>% 
+#   select(franz_id, n) %>% 
+#   rename(n_14 = n)
+# erb_paired_16_18_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Erb/erb_paired_16_18_filter_parents.csv") %>% 
+#   select(franz_id, n) %>% 
+#   rename(n.off = n)
+
+# join by n (i.e. individual RS)
+triads_n <- function(indata_triads = stock_triads, indata_paired_filter_parents_n = stock_paired_14_16_filter_parents_n, indata_paired_filter_offspring_n = stock_paired_16_18_filter_parents_n) {
+  inner_join(indata_triads, indata_paired_filter_parents_n, by = c("Parent_ID.dam" = "franz_id")) %>% 
+  rename(n.dam = n_14) %>% 
+  inner_join(indata_paired_filter_parents_n, by = c("Parent_ID.sire" = "franz_id")) %>% 
+  rename(n.sire = n_14) %>% 
+  inner_join(indata_paired_filter_offspring_n, by = c("Offspring" = "franz_id"))
+}
+
+stock_triads_n <- triads_n()
+# hogan_triads_n <- triads_n(hogan_triads, hogan_paired_14_16_filter_parents_n, hogan_paired_16_18_filter_parents_n)
+gilmour_triads_n <- triads_n(gilmour_triads, gilmour_paired_14_16_filter_parents_n, gilmour_paired_16_18_filter_parents_n)
+# paddy_triads_n <- triads_n(paddy_triads, paddy_paired_14_16_filter_parents_n, paddy_paired_16_18_filter_parents_n)
+# erb_triads_n <- triads_n(erb_triads, erb_paired_14_16_filter_parents_n, erb_paired_16_18_filter_parents_n)
+
+# mid-parent trait values and cross info
+triads_rs <- function(indata_triads_rs = stock_triads_n) {
+  indata_triads_rs %>%
+  mutate(rs.par = (n.dam + n.sire) / 2) %>% 
+  mutate(Cross = case_when(Origin.dam == "Natural" & Origin.sire == "Natural" ~ "NN",
+                           Origin.dam == "Natural" & Origin.sire == "Hatchery" ~ "NH",
+                           Origin.dam == "Hatchery" & Origin.sire == "Natural" ~ "HN",
+                           Origin.dam == "Hatchery" & Origin.sire == "Hatchery" ~ "HH"))
+}
+
+stock_triads_rs <- triads_rs()
+# hogan_triads_rs <- triads_rs(hogan_triads_n)
+gilmour_triads_rs <- triads_rs(gilmour_triads_n)
+# paddy_triads_rs <- triads_rs(paddy_triads_n)
+# erb_triads_rs <- triads_rs(erb_triads_n)
+
+# scatterplot
+h2_rs_graph <- function(indata_h2_rs_graph = stock_triads_rs, title = "Stockdale_14_16\n\nHeritability of RS - Parent Pair") {
+  indata_h2_rs_graph %>% 
+  ggplot(aes(x = rs.par, y = n.off, colour = Cross)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.5, size = 2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = title, colour = "Parent: Origin") +
+  xlab("Mid-parent RS") +
+  ylab("Offspring RS") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+# correlation
+r_for_h2_rs <- function(indata_r_for_h2_rs = stock_triads_rs) {
+  as.tibble(c((coef(lm(n.off ~ rs.par, data = indata_r_for_h2_rs))[2]),
+              (coef(lm(n.off ~ rs.par, data = indata_r_for_h2_rs %>% filter(Cross == "NN")))[2]),
+              (coef(lm(n.off ~ rs.par, data = indata_r_for_h2_rs %>% filter(Cross == "NH")))[2]),
+              (coef(lm(n.off ~ rs.par, data = indata_r_for_h2_rs %>% filter(Cross == "HN")))[2]),
+              (coef(lm(n.off ~ rs.par, data = indata_r_for_h2_rs %>% filter(Cross == "HH")))[2])))}
+
+stock_r_for_h2_rs <- round(r_for_h2_rs(), 3) 
+# hogan_r_for_h2_rs <- round(r_for_h2_rs(hogan_triads_rs), 3)
+gilmour_r_for_h2_rs <- round(r_for_h2_rs(gilmour_triads_rs), 3)
+# paddy_r_for_h2_rs <- round(r_for_h2_rs(paddy_triads_rs), 3)
+# erb_r_for_h2_rs <- round(r_for_h2_rs(erb_triads_rs), 3)
+
+# heritability (from r = √(½)h^2)
+stock_h2_rs <- lapply(stock_r_for_h2_rs, function(r) r*r*2) 
+# hogan_h2_rs <- lapply(hogan_r_for_h2_rs, function(r) r*r*2)
+gilmour_h2_rs <- lapply(gilmour_r_for_h2_rs, function(r) r*r*2)
+# paddy_h2_rs <- lapply(paddy_r_for_h2_rs, function(r) r*r*2) 
+# erb_h2_rs <- lapply(erb_r_for_h2_rs, function(r) r*r*2)
+
+# tables of correlations and heritabilities
+h2_rs_graph()
+stock_r_and_h2_rs <- as.data.frame(cbind(stock_r_for_h2_rs, stock_h2_rs)) %>% round(3)
+colnames(stock_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
+rownames(stock_r_and_h2_rs) <- c("Stockdale_14_16 Overall", "NN", "NH", "HN", "HH")
+stock_r_and_h2_rs
+
+# h2_rs_graph(hogan_triads_rs, title = "Hogan_14_16\n\nHeritability of RS - Parent Pair")
+# hogan_r_and_h2_rs <- as.data.frame(cbind(hogan_r_for_h2_rs, hogan_h2_rs)) %>% round(3)
+# colnames(hogan_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
+# rownames(hogan_r_and_h2_rs) <- c("Hogan_14_16 Overall", "NN", "NH", "HN", "HH")
+# hogan_r_and_h2_rs
+
+h2_rs_graph(gilmour_triads_rs, title = "Gilmour_14_16\n\nHeritability of RS - Parent Pair")
+gilmour_r_and_h2_rs <- as.data.frame(cbind(gilmour_r_for_h2_rs, gilmour_h2_rs)) %>% round(3)
+colnames(gilmour_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
+rownames(gilmour_r_and_h2_rs) <- c("Gilmour_14_16 Overall", "NN", "NH", "HN", "HH")
+gilmour_r_and_h2_rs
+
+# h2_rs_graph(paddy_triads_rs, title = "Paddy_14_16\n\nHeritability of RS - Parent Pair")
+# paddy_r_and_h2_rs <- as.data.frame(cbind(paddy_r_for_h2_rs, paddy_h2_rs)) %>% round(3)
+# colnames(paddy_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
+# rownames(paddy_r_and_h2_rs) <- c("Paddy_14_16 Overall", "NN", "NH", "HN", "HH")
+# paddy_r_and_h2_rs
+# 
+# h2_rs_graph(erb_triads_rs, title = "Erb_14_16\n\nHeritability of RS - Parent Pair")
+# erb_r_and_h2_rs <- as.data.frame(cbind(erb_r_for_h2_rs, erb_h2_rs)) %>% round(3)
+# colnames(erb_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
+# rownames(erb_r_and_h2_rs) <- c("Erb_14_16 Overall", "NN", "NH", "HN", "HH")
+# erb_r_and_h2_rs
 
 ```
 
 **Results:**
 
-1. Stockdale -- 
-2. Hogan -- 
-3. Gilmour
+1. Stockdale -- nada
+2. Hogan -- TBD
+3. Gilmour -- also nada - wonder if we should consider looking at this by dyad...how to do that?...
 4. Paddy -- TBD
 5. Erb -- TBD
