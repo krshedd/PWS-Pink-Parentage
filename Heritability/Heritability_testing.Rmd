@@ -681,38 +681,38 @@ For traits associated with fitness in natural populations, heritability is typic
 ### Narrow-sense heritability of RS
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # Read in data
-stock_paired_14_16_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_paired_14_16_filter_parents.csv") %>% 
+stock_paired_14_16_filter_parents_n <- read_csv("../Stockdale/stock_paired_14_16_filter_parents.csv") %>% 
   select(franz_id, n) %>% 
   rename(n_14 = n)
-stock_paired_16_18_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Stockdale/stock_paired_16_18_filter_parents.csv") %>% 
+stock_paired_16_18_filter_parents_n <- read_csv("../Stockdale/stock_paired_16_18_filter_parents.csv") %>% 
   select(franz_id, n) %>% 
   rename(n.off = n)
 
-# hogan_paired_14_16_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/hogan_paired_14_16_filter_parents.csv") %>% 
+# hogan_paired_14_16_filter_parents_n <- read_csv("../Hogan/hogan_paired_14_16_filter_parents.csv") %>% 
 #   select(franz_id, n) %>% 
 #   rename(n_14 = n)
-# hogan_paired_16_18_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Hogan/hogan_paired_16_18_filter_parents.csv") %>% 
+# hogan_paired_16_18_filter_parents_n <- read_csv("../Hogan/hogan_paired_16_18_filter_parents.csv") %>% 
 #   select(franz_id, n) %>% 
 #   rename(n.off = n)
 
-gilmour_paired_14_16_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Gilmour/gilmour_paired_14_16_filter_parents.csv") %>% 
+gilmour_paired_14_16_filter_parents_n <- read_csv("../Gilmour/gilmour_paired_14_16_filter_parents.csv") %>% 
   select(franz_id, n) %>% 
   rename(n_14 = n)
-gilmour_paired_16_18_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Gilmour/gilmour_paired_16_18_filter_parents.csv") %>% 
+gilmour_paired_16_18_filter_parents_n <- read_csv("../Gilmour/gilmour_paired_16_18_filter_parents.csv") %>% 
   select(franz_id, n) %>% 
   rename(n.off = n)
 
-# paddy_paired_14_16_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Paddy/paddy_paired_14_16_filter_parents.csv") %>% 
+# paddy_paired_14_16_filter_parents_n <- read_csv("../Paddy/paddy_paired_14_16_filter_parents.csv") %>% 
 #   select(franz_id, n) %>% 
 #   rename(n_14 = n)
-# paddy_paired_16_18_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Paddy/paddy_paired_16_18_filter_parents.csv") %>% 
+# paddy_paired_16_18_filter_parents_n <- read_csv("../Paddy/paddy_paired_16_18_filter_parents.csv") %>% 
 #   select(franz_id, n) %>% 
 #   rename(n.off = n)
 # 
-# erb_paired_14_16_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Erb/erb_paired_14_16_filter_parents.csv") %>% 
+# erb_paired_14_16_filter_parents_n <- read_csv("../Erb/erb_paired_14_16_filter_parents.csv") %>% 
 #   select(franz_id, n) %>% 
 #   rename(n_14 = n)
-# erb_paired_16_18_filter_parents_n <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/GitHub-PWS-Pink-Parentage/Erb/erb_paired_16_18_filter_parents.csv") %>% 
+# erb_paired_16_18_filter_parents_n <- read_csv("../Erb/erb_paired_16_18_filter_parents.csv") %>% 
 #   select(franz_id, n) %>% 
 #   rename(n.off = n)
 
@@ -819,6 +819,32 @@ gilmour_r_and_h2_rs
 
 1. Stockdale -- nada
 2. Hogan -- TBD
-3. Gilmour -- also nada - wonder if we should consider looking at this by dyad...how to do that?...
+3. Gilmour -- also nada - wonder if we should consider looking at this by dyad...how to do that?...and is it fair?...
 4. Paddy -- TBD
 5. Erb -- TBD
+
+### RS by dyad
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# read in more data
+stock_parents_paired_14_16_n <- read_csv("../Stockdale/stock_parents_paired_14_16.csv") %>% 
+  inner_join(stock_paired_14_16_filter_parents_n, by = c("Parent_ID" = "franz_id"))
+  
+stock_parents_paired_n <- read_csv("../Stockdale/stock_parents_paired_16_18.csv") %>% 
+  inner_join(stock_paired_16_18_filter_parents_n, by = c("Parent_ID" = "franz_id")) %>% 
+  inner_join(stock_parents_paired_14_16_n, by = c("Parent_ID" = "Offspring")) %>% 
+  select(Parent_ID, n.off, Parent_ID.y, n_14)
+
+# scatterplot
+stock_parents_paired_n %>% 
+  ggplot(aes(x = n_14, y = n.off)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.5, size = 2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "RS by Dyad") +
+  xlab("Parent RS") +
+  ylab("Offspring RS") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+
+
+```
