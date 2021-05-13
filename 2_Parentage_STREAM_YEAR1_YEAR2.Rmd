@@ -63,8 +63,8 @@ All output files can also be found here: V:\Analysis\5_Coastwide\Multispecies\Al
   * Read in .csv files for parentage assignments produced by *FRANz* as well as paired genotype and OceanAK data
 
 ```{r data_import, echo=FALSE, warning=FALSE, message=FALSE}
-parentage_17_19 <- read_csv("V:/Analysis/5_Coastwide/Multispecies/Alaska Hatchery Research Program/PWS Pink/Franz/Stockdale_2017_1019/parentage.csv") # for some reason, I keep getting and error with a relative path
-paired_17_19 <- read_csv("../Franz/Stockdale_17_19_postQA_OceanAK_paired_2017_2019_STOCK.csv") # works for this one, tho
+parentage_17_19 <- read_csv("../../Franz/Stockdale_2017_2019/parentage.csv") 
+paired_17_19 <- read_csv("../Franz/Stockdale_17_19_postQA_OceanAK_paired_2017_2019_STOCK.csv") 
 ```
 
   * Plot a histogram of *FRANz* parentage posterior probabilities to show strength of assignments
