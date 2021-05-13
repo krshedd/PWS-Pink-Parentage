@@ -1,7 +1,7 @@
 ---
 title: "Heritability of body length, sample date, location, and RS according to Cross Type"
 author: "Kristen Gruenthal"
-date: "March 30, 2021"
+date: "12 May 2021"
 output:
   html_notebook:
     theme: united
@@ -11,7 +11,7 @@ editor_options:
 ---
 
 # **Introduction**
-The purpose of these analyses are to more fully explore the parent-pair offspring trio/triad data (i.e. cross data) in terms of spatiotemporal patterning.
+The purpose of these analyses are to more fully explore the parent-pair offspring trio/triad data (i.e. cross data) in terms of spatiotemporal patterning and generate preliminary estimates of narrow-sense heritability.
 ```{r setup, include=FALSE}
 rm(list=ls())
 
@@ -233,15 +233,15 @@ gilmour_parents_paired_14_16 <- read_csv("../Gilmour/gilmour_parents_paired_14_1
      mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
 # paddy_parents_paired_14_16 <- read_csv("../Paddy/paddy_parents_paired_14_16.csv") %>% 
 #      mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
-# erb_parents_paired_14_16 <- read_csv("../Erb/erb_parents_paired_14_16.csv") %>% 
-#      mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
+erb_parents_paired_14_16 <- read_csv("../Erb/erb_parents_paired_14_16.csv") %>%
+     mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
 
 # Read in paired data
 stock_OceanAK_paired <- read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv")
 hogan_OceanAK_paired <- read_csv("../Franz/hogan_postQA_OceanAK_paired_2014_2016_HOGAN.csv")
 gilmour_OceanAK_paired <- read_csv("../Franz/Gilmour_14_16_postQA_OceanAK_paired_2014_2016_GILMOUR.csv")
 # paddy_OceanAK_paired <- read_csv("../Franz/Paddy_14_16_postQA_OceanAK_paired_2014_2016_PADDY.csv")
-# erb_OceanAK_paired <- read_csv("../Franz/Erb_14_16_postQA_OceanAK_paired_2014_2016_ERB.csv")
+erb_OceanAK_paired <- read_csv("../Franz/Erb_14_16_postQA_OceanAK_paired_2014_2016_ERB.csv")
 
 OceanAK_paired <- function(indata_OceanAK_paired = stock_OceanAK_paired) {
    indata_OceanAK_paired %>% 
@@ -263,7 +263,7 @@ stock_OceanAK_paired_14_16 <- OceanAK_paired()
 hogan_OceanAK_paired_14_16 <- OceanAK_paired(hogan_OceanAK_paired)
 gilmour_OceanAK_paired_14_16 <- OceanAK_paired(gilmour_OceanAK_paired)
 # paddy_OceanAK_paired_14_16 <- OceanAK_paired(paddy_OceanAK_paired)
-# erb_OceanAK_paired_14_16 <- OceanAK_paired(erb_OceanAK_paired)
+erb_OceanAK_paired_14_16 <- OceanAK_paired(erb_OceanAK_paired)
 
 # Get offspring, dam, sire relationships and join
 ods_relationships <- function(indata_ods = stock_parents_paired_14_16) {
@@ -283,7 +283,7 @@ stock_offspring_dam_sire_14_16 <- ods_relationships()
 hogan_offspring_dam_sire_14_16 <- ods_relationships(hogan_parents_paired_14_16)
 gilmour_offspring_dam_sire_14_16 <- ods_relationships(gilmour_parents_paired_14_16)
 # paddy_offspring_dam_sire_14_16 <- ods_relationships(paddy_parents_paired_14_16)
-# erb_offspring_dam_sire_14_16 <- ods_relationships(erb_parents_paired_14_16)
+erb_offspring_dam_sire_14_16 <- ods_relationships(erb_parents_paired_14_16)
 
 # Join back paired data to offspring, dam, and sire
 parents_paired_dam_sire <- function(indata_ods2 = stock_offspring_dam_sire_14_16, indata_OceanAK_paired2 = stock_OceanAK_paired_14_16) {
@@ -311,7 +311,7 @@ parents_paired_dam_sire <- function(indata_ods2 = stock_offspring_dam_sire_14_16
          DOY.sire = yday(date.sire)))
 
 # (paddy_parents_paired_14_16_dam_sire <- parents_paired_dam_sire(paddy_offspring_dam_sire_14_16, paddy_OceanAK_paired_14_16))
-# (erb_parents_paired_14_16_dam_sire <- parents_paired_dam_sire(erb_offspring_dam_sire_14_16, erb_OceanAK_paired_14_16))
+(erb_parents_paired_14_16_dam_sire <- parents_paired_dam_sire(erb_offspring_dam_sire_14_16, erb_OceanAK_paired_14_16))
 ```
 
 ### Triads - used for remaining analyses
@@ -325,7 +325,7 @@ triads <- function(indata_triads = stock_parents_paired_14_16_dam_sire) {
 (hogan_triads <- triads(hogan_parents_paired_14_16_dam_sire))
 (gilmour_triads <- triads(gilmour_parents_paired_14_16_dam_sire))
 # (paddy_triads <- triads(paddy_parents_paired_14_16_dam_sire))
-# (erb_triads <- triads(erb_parents_paired_14_16_dam_sire))
+(erb_triads <- triads(erb_parents_paired_14_16_dam_sire))
 ```
 
 
@@ -379,8 +379,8 @@ parents_paired_length_graph <- function(indata_parents_paired_length_graph = sto
 # (paddy_parents_paired_14_16_length_graph <- parents_paired_length_graph(paddy_parents_paired_14_16, title = "Paddy_14_16\n\nRegression of Body Length"))
 # (paddy_parents_paired_14_16_length <- parents_paired_length(paddy_parents_paired_14_16))
 
-# (erb_parents_paired_14_16_length_graph <- parents_paired_length_graph(erb_parents_paired_14_16, title = "Erb_14_16\n\nRegression of Body Length"))
-# (erb_parents_paired_14_16_length <- parents_paired_length(erb_parents_paired_14_16))
+(erb_parents_paired_14_16_length_graph <- parents_paired_length_graph(erb_parents_paired_14_16, title = "Erb_14_16\n\nRegression of Body Length"))
+(erb_parents_paired_14_16_length <- parents_paired_length(erb_parents_paired_14_16))
 ```
 
 **Results:**
@@ -389,7 +389,7 @@ parents_paired_length_graph <- function(indata_parents_paired_length_graph = sto
 2. Hogan -- slight positive trend but low correlation between parent and offspring body lengths, except between female parents and male offspring (no trend)
 3. Gilmour -- slight positive trend but generally low correlations except between a hatchery female parents and natural male parents and offspring
 4. Paddy -- TBD
-5. Erb -- TBD
+5. Erb -- 
 
 ### Narrow-sense heritability of body length
 For traits associated with fitness in natural populations, heritability is typically 0.1–0.2 (Wray and Visscher 2008 [https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/] per Visscher et al. 2008). We estimate narrow-sense heritability here, as well as for location and sample date, from r = √(½)h^2.
@@ -408,7 +408,7 @@ stock_triads_length <- triads_length()
 hogan_triads_length <- triads_length(hogan_triads)
 gilmour_triads_length <- triads_length(gilmour_triads)
 # paddy_triads_length <- triads_length(paddy_triads)
-# erb_triads_length <- triads_length(erb_triads)
+erb_triads_length <- triads_length(erb_triads)
 
 # scatterplot
 h2_length_graph <- function(indata_h2_length_graph = stock_triads_length, title = "Stockdale_14_16\n\nHeritability of Body Length - Parent Pair") {
@@ -436,14 +436,14 @@ stock_r_for_h2_length <- round(r_for_h2_length(), 3)
 hogan_r_for_h2_length <- round(r_for_h2_length(hogan_triads_length), 3)
 gilmour_r_for_h2_length <- round(r_for_h2_length(gilmour_triads_length), 3)
 # paddy_r_for_h2_length <- round(r_for_h2_length(paddy_triads_length), 3)
-# erb_r_for_h2_length <- round(r_for_h2_length(erb_triads_length), 3)
+erb_r_for_h2_length <- round(r_for_h2_length(erb_triads_length), 3)
 
 # heritability (from r = √(½)h^2)
 stock_h2_length <- lapply(stock_r_for_h2_length, function(r) r*r*2) 
 hogan_h2_length <- lapply(hogan_r_for_h2_length, function(r) r*r*2) 
 gilmour_h2_length <- lapply(gilmour_r_for_h2_length, function(r) r*r*2)
 # paddy_h2_length <- lapply(paddy_r_for_h2_length, function(r) r*r*2) 
-# erb_h2_length <- lapply(erb_r_for_h2_length, function(r) r*r*2)
+erb_h2_length <- lapply(erb_r_for_h2_length, function(r) r*r*2)
 
 # tables of correlations and heritabilities
 h2_length_graph()
@@ -469,12 +469,12 @@ gilmour_r_and_h2_length
 # colnames(paddy_r_and_h2_length) <- c("Correlation (r)", "Heritability (h^2)")
 # rownames(paddy_r_and_h2_length) <- c("Paddy_14_16 Overall", "NN", "NH", "HN", "HH")
 # paddy_r_and_h2_length
-# 
-# h2_length_graph(erb_triads_length, title = "Erb_14_16\n\nHeritability of Body Length - Parent Pair")
-# erb_r_and_h2_length <- as.data.frame(cbind(erb_r_for_h2_length, erb_h2_length)) %>% round(3)
-# colnames(erb_r_and_h2_length) <- c("Correlation (r)", "Heritability (h^2)")
-# rownames(erb_r_and_h2_length) <- c("Erb_14_16 Overall", "NN", "NH", "HN", "HH")
-# erb_r_and_h2_length
+
+h2_length_graph(erb_triads_length, title = "Erb_14_16\n\nHeritability of Body Length - Parent Pair")
+erb_r_and_h2_length <- as.data.frame(cbind(erb_r_for_h2_length, erb_h2_length)) %>% round(3)
+colnames(erb_r_and_h2_length) <- c("Correlation (r)", "Heritability (h^2)")
+rownames(erb_r_and_h2_length) <- c("Erb_14_16 Overall", "NN", "NH", "HN", "HH")
+erb_r_and_h2_length
 ```
 
 **Results:**
@@ -483,7 +483,7 @@ gilmour_r_and_h2_length
 2. Hogan -- made no sense again; sample size too small
 3. Gilmour -- heritability of body length high for NN and especially HN cross types
 4. Paddy -- TBD
-5. Erb -- TBD
+5. Erb -- 
 
 
 ## When
@@ -533,8 +533,8 @@ parents_paired_date_graph(gilmour_parents_paired_14_16, title = "Gilmour_14_16\n
 # parents_paired_date_graph(paddy_parents_paired_14_16, title = "Paddy_14_16\n\nRegression of Sample Date")
 # (paddy_parents_paired_14_16_date <- parents_paired_date(paddy_parents_paired_14_16))
 
-# parents_paired_date_graph(erb_parents_paired_14_16, title = "Erb_14_16\n\nRegression of Sample Date")
-# (erb_parents_paired_14_16_date <- parents_paired_date(erb_parents_paired_14_16))
+parents_paired_date_graph(erb_parents_paired_14_16, title = "Erb_14_16\n\nRegression of Sample Date")
+(erb_parents_paired_14_16_date <- parents_paired_date(erb_parents_paired_14_16))
 ```
 
 **Results:**
@@ -543,7 +543,7 @@ parents_paired_date_graph(gilmour_parents_paired_14_16, title = "Gilmour_14_16\n
 2. Hogan -- higher correlation between parent and offspring sample date for natural vs hatchery fish of both sexes except male parents with female offspring
 3. Gilmour -- higher correlation between parent and offspring sample date for natural vs hatchery fish of both sexes except male parents with female offspring
 4. Paddy -- TBD
-5. Erb -- TBD
+5. Erb -- 
 
 ### Narrow-sense heritability of sample date
 For traits associated with fitness in natural populations, heritability is typically 0.1–0.2 (Wray and Visscher 2008 [https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/] per Visscher et al. 2008). We estimate narrow-sense heritability here, as well as for location and body length, from r = √(½)h^2.
@@ -562,7 +562,7 @@ stock_triads_date <- triads_date()
 hogan_triads_date <- triads_date(hogan_triads)
 gilmour_triads_date <- triads_date(gilmour_triads)
 # paddy_triads_date <- triads_date(paddy_triads)
-# erb_triads_date <- triads_date(erb_triads)
+erb_triads_date <- triads_date(erb_triads)
 
 # scatterplot
 h2_date_graph <- function(indata_h2_date_graph = stock_triads_date, title = "Stockdale_14_16\n\nHeritability of Sample Date - Parent Pair") {
@@ -590,14 +590,14 @@ stock_r_for_h2_date <- round(r_for_h2_date(), 3)
 hogan_r_for_h2_date <- round(r_for_h2_date(hogan_triads_date), 3)
 gilmour_r_for_h2_date <- round(r_for_h2_date(gilmour_triads_date), 3)
 # paddy_r_for_h2_date <- round(r_for_h2_date(paddy_triads_date), 3)
-# erb_r_for_h2_date <- round(r_for_h2_date(erb_triads_date), 3)
+erb_r_for_h2_date <- round(r_for_h2_date(erb_triads_date), 3)
 
 # heritability (from r = √(½)h^2)
 stock_h2_date <- lapply(stock_r_for_h2_date, function(r) r*r*2) 
 hogan_h2_date <- lapply(hogan_r_for_h2_date, function(r) r*r*2) 
 gilmour_h2_date <- lapply(gilmour_r_for_h2_date, function(r) r*r*2)
 # paddy_h2_date <- lapply(paddy_r_for_h2_date, function(r) r*r*2) 
-# erb_h2_date <- lapply(erb_r_for_h2_date, function(r) r*r*2)
+erb_h2_date <- lapply(erb_r_for_h2_date, function(r) r*r*2)
 
 # tables of correlations and heritabilities
 h2_date_graph()
@@ -623,12 +623,12 @@ gilmour_r_and_h2_date
 # colnames(paddy_r_and_h2_date) <- c("Correlation (r)", "Heritability (h^2)")
 # rownames(paddy_r_and_h2_date) <- c("Paddy_14_16 Overall", "NN", "NH", "HN", "HH")
 # paddy_r_and_h2_date
-# 
-# h2_date_graph(erb_triads_date, title = "Erb_14_16\n\nHeritability of Sample Date - Parent Pair")
-# erb_r_and_h2_date <- as.data.frame(cbind(erb_r_for_h2_date, erb_h2_date)) %>% round(3)
-# colnames(erb_r_and_h2_date) <- c("Correlation (r)", "Heritability (h^2)")
-# rownames(erb_r_and_h2_date) <- c("Erb_14_16 Overall", "NN", "NH", "HN", "HH")
-# erb_r_and_h2_date
+
+h2_date_graph(erb_triads_date, title = "Erb_14_16\n\nHeritability of Sample Date - Parent Pair")
+erb_r_and_h2_date <- as.data.frame(cbind(erb_r_for_h2_date, erb_h2_date)) %>% round(3)
+colnames(erb_r_and_h2_date) <- c("Correlation (r)", "Heritability (h^2)")
+rownames(erb_r_and_h2_date) <- c("Erb_14_16 Overall", "NN", "NH", "HN", "HH")
+erb_r_and_h2_date
 ```
 
 **Results:**
@@ -637,7 +637,7 @@ gilmour_r_and_h2_date
 2. Hogan -- all over the place and ridiculous because sample sizes are too small
 3. Gilmour -- strong heritabilities across the board for sample date, with pretty good sample sizes
 4. Paddy -- TBD
-5. Erb -- TBD
+5. Erb -- 
 
 
 ## Where
@@ -656,7 +656,7 @@ Location is reported as distance from stream mouth.
 2. Hogan -- 
 3. Gilmour
 4. Paddy -- TBD
-5. Erb -- TBD
+5. Erb -- 
 
 
 ### Narrow-sense heritability of sample location
@@ -673,7 +673,7 @@ For traits associated with fitness in natural populations, heritability is typic
 2. Hogan -- 
 3. Gilmour
 4. Paddy -- TBD
-5. Erb -- TBD
+5. Erb -- 
 
 
 ## Fitness
@@ -688,12 +688,12 @@ stock_paired_16_18_filter_parents_n <- read_csv("../Stockdale/stock_paired_16_18
   select(franz_id, n) %>% 
   rename(n.off = n)
 
-# hogan_paired_14_16_filter_parents_n <- read_csv("../Hogan/hogan_paired_14_16_filter_parents.csv") %>% 
-#   select(franz_id, n) %>% 
-#   rename(n_14 = n)
-# hogan_paired_16_18_filter_parents_n <- read_csv("../Hogan/hogan_paired_16_18_filter_parents.csv") %>% 
-#   select(franz_id, n) %>% 
-#   rename(n.off = n)
+hogan_paired_14_16_filter_parents_n <- read_csv("../Hogan/hogan_paired_14_16_filter_parents.csv") %>%
+  select(franz_id, n) %>%
+  rename(n_14 = n)
+hogan_paired_16_18_filter_parents_n <- read_csv("../Hogan/hogan_paired_16_18_filter_parents.csv") %>%
+  select(franz_id, n) %>%
+  rename(n.off = n)
 
 gilmour_paired_14_16_filter_parents_n <- read_csv("../Gilmour/gilmour_paired_14_16_filter_parents.csv") %>% 
   select(franz_id, n) %>% 
@@ -726,7 +726,7 @@ triads_n <- function(indata_triads = stock_triads, indata_paired_filter_parents_
 }
 
 stock_triads_n <- triads_n()
-# hogan_triads_n <- triads_n(hogan_triads, hogan_paired_14_16_filter_parents_n, hogan_paired_16_18_filter_parents_n)
+hogan_triads_n <- triads_n(hogan_triads, hogan_paired_14_16_filter_parents_n, hogan_paired_16_18_filter_parents_n)
 gilmour_triads_n <- triads_n(gilmour_triads, gilmour_paired_14_16_filter_parents_n, gilmour_paired_16_18_filter_parents_n)
 # paddy_triads_n <- triads_n(paddy_triads, paddy_paired_14_16_filter_parents_n, paddy_paired_16_18_filter_parents_n)
 # erb_triads_n <- triads_n(erb_triads, erb_paired_14_16_filter_parents_n, erb_paired_16_18_filter_parents_n)
@@ -742,7 +742,7 @@ triads_rs <- function(indata_triads_rs = stock_triads_n) {
 }
 
 stock_triads_rs <- triads_rs()
-# hogan_triads_rs <- triads_rs(hogan_triads_n)
+hogan_triads_rs <- triads_rs(hogan_triads_n)
 gilmour_triads_rs <- triads_rs(gilmour_triads_n)
 # paddy_triads_rs <- triads_rs(paddy_triads_n)
 # erb_triads_rs <- triads_rs(erb_triads_n)
@@ -770,14 +770,14 @@ r_for_h2_rs <- function(indata_r_for_h2_rs = stock_triads_rs) {
               (coef(lm(n.off ~ rs.par, data = indata_r_for_h2_rs %>% filter(Cross == "HH")))[2])))}
 
 stock_r_for_h2_rs <- round(r_for_h2_rs(), 3) 
-# hogan_r_for_h2_rs <- round(r_for_h2_rs(hogan_triads_rs), 3)
+hogan_r_for_h2_rs <- round(r_for_h2_rs(hogan_triads_rs), 3)
 gilmour_r_for_h2_rs <- round(r_for_h2_rs(gilmour_triads_rs), 3)
 # paddy_r_for_h2_rs <- round(r_for_h2_rs(paddy_triads_rs), 3)
 # erb_r_for_h2_rs <- round(r_for_h2_rs(erb_triads_rs), 3)
 
 # heritability (from r = √(½)h^2)
 stock_h2_rs <- lapply(stock_r_for_h2_rs, function(r) r*r*2) 
-# hogan_h2_rs <- lapply(hogan_r_for_h2_rs, function(r) r*r*2)
+hogan_h2_rs <- lapply(hogan_r_for_h2_rs, function(r) r*r*2)
 gilmour_h2_rs <- lapply(gilmour_r_for_h2_rs, function(r) r*r*2)
 # paddy_h2_rs <- lapply(paddy_r_for_h2_rs, function(r) r*r*2) 
 # erb_h2_rs <- lapply(erb_r_for_h2_rs, function(r) r*r*2)
@@ -789,11 +789,11 @@ colnames(stock_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
 rownames(stock_r_and_h2_rs) <- c("Stockdale_14_16 Overall", "NN", "NH", "HN", "HH")
 stock_r_and_h2_rs
 
-# h2_rs_graph(hogan_triads_rs, title = "Hogan_14_16\n\nHeritability of RS - Parent Pair")
-# hogan_r_and_h2_rs <- as.data.frame(cbind(hogan_r_for_h2_rs, hogan_h2_rs)) %>% round(3)
-# colnames(hogan_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
-# rownames(hogan_r_and_h2_rs) <- c("Hogan_14_16 Overall", "NN", "NH", "HN", "HH")
-# hogan_r_and_h2_rs
+h2_rs_graph(hogan_triads_rs, title = "Hogan_14_16\n\nHeritability of RS - Parent Pair")
+hogan_r_and_h2_rs <- as.data.frame(cbind(hogan_r_for_h2_rs, hogan_h2_rs)) %>% round(3)
+colnames(hogan_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
+rownames(hogan_r_and_h2_rs) <- c("Hogan_14_16 Overall", "NN", "NH", "HN", "HH")
+hogan_r_and_h2_rs
 
 h2_rs_graph(gilmour_triads_rs, title = "Gilmour_14_16\n\nHeritability of RS - Parent Pair")
 gilmour_r_and_h2_rs <- as.data.frame(cbind(gilmour_r_for_h2_rs, gilmour_h2_rs)) %>% round(3)
@@ -818,7 +818,7 @@ gilmour_r_and_h2_rs
 **Results:**
 
 1. Stockdale -- nada
-2. Hogan -- TBD
+2. Hogan -- 
 3. Gilmour -- also nada - wonder if we should consider looking at this by dyad...how to do that?...and is it fair?...
 4. Paddy -- TBD
 5. Erb -- TBD
