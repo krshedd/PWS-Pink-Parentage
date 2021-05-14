@@ -1,6 +1,6 @@
 ---
 title: "AHRP SP New Results Notebook\nRRS summary to date and preliminary heritability estimation"
-author: "Kristen Gruenthal and Kyle Shedd"
+author: "Kristen Gruenthal, Kyle Shedd, and Chris Habicht"
 date: "May 14, 2021"
 output:
   html_notebook:
@@ -58,7 +58,7 @@ Uninformative; only two Stockdale great grandoffspring could be identified and z
 
 ## *Summary*
 
-Single-generation RRS (Table 1) is <1 globally thus far, with XX of 26 (XX%) of estimates significantly <1 (in **bold**). Four of six estimates of multi-generation RRS (Table 2) are also below one. One estimate is significantly <1 (Hogan 2015-2019; in **bold**), two are borderline (Hogan 2014-2018, Gilmour 2014-2018), one is still compromised by the otolith debacle (Gilmour 2014-2018), and two are based on extremely small sample size (Stockdale 2013-2017, Hogan 2013-2017). Identifying great grandparents/great grandoffspring has been difficult as sample sizes winnow markedly through the generations.
+Single-generation RRS (Table 1) is <1 globally thus far, with 21 of 26 (81%) of estimates significantly <1 (in **bold**). Four of six estimates of multi-generation RRS (Table 2) are also below one. One estimate is significantly <1 (Hogan 2015-2019; in **bold**), two are borderline (Hogan 2014-2018, Gilmour 2014-2018), one is still compromised by the shipping issue (Gilmour 2014-2018), and two are based on extremely small sample size (Stockdale 2013-2017, Hogan 2013-2017). Identifying great grandparents/great grandoffspring has been difficult as sample sizes winnow markedly through the generations.
 
 ## *Next up*
 
@@ -156,8 +156,8 @@ Was there overall evidence of size assortative mating? We might expect larger fi
 parents_paired_cross_riverdist_length <- function(indata_length = stock_parents_paired_14_16_cross_riverdist_spacetime, title = "Parent Length: Stockdale 2014") {
   indata_length%>% 
   filter(length.sire > 300 & length.dam > 300) %>% 
-  ggplot(aes(x = length.sire, y = length.dam), alpha = 0.05) +
-  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
+  ggplot(aes(x = length.sire, y = length.dam)) +
+  geom_jitter(aes(colour = cross, size = n)) +
   geom_abline(slope = 1) +
   geom_smooth(method = "lm") +
   theme_bw() +
@@ -188,7 +188,7 @@ When were dams and sires that mated sampled? We would expected that they would b
 parents_paired_cross_riverdist_date <- function(indata_date = stock_parents_paired_14_16_cross_riverdist_spacetime, title = "Sample Date: Stockdale 2014") {
   indata_date %>% 
   ggplot(aes(x = sample_date.sire, y = sample_date.dam)) +
-  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
+  geom_jitter(aes(colour = cross, size = n)) +
   geom_abline(slope = 1) +
   geom_smooth(method = "lm") +
   theme_bw() +
@@ -218,8 +218,8 @@ Where were Dams and Sires that mated sampled? We would expected that they would 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 parents_paired_cross_riverdist_location <- function(indata_location = stock_parents_paired_14_16_cross_riverdist_spacetime, title = "Distance from Stream Mouth: Stockdale 2014") {
   indata_location %>% 
-  ggplot(aes(x = distance.sire, y = distance.dam), alpha = 0.05) +
-  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
+  ggplot(aes(x = distance.sire, y = distance.dam)) +
+  geom_jitter(aes(colour = cross, size = n)) +
   geom_abline(slope = 1) +
   geom_smooth(method = "lm") +
   theme_bw() +
@@ -247,7 +247,7 @@ parents_paired_cross_riverdist_location <- function(indata_location = stock_pare
 # **HERITABILITY**
 
 ## *Introduction*
-The purpose of these preliminary analyses is to more fully explore the parent-pair offspring trio/triad data (i.e. cross data) in terms of spatiotemporal patterning and generate preliminary estimates of narrow-sense heritability of body length, sample date, location, and RS according to cross type. These analyses are restricted to the 2014-2016 generation for now because they are largely exploratory in terms of methodology. As such, they are not that interesting; the Hogan and Stockdale 2016-2018 data, as well as those for streams and years affected by the otolith debacle, may ultimately provide for more engaging results as all cross types are or may be relatively well-represented. Here, we are able to include data from Stockdale, Hogan, Gilmour, and Erb Creeks for the 2014 brood year.
+The purpose of these preliminary analyses is to more fully explore the parent-pair offspring trio/triad data (i.e. cross data) in terms of spatiotemporal patterning and generate preliminary estimates of narrow-sense heritability of body length, sample date, and RS according to cross type; location information is not yet available for the bulk of our samples. These analyses are restricted to the 2014-2016 generation for now because they are largely exploratory in terms of methodology. As such, they are not that interesting; the Hogan and Stockdale 2016-2018 data, as well as those for streams and years affected by the shipping issue, may ultimately provide for more engaging results as all cross types are or may be relatively well-represented. Here, we are able to include data from Stockdale, Hogan, Gilmour, and Erb Creeks for the 2014 brood year.
 
 ## *Who*
 Tables of offspring, dam, and sire relationships for individual offspring assigned both parents (triads), distributions of family sizer according to cross type, and RRS per cross type relative to the natural-natural (NN) cross.
@@ -599,7 +599,7 @@ parents_paired_length_graph <- function(indata_parents_paired_length_graph = sto
   group_by(sex.par, sex.off) %>%
   ggplot(aes(x = length.par, y = length.off, colour = origin.par)) +
   geom_abline(slope = 1) +
-  geom_jitter(alpha = 0.2) +
+  geom_jitter() +
   geom_smooth(method = "lm") +
   facet_grid(sex.off ~ sex.par) +
   labs(title = title,  colour = "Parent: Origin") +
@@ -632,7 +632,7 @@ parents_paired_length_graph <- function(indata_parents_paired_length_graph = sto
 5. Erb -- slight positive trend but low correlation between parent and offspring body lengths; sample size for HH was too small to make meaningful conclusions
 
 ### Narrow-sense heritability of body length
-For traits associated with fitness in natural populations, heritability is typically 0.1–0.2 (Wray and Visscher 2008 [https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/] per Visscher et al. 2008). We estimate narrow-sense heritability here, as well as for location and sample date, from r = √(½)h^2.
+Heritabilities in general range from 0 to 1. For traits associated with fitness in natural populations, heritability is typically 0.1–0.2 (Wray and Visscher 2008 [https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/] per Visscher et al. 2008). We estimate narrow-sense heritability for sample data, body length, and RS from r = √(½)h^2. It should be noted that with this equation, correlations >0.7 result in h^2 > 1; small sample sizes can be particularly problematic.
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # mid-parent trait values and cross info
 triads_length <- function(indata_triads_length = stock_triads) {
@@ -654,7 +654,7 @@ h2_length_graph <- function(indata_h2_length_graph = stock_triads_length, title 
   indata_h2_length_graph %>% 
   ggplot(aes(x = Length.par, y = Length.off, colour = Cross)) +
   geom_abline(slope = 1) +
-  geom_jitter(alpha = 0.5, size = 2) +
+  geom_jitter(size = 2) +
   geom_smooth(method = "lm") +
   labs(title = title, colour = "Parent: Origin") +
   xlab("Mid-parent Length (mm)") +
@@ -782,7 +782,7 @@ parents_paired_date_graph(erb_parents_paired_14_16, title = "Regression of Sampl
 5. Erb -- higher correlation between parent and offspring sample date for natural vs hatchery fish of both sexes except female parents with male offspring; better sample sizes for natural-origin fish, however
 
 ### Narrow-sense heritability of sample date
-For traits associated with fitness in natural populations, heritability is typically 0.1–0.2 (Wray and Visscher 2008 [https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/] per Visscher et al. 2008). We estimate narrow-sense heritability here, as well as for location and body length, from r = √(½)h^2.
+Heritabilities in general range from 0 to 1. For traits associated with fitness in natural populations, heritability is typically 0.1–0.2 (Wray and Visscher 2008 [https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/] per Visscher et al. 2008). We estimate narrow-sense heritability for sample data, body length, and RS from r = √(½)h^2. It should be noted that with this equation, correlations >0.7 result in h^2 > 1; small sample sizes can be particularly problematic. 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # mid-parent trait values and cross info
 triads_date <- function(indata_triads_date = stock_triads) {
@@ -804,7 +804,7 @@ h2_date_graph <- function(indata_h2_date_graph = stock_triads_date, title = "Her
   indata_h2_date_graph %>% 
   ggplot(aes(x = DOY.par, y = DOY.off, colour = Cross)) +
   geom_abline(slope = 1) +
-  geom_jitter(alpha = 0.5, size = 2) +
+  geom_jitter(size = 2) +
   geom_smooth(method = "lm") +
   labs(title = title, colour = "Parent: Origin") +
   xlab("Mid-parent Sample Date (DOY)") +
@@ -876,6 +876,7 @@ erb_r_and_h2_date
 It should be noted that estimation of the heritability of fitness (RS) here will be problematic because it does not account for sampling rates or productivity/year effects. There are large reductions in sample size across generations within pedigrees rooted in incomplete sampling across brood years. As a reminder, for example, few grandoffspring have more than 1 or 2 grandparents assigned.
 
 ### Narrow-sense heritability of RS
+Heritabilities in general range from 0 to 1. For traits associated with fitness in natural populations, heritability is typically 0.1–0.2 (Wray and Visscher 2008 [https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/] per Visscher et al. 2008). We estimate narrow-sense heritability for sample data, body length, and RS from r = √(½)h^2. It should be noted that with this equation, correlations >0.7 result in h^2 > 1; small sample sizes can be particularly problematic.
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # Read in data
 stock_paired_14_16_filter_parents_n <- read_csv("../../Stockdale/stock_paired_14_16_filter_parents.csv") %>% 
@@ -940,7 +941,7 @@ h2_rs_graph <- function(indata_h2_rs_graph = stock_triads_rs, title = "Heritabil
   indata_h2_rs_graph %>% 
   ggplot(aes(x = rs.par, y = n.off, colour = Cross)) +
   geom_abline(slope = 1) +
-  geom_jitter(alpha = 0.5, size = 2) +
+  geom_jitter(size = 2) +
   geom_smooth(method = "lm") +
   labs(title = title, colour = "Parent: Origin") +
   xlab("Mid-parent RS") +
@@ -1019,14 +1020,13 @@ stock_parents_paired_n <- read_csv("../../Stockdale/stock_parents_paired_16_18.c
 stock_parents_paired_n %>% 
   ggplot(aes(x = n_14, y = n.off)) +
   geom_abline(slope = 1) +
-  geom_jitter(alpha = 0.5, size = 2) +
+  geom_jitter(size = 2) +
   geom_smooth(method = "lm") +
   labs(title = "Stockdale 14_16\n\nRS by Dyad") +
   xlab("Parent RS") +
   ylab("Offspring RS") +
   theme_bw() +
-  theme(text = element_text(size = 20)) +
-  scale_color_manual(values=cbPalette1)
+  theme(text = element_text(size = 20))
 ```
 
 **Results:** Negative; dyad data did not help because F2 generation dataset likely too small.
@@ -1034,3 +1034,7 @@ stock_parents_paired_n %>%
 ## *Summary*
 
 There is some evidence for heritability of body length, but there is more for heritability of sampling date (i.e. run timing). Distance data are not yet available beyond the 2014 parental generation and are thus not yet included in analyses. Analysis of heritability of RS is unsatisfactory due to reductions in sample size across generations.
+
+## *Caveat*
+
+Some heritabilities were >1. There are biological reasons this could happen, such as higher relationships between (inbreeding) and/or among parents than expected or trait measurement error, under a controlled experimental design. These events are unlikely in our datasets, however. Our issues likely stem from the fact that we estimate narrow-sense heritability from r = √(½)h^2, and therefore, correlations >0.7 result in h^2 > 1. Small sample sizes, and depending on cross type, can likely artificially elevate. The effect of small sample size is particularly apparent for the Hogan 2014-2016 sample date analysis, which results in h^2 values far out of the range of acceptability. Estimation of overall heritability, independent of cross type, will likely the most immune.
