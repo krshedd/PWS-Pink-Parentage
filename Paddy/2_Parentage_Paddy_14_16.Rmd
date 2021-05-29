@@ -1,7 +1,7 @@
 ---
-title: "Stockdale 2017/2019 Single-generation and 2013/2015/2017/2019 Multigenerational Parentage Analysis with 298 Markers"
+title: "Paddy 2014/2016 Single-generation Parentage Analysis with 298 Markers"
 author: "Kristen Gruenthal & Kyle Shedd"
-date: "22 January 2021"
+date: "28 May 2021"
 output:
   html_notebook:
     theme: united
@@ -42,12 +42,12 @@ knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
 ## Pedigree reconstruction
 We use the program *FRANz* [https://www.bioinf.uni-leipzig.de/Software/FRANz/About.html] to reconstruct parent-offspring relationships. Below are analyses of parentage for **Stockdale** for the **odd lineage** years **2017** (potential parents) and **2019** (potential offspring).
 
-*FRANz* was begun on Fri Jan 15 2021 at 15:51 using the following parameters in the command line in the V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\**Stockdale_2017_2019** folder:
-**FRANz --Nmmax 13000 --Nfmax 13000 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2 "Stockdale_17_19_postQA_2017_2019_STOCK.dat"**
+*FRANz* was begun on Fri Jan 15 2021 at 15:51 using the following parameters in the command line in the V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\**Paddy_2-14_2016** folder:
+**FRANz --Nmmax 1700 --Nfmax 1700 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2 "Paddy_14_16_postQA_2014_2016_PADDY.dat"**
 
 The parameters are defined as follows:
 
-* --Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 9,000 and divided by 2. This escapement number came from rounding up the aerial survey AUC number of 8,576; there was no stream walk survey AUC. This estimate is listed under 'pop est walk' in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx".    
+* --Nmmax and --Nfmax are the maximum numbers of candidate mothers and fathers. To obtain our values, we used an estimated escapement of 3400 and divided by 2. This escapement number came from rounding up the pop est walk stream estimate of 3260; the stream walk survey AUC was 1221 and aerial survey AUC number was 1105. These estimates are listed under in the Excel file found here: "V:\Documents\5_Coastwide\Multispecies\AHRP\Field data\Sample Summary Extract and Genotype.xlsx".    
 * --femrepro and --malerepro specify the age range in which an individual can reproduce  
 * --typingerror refers to the overall genotyping error rate, where ours is usually ~0.5% (can obtained from QC; 0.006 has been used as a default of sorts)
 * --updatefreqs specifies that *FRANz* should update allele frequencies using MCMC sampling  
