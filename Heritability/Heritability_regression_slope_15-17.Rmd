@@ -128,19 +128,19 @@ stock_parents_paired_15_17 <- read_csv("../Stockdale/stock_parents_paired_15_17.
      mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
 hogan_parents_paired_15_17 <- read_csv("../Hogan/hogan_parents_paired_15_17.csv") %>%
      mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
-gilmour_parents_paired_15_17 <- read_csv("../Gilmour/gilmour_parents_paired_15_17.csv") %>%
-     mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
-paddy_parents_paired_15_17 <- read_csv("../Paddy/paddy_parents_paired_15_17.csv") %>%
-     mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
-erb_parents_paired_15_17 <- read_csv("../Erb/erb_parents_paired_15_17.csv") %>%
-     mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
+# gilmour_parents_paired_15_17 <- read_csv("../Gilmour/gilmour_parents_paired_15_17.csv") %>%
+#      mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
+# paddy_parents_paired_15_17 <- read_csv("../Paddy/paddy_parents_paired_15_17.csv") %>%
+#      mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
+# erb_parents_paired_15_17 <- read_csv("../Erb/erb_parents_paired_15_17.csv") %>%
+#      mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
 
 # Read in paired data
-stock_OceanAK_paired <- read_csv("../Franz/stockdale_postQA_OceanAK_paired_2015_2017_STOCK.csv")
-hogan_OceanAK_paired <- read_csv("../Franz/hogan_postQA_OceanAK_paired_2015_2017_HOGAN.csv")
-gilmour_OceanAK_paired <- read_csv("../Franz/Gilmour_15_17_postQA_OceanAK_paired_2015_2017_GILMOUR.csv")
-paddy_OceanAK_paired <- read_csv("../Franz/Paddy_15_17_postQA_OceanAK_paired_2015_2017_PADDY.csv")
-erb_OceanAK_paired <- read_csv("../Franz/Erb_15_17_postQA_OceanAK_paired_2015_2017_ERB.csv")
+stock_OceanAK_paired <- read_csv("../Franz/stockdale_15_17_postQA_OceanAK_paired_2015_2017_STOCK.csv")
+hogan_OceanAK_paired <- read_csv("../Franz/hogan_15_17_postQA_OceanAK_paired_2015_2017_HOGAN.csv")
+# gilmour_OceanAK_paired <- read_csv("../Franz/Gilmour_15_17_postQA_OceanAK_paired_2015_2017_GILMOUR.csv")
+# paddy_OceanAK_paired <- read_csv("../Franz/Paddy_15_17_postQA_OceanAK_paired_2015_2017_PADDY.csv")
+# erb_OceanAK_paired <- read_csv("../Franz/Erb_15_17_postQA_OceanAK_paired_2015_2017_ERB.csv")
 
 OceanAK_paired <- function(indata_OceanAK_paired = stock_OceanAK_paired) {
    indata_OceanAK_paired %>% 
@@ -160,9 +160,9 @@ OceanAK_paired <- function(indata_OceanAK_paired = stock_OceanAK_paired) {
 
 stock_OceanAK_paired_15_17 <- OceanAK_paired()
 hogan_OceanAK_paired_15_17 <- OceanAK_paired(hogan_OceanAK_paired)
-gilmour_OceanAK_paired_15_17 <- OceanAK_paired(gilmour_OceanAK_paired)
-paddy_OceanAK_paired_15_17 <- OceanAK_paired(paddy_OceanAK_paired)
-erb_OceanAK_paired_15_17 <- OceanAK_paired(erb_OceanAK_paired)
+# gilmour_OceanAK_paired_15_17 <- OceanAK_paired(gilmour_OceanAK_paired)
+# paddy_OceanAK_paired_15_17 <- OceanAK_paired(paddy_OceanAK_paired)
+# erb_OceanAK_paired_15_17 <- OceanAK_paired(erb_OceanAK_paired)
 
 # Get offspring, dam, sire relationships and join
 ods_relationships <- function(indata_ods = stock_parents_paired_15_17) {
@@ -180,9 +180,9 @@ ods_relationships <- function(indata_ods = stock_parents_paired_15_17) {
 
 stock_offspring_dam_sire_15_17 <- ods_relationships()
 hogan_offspring_dam_sire_15_17 <- ods_relationships(hogan_parents_paired_15_17)
-gilmour_offspring_dam_sire_15_17 <- ods_relationships(gilmour_parents_paired_15_17)
-paddy_offspring_dam_sire_15_17 <- ods_relationships(paddy_parents_paired_15_17)
-erb_offspring_dam_sire_15_17 <- ods_relationships(erb_parents_paired_15_17)
+# gilmour_offspring_dam_sire_15_17 <- ods_relationships(gilmour_parents_paired_15_17)
+# paddy_offspring_dam_sire_15_17 <- ods_relationships(paddy_parents_paired_15_17)
+# erb_offspring_dam_sire_15_17 <- ods_relationships(erb_parents_paired_15_17)
 
 # Join back paired data to offspring, dam, and sire
 parents_paired_dam_sire <- function(indata_ods2 = stock_offspring_dam_sire_15_17, indata_OceanAK_paired2 = stock_OceanAK_paired_15_17) {
@@ -190,15 +190,15 @@ parents_paired_dam_sire <- function(indata_ods2 = stock_offspring_dam_sire_15_17
   left_join(indata_OceanAK_paired2, by = c("Offspring" = "franz_id")) %>% 
   left_join(indata_OceanAK_paired2, by = c("Parent_ID.dam" = "franz_id"), suffix = c(".off", "")) %>% 
   left_join(indata_OceanAK_paired2, by = c("Parent_ID.sire" = "franz_id"), suffix = c(".dam", ".sire")) %>% 
-  mutate(DOY.off = yday(`Sample Date.off`),
-         DOY.dam = yday(`Sample Date.dam`),
-         DOY.sire = yday(`Sample Date.sire`))
+  mutate(DOY.off = dmy(`Sample Date.off`),
+         DOYdam = dmy(`Sample Date.dam`),
+         DOY.sire = dmy(`Sample Date.sire`))
 }
 
 (stock_parents_paired_15_17_dam_sire <- parents_paired_dam_sire())
 (hogan_parents_paired_15_17_dam_sire <- parents_paired_dam_sire(hogan_offspring_dam_sire_15_17, hogan_OceanAK_paired_15_17))
-(gilmour_parents_paired_15_17_dam_sire <- parents_paired_dam_sire(gilmour_offspring_dam_sire_15_17, gilmour_OceanAK_paired_15_17))
-
+# (gilmour_parents_paired_15_17_dam_sire <- parents_paired_dam_sire(gilmour_offspring_dam_sire_15_17, gilmour_OceanAK_paired_15_17))
+# 
 # (gilmour_parents_paired_15_17_dam_sire <- gilmour_offspring_dam_sire_15_17 %>%
 #   left_join(gilmour_OceanAK_paired_15_17, by = c("Offspring" = "franz_id")) %>%
 #   left_join(gilmour_OceanAK_paired_15_17, by = c("Parent_ID.dam" = "franz_id"), suffix = c(".off", "")) %>%
@@ -209,9 +209,9 @@ parents_paired_dam_sire <- function(indata_ods2 = stock_offspring_dam_sire_15_17
 #   mutate(DOY.off = yday(date.off),
 #          DOY.dam = yday(date.dam),
 #          DOY.sire = yday(date.sire)))
-
-(paddy_parents_paired_15_17_dam_sire <- parents_paired_dam_sire(paddy_offspring_dam_sire_15_17, paddy_OceanAK_paired_15_17))
-(erb_parents_paired_15_17_dam_sire <- parents_paired_dam_sire(erb_offspring_dam_sire_15_17, erb_OceanAK_paired_15_17))
+# 
+# (paddy_parents_paired_15_17_dam_sire <- parents_paired_dam_sire(paddy_offspring_dam_sire_15_17, paddy_OceanAK_paired_15_17))
+# (erb_parents_paired_15_17_dam_sire <- parents_paired_dam_sire(erb_offspring_dam_sire_15_17, erb_OceanAK_paired_15_17))
 ```
 
 ## Triads - used for remaining analyses
@@ -223,9 +223,9 @@ triads <- function(indata_triads = stock_parents_paired_15_17_dam_sire) {
 
 (stock_triads <- triads())
 (hogan_triads <- triads(hogan_parents_paired_15_17_dam_sire))
-(gilmour_triads <- triads(gilmour_parents_paired_15_17_dam_sire))
-(paddy_triads <- triads(paddy_parents_paired_15_17_dam_sire))
-(erb_triads <- triads(erb_parents_paired_15_17_dam_sire))
+# (gilmour_triads <- triads(gilmour_parents_paired_15_17_dam_sire))
+# (paddy_triads <- triads(paddy_parents_paired_15_17_dam_sire))
+# (erb_triads <- triads(erb_parents_paired_15_17_dam_sire))
 ```
 
 # **HERITABILITY**
@@ -274,14 +274,14 @@ parents_paired_length_graph <- function(indata_parents_paired_length_graph = sto
 (hogan_parents_paired_15_17_length_graph <- parents_paired_length_graph(hogan_parents_paired_15_17, title = "Hogan_15_17\n\nRegression of Body Length"))
 (hogan_parents_paired_15_17_length <- parents_paired_length(hogan_parents_paired_15_17))
 
-(gilmour_parents_paired_15_17_length_graph <- parents_paired_length_graph(gilmour_parents_paired_15_17, title = "Gilmour_15_17\n\nRegression of Body Length"))
-(gilmour_parents_paired_15_17_length <- parents_paired_length(gilmour_parents_paired_15_17))
-
-(paddy_parents_paired_15_17_length_graph <- parents_paired_length_graph(paddy_parents_paired_15_17, title = "Paddy_15_17\n\nRegression of Body Length"))
-(paddy_parents_paired_15_17_length <- parents_paired_length(paddy_parents_paired_15_17))
-
-(erb_parents_paired_15_17_length_graph <- parents_paired_length_graph(erb_parents_paired_15_17, title = "Erb_15_17\n\nRegression of Body Length"))
-(erb_parents_paired_15_17_length <- parents_paired_length(erb_parents_paired_15_17))
+# (gilmour_parents_paired_15_17_length_graph <- parents_paired_length_graph(gilmour_parents_paired_15_17, title = "Gilmour_15_17\n\nRegression of Body Length"))
+# (gilmour_parents_paired_15_17_length <- parents_paired_length(gilmour_parents_paired_15_17))
+# 
+# (paddy_parents_paired_15_17_length_graph <- parents_paired_length_graph(paddy_parents_paired_15_17, title = "Paddy_15_17\n\nRegression of Body Length"))
+# (paddy_parents_paired_15_17_length <- parents_paired_length(paddy_parents_paired_15_17))
+# 
+# (erb_parents_paired_15_17_length_graph <- parents_paired_length_graph(erb_parents_paired_15_17, title = "Erb_15_17\n\nRegression of Body Length"))
+# (erb_parents_paired_15_17_length <- parents_paired_length(erb_parents_paired_15_17))
 ```
 
 ### Narrow-sense heritability of body length
@@ -301,9 +301,9 @@ triads_length <- function(indata_triads_length = stock_triads) {
 
 stock_triads_length <- triads_length()
 hogan_triads_length <- triads_length(hogan_triads)
-gilmour_triads_length <- triads_length(gilmour_triads)
-paddy_triads_length <- triads_length(paddy_triads)
-erb_triads_length <- triads_length(erb_triads)
+# gilmour_triads_length <- triads_length(gilmour_triads)
+# paddy_triads_length <- triads_length(paddy_triads)
+# erb_triads_length <- triads_length(erb_triads)
 
 # scatterplot
 h2_length_graph <- function(indata_h2_length_graph = stock_triads_length, title = "Stockdale_15_17\n\nHeritability of Body Length - Parent Pair") {
@@ -353,7 +353,7 @@ h2_length_graph()
 (stock_h2_lenth_NN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = stock_triads_length %>% filter(Cross == "NN")))))
 (stock_h2_lenth_NH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = stock_triads_length %>% filter(Cross == "NH")))))
 (stock_h2_lenth_HN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = stock_triads_length %>% filter(Cross == "HN")))))
-(stock_h2_lenth_HH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = stock_triads_length %>% filter(Cross == "HH")))))
+# (stock_h2_lenth_HH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = stock_triads_length %>% filter(Cross == "HH")))))
 
 # by sex
 (stock_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = stock_triads_length))))
@@ -385,82 +385,82 @@ h2_length_graph(hogan_triads_length, title = "Hogan_15_17\n\nHeritability of Bod
 (hogan_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = hogan_triads_length %>% filter(Sex.off == "M")))))
 (hogan_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = hogan_triads_length %>% filter(Sex.off == "F")))))
 
-# Gilmour
-h2_length_graph(gilmour_triads_length, title = "Gilmour_15_17\n\nHeritability of Body Length - Parent Pair")
-# gilmour_r_and_h2_length <- as.data.frame(cbind(gilmour_r_for_h2_length, gilmour_h2_length)) %>% round(3)
-# colnames(gilmour_r_and_h2_length) <- c("Correlation (r)", "Heritability (h^2)")
-# rownames(gilmour_r_and_h2_length) <- c("Gilmour_15_17 Overall", "NN", "NH", "HN", "HH")
-# gilmour_r_and_h2_length
-
-# by cross
-(gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length))))
-(gilmour_h2_lenth_NN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length %>% filter(Cross == "NN")))))
-(gilmour_h2_lenth_NH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length %>% filter(Cross == "NH")))))
-(gilmour_h2_lenth_HN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length %>% filter(Cross == "HN")))))
-(gilmour_h2_lenth_HH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length %>% filter(Cross == "HH")))))
-
-# by sex
-(gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = gilmour_triads_length))))
-(gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = gilmour_triads_length))))
-(gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = gilmour_triads_length %>% filter(Sex.off == "F")))))
-(gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = gilmour_triads_length %>% filter(Sex.off == "M")))))
-(gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = gilmour_triads_length %>% filter(Sex.off == "M")))))
-(gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = gilmour_triads_length %>% filter(Sex.off == "F")))))
-
-# Paddy
-h2_length_graph(paddy_triads_length, title = "Paddy_15_17\n\nHeritability of Body Length - Parent Pair")
-# paddy_r_and_h2_length <- as.data.frame(cbind(paddy_r_for_h2_length, paddy_h2_length)) %>% round(3)
-# colnames(paddy_r_and_h2_length) <- c("Correlation (r)", "Heritability (h^2)")
-# rownames(paddy_r_and_h2_length) <- c("Paddy_15_17 Overall", "NN", "NH", "HN", "HH")
-# paddy_r_and_h2_length
-
-# by cross
-(paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = paddy_triads_length))))
-(paddy_h2_lenth_NN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = paddy_triads_length %>% filter(Cross == "NN")))))
-(paddy_h2_lenth_NH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = paddy_triads_length %>% filter(Cross == "NH")))))
-(paddy_h2_lenth_HN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = paddy_triads_length %>% filter(Cross == "HN")))))
-(paddy_h2_lenth_HH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = paddy_triads_length %>% filter(Cross == "HH")))))
-
-# by sex
-(paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = paddy_triads_length))))
-(paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = paddy_triads_length))))
-(paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = paddy_triads_length %>% filter(Sex.off == "F")))))
-(paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = paddy_triads_length %>% filter(Sex.off == "M")))))
-(paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = paddy_triads_length %>% filter(Sex.off == "M")))))
-(paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = paddy_triads_length %>% filter(Sex.off == "F")))))
-
-# Erb
-h2_length_graph(erb_triads_length, title = "Erb_15_17\n\nHeritability of Body Length - Parent Pair")
-# erb_r_and_h2_length <- as.data.frame(cbind(erb_r_for_h2_length, erb_h2_length)) %>% round(3)
-# colnames(erb_r_and_h2_length) <- c("Correlation (r)", "Heritability (h^2)")
-# rownames(erb_r_and_h2_length) <- c("Erb_15_17 Overall", "NN", "NH", "HN", "HH")
-# erb_r_and_h2_length
-
-# by cross
-(erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = erb_triads_length))))
-(erb_h2_lenth_NN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = erb_triads_length %>% filter(Cross == "NN")))))
-(erb_h2_lenth_NH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = erb_triads_length %>% filter(Cross == "NH")))))
-(erb_h2_lenth_HN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = erb_triads_length %>% filter(Cross == "HN")))))
-(erb_h2_lenth_HH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = erb_triads_length %>% filter(Cross == "HH")))))
-
-# by sex
-(erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = erb_triads_length))))
-(erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = erb_triads_length))))
-(erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = erb_triads_length %>% filter(Sex.off == "F")))))
-(erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = erb_triads_length %>% filter(Sex.off == "M")))))
-(erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = erb_triads_length %>% filter(Sex.off == "M")))))
-(erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = erb_triads_length %>% filter(Sex.off == "F")))))
+# # Gilmour
+# h2_length_graph(gilmour_triads_length, title = "Gilmour_15_17\n\nHeritability of Body Length - Parent Pair")
+# # gilmour_r_and_h2_length <- as.data.frame(cbind(gilmour_r_for_h2_length, gilmour_h2_length)) %>% round(3)
+# # colnames(gilmour_r_and_h2_length) <- c("Correlation (r)", "Heritability (h^2)")
+# # rownames(gilmour_r_and_h2_length) <- c("Gilmour_15_17 Overall", "NN", "NH", "HN", "HH")
+# # gilmour_r_and_h2_length
+# 
+# # by cross
+# (gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length))))
+# (gilmour_h2_lenth_NN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length %>% filter(Cross == "NN")))))
+# (gilmour_h2_lenth_NH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length %>% filter(Cross == "NH")))))
+# (gilmour_h2_lenth_HN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length %>% filter(Cross == "HN")))))
+# (gilmour_h2_lenth_HH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length %>% filter(Cross == "HH")))))
+# 
+# # by sex
+# (gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = gilmour_triads_length))))
+# (gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = gilmour_triads_length))))
+# (gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = gilmour_triads_length %>% filter(Sex.off == "F")))))
+# (gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = gilmour_triads_length %>% filter(Sex.off == "M")))))
+# (gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = gilmour_triads_length %>% filter(Sex.off == "M")))))
+# (gilmour_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = gilmour_triads_length %>% filter(Sex.off == "F")))))
+# 
+# # Paddy
+# h2_length_graph(paddy_triads_length, title = "Paddy_15_17\n\nHeritability of Body Length - Parent Pair")
+# # paddy_r_and_h2_length <- as.data.frame(cbind(paddy_r_for_h2_length, paddy_h2_length)) %>% round(3)
+# # colnames(paddy_r_and_h2_length) <- c("Correlation (r)", "Heritability (h^2)")
+# # rownames(paddy_r_and_h2_length) <- c("Paddy_15_17 Overall", "NN", "NH", "HN", "HH")
+# # paddy_r_and_h2_length
+# 
+# # by cross
+# (paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = paddy_triads_length))))
+# (paddy_h2_lenth_NN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = paddy_triads_length %>% filter(Cross == "NN")))))
+# (paddy_h2_lenth_NH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = paddy_triads_length %>% filter(Cross == "NH")))))
+# (paddy_h2_lenth_HN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = paddy_triads_length %>% filter(Cross == "HN")))))
+# (paddy_h2_lenth_HH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = paddy_triads_length %>% filter(Cross == "HH")))))
+# 
+# # by sex
+# (paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = paddy_triads_length))))
+# (paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = paddy_triads_length))))
+# (paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = paddy_triads_length %>% filter(Sex.off == "F")))))
+# (paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = paddy_triads_length %>% filter(Sex.off == "M")))))
+# (paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = paddy_triads_length %>% filter(Sex.off == "M")))))
+# (paddy_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = paddy_triads_length %>% filter(Sex.off == "F")))))
+# 
+# # Erb
+# h2_length_graph(erb_triads_length, title = "Erb_15_17\n\nHeritability of Body Length - Parent Pair")
+# # erb_r_and_h2_length <- as.data.frame(cbind(erb_r_for_h2_length, erb_h2_length)) %>% round(3)
+# # colnames(erb_r_and_h2_length) <- c("Correlation (r)", "Heritability (h^2)")
+# # rownames(erb_r_and_h2_length) <- c("Erb_15_17 Overall", "NN", "NH", "HN", "HH")
+# # erb_r_and_h2_length
+# 
+# # by cross
+# (erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = erb_triads_length))))
+# (erb_h2_lenth_NN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = erb_triads_length %>% filter(Cross == "NN")))))
+# (erb_h2_lenth_NH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = erb_triads_length %>% filter(Cross == "NH")))))
+# (erb_h2_lenth_HN_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = erb_triads_length %>% filter(Cross == "HN")))))
+# (erb_h2_lenth_HH_tbl <- as.tibble(tidy(lm(Length.off ~ Length.par, data = erb_triads_length %>% filter(Cross == "HH")))))
+# 
+# # by sex
+# (erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = erb_triads_length))))
+# (erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = erb_triads_length))))
+# (erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = erb_triads_length %>% filter(Sex.off == "F")))))
+# (erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = erb_triads_length %>% filter(Sex.off == "M")))))
+# (erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.dam, data = erb_triads_length %>% filter(Sex.off == "M")))))
+# (erb_h2_lenth_all_tbl <- as.tibble(tidy(lm(Length.off ~ Length.sire, data = erb_triads_length %>% filter(Sex.off == "F")))))
 ```
 
 ### *Results*
 
 General: Some eevidence for heritability of body size, but it is sporadic and stream-dependent.
 
-1. Stockdale -- All h^2 < 0.2 except for the HH cross at 0.43.
-2. Hogan -- Screwy results because sample sizes are so low
-3. Gilmour -- There may be evidence of heritability; all h^2 > 0.2, except for the NH and HH crosses and the female parent/male offspring model.
-4. Paddy -- Again,  evidence of heritability; all h^2 > 0.2, except for the HN cross and male parent/female offspring model.
-5. Erb -- Some minor evidence of heritability; h^2 > 0.2 for the NN,  HN, and HH crosses, as well as the male and female parent of male offspring models.
+1. Stockdale -- Good heritabilities, but some funky results due to small sample sizesfor some crosses.
+2. Hogan -- Good heritabilities, but some funky results due to small sample sizesfor some crosses.
+3. Gilmour -- TBD; no otolith data.
+4. Paddy -- TBD; no otolith data.
+5. Erb -- TBD; no otolith data.
 
 
 ## Sample Date
@@ -506,14 +506,14 @@ parents_paired_date_graph()
 parents_paired_date_graph(hogan_parents_paired_15_17, title = "Hogan_15_17\n\nRegression of Sample Date")
 (hogan_parents_paired_15_17_date <- parents_paired_date(hogan_parents_paired_15_17))
 
-parents_paired_date_graph(gilmour_parents_paired_15_17, title = "Gilmour_15_17\n\nRegression of Sample Date")
-(gilmour_parents_paired_15_17_date <- parents_paired_date(gilmour_parents_paired_15_17))
-
-parents_paired_date_graph(paddy_parents_paired_15_17, title = "Paddy_15_17\n\nRegression of Sample Date")
-(paddy_parents_paired_15_17_date <- parents_paired_date(paddy_parents_paired_15_17))
-
-parents_paired_date_graph(erb_parents_paired_15_17, title = "Erb_15_17\n\nRegression of Sample Date")
-(erb_parents_paired_15_17_date <- parents_paired_date(erb_parents_paired_15_17))
+# parents_paired_date_graph(gilmour_parents_paired_15_17, title = "Gilmour_15_17\n\nRegression of Sample Date")
+# (gilmour_parents_paired_15_17_date <- parents_paired_date(gilmour_parents_paired_15_17))
+# 
+# parents_paired_date_graph(paddy_parents_paired_15_17, title = "Paddy_15_17\n\nRegression of Sample Date")
+# (paddy_parents_paired_15_17_date <- parents_paired_date(paddy_parents_paired_15_17))
+# 
+# parents_paired_date_graph(erb_parents_paired_15_17, title = "Erb_15_17\n\nRegression of Sample Date")
+# (erb_parents_paired_15_17_date <- parents_paired_date(erb_parents_paired_15_17))
 ```
 
 ### Narrow-sense heritability by sample date
@@ -524,6 +524,9 @@ trait_value_offspring = Cov_parent_offspring / Var_parent x trait_value_parent +
 # mid-parent trait values and cross info
 triads_date <- function(indata_triads_date = stock_triads) {
   indata_triads_date %>%
+  mutate(DOY.off = yday(DOY.off),
+         DOY.dam = yday(DOYdam),
+         DOY.sire = yday(DOY.sire)) %>% 
   mutate(DOY.par = (DOY.dam + DOY.sire) / 2) %>% 
   mutate(Cross = case_when(Origin.dam == "Natural" & Origin.sire == "Natural" ~ "NN",
                            Origin.dam == "Natural" & Origin.sire == "Hatchery" ~ "NH",
@@ -533,9 +536,9 @@ triads_date <- function(indata_triads_date = stock_triads) {
 
 stock_triads_date <- triads_date()
 hogan_triads_date <- triads_date(hogan_triads)
-gilmour_triads_date <- triads_date(gilmour_triads)
-paddy_triads_date <- triads_date(paddy_triads)
-erb_triads_date <- triads_date(erb_triads)
+# gilmour_triads_date <- triads_date(gilmour_triads)
+# paddy_triads_date <- triads_date(paddy_triads)
+# erb_triads_date <- triads_date(erb_triads)
 
 # scatterplot
 h2_date_graph <- function(indata_h2_date_graph = stock_triads_date, title = "Stockdale_15_17\n\nHeritability of Sample Date - Parent Pair") {
@@ -591,7 +594,7 @@ h2_date_graph()
 (stock_h2_date_NN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = stock_triads_date %>% filter(Cross == "NN")))))
 (stock_h2_date_NH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = stock_triads_date %>% filter(Cross == "NH")))))
 (stock_h2_date_HN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = stock_triads_date %>% filter(Cross == "HN")))))
-(stock_h2_date_HH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = stock_triads_date %>% filter(Cross == "HH")))))
+# (stock_h2_date_HH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = stock_triads_date %>% filter(Cross == "HH")))))
 
 # by sex
 (stock_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = stock_triads_date))))
@@ -623,79 +626,79 @@ h2_date_graph(hogan_triads_date, title = "Hogan_15_17\n\nHeritability of Sample 
 (hogan_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = hogan_triads_date %>% filter(Sex.off == "M")))))
 (hogan_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = hogan_triads_date %>% filter(Sex.off == "F")))))
 
-# Gilmour
-h2_date_graph(gilmour_triads_date, title = "Gilmour_15_17\n\nHeritability of Sample Date - Parent Pair")
-# gilmour_r_and_h2_date <- as.data.frame(cbind(gilmour_r_for_h2_date, gilmour_h2_date)) %>% round(3)
-# colnames(gilmour_r_and_h2_date) <- c("Correlation (r)", "Heritability (h^2)")
-# rownames(gilmour_r_and_h2_date) <- c("Gilmour_15_17 Overall", "NN", "NH", "HN", "HH")
-# gilmour_r_and_h2_date
-
-# by cross
-(gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date))))
-(gilmour_h2_date_NN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date %>% filter(Cross == "NN")))))
-(gilmour_h2_date_NH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date %>% filter(Cross == "NH")))))
-(gilmour_h2_date_HN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date %>% filter(Cross == "HN")))))
-(gilmour_h2_date_HH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date %>% filter(Cross == "HH")))))
-
-# by sex
-(gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = gilmour_triads_date))))
-(gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = gilmour_triads_date))))
-(gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = gilmour_triads_date %>% filter(Sex.off == "F")))))
-(gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = gilmour_triads_date %>% filter(Sex.off == "M")))))
-(gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = gilmour_triads_date %>% filter(Sex.off == "M")))))
-(gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = gilmour_triads_date %>% filter(Sex.off == "F")))))
-
-# Paddy
-h2_date_graph(paddy_triads_date, title = "Paddy_15_17\n\nHeritability of Sample Date - Parent Pair")
-# paddy_r_and_h2_date <- as.data.frame(cbind(paddy_r_for_h2_date, paddy_h2_date)) %>% round(3)
-# colnames(paddy_r_and_h2_date) <- c("Correlation (r)", "Heritability (h^2)")
-# rownames(paddy_r_and_h2_date) <- c("Paddy_15_17 Overall", "NN", "NH", "HN", "HH")
-# paddy_r_and_h2_date
-
-# by cross
-(paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = paddy_triads_date))))
-(paddy_h2_date_NN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = paddy_triads_date %>% filter(Cross == "NN")))))
-(paddy_h2_date_NH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = paddy_triads_date %>% filter(Cross == "NH")))))
-(paddy_h2_date_HN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = paddy_triads_date %>% filter(Cross == "HN")))))
-(paddy_h2_date_HH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = paddy_triads_date %>% filter(Cross == "HH")))))
-
-# by sex
-(paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = paddy_triads_date))))
-(paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = paddy_triads_date))))
-(paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = paddy_triads_date %>% filter(Sex.off == "F")))))
-(paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = paddy_triads_date %>% filter(Sex.off == "M")))))
-(paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = paddy_triads_date %>% filter(Sex.off == "M")))))
-(paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = paddy_triads_date %>% filter(Sex.off == "F")))))
-
-# Erb
-h2_date_graph(erb_triads_date, title = "Erb_15_17\n\nHeritability of Sample Date - Parent Pair")
-# erb_r_and_h2_date <- as.data.frame(cbind(erb_r_for_h2_date, erb_h2_date)) %>% round(3)
-# colnames(erb_r_and_h2_date) <- c("Correlation (r)", "Heritability (h^2)")
-# rownames(erb_r_and_h2_date) <- c("Erb_15_17 Overall", "NN", "NH", "HN", "HH")
-# erb_r_and_h2_date
-
-# by cross
-(erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = erb_triads_date))))
-(erb_h2_date_NN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = erb_triads_date %>% filter(Cross == "NN")))))
-(erb_h2_date_NH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = erb_triads_date %>% filter(Cross == "NH")))))
-(erb_h2_date_HN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = erb_triads_date %>% filter(Cross == "HN")))))
-(erb_h2_date_HH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = erb_triads_date %>% filter(Cross == "HH")))))
-
-# by sex
-(erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = erb_triads_date))))
-(erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = erb_triads_date))))
-(erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = erb_triads_date %>% filter(Sex.off == "F")))))
-(erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = erb_triads_date %>% filter(Sex.off == "M")))))
-(erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = erb_triads_date %>% filter(Sex.off == "M")))))
-(erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = erb_triads_date %>% filter(Sex.off == "F")))))
+# # Gilmour
+# h2_date_graph(gilmour_triads_date, title = "Gilmour_15_17\n\nHeritability of Sample Date - Parent Pair")
+# # gilmour_r_and_h2_date <- as.data.frame(cbind(gilmour_r_for_h2_date, gilmour_h2_date)) %>% round(3)
+# # colnames(gilmour_r_and_h2_date) <- c("Correlation (r)", "Heritability (h^2)")
+# # rownames(gilmour_r_and_h2_date) <- c("Gilmour_15_17 Overall", "NN", "NH", "HN", "HH")
+# # gilmour_r_and_h2_date
+# 
+# # by cross
+# (gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date))))
+# (gilmour_h2_date_NN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date %>% filter(Cross == "NN")))))
+# (gilmour_h2_date_NH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date %>% filter(Cross == "NH")))))
+# (gilmour_h2_date_HN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date %>% filter(Cross == "HN")))))
+# (gilmour_h2_date_HH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date %>% filter(Cross == "HH")))))
+# 
+# # by sex
+# (gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = gilmour_triads_date))))
+# (gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = gilmour_triads_date))))
+# (gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = gilmour_triads_date %>% filter(Sex.off == "F")))))
+# (gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = gilmour_triads_date %>% filter(Sex.off == "M")))))
+# (gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = gilmour_triads_date %>% filter(Sex.off == "M")))))
+# (gilmour_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = gilmour_triads_date %>% filter(Sex.off == "F")))))
+# 
+# # Paddy
+# h2_date_graph(paddy_triads_date, title = "Paddy_15_17\n\nHeritability of Sample Date - Parent Pair")
+# # paddy_r_and_h2_date <- as.data.frame(cbind(paddy_r_for_h2_date, paddy_h2_date)) %>% round(3)
+# # colnames(paddy_r_and_h2_date) <- c("Correlation (r)", "Heritability (h^2)")
+# # rownames(paddy_r_and_h2_date) <- c("Paddy_15_17 Overall", "NN", "NH", "HN", "HH")
+# # paddy_r_and_h2_date
+# 
+# # by cross
+# (paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = paddy_triads_date))))
+# (paddy_h2_date_NN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = paddy_triads_date %>% filter(Cross == "NN")))))
+# (paddy_h2_date_NH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = paddy_triads_date %>% filter(Cross == "NH")))))
+# (paddy_h2_date_HN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = paddy_triads_date %>% filter(Cross == "HN")))))
+# (paddy_h2_date_HH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = paddy_triads_date %>% filter(Cross == "HH")))))
+# 
+# # by sex
+# (paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = paddy_triads_date))))
+# (paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = paddy_triads_date))))
+# (paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = paddy_triads_date %>% filter(Sex.off == "F")))))
+# (paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = paddy_triads_date %>% filter(Sex.off == "M")))))
+# (paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = paddy_triads_date %>% filter(Sex.off == "M")))))
+# (paddy_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = paddy_triads_date %>% filter(Sex.off == "F")))))
+# 
+# # Erb
+# h2_date_graph(erb_triads_date, title = "Erb_15_17\n\nHeritability of Sample Date - Parent Pair")
+# # erb_r_and_h2_date <- as.data.frame(cbind(erb_r_for_h2_date, erb_h2_date)) %>% round(3)
+# # colnames(erb_r_and_h2_date) <- c("Correlation (r)", "Heritability (h^2)")
+# # rownames(erb_r_and_h2_date) <- c("Erb_15_17 Overall", "NN", "NH", "HN", "HH")
+# # erb_r_and_h2_date
+# 
+# # by cross
+# (erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = erb_triads_date))))
+# (erb_h2_date_NN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = erb_triads_date %>% filter(Cross == "NN")))))
+# (erb_h2_date_NH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = erb_triads_date %>% filter(Cross == "NH")))))
+# (erb_h2_date_HN_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = erb_triads_date %>% filter(Cross == "HN")))))
+# (erb_h2_date_HH_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.par, data = erb_triads_date %>% filter(Cross == "HH")))))
+# 
+# # by sex
+# (erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = erb_triads_date))))
+# (erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = erb_triads_date))))
+# (erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = erb_triads_date %>% filter(Sex.off == "F")))))
+# (erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = erb_triads_date %>% filter(Sex.off == "M")))))
+# (erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.dam, data = erb_triads_date %>% filter(Sex.off == "M")))))
+# (erb_h2_date_all_tbl <- as.tibble(tidy(lm(DOY.off ~ DOY.sire, data = erb_triads_date %>% filter(Sex.off == "F")))))
 ```
 
 ### *Results*
 
 General: Good evidence for heritability of sample date as a proxy for return time.
 
-1. Stockdale -- Strong indication of heritability of sample date; H^2 > 0.2, except for the NH and HH crosses and male/female parents of male offspring models.
-2. Hogan -- Funky results due to small sample sizes.
+1. Stockdale -- Good heritabilities, but some funky results due to small sample sizesfor some crosses.
+2. Hogan -- Good heritabilities, but some funky results due to small sample sizesfor some crosses.
 3. Gilmour -- All models result in high heritability.
 4. Paddy -- All h^2 > 0.2, except the NH and HH crosses and female parent/female offspring models.
 5. Erb -- All h^2 > 0.2, except the HH cross and female parent/female offspring models.
@@ -744,43 +747,43 @@ General: Stream location/distance data not yet available for all sample sets.
 ### Narrow-sense heritability of RS
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # Read in data
-stock_paired_15_17_filter_parents_n <- read_csv("../Stockdale/stock_paired_15_17_filter_parents.csv") %>% 
-  select(franz_id, n) %>% 
-  rename(n_15 = n)
-stock_paired_17_18_filter_parents_n <- read_csv("../Stockdale/stock_paired_17_18_filter_parents.csv") %>% 
-  select(franz_id, n) %>% 
-  rename(n.off = n)
+# stock_paired_15_17_filter_parents_n <- read_csv("../Stockdale/stock_paired_15_17_filter_parents.csv") %>% 
+#   select(franz_id, n) %>% 
+#   rename(n_15 = n)
+# stock_paired_17_19_filter_parents_n <- read_csv("../Stockdale/stock_paired_17_19_filter_parents.csv") %>% 
+#   select(franz_id, n) %>% 
+#   rename(n.off = n)
 
 hogan_paired_15_17_filter_parents_n <- read_csv("../Hogan/hogan_paired_15_17_filter_parents.csv") %>%
   select(franz_id, n) %>%
   rename(n_15 = n)
-hogan_paired_17_18_filter_parents_n <- read_csv("../Hogan/hogan_paired_17_18_filter_parents.csv") %>%
+hogan_paired_17_19_filter_parents_n <- read_csv("../Hogan/hogan_paired_17_19_filter_parents.csv") %>%
   select(franz_id, n) %>%
   rename(n.off = n)
 
-gilmour_paired_15_17_filter_parents_n <- read_csv("../Gilmour/gilmour_paired_15_17_filter_parents.csv") %>%
-  select(franz_id, n) %>%
-  rename(n_15 = n)
-gilmour_paired_17_18_filter_parents_n <- read_csv("../Gilmour/gilmour_paired_17_18_filter_parents.csv") %>%
-  select(franz_id, n) %>%
-  rename(n.off = n)
-
+# gilmour_paired_15_17_filter_parents_n <- read_csv("../Gilmour/gilmour_paired_15_17_filter_parents.csv") %>%
+#   select(franz_id, n) %>%
+#   rename(n_15 = n)
+# gilmour_paired_17_19_filter_parents_n <- read_csv("../Gilmour/gilmour_paired_17_19_filter_parents.csv") %>%
+#   select(franz_id, n) %>%
+#   rename(n.off = n)
+# 
 # paddy_paired_15_17_filter_parents_n <- read_csv("../Paddy/paddy_paired_15_17_filter_parents.csv") %>%
 #   select(franz_id, n) %>%
 #   rename(n_15 = n)
-# paddy_paired_17_18_filter_parents_n <- read_csv("../Paddy/paddy_paired_17_18_filter_parents.csv") %>%
+# paddy_paired_17_19_filter_parents_n <- read_csv("../Paddy/paddy_paired_17_19_filter_parents.csv") %>%
 #   select(franz_id, n) %>%
 #   rename(n.off = n)
 # 
 # erb_paired_15_17_filter_parents_n <- read_csv("../Erb/erb_paired_15_17_filter_parents.csv") %>%
 #   select(franz_id, n) %>%
 #   rename(n_15 = n)
-# erb_paired_17_18_filter_parents_n <- read_csv("../Erb/erb_paired_17_18_filter_parents.csv") %>%
+# erb_paired_17_19_filter_parents_n <- read_csv("../Erb/erb_paired_17_19_filter_parents.csv") %>%
 #   select(franz_id, n) %>%
 #   rename(n.off = n)
 
 # join by n (i.e. individual RS)
-triads_n <- function(indata_triads = stock_triads, indata_paired_filter_parents_n = stock_paired_15_17_filter_parents_n, indata_paired_filter_offspring_n = stock_paired_17_18_filter_parents_n) {
+triads_n <- function(indata_triads = stock_triads, indata_paired_filter_parents_n = stock_paired_15_17_filter_parents_n, indata_paired_filter_offspring_n = stock_paired_17_19_filter_parents_n) {
   inner_join(indata_triads, indata_paired_filter_parents_n, by = c("Parent_ID.dam" = "franz_id")) %>% 
   rename(n.dam = n_15) %>% 
   inner_join(indata_paired_filter_parents_n, by = c("Parent_ID.sire" = "franz_id")) %>% 
@@ -788,11 +791,11 @@ triads_n <- function(indata_triads = stock_triads, indata_paired_filter_parents_
   inner_join(indata_paired_filter_offspring_n, by = c("Offspring" = "franz_id"))
 }
 
-stock_triads_n <- triads_n()
-hogan_triads_n <- triads_n(hogan_triads, hogan_paired_15_17_filter_parents_n, hogan_paired_17_18_filter_parents_n)
-gilmour_triads_n <- triads_n(gilmour_triads, gilmour_paired_15_17_filter_parents_n, gilmour_paired_17_18_filter_parents_n)
-# paddy_triads_n <- triads_n(paddy_triads, paddy_paired_15_17_filter_parents_n, paddy_paired_17_18_filter_parents_n)
-# erb_triads_n <- triads_n(erb_triads, erb_paired_15_17_filter_parents_n, erb_paired_17_18_filter_parents_n)
+# stock_triads_n <- triads_n()
+hogan_triads_n <- triads_n(hogan_triads, hogan_paired_15_17_filter_parents_n, hogan_paired_17_19_filter_parents_n)
+# gilmour_triads_n <- triads_n(gilmour_triads, gilmour_paired_15_17_filter_parents_n, gilmour_paired_17_19_filter_parents_n)
+# paddy_triads_n <- triads_n(paddy_triads, paddy_paired_15_17_filter_parents_n, paddy_paired_17_19_filter_parents_n)
+# erb_triads_n <- triads_n(erb_triads, erb_paired_15_17_filter_parents_n, erb_paired_17_19_filter_parents_n)
 
 # mid-parent trait values and cross info
 triads_rs <- function(indata_triads_rs = stock_triads_n) {
@@ -804,9 +807,9 @@ triads_rs <- function(indata_triads_rs = stock_triads_n) {
                            Origin.dam == "Hatchery" & Origin.sire == "Hatchery" ~ "HH"))
 }
 
-stock_triads_rs <- triads_rs()
+# stock_triads_rs <- triads_rs()
 hogan_triads_rs <- triads_rs(hogan_triads_n)
-gilmour_triads_rs <- triads_rs(gilmour_triads_n)
+# gilmour_triads_rs <- triads_rs(gilmour_triads_n)
 # paddy_triads_rs <- triads_rs(paddy_triads_n)
 # erb_triads_rs <- triads_rs(erb_triads_n)
 
@@ -852,27 +855,27 @@ h2_rs_graph <- function(indata_h2_rs_graph = stock_triads_rs, title = "Stockdale
 # (stock_h2_date_HN <- summary(lm(n.off ~ rs.par, data = stock_triads_date %>% filter(Cross == "HN"))))
 # (stock_h2_date_HH <- summary(lm(n.off ~ rs.par, data = stock_triads_date %>% filter(Cross == "HH"))))
 
-# Stockdale
-h2_rs_graph()
-# stock_r_and_h2_rs <- as.data.frame(cbind(stock_r_for_h2_rs, stock_h2_rs)) %>% round(3)
-# colnames(stock_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
-# rownames(stock_r_and_h2_rs) <- c("Stockdale_15_17 Overall", "NN", "NH", "HN", "HH")
-# stock_r_and_h2_rs
-
-# by cross
-(stock_h2_rs_all <- as.tibble(tidy(lm(n.off ~ rs.par, data = stock_triads_rs))))
-(stock_h2_rs_NN <- as.tibble(tidy(lm(n.off ~ rs.par, data = stock_triads_rs %>% filter(Cross == "NN")))))
-(stock_h2_rs_NH <- as.tibble(tidy(lm(n.off ~ rs.par, data = stock_triads_rs %>% filter(Cross == "NH")))))
-(stock_h2_rs_HN <- as.tibble(tidy(lm(n.off ~ rs.par, data = stock_triads_rs %>% filter(Cross == "HN")))))
-(stock_h2_rs_HH <- as.tibble(tidy(lm(n.off ~ rs.par, data = stock_triads_rs %>% filter(Cross == "HH")))))
-
-# by sex
-(stock_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.dam, data = stock_triads_rs))))
-(stock_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.sire, data = stock_triads_rs))))
-(stock_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.dam, data = stock_triads_rs %>% filter(Sex.off == "F")))))
-(stock_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.sire, data = stock_triads_rs %>% filter(Sex.off == "M")))))
-(stock_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.dam, data = stock_triads_rs %>% filter(Sex.off == "M")))))
-(stock_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.sire, data = stock_triads_rs %>% filter(Sex.off == "F")))))
+# # Stockdale
+# h2_rs_graph()
+# # stock_r_and_h2_rs <- as.data.frame(cbind(stock_r_for_h2_rs, stock_h2_rs)) %>% round(3)
+# # colnames(stock_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
+# # rownames(stock_r_and_h2_rs) <- c("Stockdale_15_17 Overall", "NN", "NH", "HN", "HH")
+# # stock_r_and_h2_rs
+# 
+# # by cross
+# (stock_h2_rs_all <- as.tibble(tidy(lm(n.off ~ rs.par, data = stock_triads_rs))))
+# (stock_h2_rs_NN <- as.tibble(tidy(lm(n.off ~ rs.par, data = stock_triads_rs %>% filter(Cross == "NN")))))
+# (stock_h2_rs_NH <- as.tibble(tidy(lm(n.off ~ rs.par, data = stock_triads_rs %>% filter(Cross == "NH")))))
+# (stock_h2_rs_HN <- as.tibble(tidy(lm(n.off ~ rs.par, data = stock_triads_rs %>% filter(Cross == "HN")))))
+# # (stock_h2_rs_HH <- as.tibble(tidy(lm(n.off ~ rs.par, data = stock_triads_rs %>% filter(Cross == "HH")))))
+# 
+# # by sex
+# (stock_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.dam, data = stock_triads_rs))))
+# (stock_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.sire, data = stock_triads_rs))))
+# (stock_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.dam, data = stock_triads_rs %>% filter(Sex.off == "F")))))
+# (stock_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.sire, data = stock_triads_rs %>% filter(Sex.off == "M")))))
+# (stock_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.dam, data = stock_triads_rs %>% filter(Sex.off == "M")))))
+# (stock_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.sire, data = stock_triads_rs %>% filter(Sex.off == "F")))))
 
 # Hogan
 h2_rs_graph(hogan_triads_rs, title = "Hogan_15_17\n\nHeritability of RS - Parent Pair")
@@ -896,35 +899,35 @@ h2_rs_graph(hogan_triads_rs, title = "Hogan_15_17\n\nHeritability of RS - Parent
 (hogan_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.dam, data = hogan_triads_rs %>% filter(Sex.off == "M")))))
 (hogan_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.sire, data = hogan_triads_rs %>% filter(Sex.off == "F")))))
 
-# Gilmour
-h2_rs_graph(gilmour_triads_rs, title = "Gilmour_15_17\n\nHeritability of RS - Parent Pair")
-# gilmour_r_and_h2_rs <- as.data.frame(cbind(gilmour_r_for_h2_rs, gilmour_h2_rs)) %>% round(3)
-# colnames(gilmour_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
-# rownames(gilmour_r_and_h2_rs) <- c("Gilmour_15_17 Overall", "NN", "NH", "HN", "HH")
-# gilmour_r_and_h2_rs
-
-# by cross
-(gilmour_h2_rs_all <- as.tibble(tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs))))
-(gilmour_h2_rs_NN <- as.tibble(tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs %>% filter(Cross == "NN")))))
-(gilmour_h2_rs_NH <- as.tibble(tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs %>% filter(Cross == "NH")))))
-(gilmour_h2_rs_HN <- as.tibble(tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs %>% filter(Cross == "HN")))))
-(gilmour_h2_rs_HH <- as.tibble(tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs %>% filter(Cross == "HH")))))
-
-# by sex
-(gilmour_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.dam, data = gilmour_triads_rs))))
-(gilmour_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.sire, data = gilmour_triads_rs))))
-(gilmour_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.dam, data = gilmour_triads_rs %>% filter(Sex.off == "F")))))
-(gilmour_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.sire, data = gilmour_triads_rs %>% filter(Sex.off == "M")))))
-(gilmour_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.dam, data = gilmour_triads_rs %>% filter(Sex.off == "M")))))
-(gilmour_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.sire, data = gilmour_triads_rs %>% filter(Sex.off == "F")))))
-
+# # Gilmour
+# h2_rs_graph(gilmour_triads_rs, title = "Gilmour_15_17\n\nHeritability of RS - Parent Pair")
+# # gilmour_r_and_h2_rs <- as.data.frame(cbind(gilmour_r_for_h2_rs, gilmour_h2_rs)) %>% round(3)
+# # colnames(gilmour_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
+# # rownames(gilmour_r_and_h2_rs) <- c("Gilmour_15_17 Overall", "NN", "NH", "HN", "HH")
+# # gilmour_r_and_h2_rs
+# 
+# # by cross
+# (gilmour_h2_rs_all <- as.tibble(tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs))))
+# (gilmour_h2_rs_NN <- as.tibble(tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs %>% filter(Cross == "NN")))))
+# (gilmour_h2_rs_NH <- as.tibble(tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs %>% filter(Cross == "NH")))))
+# (gilmour_h2_rs_HN <- as.tibble(tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs %>% filter(Cross == "HN")))))
+# (gilmour_h2_rs_HH <- as.tibble(tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs %>% filter(Cross == "HH")))))
+# 
+# # by sex
+# (gilmour_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.dam, data = gilmour_triads_rs))))
+# (gilmour_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.sire, data = gilmour_triads_rs))))
+# (gilmour_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.dam, data = gilmour_triads_rs %>% filter(Sex.off == "F")))))
+# (gilmour_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.sire, data = gilmour_triads_rs %>% filter(Sex.off == "M")))))
+# (gilmour_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.dam, data = gilmour_triads_rs %>% filter(Sex.off == "M")))))
+# (gilmour_h2_rs_all_tbl <- as.tibble(tidy(lm(n.off ~ n.sire, data = gilmour_triads_rs %>% filter(Sex.off == "F")))))
+# 
 # # Paddy
 # h2_rs_graph(paddy_triads_rs, title = "Paddy_15_17\n\nHeritability of RS - Parent Pair")
 # paddy_r_and_h2_rs <- as.data.frame(cbind(paddy_r_for_h2_rs, paddy_h2_rs)) %>% round(3)
 # colnames(paddy_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
 # rownames(paddy_r_and_h2_rs) <- c("Paddy_15_17 Overall", "NN", "NH", "HN", "HH")
 # paddy_r_and_h2_rs
-
+# 
 # # by cross
 # (paddy_h2_rs_all <- as.tibble(tidy(lm(n.off ~ rs.par, data = paddy_triads_rs))))
 # (paddy_h2_rs_NN <- as.tibble(tidy(lm(n.off ~ rs.par, data = paddy_triads_rs %>% filter(Cross == "NN")))))
@@ -946,7 +949,7 @@ h2_rs_graph(gilmour_triads_rs, title = "Gilmour_15_17\n\nHeritability of RS - Pa
 # colnames(erb_r_and_h2_rs) <- c("Correlation (r)", "Heritability (h^2)")
 # rownames(erb_r_and_h2_rs) <- c("Erb_15_17 Overall", "NN", "NH", "HN", "HH")
 # erb_r_and_h2_rs
-
+# 
 # # by cross
 # (erb_h2_rs_all <- as.tibble(tidy(lm(n.off ~ rs.par, data = paddy_triads_rs))))
 # (paddy_h2_rs_NN <- as.tibble(tidy(lm(n.off ~ rs.par, data = paddy_triads_rs %>% filter(Cross == "NN")))))
@@ -967,8 +970,8 @@ h2_rs_graph(gilmour_triads_rs, title = "Gilmour_15_17\n\nHeritability of RS - Pa
 
 General: Nothing to see here.
 
-1. Stockdale -- No indication of heritability of RS.
-2. Hogan -- Some seemingly legit heritability values, but again, samples sizes are too small.
-3. Gilmour -- No indication of heritability of RS.
-4. Paddy -- TBD; no 2018 otolith data available yet.
-5. Erb -- TBD; no 2018 otolith data available yet.
+1. Stockdale -- Not enough data.
+2. Hogan -- Nothing; sample sizes too small for most crosses.
+3. Gilmour -- TBD; no otolith data available yet.
+4. Paddy -- TBD; no otolith data available yet.
+5. Erb -- TBD; no otolith data available yet.
