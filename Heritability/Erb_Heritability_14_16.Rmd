@@ -244,26 +244,26 @@ parents_paired_length <- function(indata_triads_length = erb_triads_length_14_16
                              Sex.off == "M" ~ "Male")) 
 }
 
-erb_parents_paired_14_16_length1 <- parents_paired_length() %>% 
+(erb_parents_paired_14_16_length1 <- parents_paired_length() %>% 
   group_by(Cross) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
-erb_parents_paired_14_16_length2 <- parents_paired_length() %>% 
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+(erb_parents_paired_14_16_length2 <- parents_paired_length() %>% 
   group_by(sex.dam, sex.off) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
-erb_parents_paired_14_16_length3 <- parents_paired_length() %>% 
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+(erb_parents_paired_14_16_length3 <- parents_paired_length() %>% 
   group_by(sex.sire, sex.off) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
 
-erb_parents_paired_14_16_length1_HH <- as.data.frame(c(erb_parents_paired_14_16_length1[4,2], erb_parents_paired_14_16_length1[4,3]*2))
-erb_parents_paired_14_16_length1_HN <- as.data.frame(c(erb_parents_paired_14_16_length1[3,2], erb_parents_paired_14_16_length1[3,3]*2))
+erb_parents_paired_14_16_length1_NN <- as.data.frame(c(erb_parents_paired_14_16_length1[4,2], erb_parents_paired_14_16_length1[4,3]*2))
+erb_parents_paired_14_16_length1_NH <- as.data.frame(c(erb_parents_paired_14_16_length1[3,2], erb_parents_paired_14_16_length1[3,3]*2))
 erb_parents_paired_14_16_length1_HN <- as.data.frame(c(erb_parents_paired_14_16_length1[2,2], erb_parents_paired_14_16_length1[2,3]*2))
-erb_parents_paired_14_16_length1_NN <- as.data.frame(c(erb_parents_paired_14_16_length1[1,2], erb_parents_paired_14_16_length1[1,3]*2))
+erb_parents_paired_14_16_length1_HH <- as.data.frame(c(erb_parents_paired_14_16_length1[1,2], erb_parents_paired_14_16_length1[1,3]*2))
 erb_parents_paired_14_16_length2_dF <- as.data.frame(c(erb_parents_paired_14_16_length2[1,3], erb_parents_paired_14_16_length2[1,4]*2))
 erb_parents_paired_14_16_length2_dM <- as.data.frame(c(erb_parents_paired_14_16_length2[2,3], erb_parents_paired_14_16_length2[2,4]*2))
 erb_parents_paired_14_16_length3_sF <- as.data.frame(c(erb_parents_paired_14_16_length3[1,3], erb_parents_paired_14_16_length3[1,4]*2))
 erb_parents_paired_14_16_length3_sM <- as.data.frame(c(erb_parents_paired_14_16_length3[2,3], erb_parents_paired_14_16_length3[2,4]*2))
 
-erb_r_and_h2_length_14_16 <- rbind(erb_parents_paired_14_16_length1_HH, erb_parents_paired_14_16_length1_HN, erb_parents_paired_14_16_length1_HN, erb_parents_paired_14_16_length1_NN, erb_parents_paired_14_16_length2_dF, erb_parents_paired_14_16_length2_dM, erb_parents_paired_14_16_length3_sF, erb_parents_paired_14_16_length3_sM) %>% round(3)
+erb_r_and_h2_length_14_16 <- rbind(erb_parents_paired_14_16_length1_NN, erb_parents_paired_14_16_length1_NH, erb_parents_paired_14_16_length1_HN, erb_parents_paired_14_16_length1_HH, erb_parents_paired_14_16_length2_dF, erb_parents_paired_14_16_length2_dM, erb_parents_paired_14_16_length3_sF, erb_parents_paired_14_16_length3_sM) %>% round(3)
 colnames(erb_r_and_h2_length_14_16) <- c("Correlation (r)", "Heritability (h^2)")
 erb_r_and_h2_length_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
 (erb_r_and_h2_length_14_16 <- erb_r_and_h2_length_14_16[,c(3,1,2)])
@@ -432,26 +432,26 @@ parents_paired_date <- function(indata_triads_date = erb_triads_date_14_16) {
                              Sex.off == "M" ~ "Male")) 
 }
 
-erb_parents_paired_14_16_date1 <- parents_paired_date() %>% 
+(erb_parents_paired_14_16_date1 <- parents_paired_date() %>% 
   group_by(Cross) %>%
-  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3))
-erb_parents_paired_14_16_date2 <- parents_paired_date() %>% 
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+(erb_parents_paired_14_16_date2 <- parents_paired_date() %>% 
   group_by(sex.dam, sex.off) %>%
-  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3))
-erb_parents_paired_14_16_date3 <- parents_paired_date() %>% 
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+(erb_parents_paired_14_16_date3 <- parents_paired_date() %>% 
   group_by(sex.sire, sex.off) %>%
-  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3))
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
 
-erb_parents_paired_14_16_date1_HH <- as.data.frame(c(erb_parents_paired_14_16_date1[4,2], erb_parents_paired_14_16_date1[4,3]*2))
-erb_parents_paired_14_16_date1_HN <- as.data.frame(c(erb_parents_paired_14_16_date1[3,2], erb_parents_paired_14_16_date1[3,3]*2))
+erb_parents_paired_14_16_date1_NN <- as.data.frame(c(erb_parents_paired_14_16_date1[4,2], erb_parents_paired_14_16_date1[4,3]*2))
+erb_parents_paired_14_16_date1_NH <- as.data.frame(c(erb_parents_paired_14_16_date1[3,2], erb_parents_paired_14_16_date1[3,3]*2))
 erb_parents_paired_14_16_date1_HN <- as.data.frame(c(erb_parents_paired_14_16_date1[2,2], erb_parents_paired_14_16_date1[2,3]*2))
-erb_parents_paired_14_16_date1_NN <- as.data.frame(c(erb_parents_paired_14_16_date1[1,2], erb_parents_paired_14_16_date1[1,3]*2))
+erb_parents_paired_14_16_date1_HH <- as.data.frame(c(erb_parents_paired_14_16_date1[1,2], erb_parents_paired_14_16_date1[1,3]*2))
 erb_parents_paired_14_16_date2_dF <- as.data.frame(c(erb_parents_paired_14_16_date2[1,3], erb_parents_paired_14_16_date2[1,4]*2))
 erb_parents_paired_14_16_date2_dM <- as.data.frame(c(erb_parents_paired_14_16_date2[2,3], erb_parents_paired_14_16_date2[2,4]*2))
 erb_parents_paired_14_16_date3_sF <- as.data.frame(c(erb_parents_paired_14_16_date3[1,3], erb_parents_paired_14_16_date3[1,4]*2))
 erb_parents_paired_14_16_date3_sM <- as.data.frame(c(erb_parents_paired_14_16_date3[2,3], erb_parents_paired_14_16_date3[2,4]*2))
 
-erb_r_and_h2_date_14_16 <- rbind(erb_parents_paired_14_16_date1_HH, erb_parents_paired_14_16_date1_HN, erb_parents_paired_14_16_date1_HN, erb_parents_paired_14_16_date1_NN, erb_parents_paired_14_16_date2_dF, erb_parents_paired_14_16_date2_dM, erb_parents_paired_14_16_date3_sF, erb_parents_paired_14_16_date3_sM) %>% round(3)
+erb_r_and_h2_date_14_16 <- rbind(erb_parents_paired_14_16_date1_NN, erb_parents_paired_14_16_date1_NH, erb_parents_paired_14_16_date1_HN, erb_parents_paired_14_16_date1_HH, erb_parents_paired_14_16_date2_dF, erb_parents_paired_14_16_date2_dM, erb_parents_paired_14_16_date3_sF, erb_parents_paired_14_16_date3_sM) %>% round(3)
 colnames(erb_r_and_h2_date_14_16) <- c("Correlation (r)", "Heritability (h^2)")
 erb_r_and_h2_date_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
 (erb_r_and_h2_date_14_16 <- erb_r_and_h2_date_14_16[,c(3,1,2)])

@@ -243,26 +243,26 @@ parents_paired_length <- function(indata_triads_length = gilmour_triads_length_1
                              Sex.off == "M" ~ "Male")) 
 }
 
-gilmour_parents_paired_14_16_length1 <- parents_paired_length() %>% 
+(gilmour_parents_paired_14_16_length1 <- parents_paired_length() %>% 
   group_by(Cross) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
-gilmour_parents_paired_14_16_length2 <- parents_paired_length() %>% 
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+(gilmour_parents_paired_14_16_length2 <- parents_paired_length() %>% 
   group_by(sex.dam, sex.off) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
-gilmour_parents_paired_14_16_length3 <- parents_paired_length() %>% 
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+(gilmour_parents_paired_14_16_length3 <- parents_paired_length() %>% 
   group_by(sex.sire, sex.off) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
 
-gilmour_parents_paired_14_16_length1_HH <- as.data.frame(c(gilmour_parents_paired_14_16_length1[4,2], gilmour_parents_paired_14_16_length1[4,3]*2))
-gilmour_parents_paired_14_16_length1_HN <- as.data.frame(c(gilmour_parents_paired_14_16_length1[3,2], gilmour_parents_paired_14_16_length1[3,3]*2))
+gilmour_parents_paired_14_16_length1_NN <- as.data.frame(c(gilmour_parents_paired_14_16_length1[4,2], gilmour_parents_paired_14_16_length1[4,3]*2))
+gilmour_parents_paired_14_16_length1_NH <- as.data.frame(c(gilmour_parents_paired_14_16_length1[3,2], gilmour_parents_paired_14_16_length1[3,3]*2))
 gilmour_parents_paired_14_16_length1_HN <- as.data.frame(c(gilmour_parents_paired_14_16_length1[2,2], gilmour_parents_paired_14_16_length1[2,3]*2))
-gilmour_parents_paired_14_16_length1_NN <- as.data.frame(c(gilmour_parents_paired_14_16_length1[1,2], gilmour_parents_paired_14_16_length1[1,3]*2))
+gilmour_parents_paired_14_16_length1_HH <- as.data.frame(c(gilmour_parents_paired_14_16_length1[1,2], gilmour_parents_paired_14_16_length1[1,3]*2))
 gilmour_parents_paired_14_16_length2_dF <- as.data.frame(c(gilmour_parents_paired_14_16_length2[1,3], gilmour_parents_paired_14_16_length2[1,4]*2))
 gilmour_parents_paired_14_16_length2_dM <- as.data.frame(c(gilmour_parents_paired_14_16_length2[2,3], gilmour_parents_paired_14_16_length2[2,4]*2))
 gilmour_parents_paired_14_16_length3_sF <- as.data.frame(c(gilmour_parents_paired_14_16_length3[1,3], gilmour_parents_paired_14_16_length3[1,4]*2))
 gilmour_parents_paired_14_16_length3_sM <- as.data.frame(c(gilmour_parents_paired_14_16_length3[2,3], gilmour_parents_paired_14_16_length3[2,4]*2))
 
-gilmour_r_and_h2_length_14_16 <- rbind(gilmour_parents_paired_14_16_length1_HH, gilmour_parents_paired_14_16_length1_HN, gilmour_parents_paired_14_16_length1_HN, gilmour_parents_paired_14_16_length1_NN, gilmour_parents_paired_14_16_length2_dF, gilmour_parents_paired_14_16_length2_dM, gilmour_parents_paired_14_16_length3_sF, gilmour_parents_paired_14_16_length3_sM) %>% round(3)
+gilmour_r_and_h2_length_14_16 <- rbind(gilmour_parents_paired_14_16_length1_NN, gilmour_parents_paired_14_16_length1_NH, gilmour_parents_paired_14_16_length1_HN, gilmour_parents_paired_14_16_length1_HH, gilmour_parents_paired_14_16_length2_dF, gilmour_parents_paired_14_16_length2_dM, gilmour_parents_paired_14_16_length3_sF, gilmour_parents_paired_14_16_length3_sM) %>% round(3)
 colnames(gilmour_r_and_h2_length_14_16) <- c("Correlation (r)", "Heritability (h^2)")
 gilmour_r_and_h2_length_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
 (gilmour_r_and_h2_length_14_16 <- gilmour_r_and_h2_length_14_16[,c(3,1,2)])
@@ -356,7 +356,7 @@ gilmour_h2_length_14_16 <- merge(gilmour_r_and_h2_length_14_16, gilmour_slope_as
 (gilmour_h2_length_14_16 <- gilmour_h2_length_14_16[c(6,5,4,3,1,2,7,8),])
 ```
 
-There is some evidence for heritability of body size for certain crosses.
+There is some evidence for heritability of body size for certain crosses, although cross data is confounded by missing origin info in 2018.
 
 
 ## Sample Date
@@ -431,26 +431,26 @@ parents_paired_date <- function(indata_triads_date = gilmour_triads_date_14_16) 
                              Sex.off == "M" ~ "Male")) 
 }
 
-gilmour_parents_paired_14_16_date1 <- parents_paired_date() %>% 
+(gilmour_parents_paired_14_16_date1 <- parents_paired_date() %>% 
   group_by(Cross) %>%
-  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3))
-gilmour_parents_paired_14_16_date2 <- parents_paired_date() %>% 
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+(gilmour_parents_paired_14_16_date2 <- parents_paired_date() %>% 
   group_by(sex.dam, sex.off) %>%
-  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3))
-gilmour_parents_paired_14_16_date3 <- parents_paired_date() %>% 
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+(gilmour_parents_paired_14_16_date3 <- parents_paired_date() %>% 
   group_by(sex.sire, sex.off) %>%
-  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3))
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
 
-gilmour_parents_paired_14_16_date1_HH <- as.data.frame(c(gilmour_parents_paired_14_16_date1[4,2], gilmour_parents_paired_14_16_date1[4,3]*2))
-gilmour_parents_paired_14_16_date1_HN <- as.data.frame(c(gilmour_parents_paired_14_16_date1[3,2], gilmour_parents_paired_14_16_date1[3,3]*2))
+gilmour_parents_paired_14_16_date1_NN <- as.data.frame(c(gilmour_parents_paired_14_16_date1[4,2], gilmour_parents_paired_14_16_date1[4,3]*2))
+gilmour_parents_paired_14_16_date1_NH <- as.data.frame(c(gilmour_parents_paired_14_16_date1[3,2], gilmour_parents_paired_14_16_date1[3,3]*2))
 gilmour_parents_paired_14_16_date1_HN <- as.data.frame(c(gilmour_parents_paired_14_16_date1[2,2], gilmour_parents_paired_14_16_date1[2,3]*2))
-gilmour_parents_paired_14_16_date1_NN <- as.data.frame(c(gilmour_parents_paired_14_16_date1[1,2], gilmour_parents_paired_14_16_date1[1,3]*2))
+gilmour_parents_paired_14_16_date1_HH <- as.data.frame(c(gilmour_parents_paired_14_16_date1[1,2], gilmour_parents_paired_14_16_date1[1,3]*2))
 gilmour_parents_paired_14_16_date2_dF <- as.data.frame(c(gilmour_parents_paired_14_16_date2[1,3], gilmour_parents_paired_14_16_date2[1,4]*2))
 gilmour_parents_paired_14_16_date2_dM <- as.data.frame(c(gilmour_parents_paired_14_16_date2[2,3], gilmour_parents_paired_14_16_date2[2,4]*2))
 gilmour_parents_paired_14_16_date3_sF <- as.data.frame(c(gilmour_parents_paired_14_16_date3[1,3], gilmour_parents_paired_14_16_date3[1,4]*2))
 gilmour_parents_paired_14_16_date3_sM <- as.data.frame(c(gilmour_parents_paired_14_16_date3[2,3], gilmour_parents_paired_14_16_date3[2,4]*2))
 
-gilmour_r_and_h2_date_14_16 <- rbind(gilmour_parents_paired_14_16_date1_HH, gilmour_parents_paired_14_16_date1_HN, gilmour_parents_paired_14_16_date1_HN, gilmour_parents_paired_14_16_date1_NN, gilmour_parents_paired_14_16_date2_dF, gilmour_parents_paired_14_16_date2_dM, gilmour_parents_paired_14_16_date3_sF, gilmour_parents_paired_14_16_date3_sM) %>% round(3)
+gilmour_r_and_h2_date_14_16 <- rbind(gilmour_parents_paired_14_16_date1_NN, gilmour_parents_paired_14_16_date1_NH, gilmour_parents_paired_14_16_date1_HN, gilmour_parents_paired_14_16_date1_HH, gilmour_parents_paired_14_16_date2_dF, gilmour_parents_paired_14_16_date2_dM, gilmour_parents_paired_14_16_date3_sF, gilmour_parents_paired_14_16_date3_sM) %>% round(3)
 colnames(gilmour_r_and_h2_date_14_16) <- c("Correlation (r)", "Heritability (h^2)")
 gilmour_r_and_h2_date_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
 (gilmour_r_and_h2_date_14_16 <- gilmour_r_and_h2_date_14_16[,c(3,1,2)])
@@ -544,7 +544,7 @@ gilmour_h2_date_14_16 <- merge(gilmour_r_and_h2_date_14_16, gilmour_slope_as_h2_
 (gilmour_h2_date_14_16 <- gilmour_h2_date_14_16[c(6,5,4,3,1,2,7,8),])
 ```
 
-There is good evidence of heritability of sample date as a proxy for return time for all cross types and perhaps female returne time.
+There is good evidence of heritability of sample date as a proxy for return time, although cross data is confounded by missing origin info in 2018.
 
 
 ## Sample Location
@@ -652,26 +652,26 @@ parents_paired_rs <- function(indata_triads_rs = gilmour_triads_rs_14_16) {
                              Sex.off == "M" ~ "Male")) 
 }
 
-gilmour_parents_paired_14_16_rs1 <- parents_paired_rs() %>% 
+(gilmour_parents_paired_14_16_rs1 <- parents_paired_rs() %>% 
   group_by(Cross) %>%
-  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3))
-gilmour_parents_paired_14_16_rs2 <- parents_paired_rs() %>% 
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+(gilmour_parents_paired_14_16_rs2 <- parents_paired_rs() %>% 
   group_by(sex.dam, sex.off) %>%
-  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3))
-gilmour_parents_paired_14_16_rs3 <- parents_paired_rs() %>% 
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+(gilmour_parents_paired_14_16_rs3 <- parents_paired_rs() %>% 
   group_by(sex.sire, sex.off) %>%
-  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3))
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
 
-gilmour_parents_paired_14_16_rs1_HH <- as.data.frame(c(gilmour_parents_paired_14_16_rs1[4,2], gilmour_parents_paired_14_16_rs1[4,3]*2))
-gilmour_parents_paired_14_16_rs1_HN <- as.data.frame(c(gilmour_parents_paired_14_16_rs1[3,2], gilmour_parents_paired_14_16_rs1[3,3]*2))
+gilmour_parents_paired_14_16_rs1_NN <- as.data.frame(c(gilmour_parents_paired_14_16_rs1[4,2], gilmour_parents_paired_14_16_rs1[4,3]*2))
+gilmour_parents_paired_14_16_rs1_NH <- as.data.frame(c(gilmour_parents_paired_14_16_rs1[3,2], gilmour_parents_paired_14_16_rs1[3,3]*2))
 gilmour_parents_paired_14_16_rs1_HN <- as.data.frame(c(gilmour_parents_paired_14_16_rs1[2,2], gilmour_parents_paired_14_16_rs1[2,3]*2))
-gilmour_parents_paired_14_16_rs1_NN <- as.data.frame(c(gilmour_parents_paired_14_16_rs1[1,2], gilmour_parents_paired_14_16_rs1[1,3]*2))
+gilmour_parents_paired_14_16_rs1_HH <- as.data.frame(c(gilmour_parents_paired_14_16_rs1[1,2], gilmour_parents_paired_14_16_rs1[1,3]*2))
 gilmour_parents_paired_14_16_rs2_dF <- as.data.frame(c(gilmour_parents_paired_14_16_rs2[1,3], gilmour_parents_paired_14_16_rs2[1,4]*2))
 gilmour_parents_paired_14_16_rs2_dM <- as.data.frame(c(gilmour_parents_paired_14_16_rs2[2,3], gilmour_parents_paired_14_16_rs2[2,4]*2))
 gilmour_parents_paired_14_16_rs3_sF <- as.data.frame(c(gilmour_parents_paired_14_16_rs3[1,3], gilmour_parents_paired_14_16_rs3[1,4]*2))
 gilmour_parents_paired_14_16_rs3_sM <- as.data.frame(c(gilmour_parents_paired_14_16_rs3[2,3], gilmour_parents_paired_14_16_rs3[2,4]*2))
 
-gilmour_r_and_h2_rs_14_16 <- rbind(gilmour_parents_paired_14_16_rs1_HH, gilmour_parents_paired_14_16_rs1_HN, gilmour_parents_paired_14_16_rs1_HN, gilmour_parents_paired_14_16_rs1_NN, gilmour_parents_paired_14_16_rs2_dF, gilmour_parents_paired_14_16_rs2_dM, gilmour_parents_paired_14_16_rs3_sF, gilmour_parents_paired_14_16_rs3_sM) %>% round(3)
+gilmour_r_and_h2_rs_14_16 <- rbind(gilmour_parents_paired_14_16_rs1_NN, gilmour_parents_paired_14_16_rs1_NH, gilmour_parents_paired_14_16_rs1_HN, gilmour_parents_paired_14_16_rs1_HH, gilmour_parents_paired_14_16_rs2_dF, gilmour_parents_paired_14_16_rs2_dM, gilmour_parents_paired_14_16_rs3_sF, gilmour_parents_paired_14_16_rs3_sM) %>% round(3)
 colnames(gilmour_r_and_h2_rs_14_16) <- c("Correlation (r)", "Heritability (h^2)")
 gilmour_r_and_h2_rs_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
 (gilmour_r_and_h2_rs_14_16 <- gilmour_r_and_h2_rs_14_16[,c(3,1,2)])

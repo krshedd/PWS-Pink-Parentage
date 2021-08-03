@@ -244,26 +244,26 @@ parents_paired_length <- function(indata_triads_length = hogan_triads_length_14_
                              Sex.off == "M" ~ "Male")) 
 }
 
-hogan_parents_paired_14_16_length1 <- parents_paired_length() %>% 
+(hogan_parents_paired_14_16_length1 <- parents_paired_length() %>% 
   group_by(Cross) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
-hogan_parents_paired_14_16_length2 <- parents_paired_length() %>% 
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+(hogan_parents_paired_14_16_length2 <- parents_paired_length() %>% 
   group_by(sex.dam, sex.off) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
-hogan_parents_paired_14_16_length3 <- parents_paired_length() %>% 
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+(hogan_parents_paired_14_16_length3 <- parents_paired_length() %>% 
   group_by(sex.sire, sex.off) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
 
-hogan_parents_paired_14_16_length1_HH <- as.data.frame(c(hogan_parents_paired_14_16_length1[4,2], hogan_parents_paired_14_16_length1[4,3]*2))
-hogan_parents_paired_14_16_length1_HN <- as.data.frame(c(hogan_parents_paired_14_16_length1[3,2], hogan_parents_paired_14_16_length1[3,3]*2))
+hogan_parents_paired_14_16_length1_NN <- as.data.frame(c(hogan_parents_paired_14_16_length1[4,2], hogan_parents_paired_14_16_length1[4,3]*2))
+hogan_parents_paired_14_16_length1_NH <- as.data.frame(c(hogan_parents_paired_14_16_length1[3,2], hogan_parents_paired_14_16_length1[3,3]*2))
 hogan_parents_paired_14_16_length1_HN <- as.data.frame(c(hogan_parents_paired_14_16_length1[2,2], hogan_parents_paired_14_16_length1[2,3]*2))
-hogan_parents_paired_14_16_length1_NN <- as.data.frame(c(hogan_parents_paired_14_16_length1[1,2], hogan_parents_paired_14_16_length1[1,3]*2))
+hogan_parents_paired_14_16_length1_HH <- as.data.frame(c(hogan_parents_paired_14_16_length1[1,2], hogan_parents_paired_14_16_length1[1,3]*2))
 hogan_parents_paired_14_16_length2_dF <- as.data.frame(c(hogan_parents_paired_14_16_length2[1,3], hogan_parents_paired_14_16_length2[1,4]*2))
 hogan_parents_paired_14_16_length2_dM <- as.data.frame(c(hogan_parents_paired_14_16_length2[2,3], hogan_parents_paired_14_16_length2[2,4]*2))
 hogan_parents_paired_14_16_length3_sF <- as.data.frame(c(hogan_parents_paired_14_16_length3[1,3], hogan_parents_paired_14_16_length3[1,4]*2))
 hogan_parents_paired_14_16_length3_sM <- as.data.frame(c(hogan_parents_paired_14_16_length3[2,3], hogan_parents_paired_14_16_length3[2,4]*2))
 
-hogan_r_and_h2_length_14_16 <- rbind(hogan_parents_paired_14_16_length1_HH, hogan_parents_paired_14_16_length1_HN, hogan_parents_paired_14_16_length1_HN, hogan_parents_paired_14_16_length1_NN, hogan_parents_paired_14_16_length2_dF, hogan_parents_paired_14_16_length2_dM, hogan_parents_paired_14_16_length3_sF, hogan_parents_paired_14_16_length3_sM) %>% round(3)
+hogan_r_and_h2_length_14_16 <- rbind(hogan_parents_paired_14_16_length1_NN, hogan_parents_paired_14_16_length1_NH, hogan_parents_paired_14_16_length1_HN, hogan_parents_paired_14_16_length1_HH, hogan_parents_paired_14_16_length2_dF, hogan_parents_paired_14_16_length2_dM, hogan_parents_paired_14_16_length3_sF, hogan_parents_paired_14_16_length3_sM) %>% round(3)
 colnames(hogan_r_and_h2_length_14_16) <- c("Correlation (r)", "Heritability (h^2)")
 hogan_r_and_h2_length_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
 (hogan_r_and_h2_length_14_16 <- hogan_r_and_h2_length_14_16[,c(3,1,2)])
@@ -432,26 +432,26 @@ parents_paired_date <- function(indata_triads_date = hogan_triads_date_14_16) {
                              Sex.off == "M" ~ "Male")) 
 }
 
-hogan_parents_paired_14_16_date1 <- parents_paired_date() %>% 
+(hogan_parents_paired_14_16_date1 <- parents_paired_date() %>% 
   group_by(Cross) %>%
-  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3))
-hogan_parents_paired_14_16_date2 <- parents_paired_date() %>% 
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+(hogan_parents_paired_14_16_date2 <- parents_paired_date() %>% 
   group_by(sex.dam, sex.off) %>%
-  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3))
-hogan_parents_paired_14_16_date3 <- parents_paired_date() %>% 
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+(hogan_parents_paired_14_16_date3 <- parents_paired_date() %>% 
   group_by(sex.sire, sex.off) %>%
-  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3))
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
 
-hogan_parents_paired_14_16_date1_HH <- as.data.frame(c(hogan_parents_paired_14_16_date1[4,2], hogan_parents_paired_14_16_date1[4,3]*2))
-hogan_parents_paired_14_16_date1_HN <- as.data.frame(c(hogan_parents_paired_14_16_date1[3,2], hogan_parents_paired_14_16_date1[3,3]*2))
+hogan_parents_paired_14_16_date1_NN <- as.data.frame(c(hogan_parents_paired_14_16_date1[4,2], hogan_parents_paired_14_16_date1[4,3]*2))
+hogan_parents_paired_14_16_date1_NH <- as.data.frame(c(hogan_parents_paired_14_16_date1[3,2], hogan_parents_paired_14_16_date1[3,3]*2))
 hogan_parents_paired_14_16_date1_HN <- as.data.frame(c(hogan_parents_paired_14_16_date1[2,2], hogan_parents_paired_14_16_date1[2,3]*2))
-hogan_parents_paired_14_16_date1_NN <- as.data.frame(c(hogan_parents_paired_14_16_date1[1,2], hogan_parents_paired_14_16_date1[1,3]*2))
+hogan_parents_paired_14_16_date1_HH <- as.data.frame(c(hogan_parents_paired_14_16_date1[1,2], hogan_parents_paired_14_16_date1[1,3]*2))
 hogan_parents_paired_14_16_date2_dF <- as.data.frame(c(hogan_parents_paired_14_16_date2[1,3], hogan_parents_paired_14_16_date2[1,4]*2))
 hogan_parents_paired_14_16_date2_dM <- as.data.frame(c(hogan_parents_paired_14_16_date2[2,3], hogan_parents_paired_14_16_date2[2,4]*2))
 hogan_parents_paired_14_16_date3_sF <- as.data.frame(c(hogan_parents_paired_14_16_date3[1,3], hogan_parents_paired_14_16_date3[1,4]*2))
 hogan_parents_paired_14_16_date3_sM <- as.data.frame(c(hogan_parents_paired_14_16_date3[2,3], hogan_parents_paired_14_16_date3[2,4]*2))
 
-hogan_r_and_h2_date_14_16 <- rbind(hogan_parents_paired_14_16_date1_HH, hogan_parents_paired_14_16_date1_HN, hogan_parents_paired_14_16_date1_HN, hogan_parents_paired_14_16_date1_NN, hogan_parents_paired_14_16_date2_dF, hogan_parents_paired_14_16_date2_dM, hogan_parents_paired_14_16_date3_sF, hogan_parents_paired_14_16_date3_sM) %>% round(3)
+hogan_r_and_h2_date_14_16 <- rbind(hogan_parents_paired_14_16_date1_NN, hogan_parents_paired_14_16_date1_NH, hogan_parents_paired_14_16_date1_HN, hogan_parents_paired_14_16_date1_HH, hogan_parents_paired_14_16_date2_dF, hogan_parents_paired_14_16_date2_dM, hogan_parents_paired_14_16_date3_sF, hogan_parents_paired_14_16_date3_sM) %>% round(3)
 colnames(hogan_r_and_h2_date_14_16) <- c("Correlation (r)", "Heritability (h^2)")
 hogan_r_and_h2_date_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
 (hogan_r_and_h2_date_14_16 <- hogan_r_and_h2_date_14_16[,c(3,1,2)])
@@ -542,7 +542,7 @@ hogan_r_and_h2_date_14_16 <- hogan_r_and_h2_date_14_16[,c(1,3)]
 hogan_h2_date_14_16 <- merge(hogan_r_and_h2_date_14_16, hogan_slope_as_h2_date_14_16,  by="Category") %>% 
     merge(hogan_am_for_h2_date_14_16, by="Category") %>% 
     rename(Hogan_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
-(hogan_h2_date_14_16 <- hogan_h2_date_14_16[c(6,5,4,3,1,2,7,8),])
+(hogan_h2_date_14_16 <- hogan_h2_date_14_16[c(5,4,3,1,2,6,7),])
 ```
 
 Poor sample sizes confound heritability of sample date as a proxy for return time.
@@ -653,26 +653,26 @@ parents_paired_rs <- function(indata_triads_rs = hogan_triads_rs_14_16) {
                              Sex.off == "M" ~ "Male")) 
 }
 
-hogan_parents_paired_14_16_rs1 <- parents_paired_rs() %>% 
+(hogan_parents_paired_14_16_rs1 <- parents_paired_rs() %>% 
   group_by(Cross) %>%
-  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3))
-hogan_parents_paired_14_16_rs2 <- parents_paired_rs() %>% 
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+(hogan_parents_paired_14_16_rs2 <- parents_paired_rs() %>% 
   group_by(sex.dam, sex.off) %>%
-  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3))
-hogan_parents_paired_14_16_rs3 <- parents_paired_rs() %>% 
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+(hogan_parents_paired_14_16_rs3 <- parents_paired_rs() %>% 
   group_by(sex.sire, sex.off) %>%
-  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3))
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
 
-hogan_parents_paired_14_16_rs1_HH <- as.data.frame(c(hogan_parents_paired_14_16_rs1[4,2], hogan_parents_paired_14_16_rs1[4,3]*2))
-hogan_parents_paired_14_16_rs1_HN <- as.data.frame(c(hogan_parents_paired_14_16_rs1[3,2], hogan_parents_paired_14_16_rs1[3,3]*2))
+hogan_parents_paired_14_16_rs1_NN <- as.data.frame(c(hogan_parents_paired_14_16_rs1[4,2], hogan_parents_paired_14_16_rs1[4,3]*2))
+hogan_parents_paired_14_16_rs1_NH <- as.data.frame(c(hogan_parents_paired_14_16_rs1[3,2], hogan_parents_paired_14_16_rs1[3,3]*2))
 hogan_parents_paired_14_16_rs1_HN <- as.data.frame(c(hogan_parents_paired_14_16_rs1[2,2], hogan_parents_paired_14_16_rs1[2,3]*2))
-hogan_parents_paired_14_16_rs1_NN <- as.data.frame(c(hogan_parents_paired_14_16_rs1[1,2], hogan_parents_paired_14_16_rs1[1,3]*2))
+hogan_parents_paired_14_16_rs1_HH <- as.data.frame(c(hogan_parents_paired_14_16_rs1[1,2], hogan_parents_paired_14_16_rs1[1,3]*2))
 hogan_parents_paired_14_16_rs2_dF <- as.data.frame(c(hogan_parents_paired_14_16_rs2[1,3], hogan_parents_paired_14_16_rs2[1,4]*2))
 hogan_parents_paired_14_16_rs2_dM <- as.data.frame(c(hogan_parents_paired_14_16_rs2[2,3], hogan_parents_paired_14_16_rs2[2,4]*2))
 hogan_parents_paired_14_16_rs3_sF <- as.data.frame(c(hogan_parents_paired_14_16_rs3[1,3], hogan_parents_paired_14_16_rs3[1,4]*2))
 hogan_parents_paired_14_16_rs3_sM <- as.data.frame(c(hogan_parents_paired_14_16_rs3[2,3], hogan_parents_paired_14_16_rs3[2,4]*2))
 
-hogan_r_and_h2_rs_14_16 <- rbind(hogan_parents_paired_14_16_rs1_HH, hogan_parents_paired_14_16_rs1_HN, hogan_parents_paired_14_16_rs1_HN, hogan_parents_paired_14_16_rs1_NN, hogan_parents_paired_14_16_rs2_dF, hogan_parents_paired_14_16_rs2_dM, hogan_parents_paired_14_16_rs3_sF, hogan_parents_paired_14_16_rs3_sM) %>% round(3)
+hogan_r_and_h2_rs_14_16 <- rbind(hogan_parents_paired_14_16_rs1_NN, hogan_parents_paired_14_16_rs1_NH, hogan_parents_paired_14_16_rs1_HN,  hogan_parents_paired_14_16_rs1_HH, hogan_parents_paired_14_16_rs2_dF, hogan_parents_paired_14_16_rs2_dM, hogan_parents_paired_14_16_rs3_sF, hogan_parents_paired_14_16_rs3_sM) %>% round(3)
 colnames(hogan_r_and_h2_rs_14_16) <- c("Correlation (r)", "Heritability (h^2)")
 hogan_r_and_h2_rs_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
 (hogan_r_and_h2_rs_14_16 <- hogan_r_and_h2_rs_14_16[,c(3,1,2)])
@@ -744,9 +744,9 @@ hogan_h2_rs_14_16_sire_F <- 0.00 / (0.00 + 3.2262 + 0.3857)
 # hogan_h2_rs_14_16_dam_M <- 0.00 / (0.00 + 0.00 + 0.1363)
 # hogan_h2_rs_14_16_sire_M <- 0.00 / (0.00 + 0.00 + 0.1363)
 
-hogan_am_for_h2_rs_14_16 <- as.data.frame(c(hogan_h2_rs_14_16_all, hogan_h2_rs_14_16_NN, hogan_h2_rs_14_16_NH, hogan_h2_rs_14_16_HN, hogan_h2_rs_14_16_dam_F, hogan_h2_rs_14_16_dam_M, hogan_h2_rs_14_16_sire_F, hogan_h2_rs_14_16_sire_M)) %>% round(3)
+hogan_am_for_h2_rs_14_16 <- as.data.frame(c(hogan_h2_rs_14_16_all, hogan_h2_rs_14_16_NH, hogan_h2_rs_14_16_dam_F, hogan_h2_rs_14_16_sire_F)) %>% round(3)
 colnames(hogan_am_for_h2_rs_14_16) <- c("Heritability (h^2)")
-hogan_am_for_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+hogan_am_for_h2_rs_14_16$Category <- c("Overall", "NH", "Dam/Female offspring", "Sire/Female offspring")
 (hogan_am_for_h2_rs_14_16 <- hogan_am_for_h2_rs_14_16[,c(2,1)])
 ```
 
@@ -758,7 +758,7 @@ hogan_r_and_h2_rs_14_16 <- hogan_r_and_h2_rs_14_16[,c(1,3)]
 hogan_h2_rs_14_16 <- merge(hogan_r_and_h2_rs_14_16, hogan_slope_as_h2_rs_14_16,  by="Category") %>% 
     merge(hogan_am_for_h2_rs_14_16, by="Category") %>% 
     rename(Hogan_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
-(hogan_h2_rs_14_16 <- hogan_h2_rs_14_16[c(6,5,4,3,1,2,7,8),])
+(hogan_h2_rs_14_16 <- hogan_h2_rs_14_16[c(2,1,3),])
 ```
 
 Nothing to see here. Results are confounded by sample size.
