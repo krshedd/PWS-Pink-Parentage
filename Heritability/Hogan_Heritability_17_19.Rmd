@@ -1,0 +1,771 @@
+---
+title: "Heritability of body length, sample date, location, and RS according to Cross Type and Parental/Offspring Sex for Hogan 2017-2019"
+author: "Kristen Gruenthal"
+date: "5 August 2021"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+# **INTRODUCTION**
+
+The purpose of these analyses are to more fully explore the parent-pair offspring trio/triad data (i.e. cross data) for Hogan Creek 2017-2019 in terms of spatiotemporal patterning and generate preliminary estimates of narrow-sense heritability using regression slope analysis. **Hogan 2017-2019 does not, however, have good triad samples sizes, so any results must be taken with a grain of salt.** 
+
+```{r setup, include=FALSE}
+rm(list=ls())
+
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+library(gridExtra)
+library(MuMIn)
+library(GGally)
+library(gganimate)
+library(broom)
+library(tidyr)
+library(purrr)
+library(MCMCglmm)
+library(lme4)
+library(lmerTest)
+
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.width = 10)
+```
+
+# **WHO**
+
+Who are the two-parents, both dam and sire, for each cross type offspring and where were they sampled?
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+hogan_riverdist_17_19 <- read_csv("../../GIS/R/Hogan/hogan_distances.csv") %>%
+  mutate(Intertidal = case_when(dist2tide > 0 ~ "Upstream",
+                                dist2tide <= 0 ~ "Intertidal")) %>%
+  rename(Distance = mouthdist, Segment = seg)
+
+hogan_parents_paired_17_19_cross <- read_csv("../Hogan/hogan_parents_paired_17_19_cross.csv") 
+
+# organize by sire and dam, join riverdist data
+parents_paired_cross_riverdist_spacetime <- function(indata_spacetime = hogan_parents_paired_17_19_cross, indata_riverdist = hogan_riverdist_17_19) {
+  indata_spacetime %>%
+  count(cross, `Fish ID`, `Fish ID.par1`, `Sample Date`, `Sample Date.par1`, SEX, SEX.par1, `DNA Tray Code`, `DNA Tray Code.par1`, `DNA Tray Well Code`, `DNA Tray Well Code.par1`, origin.par1, origin, `Length Mm.par1`, `Length Mm`) %>%
+  rename(`Fish ID.par2` = `Fish ID`,
+         `Sample Date.par2` = `Sample Date`,
+         SEX.par2 = SEX,
+         `DNA Tray Code.par2` = `DNA Tray Code`,
+         `DNA Tray Well Code.par2` = `DNA Tray Well Code`,
+         origin.par2 = origin,
+         `Length Mm.par2` = `Length Mm`) %>%
+  unite(Sample.par1, c("DNA Tray Code.par1", "DNA Tray Well Code.par1"), sep = "_", remove = TRUE) %>%
+  unite(Sample.par2, c("DNA Tray Code.par2", "DNA Tray Well Code.par2"), sep = "_", remove = TRUE) %>%
+  left_join(indata_riverdist, by = c("Sample.par1" = "Sample")) %>%
+  left_join(indata_riverdist, by = c("Sample.par2" = "Sample"), suffix = c(".par1", ".par2")) %>%
+  mutate(fish_id.sire = case_when(SEX.par1 == "M" ~ `Fish ID.par1`,
+                                  TRUE ~ `Fish ID.par2`)) %>%
+  mutate(fish_id.dam = case_when(SEX.par1 == "F" ~ `Fish ID.par1`,
+                                  TRUE ~ `Fish ID.par2`)) %>%
+  mutate(sample_date.sire = case_when(SEX.par1 == "M" ~ `Sample Date.par1`,
+                                  TRUE ~ `Sample Date.par2`)) %>%
+  mutate(sample_date.dam = case_when(SEX.par1 == "F" ~ `Sample Date.par1`,
+                                  TRUE ~ `Sample Date.par2`)) %>%
+  mutate(sex.sire = case_when(SEX.par1 == "M" ~ SEX.par1,
+                                  TRUE ~ SEX.par2)) %>%
+  mutate(sex.dam = case_when(SEX.par1 == "F" ~ SEX.par1,
+                                  TRUE ~ SEX.par2)) %>%
+  mutate(origin.sire = case_when(SEX.par1 == "M" ~ origin.par1,
+                                  TRUE ~ origin.par2)) %>%
+  mutate(origin.dam = case_when(SEX.par1 == "F" ~ origin.par1,
+                                  TRUE ~ origin.par2)) %>%
+  mutate(distance.sire = case_when(SEX.par1 == "M" ~ Distance.par1,
+                                  TRUE ~ Distance.par2)) %>%
+  mutate(distance.dam = case_when(SEX.par1 == "F" ~ Distance.par1,
+                                  TRUE ~ Distance.par2)) %>%
+  mutate(intertidal.sire = case_when(SEX.par1 == "M" ~ Intertidal.par1,
+                                  TRUE ~ Intertidal.par2)) %>%
+  mutate(intertidal.dam = case_when(SEX.par1 == "F" ~ Intertidal.par1,
+                                  TRUE ~ Intertidal.par2)) %>%
+  mutate(length.sire = case_when(SEX.par1 == "M" ~ `Length Mm.par1`,
+                                  TRUE ~ `Length Mm.par2`)) %>%
+  mutate(length.dam = case_when(SEX.par1 == "F" ~ `Length Mm.par1`,
+                                  TRUE ~ `Length Mm.par2`)) %>%
+  select(cross, n, ends_with(".sire"), ends_with(".dam"))
+}
+
+(hogan_parents_paired_17_19_cross_riverdist_spacetime <- parents_paired_cross_riverdist_spacetime())
+```
+
+## Offspring, dam, and sire relationships - dyads and triads
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# dyad relationships - one row per offspring
+hogan_parents_paired_17_19 <- read_csv("../Hogan/hogan_parents_paired_17_19.csv") %>% 
+     mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
+
+# Read in paired data
+hogan_postQA_OceanAK_paired_17_19 <- read_csv("../Franz/hogan_17_19_postQA_OceanAK_paired_2017_2019_HOGAN.csv")
+
+OceanAK_paired <- function(indata_OceanAK_paired = hogan_postQA_OceanAK_paired_17_19) {
+   indata_OceanAK_paired %>% 
+   select(franz_id, starts_with("Sample"), SILLY, `Fish ID`, starts_with("DNA"), SEX, `Length Mm`, `Otolith Mark Present`, `Otolith Mark ID`) %>% 
+   rename(sample_id = "Sample ID", 
+          Year = "Sample Year", 
+          silly = "SILLY", 
+          fish_id = "Fish ID", 
+          dna_tray = "DNA Tray Code", 
+          dna_well = "DNA Tray Well Code",
+          Sex = "SEX",
+          Length = "Length Mm") %>% 
+   mutate(Origin = case_when(`Otolith Mark Present` == "YES" ~ "Hatchery",
+                             `Otolith Mark Present` == "NO" ~ "Natural")) %>% 
+   mutate(Origin = factor(x = Origin, levels = c("Natural", "Hatchery")))
+}         
+
+hogan_OceanAK_paired_17_19 <- OceanAK_paired()
+
+# Get offspring, dam, sire relationships and join
+ods_relationships <- function(indata_ods = hogan_parents_paired_17_19) {
+  offspring_sire <- indata_ods %>% 
+    filter(SEX.par == "M") %>% 
+    select(Offspring, Parent_ID)
+
+  offspring_dam <- indata_ods %>% 
+    filter(SEX.par == "F") %>% 
+    select(Offspring, Parent_ID)
+
+  offspring_dam_sire <- offspring_dam %>% 
+    full_join(offspring_sire, by = "Offspring", suffix = c(".dam", ".sire"))
+}
+
+hogan_offspring_dam_sire_17_19 <- ods_relationships()
+
+# Join back paired data to offspring, dam, and sire
+parents_paired_dam_sire <- function(indata_ods2 = hogan_offspring_dam_sire_17_19, indata_OceanAK_paired2 = hogan_OceanAK_paired_17_19) {
+  indata_ods2 %>% 
+  left_join(indata_OceanAK_paired2, by = c("Offspring" = "franz_id")) %>% 
+  left_join(indata_OceanAK_paired2, by = c("Parent_ID.dam" = "franz_id"), suffix = c(".off", "")) %>% 
+  left_join(indata_OceanAK_paired2, by = c("Parent_ID.sire" = "franz_id"), suffix = c(".dam", ".sire")) %>% 
+  mutate(DMY.off = dmy(`Sample Date.off`),
+         DMY.dam = dmy(`Sample Date.dam`),
+         DMY.sire = dmy(`Sample Date.sire`)) %>% 
+  mutate(DOY.off = yday(DMY.off),
+         DOY.dam = yday(DMY.dam),
+         DOY.sire = yday(DMY.sire))
+}
+
+(hogan_parents_paired_17_19_dam_sire <- parents_paired_dam_sire())
+```
+
+## Triads - used for remaining analyses
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+triads <- function(indata_triads = hogan_parents_paired_17_19_dam_sire) {
+  indata_triads %>% 
+  filter(!is.na(Parent_ID.dam) & !is.na(Parent_ID.sire)) 
+}
+
+(hogan_triads_17_19 <- triads())
+```
+
+# **HERITABILITY**
+
+For traits associated with fitness in natural populations, heritability is typically 0.1–0.2 (Wray and Visscher 2008 [https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/] per Visscher et al. 2008). 
+
+## Body Length
+
+```{r}
+# mid-parent trait values and cross info
+triads_length <- function(indata_triads_length = hogan_triads_17_19) {
+  indata_triads_length %>%
+  mutate(Length.par = (Length.dam + Length.sire) / 2) %>% 
+  mutate(Cross = case_when(Origin.dam == "Natural" & Origin.sire == "Natural" ~ "NN",
+                           Origin.dam == "Natural" & Origin.sire == "Hatchery" ~ "NH",
+                           Origin.dam == "Hatchery" & Origin.sire == "Natural" ~ "HN",
+                           Origin.dam == "Hatchery" & Origin.sire == "Hatchery" ~ "HH"))
+}
+
+hogan_triads_length_17_19 <- triads_length()
+```
+
+### Scatterplots
+
+```{r}
+parents_paired_length_graph <- function(indata_parents_paired_length_graph = hogan_parents_paired_17_19, title = "Hogan_17_19\n\nRegression of Body Length by Sex") {
+  indata_parents_paired_length_graph %>% 
+  rename(length.par = "Length Mm.par", 
+         length.off = "Length Mm.off") %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
+                             SEX.par == "M" ~ "Parent: Male")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Offspring: Female",
+                             SEX.off == "M" ~ "Offspring: Male")) %>% 
+  group_by(sex.par, sex.off) %>%
+  ggplot(aes(x = length.par, y = length.off, colour = origin.par)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(sex.off ~ sex.par) +
+  labs(title = title,  colour = "Parent: Origin") +
+  xlab("Parent Length (mm)") +
+  ylab("Offspring Length (mm)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+parents_paired_length_graph()
+
+h2_length_graph <- function(indata_h2_length_graph = hogan_triads_length_17_19, title = "Hogan_17_19\n\nRegression of Body Length by Cross") {
+  indata_h2_length_graph %>% 
+  ggplot(aes(x = Length.par, y = Length.off, colour = Cross)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title, colour = "Parent: Origin") +
+  xlab("Mid-parent Length (mm)") +
+  ylab("Offspring Length (mm)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+h2_length_graph()
+```
+
+**NOTE: Well, only one NN cross found. This will be pointless.**
+
+### Correlation
+
+We estimate narrow-sense heritability here, as well as for location and sample date, from r = √(½)h^2.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+parents_paired_length <- function(indata_triads_length = hogan_triads_length_17_19) {
+  indata_triads_length %>% 
+  drop_na(Length.par, Length.off) %>% 
+  mutate(sex.dam = case_when(Sex.dam == "F" ~ "Female")) %>%
+  mutate(sex.sire = case_when(Sex.sire == "M" ~ "Male")) %>%
+  mutate(sex.off = case_when(Sex.off == "F" ~ "Female",
+                             Sex.off == "M" ~ "Male")) 
+}
+
+(hogan_parents_paired_17_19_length1 <- parents_paired_length() %>% 
+  group_by(Cross) %>%
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+(hogan_parents_paired_17_19_length2 <- parents_paired_length() %>% 
+  group_by(sex.dam, sex.off) %>%
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+(hogan_parents_paired_17_19_length3 <- parents_paired_length() %>% 
+  group_by(sex.sire, sex.off) %>%
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+
+hogan_parents_paired_17_19_length1_NN <- as.data.frame(c(hogan_parents_paired_17_19_length1[4,2], hogan_parents_paired_17_19_length1[4,3]*2))
+hogan_parents_paired_17_19_length1_NH <- as.data.frame(c(hogan_parents_paired_17_19_length1[3,2], hogan_parents_paired_17_19_length1[3,3]*2))
+hogan_parents_paired_17_19_length1_HN <- as.data.frame(c(hogan_parents_paired_17_19_length1[2,2], hogan_parents_paired_17_19_length1[2,3]*2))
+hogan_parents_paired_17_19_length1_HH <- as.data.frame(c(hogan_parents_paired_17_19_length1[1,2], hogan_parents_paired_17_19_length1[1,3]*2))
+hogan_parents_paired_17_19_length2_dF <- as.data.frame(c(hogan_parents_paired_17_19_length2[1,3], hogan_parents_paired_17_19_length2[1,4]*2))
+hogan_parents_paired_17_19_length2_dM <- as.data.frame(c(hogan_parents_paired_17_19_length2[2,3], hogan_parents_paired_17_19_length2[2,4]*2))
+hogan_parents_paired_17_19_length3_sF <- as.data.frame(c(hogan_parents_paired_17_19_length3[1,3], hogan_parents_paired_17_19_length3[1,4]*2))
+hogan_parents_paired_17_19_length3_sM <- as.data.frame(c(hogan_parents_paired_17_19_length3[2,3], hogan_parents_paired_17_19_length3[2,4]*2))
+
+hogan_r_and_h2_length_17_19 <- rbind(hogan_parents_paired_17_19_length1_NN, hogan_parents_paired_17_19_length1_NH, hogan_parents_paired_17_19_length1_HN, hogan_parents_paired_17_19_length1_HH, hogan_parents_paired_17_19_length2_dF, hogan_parents_paired_17_19_length2_dM, hogan_parents_paired_17_19_length3_sF, hogan_parents_paired_17_19_length3_sM) %>% round(3)
+colnames(hogan_r_and_h2_length_17_19) <- c("Correlation (r)", "Heritability (h^2)")
+hogan_r_and_h2_length_17_19$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+(hogan_r_and_h2_length_17_19 <- hogan_r_and_h2_length_17_19[,c(3,1,2)])
+```
+
+### Slope
+
+If we use the parents' phenotypic variance as a measure of VP, we can estimate h^2 by solving for:
+trait_value_offspring = Cov_parent_offspring / Var_parent x trait_value_parent + c. The slope of the line (number under "estimate" for "Length.*" in the tibbles below) is mathematically equivalent to h^2.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# by cross
+hogan_h2_length_17_19_all_tbl <- tidy(lm(Length.off ~ Length.par, data = hogan_triads_length_17_19))
+hogan_h2_length_17_19_NN_tbl <- tidy(lm(Length.off ~ Length.par, data = hogan_triads_length_17_19 %>% filter(Cross == "NN")))
+hogan_h2_length_17_19_NH_tbl <- tidy(lm(Length.off ~ Length.par, data = hogan_triads_length_17_19 %>% filter(Cross == "NH")))
+hogan_h2_length_17_19_HN_tbl <- tidy(lm(Length.off ~ Length.par, data = hogan_triads_length_17_19 %>% filter(Cross == "HN")))
+hogan_h2_length_17_19_HH_tbl <- tidy(lm(Length.off ~ Length.par, data = hogan_triads_length_17_19 %>% filter(Cross == "HH")))
+
+# by sex
+hogan_h2_length_17_19_dam_tbl <- tidy(lm(Length.off ~ Length.dam, data = hogan_triads_length_17_19))
+hogan_h2_length_17_19_sire_tbl <- tidy(lm(Length.off ~ Length.sire, data = hogan_triads_length_17_19))
+hogan_h2_length_17_19_dF_tbl <- tidy(lm(Length.off ~ Length.dam, data = hogan_triads_length_17_19 %>% filter(Sex.off == "F")))
+hogan_h2_length_17_19_dM_tbl <- tidy(lm(Length.off ~ Length.dam, data = hogan_triads_length_17_19 %>% filter(Sex.off == "M")))
+hogan_h2_length_17_19_sF_tbl <- tidy(lm(Length.off ~ Length.sire, data = hogan_triads_length_17_19 %>% filter(Sex.off == "F")))
+hogan_h2_length_17_19_sM_tbl <- tidy(lm(Length.off ~ Length.sire, data = hogan_triads_length_17_19 %>% filter(Sex.off == "M")))
+
+hogan_slope_as_h2_length_17_19 <- as.data.frame(rbind(hogan_h2_length_17_19_all_tbl[2,2], hogan_h2_length_17_19_NN_tbl[2,2], hogan_h2_length_17_19_NH_tbl[2,2], hogan_h2_length_17_19_HN_tbl[2,2], hogan_h2_length_17_19_HH_tbl[2,2], hogan_h2_length_17_19_dam_tbl[2,2], hogan_h2_length_17_19_sire_tbl[2,2], hogan_h2_length_17_19_dF_tbl[2,2], hogan_h2_length_17_19_dM_tbl[2,2], hogan_h2_length_17_19_sF_tbl[2,2], hogan_h2_length_17_19_sM_tbl[2,2]) %>% round(3))
+colnames(hogan_slope_as_h2_length_17_19) <- c("Heritability (h^2)")
+hogan_slope_as_h2_length_17_19$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+(hogan_slope_as_h2_length_17_19 <- hogan_slope_as_h2_length_17_19[,c(2,1)])
+```
+
+### Animal model
+
+Narrow-sense heritabilities (h^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h^2 = VA/VP) per Evans et al. (2019) [https://link.springer.com/article/10.1007/s10592-019-01174-4]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
+
+```{r}
+hogan_h2_length_17_19_dam_sire <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = hogan_triads_length_17_19, na.action = na.omit)
+(summary(hogan_h2_length_17_19_dam_sire))
+plot(hogan_h2_length_17_19_dam_sire)
+hist(resid(hogan_h2_length_17_19_dam_sire))
+
+hogan_h2_length_17_19_NN <- hogan_triads_length_17_19 %>% filter(Cross == "NN")
+hogan_h2_length_17_19_dam_sire_NN <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = hogan_h2_length_17_19_NN, na.action = na.omit)
+(summary(hogan_h2_length_17_19_dam_sire_NN))
+
+hogan_h2_length_17_19_NH <- hogan_triads_length_17_19 %>% filter(Cross == "NH")
+hogan_h2_length_17_19_dam_sire_NH <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = hogan_h2_length_17_19_NH, na.action = na.omit)
+(summary(hogan_h2_length_17_19_dam_sire_NH))
+
+hogan_h2_length_17_19_HN <- hogan_triads_length_17_19 %>% filter(Cross == "HN")
+hogan_h2_length_17_19_dam_sire_HN <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = hogan_h2_length_17_19_HN, na.action = na.omit)
+(summary(hogan_h2_length_17_19_dam_sire_HN))
+
+hogan_h2_length_17_19_HH <- hogan_triads_length_17_19 %>% filter(Cross == "HH")
+hogan_h2_length_17_19_dam_sire_HH <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = hogan_h2_length_17_19_HH, na.action = na.omit)
+(summary(hogan_h2_length_17_19_dam_sire_HH))
+
+hogan_h2_length_17_19_F <- hogan_triads_length_17_19 %>% filter(Sex.off == "F")
+hogan_h2_length_17_19_dam_sire_F <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = hogan_h2_length_17_19_F, na.action = na.omit)
+(summary(hogan_h2_length_17_19_dam_sire_F))
+
+hogan_h2_length_17_19_M <- hogan_triads_length_17_19 %>% filter(Sex.off == "M")
+hogan_h2_length_17_19_dam_sire_M <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = hogan_h2_length_17_19_M, na.action = na.omit)
+(summary(hogan_h2_length_17_19_dam_sire_M))
+
+hogan_h2_length_17_19_all <- 98.93 / (98.93 + 0.00 + 1471.83)
+hogan_h2_length_17_19_NN <- 211.6 / (211.6 + 0.00 + 1324.8)
+hogan_h2_length_17_19_NH <- (1234.0 + 0.000001664) / (1234.0 + 0.000001664 + 2.334)
+hogan_h2_length_17_19_HN <- (332.9 + 285.5) / (332.9 + 285.5 + 242.0)
+hogan_h2_length_17_19_HH <- (125.3 + 107.8) / (125.3 + 107.8 + 557.8)
+hogan_h2_length_17_19_dam_F <- 314.3 / (0.00 + 314.3 + 149.2)
+hogan_h2_length_17_19_sire_F <- 0.00 / (0.00 + 314.3 + 149.2)
+hogan_h2_length_17_19_dam_M <- 0.00 / (170.4 + 0.00 + 1895.1)
+hogan_h2_length_17_19_sire_M <- 170.4 / (170.4 + 0.00 + 1895.1)
+
+hogan_am_for_h2_length_17_19 <- as.data.frame(c(hogan_h2_length_17_19_all, hogan_h2_length_17_19_NN, hogan_h2_length_17_19_dam_F, hogan_h2_length_17_19_dam_M, hogan_h2_length_17_19_sire_F, hogan_h2_length_17_19_sire_M)) %>% round(3)
+colnames(hogan_am_for_h2_length_17_19) <- c("Heritability (h^2)")
+hogan_am_for_h2_length_17_19$Category <- c("Overall", "NN", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+(hogan_am_for_h2_length_17_19 <- hogan_am_for_h2_length_17_19[,c(2,1)])
+```
+
+### *Results*
+
+```{r}
+hogan_r_and_h2_length_17_19 <- hogan_r_and_h2_length_17_19[,c(1,3)]
+
+hogan_h2_length_17_19 <- merge(hogan_r_and_h2_length_17_19, hogan_slope_as_h2_length_17_19,  by="Category") %>% 
+    merge(hogan_am_for_h2_length_17_19, by="Category") %>% 
+    rename(Hogan_17_19 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
+(hogan_h2_length_17_19 <- hogan_h2_length_17_19[c(3,1,2,4,5),])
+```
+
+Maybe heritability, maybe poor sample size.
+
+
+## Sample Date
+
+```{r}
+# mid-parent trait values and cross info
+triads_date <- function(indata_triads_date = hogan_triads_17_19) {
+  indata_triads_date %>%
+  mutate(DOY.par = (DOY.dam + DOY.sire) / 2) %>% 
+  mutate(Cross = case_when(Origin.dam == "Natural" & Origin.sire == "Natural" ~ "NN",
+                           Origin.dam == "Natural" & Origin.sire == "Hatchery" ~ "NH",
+                           Origin.dam == "Hatchery" & Origin.sire == "Natural" ~ "HN",
+                           Origin.dam == "Hatchery" & Origin.sire == "Hatchery" ~ "HH"))
+}
+
+hogan_triads_date_17_19 <- triads_date()
+```
+
+### Scatterplots
+
+```{r}
+parents_paired_date_graph <- function(indata_parents_paired_date_graph = hogan_parents_paired_17_19, title = "Hogan_17_19\n\nRegression of Sample Date by Sex") {
+  indata_parents_paired_date_graph %>% 
+  rename(DOY.par = "DOY.par", 
+         DOY.off = "DOY.off") %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
+                             SEX.par == "M" ~ "Parent: Male")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Offspring: Female",
+                             SEX.off == "M" ~ "Offspring: Male")) %>% 
+  group_by(sex.par, sex.off) %>%
+  ggplot(aes(x = DOY.par, y = DOY.off, colour = origin.par)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(sex.off ~ sex.par) +
+  labs(title = title,  colour = "Parent: Origin") +
+  xlab("Parent DOY (mm)") +
+  ylab("Offspring DOY (mm)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+parents_paired_date_graph()
+
+h2_date_graph <- function(indata_h2_date_graph = hogan_triads_date_17_19, title = "Hogan_17_19\n\nRegression of Sample Date by Cross") {
+  indata_h2_date_graph %>% 
+  ggplot(aes(x = DOY.par, y = DOY.off, colour = Cross)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title, colour = "Parent: Origin") +
+  xlab("Mid-parent DOY (mm)") +
+  ylab("Offspring DOY (mm)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+h2_date_graph()
+```
+
+### Correlation
+
+We estimate narrow-sense heritability here, as well as for location and sample date, from r = √(½)h^2.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+parents_paired_date <- function(indata_triads_date = hogan_triads_date_17_19) {
+  indata_triads_date %>% 
+  drop_na(DOY.par, DOY.off) %>% 
+  mutate(sex.dam = case_when(Sex.dam == "F" ~ "Female")) %>%
+  mutate(sex.sire = case_when(Sex.sire == "M" ~ "Male")) %>%
+  mutate(sex.off = case_when(Sex.off == "F" ~ "Female",
+                             Sex.off == "M" ~ "Male")) 
+}
+
+(hogan_parents_paired_17_19_date1 <- parents_paired_date() %>% 
+  group_by(Cross) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+(hogan_parents_paired_17_19_date2 <- parents_paired_date() %>% 
+  group_by(sex.dam, sex.off) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+(hogan_parents_paired_17_19_date3 <- parents_paired_date() %>% 
+  group_by(sex.sire, sex.off) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+
+hogan_parents_paired_17_19_date1_NN <- as.data.frame(c(hogan_parents_paired_17_19_date1[4,2], hogan_parents_paired_17_19_date1[4,3]*2))
+hogan_parents_paired_17_19_date1_NH <- as.data.frame(c(hogan_parents_paired_17_19_date1[3,2], hogan_parents_paired_17_19_date1[3,3]*2))
+hogan_parents_paired_17_19_date1_HN <- as.data.frame(c(hogan_parents_paired_17_19_date1[2,2], hogan_parents_paired_17_19_date1[2,3]*2))
+hogan_parents_paired_17_19_date1_HH <- as.data.frame(c(hogan_parents_paired_17_19_date1[1,2], hogan_parents_paired_17_19_date1[1,3]*2))
+hogan_parents_paired_17_19_date2_dF <- as.data.frame(c(hogan_parents_paired_17_19_date2[1,3], hogan_parents_paired_17_19_date2[1,4]*2))
+hogan_parents_paired_17_19_date2_dM <- as.data.frame(c(hogan_parents_paired_17_19_date2[2,3], hogan_parents_paired_17_19_date2[2,4]*2))
+hogan_parents_paired_17_19_date3_sF <- as.data.frame(c(hogan_parents_paired_17_19_date3[1,3], hogan_parents_paired_17_19_date3[1,4]*2))
+hogan_parents_paired_17_19_date3_sM <- as.data.frame(c(hogan_parents_paired_17_19_date3[2,3], hogan_parents_paired_17_19_date3[2,4]*2))
+
+hogan_r_and_h2_date_17_19 <- rbind(hogan_parents_paired_17_19_date1_NN, hogan_parents_paired_17_19_date1_NH, hogan_parents_paired_17_19_date1_HN, hogan_parents_paired_17_19_date1_HH, hogan_parents_paired_17_19_date2_dF, hogan_parents_paired_17_19_date2_dM, hogan_parents_paired_17_19_date3_sF, hogan_parents_paired_17_19_date3_sM) %>% round(3)
+colnames(hogan_r_and_h2_date_17_19) <- c("Correlation (r)", "Heritability (h^2)")
+hogan_r_and_h2_date_17_19$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+(hogan_r_and_h2_date_17_19 <- hogan_r_and_h2_date_17_19[,c(3,1,2)])
+```
+
+### Slope
+
+If we use the parents' phenotypic variance as a measure of VP, we can estimate h^2 by solving for:
+trait_value_offspring = Cov_parent_offspring / Var_parent x trait_value_parent + c. The slope of the line is mathematically equivalent to h^2.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# by cross
+hogan_h2_date_17_19_all_tbl <- tidy(lm(DOY.off ~ DOY.par, data = hogan_triads_date_17_19))
+hogan_h2_date_17_19_NN_tbl <- tidy(lm(DOY.off ~ DOY.par, data = hogan_triads_date_17_19 %>% filter(Cross == "NN")))
+hogan_h2_date_17_19_NH_tbl <- tidy(lm(DOY.off ~ DOY.par, data = hogan_triads_date_17_19 %>% filter(Cross == "NH")))
+hogan_h2_date_17_19_HN_tbl <- tidy(lm(DOY.off ~ DOY.par, data = hogan_triads_date_17_19 %>% filter(Cross == "HN")))
+hogan_h2_date_17_19_HH_tbl <- tidy(lm(DOY.off ~ DOY.par, data = hogan_triads_date_17_19 %>% filter(Cross == "HH")))
+
+# by sex
+hogan_h2_date_17_19_dam_tbl <- tidy(lm(DOY.off ~ DOY.dam, data = hogan_triads_date_17_19))
+hogan_h2_date_17_19_sire_tbl <- tidy(lm(DOY.off ~ DOY.sire, data = hogan_triads_date_17_19))
+hogan_h2_date_17_19_dF_tbl <- tidy(lm(DOY.off ~ DOY.dam, data = hogan_triads_date_17_19 %>% filter(Sex.off == "F")))
+hogan_h2_date_17_19_dM_tbl <- tidy(lm(DOY.off ~ DOY.dam, data = hogan_triads_date_17_19 %>% filter(Sex.off == "M")))
+hogan_h2_date_17_19_sF_tbl <- tidy(lm(DOY.off ~ DOY.sire, data = hogan_triads_date_17_19 %>% filter(Sex.off == "F")))
+hogan_h2_date_17_19_sM_tbl <- tidy(lm(DOY.off ~ DOY.sire, data = hogan_triads_date_17_19 %>% filter(Sex.off == "M")))
+
+hogan_slope_as_h2_date_17_19 <- rbind(hogan_h2_date_17_19_all_tbl[2,2], hogan_h2_date_17_19_NN_tbl[2,2], hogan_h2_date_17_19_NH_tbl[2,2], hogan_h2_date_17_19_HN_tbl[2,2], hogan_h2_date_17_19_HH_tbl[2,2], hogan_h2_date_17_19_dam_tbl[2,2], hogan_h2_date_17_19_sire_tbl[2,2], hogan_h2_date_17_19_dF_tbl[2,2], hogan_h2_date_17_19_dM_tbl[2,2], hogan_h2_date_17_19_sF_tbl[2,2], hogan_h2_date_17_19_sM_tbl[2,2]) %>% round(3)
+colnames(hogan_slope_as_h2_date_17_19) <- c("Heritability (h^2)")
+hogan_slope_as_h2_date_17_19$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+(hogan_slope_as_h2_date_17_19 <- hogan_slope_as_h2_date_17_19[,c(2,1)])
+```
+
+### Animal model
+
+Narrow-sense heritabilities (h^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h^2 = VA/VP) per Evans et al. (2019) [https://link.springer.com/article/10.1007/s10592-019-01174-4]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
+
+```{r}
+hogan_h2_date_17_19_dam_sire <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = hogan_triads_date_17_19, na.action = na.omit)
+(summary(hogan_h2_date_17_19_dam_sire))
+plot(hogan_h2_date_17_19_dam_sire)
+hist(resid(hogan_h2_date_17_19_dam_sire))
+
+hogan_h2_date_17_19_NN <- hogan_triads_date_17_19 %>% filter(Cross == "NN")
+hogan_h2_date_17_19_dam_sire_NN <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = hogan_h2_date_17_19_NN, na.action = na.omit)
+(summary(hogan_h2_date_17_19_dam_sire_NN))
+
+hogan_h2_date_17_19_NH <- hogan_triads_date_17_19 %>% filter(Cross == "NH")
+hogan_h2_date_17_19_dam_sire_NH <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = hogan_h2_date_17_19_NH, na.action = na.omit)
+(summary(hogan_h2_date_17_19_dam_sire_NH))
+
+hogan_h2_date_17_19_HN <- hogan_triads_date_17_19 %>% filter(Cross == "HN")
+hogan_h2_date_17_19_dam_sire_HN <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = hogan_h2_date_17_19_HN, na.action = na.omit)
+(summary(hogan_h2_date_17_19_dam_sire_HN))
+
+hogan_h2_date_17_19_HH <- hogan_triads_date_17_19 %>% filter(Cross == "HH")
+hogan_h2_date_17_19_dam_sire_HH <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = hogan_h2_date_17_19_HH, na.action = na.omit)
+(summary(hogan_h2_date_17_19_dam_sire_HH))
+
+hogan_h2_date_17_19_F <- hogan_triads_date_17_19 %>% filter(Sex.off == "F")
+hogan_h2_date_17_19_dam_sire_F <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = hogan_h2_date_17_19_F, na.action = na.omit)
+(summary(hogan_h2_date_17_19_dam_sire_F))
+
+hogan_h2_date_17_19_M <- hogan_triads_date_17_19 %>% filter(Sex.off == "M")
+hogan_h2_date_17_19_dam_sire_M <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = hogan_h2_date_17_19_M, na.action = na.omit)
+(summary(hogan_h2_date_17_19_dam_sire_M))
+
+hogan_h2_date_17_19_all <- (6.516 + 91.256) / (6.516 + 91.256 + 27.040)
+hogan_h2_date_17_19_NN <- 3.155 / (0.00 + 3.155 + 25.881)
+hogan_h2_date_17_19_NH <- (16.48 + 70.53) / (16.48 + 70.53 + 21.57)
+hogan_h2_date_17_19_HN <- 49.41 / (0.00 + 49.41 + 31.06)
+hogan_h2_date_17_19_HH <- 49.41 / (0.00 + 49.41 + 31.06)
+hogan_h2_date_17_19_dam_F <- 66.346 / (3.924 + 66.346 + 14.295)
+hogan_h2_date_17_19_sire_F <- 3.924 / (3.924 + 66.346 + 14.295)
+hogan_h2_date_17_19_dam_M <- 53.59 / (18.42 + 53.59 + 31.94)
+hogan_h2_date_17_19_sire_M <- 18.42 / (18.42 + 53.59 + 31.94)
+
+hogan_am_for_h2_date_17_19 <- as.data.frame(c(hogan_h2_date_17_19_all, hogan_h2_date_17_19_NN, hogan_h2_date_17_19_dam_F, hogan_h2_date_17_19_dam_M, hogan_h2_date_17_19_sire_F, hogan_h2_date_17_19_sire_M)) %>% round(3)
+colnames(hogan_am_for_h2_date_17_19) <- c("Heritability (h^2)")
+hogan_am_for_h2_date_17_19$Category <- c("Overall", "NN", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+(hogan_am_for_h2_date_17_19 <- hogan_am_for_h2_date_17_19[,c(2,1)])
+```
+
+### *Results*
+
+```{r}
+hogan_r_and_h2_date_17_19 <- hogan_r_and_h2_date_17_19[,c(1,3)]
+
+hogan_h2_date_17_19 <- merge(hogan_r_and_h2_date_17_19, hogan_slope_as_h2_date_17_19,  by="Category") %>% 
+    merge(hogan_am_for_h2_date_17_19, by="Category") %>% 
+    rename(Hogan_17_19 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
+(hogan_h2_date_17_19 <- hogan_h2_date_17_19[c(3,1,2,4,5),])
+```
+
+Poor sample sizes confound heritability of sample date as a proxy for return time, there may be some evidence for dam length in offspring.
+
+
+## Sample Location
+
+**Note:** Correlation between parent-offspring sample location and narrow-sense heritability of sample location *not yet available* for parental years beyond 2017. GIS-based stream distance mapping is *in progress* by Chase Jalbert.
+
+```{r}
+
+```
+
+### Scatterplots
+
+```{r}
+
+```
+
+### Correlation
+
+Location is reported as distance from stream mouth. 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+```
+
+### Slope
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+```
+
+### Animal model
+
+```{r}
+
+```
+
+### *Results*
+
+Stream location/distance data not yet available for all sample sets.
+
+
+## Reproductive success
+
+**NOTE: No 2021 data, so no further analysis.**
+
+```{r}
+# # Read in data
+# hogan_paired_17_19_filter_parents_n <- read_csv("../Hogan/hogan_paired_17_19_filter_parents.csv") %>% 
+#   select(franz_id, n) %>% 
+#   rename(n_14 = n)
+# hogan_paired_17_19_filter_parents_n <- read_csv("../Hogan/hogan_paired_17_19_filter_parents.csv") %>% 
+#   select(franz_id, n) %>% 
+#   rename(n.off = n)
+# 
+# # join by n (i.e. individual RS)
+# triads_n <- function(indata_triads = hogan_triads_17_19, indata_paired_filter_parents_n = hogan_paired_17_19_filter_parents_n, indata_paired_filter_offspring_n = hogan_paired_17_19_filter_parents_n) {
+#   inner_join(indata_triads, indata_paired_filter_parents_n, by = c("Parent_ID.dam" = "franz_id")) %>% 
+#   rename(n.dam = n_14) %>% 
+#   inner_join(indata_paired_filter_parents_n, by = c("Parent_ID.sire" = "franz_id")) %>% 
+#   rename(n.sire = n_14) %>% 
+#   inner_join(indata_paired_filter_offspring_n, by = c("Offspring" = "franz_id"))
+# }
+# 
+# hogan_triads_n_17_19 <- triads_n()
+# 
+# # mid-parent trait values and cross info
+# triads_rs <- function(indata_triads_rs = hogan_triads_n_17_19) {
+#   indata_triads_rs %>%
+#   mutate(rs.par = (n.dam + n.sire) / 2) %>% 
+#   mutate(Cross = case_when(Origin.dam == "Natural" & Origin.sire == "Natural" ~ "NN",
+#                            Origin.dam == "Natural" & Origin.sire == "Hatchery" ~ "NH",
+#                            Origin.dam == "Hatchery" & Origin.sire == "Natural" ~ "HN",
+#                            Origin.dam == "Hatchery" & Origin.sire == "Hatchery" ~ "HH"))
+# }
+# 
+# hogan_triads_rs_17_19 <- triads_rs()
+```
+
+### Scatterplots
+
+```{r}
+# h2_rs_graph <- function(indata_h2_rs_graph = hogan_triads_rs_17_19, title = "Hogan_17_19\n\nHeritability of RS by Cross") {
+#   indata_h2_rs_graph %>% 
+#   ggplot(aes(x = rs.par, y = n.off, colour = Cross)) +
+#   geom_abline(slope = 1) +
+#   geom_jitter(size = 2) +
+#   geom_smooth(method = "lm") +
+#   labs(title = title, colour = "Parent: Origin") +
+#   xlab("Mid-parent RS") +
+#   ylab("Offspring RS") +
+#   theme_bw() +
+#   theme(text = element_text(size = 20))
+# }
+# 
+# h2_rs_graph()
+```
+
+### Correlation
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# parents_paired_rs <- function(indata_triads_rs = hogan_triads_rs_17_19) {
+#   indata_triads_rs %>% 
+#   drop_na(rs.par, n.off) %>% 
+#   mutate(sex.dam = case_when(Sex.dam == "F" ~ "Female")) %>%
+#   mutate(sex.sire = case_when(Sex.sire == "M" ~ "Male")) %>%
+#   mutate(sex.off = case_when(Sex.off == "F" ~ "Female",
+#                              Sex.off == "M" ~ "Male")) 
+# }
+# 
+# (hogan_parents_paired_17_19_rs1 <- parents_paired_rs() %>% 
+#   group_by(Cross) %>%
+#   summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+# (hogan_parents_paired_17_19_rs2 <- parents_paired_rs() %>% 
+#   group_by(sex.dam, sex.off) %>%
+#   summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+# (hogan_parents_paired_17_19_rs3 <- parents_paired_rs() %>% 
+#   group_by(sex.sire, sex.off) %>%
+#   summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+# 
+# hogan_parents_paired_17_19_rs1_NN <- as.data.frame(c(hogan_parents_paired_17_19_rs1[4,2], hogan_parents_paired_17_19_rs1[4,3]*2))
+# hogan_parents_paired_17_19_rs1_NH <- as.data.frame(c(hogan_parents_paired_17_19_rs1[3,2], hogan_parents_paired_17_19_rs1[3,3]*2))
+# hogan_parents_paired_17_19_rs1_HN <- as.data.frame(c(hogan_parents_paired_17_19_rs1[2,2], hogan_parents_paired_17_19_rs1[2,3]*2))
+# hogan_parents_paired_17_19_rs1_HH <- as.data.frame(c(hogan_parents_paired_17_19_rs1[1,2], hogan_parents_paired_17_19_rs1[1,3]*2))
+# hogan_parents_paired_17_19_rs2_dF <- as.data.frame(c(hogan_parents_paired_17_19_rs2[1,3], hogan_parents_paired_17_19_rs2[1,4]*2))
+# hogan_parents_paired_17_19_rs2_dM <- as.data.frame(c(hogan_parents_paired_17_19_rs2[2,3], hogan_parents_paired_17_19_rs2[2,4]*2))
+# hogan_parents_paired_17_19_rs3_sF <- as.data.frame(c(hogan_parents_paired_17_19_rs3[1,3], hogan_parents_paired_17_19_rs3[1,4]*2))
+# hogan_parents_paired_17_19_rs3_sM <- as.data.frame(c(hogan_parents_paired_17_19_rs3[2,3], hogan_parents_paired_17_19_rs3[2,4]*2))
+# 
+# hogan_r_and_h2_rs_17_19 <- rbind(hogan_parents_paired_17_19_rs1_NN, hogan_parents_paired_17_19_rs1_NH, hogan_parents_paired_17_19_rs1_HN,  hogan_parents_paired_17_19_rs1_HH, hogan_parents_paired_17_19_rs2_dF, hogan_parents_paired_17_19_rs2_dM, hogan_parents_paired_17_19_rs3_sF, hogan_parents_paired_17_19_rs3_sM) %>% round(3)
+# colnames(hogan_r_and_h2_rs_17_19) <- c("Correlation (r)", "Heritability (h^2)")
+# hogan_r_and_h2_rs_17_19$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+# (hogan_r_and_h2_rs_17_19 <- hogan_r_and_h2_rs_17_19[,c(3,1,2)])
+```
+
+### Slope
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# # by cross
+# hogan_h2_rs_17_19_all_tbl <- tidy(lm(n.off ~ rs.par, data = hogan_triads_rs_17_19))
+# hogan_h2_rs_17_19_NN_tbl <- tidy(lm(n.off ~ rs.par, data = hogan_triads_rs_17_19 %>% filter(Cross == "NN")))
+# hogan_h2_rs_17_19_NH_tbl <- tidy(lm(n.off ~ rs.par, data = hogan_triads_rs_17_19 %>% filter(Cross == "NH")))
+# hogan_h2_rs_17_19_HN_tbl <- tidy(lm(n.off ~ rs.par, data = hogan_triads_rs_17_19 %>% filter(Cross == "HN")))
+# hogan_h2_rs_17_19_HH_tbl <- tidy(lm(n.off ~ rs.par, data = hogan_triads_rs_17_19 %>% filter(Cross == "HH")))
+# 
+# # by sex
+# hogan_h2_rs_17_19_dam_tbl <- tidy(lm(n.off ~ n.dam, data = hogan_triads_rs_17_19))
+# hogan_h2_rs_17_19_sire_tbl <- tidy(lm(n.off ~ n.sire, data = hogan_triads_rs_17_19))
+# hogan_h2_rs_17_19_dF_tbl <- tidy(lm(n.off ~ n.dam, data = hogan_triads_rs_17_19 %>% filter(Sex.off == "F")))
+# hogan_h2_rs_17_19_sM_tbl <- tidy(lm(n.off ~ n.sire, data = hogan_triads_rs_17_19 %>% filter(Sex.off == "M")))
+# hogan_h2_rs_17_19_dM_tbl <- tidy(lm(n.off ~ n.dam, data = hogan_triads_rs_17_19 %>% filter(Sex.off == "M")))
+# hogan_h2_rs_17_19_sF_tbl <- tidy(lm(n.off ~ n.sire, data = hogan_triads_rs_17_19 %>% filter(Sex.off == "F")))
+# 
+# hogan_slope_as_h2_rs_17_19 <- rbind(hogan_h2_rs_17_19_all_tbl[2,2], hogan_h2_rs_17_19_NN_tbl[2,2], hogan_h2_rs_17_19_NH_tbl[2,2], hogan_h2_rs_17_19_HN_tbl[2,2], hogan_h2_rs_17_19_HH_tbl[2,2], hogan_h2_rs_17_19_dam_tbl[2,2], hogan_h2_rs_17_19_sire_tbl[2,2], hogan_h2_rs_17_19_dF_tbl[2,2], hogan_h2_rs_17_19_dM_tbl[2,2], hogan_h2_rs_17_19_sF_tbl[2,2], hogan_h2_rs_17_19_sM_tbl[2,2]) %>% round(3)
+# colnames(hogan_slope_as_h2_rs_17_19) <- c("Heritability (h^2)")
+# hogan_slope_as_h2_rs_17_19$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+# (hogan_slope_as_h2_rs_17_19 <- hogan_slope_as_h2_rs_17_19[,c(2,1)])
+```
+
+### Animal model
+
+```{r}
+# hogan_h2_rs_17_19_dam_sire <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = hogan_triads_rs_17_19, na.action = na.omit)
+# (summary(hogan_h2_rs_17_19_dam_sire))
+# plot(hogan_h2_rs_17_19_dam_sire)
+# hist(resid(hogan_h2_rs_17_19_dam_sire))
+# 
+# hogan_h2_rs_17_19_NN <- hogan_triads_rs_17_19 %>% filter(Cross == "NN")
+# hogan_h2_rs_17_19_dam_sire_NN <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = hogan_h2_rs_17_19_NN, na.action = na.omit)
+# (summary(hogan_h2_rs_17_19_dam_sire_NN))
+# 
+# hogan_h2_rs_17_19_NH <- hogan_triads_rs_17_19 %>% filter(Cross == "NH")
+# hogan_h2_rs_17_19_dam_sire_NH <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = hogan_h2_rs_17_19_NH, na.action = na.omit)
+# (summary(hogan_h2_rs_17_19_dam_sire_NH))
+# 
+# hogan_h2_rs_17_19_HN <- hogan_triads_rs_17_19 %>% filter(Cross == "HN")
+# hogan_h2_rs_17_19_dam_sire_HN <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = hogan_h2_rs_17_19_HN, na.action = na.omit)
+# (summary(hogan_h2_rs_17_19_dam_sire_HN))
+# 
+# hogan_h2_rs_17_19_HH <- hogan_triads_rs_17_19 %>% filter(Cross == "HH")
+# hogan_h2_rs_17_19_dam_sire_HH <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = hogan_h2_rs_17_19_HH, na.action = na.omit)
+# (summary(hogan_h2_rs_17_19_dam_sire_HH))
+# 
+# hogan_h2_rs_17_19_F <- hogan_triads_rs_17_19 %>% filter(Sex.off == "F")
+# hogan_h2_rs_17_19_dam_sire_F <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = hogan_h2_rs_17_19_F, na.action = na.omit)
+# (summary(hogan_h2_rs_17_19_dam_sire_F))
+# 
+# hogan_h2_rs_17_19_M <- hogan_triads_rs_17_19 %>% filter(Sex.off == "M")
+# hogan_h2_rs_17_19_dam_sire_M <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = hogan_h2_rs_17_19_M, na.action = na.omit)
+# (summary(hogan_h2_rs_17_19_dam_sire_M))
+# 
+# hogan_h2_rs_17_19_all <- 0.00 / (0.00 + 0.00 + 0.8552)
+# hogan_h2_rs_17_19_NN <- 0.00 / (0.00 + 0.00 + 1.012)
+# hogan_h2_rs_17_19_NH <- (1.456 + 0.4619) / (1.456 + 0.4619 + 0.00000000000001526)
+# hogan_h2_rs_17_19_HN <- 0.00 / (0.00 + 0.00 + 0.06237)
+# hogan_h2_rs_17_19_HH <- (11.912 + 1.723) / (11.912 + 1.723 + 31.797)
+# hogan_h2_rs_17_19_dam_F <- 0.001609 / (0.002585 + 0.001609 + 0.035611)
+# hogan_h2_rs_17_19_sire_F <- 0.002585 / (0.002585 + 0.001609 + 0.035611)
+# hogan_h2_rs_17_19_dam_M <- 0.00 / (0.00 + 0.00 + 1.424)
+# hogan_h2_rs_17_19_sire_M <- 0.00 / (0.00 + 0.00 + 1.424)
+# 
+# hogan_am_for_h2_rs_17_19 <- as.data.frame(c(hogan_h2_rs_17_19_all, hogan_h2_rs_17_19_NN, hogan_h2_rs_17_19_dam_F, hogan_h2_rs_17_19_sire_F, hogan_h2_rs_17_19_dam_M, hogan_h2_rs_17_19_sire_M)) %>% round(3)
+# colnames(hogan_am_for_h2_rs_17_19) <- c("Heritability (h^2)")
+# hogan_am_for_h2_rs_17_19$Category <- c("Overall", "NN", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+# (hogan_am_for_h2_rs_17_19 <- hogan_am_for_h2_rs_17_19[,c(2,1)])
+```
+
+### *Results*
+
+```{r}
+# hogan_r_and_h2_rs_17_19 <- hogan_r_and_h2_rs_17_19[,c(1,3)]
+# 
+# hogan_h2_rs_17_19 <- merge(hogan_r_and_h2_rs_17_19, hogan_slope_as_h2_rs_17_19,  by="Category") %>% 
+#     merge(hogan_am_for_h2_rs_17_19, by="Category") %>% 
+#     rename(Hogan_17_19 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
+# (hogan_h2_rs_17_19 <- hogan_h2_rs_17_19[c(3,1,2,4,5),])
+```
+
+Nothing to see here. 
