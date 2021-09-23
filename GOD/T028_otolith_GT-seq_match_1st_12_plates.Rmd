@@ -1,0 +1,532 @@
+---
+title: "T028 otolith/GT-seq match: First live test of 12 96-well transfer plates"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, message=FALSE, results='hide'}
+rm(list=ls())
+
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(DT)
+library(abind)
+bbind <- function(...) { abind(..., along = 3) }
+
+.username <- "kmgruenthal"
+.password <- ""
+
+source("~/R/Functions.GCL.R")
+source("LOKI2R_ind.GCL.R")
+source("DupCheckBetweenSillys_all.GCL.r")
+```
+
+# Objective
+
+The purpose of this notebook is to determine whether we can successfully re-pair GTseq genotypes from otolith-derived DNA with GT-seq genotypes from heart-derived DNA for individuals of unknown origin.
+
+# Background
+
+During shipment of otolith samples to the MTA in Juneau for reading, a significant proportion of otoliths migrated between cells within DWPs due to poor containment of the acetate lids that were attached with rubber bands to the DWPs. This incident is known as "the great otolith debacle", aka the "GOD" incident. Since some otoliths moved from their original cells in the DWP, the paired integrity of the otolith-origin information and the rest of the paired data (genotype + field data) was lost for many individuals. In an attempt to rectify the "GOD" incident, we are extracting DNA from the otolith tissues, genotyping the otolith-derived DNA at 298 GT-seq loci, and attempting to re-pair the otolith-heart samples from their genotypes.  
+
+# Methods
+
+DNA was extracted from left-side or unknown otolith tissues of unknown origin using conventional Machery-Nagel DNA extraction kits. Otoliths were placed in T1 buffer for an overnight soak in clear 96 shallow-well plates (SWP). Preamp at 14 cycles. Final elution volume was 75uL. All otoliths were transferred among plates with a jig. All liquid handling was done by robot. 
+
+## Get otolith GT-seq data
+
+### Get locus names and fish_ids
+
+For a more efficient LOKI query; Kyle hit memory limits trying to pull all of PSTOCK17.
+
+## LocusControl
+
+```{r}
+TestSillys <- "PGOD21"
+sillyvec <- ProjectSillys <- c("PGOD21", "PGILMOUR15_", "PGILMOUR16", "PGILMOUR17", "PGILMOUR18", "PERB16", "PERB18", "PPADDY16", "PPADDY18")
+
+loci298 <- dget("../../Objects/loci298.txt") # saved list of loci
+
+read_project_genotypes.GCL(sillyvec = ProjectSillys, loci = loci298, username = .username, password = .password) # LOKI2R works, but we are retaining read_project_genotypes for now as LOKI2R pulls in extraneous info we do not need
+
+loci <- LocusControl$locusnames
+nalleles <- LocusControl$nalleles
+ploidy <- LocusControl$ploidy
+alleles <- LocusControl$alleles
+
+
+PGOD21_attributes <- PGOD21.gcl$attributes
+fish_ids <- PGOD21_attributes$FK_FISH_ID
+
+rm(.username, .password)
+```
+
+Create new directories and save objects
+```{r save_locus_control_sillys}
+if(!dir.exists("../../Objects/GOD_21_Round1/")) {dir.create("../../Objects/GOD_21_Round1/")}
+save_objects(objects = c("LocusControl", "loci", "sillyvec", "ProjectSillys"), path = "../../Objects/GOD_21_Round1/")
+
+if(!dir.exists("../../Genotypes/GOD_21_Round1/")) {dir.create("../../Genotypes/GOD_21_Round1/")}
+save_sillys(sillyvec = c("PGOD21", "PGILMOUR15_", "PGILMOUR16", "PGILMOUR17", "PGILMOUR18", "PERB16", "PERB18", "PPADDY16", "PPADDY18"), path = "../../Genotypes/GOD_21_Round1/")
+```
+
+### Otolith genotyping success
+
+```{r fig.height=12}
+TestQCSampleSizebyLocus <-
+  SampSizeByLocus.GCL(sillyvec = TestSillys, loci = loci298)
+
+TestQCPercentbyLocus <-
+  apply(TestQCSampleSizebyLocus, 1, function(row) {
+    row / max(row)
+  })
+
+(locus_success_rate_qc <- TestQCPercentbyLocus %>% 
+  as_tibble(rownames = "locus") %>%
+  dplyr::rename(success_rate = PGOD21) %>%
+  arrange(success_rate))
+
+locus_success_rate_qc %>%
+  filter(success_rate == 0)
+
+(failed_loci_otoliths <- locus_success_rate_qc %>%
+  filter(success_rate == 0) %>%
+  pull(locus))
+
+# Added by Chase Jalbert on 4/2020. This version of a levelplot has WAY more features and actually works with large datasets.
+# plotly::ggplotly(
+#   ggplot(
+#     TestQCPercentbyLocus %>%
+#       as_tibble(rownames = "locus") %>%
+#       gather(silly, percent,-locus),
+#     aes(x = silly, y = locus)
+#   ) +
+#     geom_tile(aes(fill = percent), color = "white") +
+#     scale_fill_gradient(
+#       low = "black",
+#       high = "white",
+#       limits = c(0, 1)
+#     ) +
+#     ylab("Locus") +
+#     xlab("SILLY") +
+#     ggtitle("Percent PGOD21 genotyped by Locus") +
+#     labs(fill = "Percent\ngenotyped")
+# )
+
+# You can zoom, click things, scroll, save image, etc. so you can actually see whats going on...but it keeps failing ("Error in dirname(to) : path too long")and I'm not in the mood to move things around, so back to normal ggplot...
+TestQCPercentbyLocus %>%
+  as_tibble(rownames = "locus") %>%
+  gather(silly, percent,-locus) %>%
+  ggplot(aes(x = silly, y = locus)) +
+    geom_tile(aes(fill = percent), color = "white") +
+    scale_fill_gradient(
+      low = "black",
+      high = "white",
+      limits = c(0, 1)
+    ) +
+    ylab("Locus") +
+    xlab("SILLY") +
+    ggtitle("Percent genotyped by silly/locus") +
+    labs(fill = "Percent\ngenotyped")
+```
+
+**0 / 298** loci failed; see table above. Some loci aren't too pretty, though.
+
+## QA project genotypes
+
+### Otoliths
+
+#### Remove fails and dupes
+
+Need to remove any particularly egregious project fish. *Here's where we need to decide our cutoff for minimum number of loci.*
+
+```{r}
+PGOD21.gcl$counts[, , 1] %>% 
+  as_tibble(rownames = "fish_id") %>% 
+  gather(locus, genotype, -fish_id) %>% 
+  group_by(fish_id) %>% 
+  summarise(proportion_missing = sum(is.na(genotype)) / length(loci)) %>% 
+  arrange(desc(proportion_missing))
+```
+
+There are 1,120 total fishies in PGOD21 this first test round. If we went by the usual 80% rule on all 298 loci, we'd lose 692 fish, which is honestly not as bad as I thought it would be considering what we're dealing with. HOWEVER, we need to keep as many critters as possible. Plus, we're dealing with 298 loci, so we should have a lot of wiggle room considering the original panel was 96 (32% of loci) and we were considering paring that down to 24 (8% of loci). Granted info content of each locus is not the same. 
+
+So, for a first pass, let's try a 10% cutoff giving us a minimum of 30 loci that must be genotyped and losing 85 fish, leaving us with 1,035 fishies. We'll also largely skip the duplicate check (set at 99% matching), since it probably won't do us much good. We have (1) a low potential to identify true dupes, if there are few loci genotyped and (2) both lefts and unknowns in PGOD21, which could come from the same fish. 
+
+```{r}
+TestSillys_SampleSizes <-
+  matrix(
+    data = NA,
+    nrow = length(TestSillys),
+    ncol = 4,
+    dimnames = list(TestSillys, c(
+      "Genotyped", "Missing", "Duplicate", "Final"
+    ))
+  )
+
+TestSillys_SampleSizes[, "Genotyped"] <-
+  sapply(paste(TestSillys, ".gcl", sep = ''), function(x)
+    get(x)$n)
+
+
+(MissLoci <-
+    RemoveIndMissLoci.GCL(sillyvec = TestSillys, proportion = 0.1))
+
+ColSizePostMissLoci <-
+  sapply(paste(TestSillys, ".gcl", sep = ''), function(x)
+    get(x)$n)
+
+TestSillys_SampleSizes[, "Missing"] <- TestSillys_SampleSizes[, "Genotyped"] - ColSizePostMissLoci
+
+DuplicateCheck99MinProportion <-
+  CheckDupWithinSilly.GCL(
+    sillyvec = TestSillys,
+    loci = loci,
+    quantile = NULL,
+    minproportion = 0.99
+  )
+
+DuplicateCheckReportSummary <-
+  sapply(TestSillys, function(x)
+    DuplicateCheck99MinProportion[[x]]$report, simplify = FALSE)
+
+DuplicateCheckReportSummary
+
+nDupsBySilly <-
+  sapply(DuplicateCheckReportSummary, function(silly) {
+    ifelse(is.character(silly), 0, nrow(as.matrix(silly)))
+  })
+RemovedDups <- RemoveDups.GCL(DuplicateCheck99MinProportion)
+
+sapply(DuplicateCheckReportSummary[nDupsBySilly >= 1], function(silly) {
+  if (1 %in% abs(as.numeric(levels(silly$ID1)) - as.numeric(levels(silly$ID2)))) {
+    "Sequential IDs found as duplicates, check 'DuplicateCheckReportSummary' for duplicated rows"
+  } else {
+    "Duplicates exist, but IDs do not appear sequential"
+  }
+})
+
+DuplicateCheckReportSummary[nDupsBySilly >= 1]  # Show within silly duplicates
+
+ColSizePostDuplicate <- ColSizePostMissLoci - nDupsBySilly
+ColSizePostDuplicate <- sapply(paste(TestSillys, ".gcl", sep = ''), function(x) get(x)$n)
+
+TestSillys_SampleSizes[, "Duplicate"] <-
+  ColSizePostMissLoci - ColSizePostDuplicate
+
+TestSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
+
+TestSillys_SampleSizes
+```
+
+**1 / 1035**  fish may be a duplicate. IDs aren't sequential (623 and 635), so maybe we'll have to look a bit more closely at the specifics of these two.
+
+#### Heterozygosity
+
+Excess heterozygosity can be an indication of contamination. We already know there is some contamination among the heart-derived GT-seq genotypes, but it is a good baseline.
+
+```{r}
+Ho_qc <- function(indata1 = PGOD21.gcl$counts[ , , 1]) {
+  indata1 %>% 
+  as_tibble(rownames = "qc_fish_id") %>% 
+  gather(locus, genotype, -qc_fish_id) %>% 
+  group_by(qc_fish_id) %>% 
+  summarise(Ho_qc = sum(genotype == 1, na.rm = TRUE) / length(!is.na(genotype)), .groups = "drop") %>% 
+  arrange(desc(Ho_qc))
+}
+
+Ho_qc_plot <- function(indata2 = Ho_qc_PGOD21) {
+  indata2 %>% 
+  ggplot(aes(x = Ho_qc)) +
+  geom_histogram(binwidth = 1/298) +
+  theme_bw()
+}
+
+Ho_qc_PGOD21 <- Ho_qc()
+Ho_qc_plot()
+```
+
+Ho is higher for some otoliths, likely due to contamination.
+
+#### Genotyping success
+
+Let's look at it again visually.
+
+```{r}
+# loci_intersect <- setdiff(loci, failed_loci_otoliths) # all 298 are there
+
+qc_proportion_missing <- function(indata3 = PGOD21.gcl$counts[, , 1]) {
+    indata3 %>%
+    as_tibble(rownames = "fish_id") %>%
+    gather(locus, genotype,-fish_id) %>%
+    group_by(fish_id) %>%
+    summarise(proportion_missing = sum(is.na(genotype)) / 298) %>%
+    arrange(desc(proportion_missing))
+}
+
+qc_proportion_missing_plot <- function(indata4 = qc_proportion_missing_PGOD21) {
+  indata4 %>% 
+  ggplot(aes(x = proportion_missing)) +
+  geom_histogram() +
+  xlim(0, 1.1) +
+  theme_bw()
+}
+
+qc_proportion_missing_PGOD21 <- qc_proportion_missing()
+qc_proportion_missing_plot()
+```
+
+Yeah, it's not pretty right now - we know.
+
+#### Final dataset
+
+```{r}
+PGOD21.gcl$n
+```
+
+A total of 1,034 otoliths remaining for comparison.
+
+### Hearts
+
+#### Remove fails and dupes
+
+For the other SILLYS we'll compare to, we'll leave the cutoff at 80% and perform the regular 95% duplicate rate check.
+
+```{r}
+OriginalSillys <- c("PGILMOUR15_", "PGILMOUR16", "PGILMOUR17", "PGILMOUR18", "PERB16", "PERB18", "PPADDY16", "PPADDY18")
+
+OriginalSillys_SampleSizes <-
+  matrix(
+    data = NA,
+    nrow = length(OriginalSillys),
+    ncol = 4,
+    dimnames = list(OriginalSillys, c(
+      "Genotyped", "Missing", "Duplicate", "Final"
+    ))
+  )
+
+OriginalSillys_SampleSizes[, "Genotyped"] <-
+  sapply(paste(OriginalSillys, ".gcl", sep = ''), function(x)
+    get(x)$n)
+
+
+(MissLoci <-
+    RemoveIndMissLoci.GCL(sillyvec = OriginalSillys, proportion = 0.8))
+
+ColSizePostMissLoci <-
+  sapply(paste(OriginalSillys, ".gcl", sep = ''), function(x)
+    get(x)$n)
+
+OriginalSillys_SampleSizes[, "Missing"] <- OriginalSillys_SampleSizes[, "Genotyped"] - ColSizePostMissLoci
+
+DuplicateCheck95MinProportion <-
+  CheckDupWithinSilly.GCL(
+    sillyvec = OriginalSillys,
+    loci = loci,
+    quantile = NULL,
+    minproportion = 0.95
+  )
+
+DuplicateCheckReportSummary <-
+  sapply(OriginalSillys, function(x)
+    DuplicateCheck95MinProportion[[x]]$report, simplify = FALSE)
+
+DuplicateCheckReportSummary
+
+nDupsBySilly <-
+  sapply(DuplicateCheckReportSummary, function(silly) {
+    ifelse(is.character(silly), 0, nrow(as.matrix(silly)))
+  })
+RemovedDups <- RemoveDups.GCL(DuplicateCheck95MinProportion)
+
+sapply(DuplicateCheckReportSummary[nDupsBySilly >= 1], function(silly) {
+  if (1 %in% abs(as.numeric(levels(silly$ID1)) - as.numeric(levels(silly$ID2)))) {
+    "Sequential IDs found as duplicates, check 'DuplicateCheckReportSummary' for duplicated rows"
+  } else {
+    "Duplicates exist, but IDs do not appear sequential"
+  }
+})
+
+DuplicateCheckReportSummary[nDupsBySilly >= 1]  # Show within silly duplicates
+
+ColSizePostDuplicate <- ColSizePostMissLoci - nDupsBySilly
+ColSizePostDuplicate <- sapply(paste(OriginalSillys, ".gcl", sep = ''), function(x) get(x)$n)
+
+OriginalSillys_SampleSizes[, "Duplicate"] <-
+  ColSizePostMissLoci - ColSizePostDuplicate
+
+OriginalSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
+
+OriginalSillys_SampleSizes
+```
+
+Losing a lot more here as expected, both in terms of missingness and dupes, but it's what we'd filter in a normal project anyway.
+
+#### Heterozygosity
+
+```{r}
+Ho_qc_PERB16 <- Ho_qc(PERB16.gcl$counts[, , 1])
+Ho_qc_PERB18 <- Ho_qc(PERB18.gcl$counts[, , 1])
+Ho_qc_PGILMOUR16 <- Ho_qc(PGILMOUR15.gcl$counts[, , 1])
+Ho_qc_PGILMOUR16 <- Ho_qc(PGILMOUR16.gcl$counts[, , 1])
+Ho_qc_PGILMOUR17 <- Ho_qc(PGILMOUR17.gcl$counts[, , 1])
+Ho_qc_PGILMOUR18 <- Ho_qc(PGILMOUR18.gcl$counts[, , 1])
+Ho_qc_PPADDY16 <- Ho_qc(PPADDY16.gcl$counts[, , 1])
+Ho_qc_PPADDY18 <- Ho_qc(PPADDY18.gcl$counts[, , 1])
+
+Ho_qc_plot(Ho_qc_PERB16)
+Ho_qc_plot(Ho_qc_PERB18)
+Ho_qc_plot(Ho_qc_PGILMOUR15)
+Ho_qc_plot(Ho_qc_PGILMOUR16)
+Ho_qc_plot(Ho_qc_PGILMOUR17)
+Ho_qc_plot(Ho_qc_PGILMOUR18)
+Ho_qc_plot(Ho_qc_PPADDY16)
+Ho_qc_plot(Ho_qc_PPADDY18)
+```
+
+Ho is higher for some hearts, likely due to contamination, but we already knew this.
+
+#### Genotyping success
+
+```{r}
+qc_proportion_missing_PERB16 <- qc_proportion_missing(PERB16.gcl$counts[, , 1])
+qc_proportion_missing_PERB18 <- qc_proportion_missing(PERB18.gcl$counts[, , 1])
+qc_proportion_missing_PGILMOUR15 <- qc_proportion_missing(PGILMOUR15.gcl$counts[, , 1])
+qc_proportion_missing_PGILMOUR16 <- qc_proportion_missing(PGILMOUR16.gcl$counts[, , 1])
+qc_proportion_missing_PGILMOUR17 <- qc_proportion_missing(PGILMOUR17.gcl$counts[, , 1])
+qc_proportion_missing_PGILMOUR18 <- qc_proportion_missing(PGILMOUR18.gcl$counts[, , 1])
+qc_proportion_missing_PPADDY16 <- qc_proportion_missing(PPADDY16.gcl$counts[, , 1])
+qc_proportion_missing_PPADDY18 <- qc_proportion_missing(PPADDY18.gcl$counts[, , 1])
+
+qc_proportion_missing_plot(qc_proportion_missing_PERB16)
+qc_proportion_missing_plot(qc_proportion_missing_PERB18)
+qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR15)
+qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR16)
+qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR17)
+qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR18)
+qc_proportion_missing_plot(qc_proportion_missing_PPADDY16)
+qc_proportion_missing_plot(qc_proportion_missing_PPADDY18)
+```
+
+Lots less missing in the hearts.
+
+#### Final datasets
+
+```{r}
+PERB16.gcl$n
+PERB18.gcl$n
+PGILMOUR15.gcl$n
+PGILMOUR16.gcl$n
+PGILMOUR17.gcl$n
+PGILMOUR18.gcl$n
+PPADDY16.gcl$n
+PPADDY18.gcl$n
+```
+
+Lots o' possible fishies to match back to.
+
+# #######################################
+
+## Duplicate rate check
+
+### All 1,034 fish
+
+```{r}
+# all 1,034 fish
+# DupCheckResults <- DupCheckBetweenSillys.GCL(KeySillys = "PGOD21",
+#                             KeySillyIDs = list("PGOD21" = fish_ids),
+#                             BetweenSillys = OriginalSillys,
+#                             loci = loci,
+#                             threshold = 0.9)
+```
+
+**Not enough memory for this..."Error: cannot allocate vector of size 225.8 Mb"** Okay, so we have to go plate-by-plate...
+
+```{r}
+
+
+
+
+# subset by plate
+
+
+
+DupCheckResults <- DupCheckBetweenSillys.GCL(KeySillys = "PGOD21",
+                            KeySillyIDs = list("PGOD21" = fish_ids),
+                            BetweenSillys = OriginalSillys,
+                            loci = loci,
+                            threshold = 0.9)
+```
+
+Top pairwise duplicate rate comparisons
+
+```{r}
+(dup_check_results <- dplyr::bind_rows(DupCheckResults, .id = "silly") %>% 
+   tibble::as_tibble())
+```
+
+How many PGOD21 fish match only 1 other fish?
+
+```{r}
+dup_check_results %>% 
+  count(Keysillyvial) %>% 
+  filter(n == 1) %>% 
+  left_join(dup_check_results, by = "Keysillyvial")
+```
+
+How many PGOD21 fish match >1 other fish?
+
+```{r}
+dup_check_results %>% 
+  count(Keysillyvial) %>% 
+  filter(n > 1) %>% 
+  left_join(dup_check_results, by = "Keysillyvial") %>% 
+  arrange(Keysillyvial)
+```
+
+Check top match vs. 2nd best
+
+```{r}
+dup_check_all_top2 <- dup_check_all %>% 
+  mutate(qc_fish_id = str_remove(string = qc_fish_id, pattern = "PGOD21_"),
+         fish_id = str_remove(string = fish_id, pattern = c("PGILMOUR15_", "PGILMOUR16_", "PGILMOUR17_", "PGILMOUR18_", "PERB16_", "PERB18_", "PPADDY16_", "PPADDY18_"))) %>% 
+  group_by(qc_fish_id) %>% 
+  dplyr::top_n(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  top_n(duplicate_rate, n = 1) %>% 
+  mutate(matchy = qc_fish_id == fish_id) %>% 
+  ungroup()
+
+dup_ties <- dup_check_all_top2 %>% 
+  count(qc_fish_id) %>% 
+  filter(n > 1) %>% 
+  pull(qc_fish_id)
+
+dup_check_all_top2 %>% 
+  filter(!(qc_fish_id %in% dup_ties & matchy == TRUE)) %>% 
+  select(qc_fish_id, matchy) %>% 
+  distinct() %>% 
+  count(matchy)
+
+dup_check_all_top2 %>% 
+  ggplot(aes(x = diff, y = duplicate_rate, colour = matchy, text = qc_fish_id)) +
+  geom_point() +
+  theme_bw()
+
+plotly::ggplotly(ggplot(
+  data = dup_check_all_top2,
+  aes(
+    x = diff,
+    y = duplicate_rate,
+    colour = best_match,
+    text = qc_fish_id
+  )
+) +
+  geom_point() +
+  theme_bw())
+```
