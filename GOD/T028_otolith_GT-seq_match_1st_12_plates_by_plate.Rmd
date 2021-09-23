@@ -502,10 +502,9 @@ PPADDY16.gcl$n
 
 We have a handful o' possible fishies to match back to. As a reminder, PGOD21 covered quite a few more SILLYs than we have heart genotypes for.
 
-# #######################################
-
 ## Duplicate rate check
 
+### Arrange data by DWPs
 ```{r}
 # figure out the SILLYs associated with the DWPs and join
 PGOD21_DWPs <- attributes_and_xfer_PGOD21 %>% 
@@ -519,12 +518,113 @@ attributes_xfer_and_SILLY_PGOD21$OG_SILLY_CODE <- PGOD21_DWPs_and_SILLYs$OG_SILL
 
 new_PGOD21_attributes_and_SILLY <- left_join(PGOD21.gcl$attributes, attributes_xfer_and_SILLY_PGOD21, by = "SillySource")
 
-############### do I have to figure out how to reconstruct this *.gcl object first? Should I break everything down by DWP or SILLY?
+# break down new_PGOD21_attributes_and_SILLY into individual DWPs
+PGOD21_by_DWP <- function(indata = "14331") {
+  new_PGOD21_attributes_and_SILLY %>% 
+    dplyr::filter(`48_DWP_tray_barcode` == indata)
+}
 
+PGOD21_DWP_14331 <- PGOD21_by_DWP(indata = "14331")
+PGOD21_DWP_21941 <- PGOD21_by_DWP(indata = "21941")
+PGOD21_DWP_14376 <- PGOD21_by_DWP(indata = "14376")
+PGOD21_DWP_14334 <- PGOD21_by_DWP(indata = "14334")
+PGOD21_DWP_14332 <- PGOD21_by_DWP(indata = "14332")
+PGOD21_DWP_22174 <- PGOD21_by_DWP(indata = "22174")
+PGOD21_DWP_14395 <- PGOD21_by_DWP(indata = "14395")
+PGOD21_DWP_16104 <- PGOD21_by_DWP(indata = "16104")
+PGOD21_DWP_16164 <- PGOD21_by_DWP(indata = "16164")
+PGOD21_DWP_14463 <- PGOD21_by_DWP(indata = "14463")
+PGOD21_DWP_28807 <- PGOD21_by_DWP(indata = "28807")
+PGOD21_DWP_21900 <- PGOD21_by_DWP(indata = "21900")
+PGOD21_DWP_14297 <- PGOD21_by_DWP(indata = "14297")
+PGOD21_DWP_22108 <- PGOD21_by_DWP(indata = "22108")
+PGOD21_DWP_22221 <- PGOD21_by_DWP(indata = "22221")
+PGOD21_DWP_22104 <- PGOD21_by_DWP(indata = "22104")
+PGOD21_DWP_2287 <- PGOD21_by_DWP(indata = "2287")
+PGOD21_DWP_22107 <- PGOD21_by_DWP(indata = "22107")
+PGOD21_DWP_14573 <- PGOD21_by_DWP(indata = "14573")
+PGOD21_DWP_21938 <- PGOD21_by_DWP(indata = "21938")
+PGOD21_DWP_15826 <- PGOD21_by_DWP(indata = "15826")
+PGOD21_DWP_22050 <- PGOD21_by_DWP(indata = "22050")
+PGOD21_DWP_21940 <- PGOD21_by_DWP(indata = "21940")
+PGOD21_DWP_22710 <- PGOD21_by_DWP(indata = "22710")
+PGOD21_DWP_22595 <- PGOD21_by_DWP(indata = "22595")
+PGOD21_DWP_22569 <- PGOD21_by_DWP(indata = "22569")
+PGOD21_DWP_22701 <- PGOD21_by_DWP(indata = "22701")
+PGOD21_DWP_28929 <- PGOD21_by_DWP(indata = "28929")
+PGOD21_DWP_16130 <- PGOD21_by_DWP(indata = "16130")
+PGOD21_DWP_2228 <- PGOD21_by_DWP(indata = "2228")
+PGOD21_DWP_28829 <- PGOD21_by_DWP(indata = "28829")
+PGOD21_DWP_21937 <- PGOD21_by_DWP(indata = "21937")
+PGOD21_DWP_21939 <- PGOD21_by_DWP(indata = "21939")
+PGOD21_DWP_22260 <- PGOD21_by_DWP(indata = "22260")
+PGOD21_DWP_14282 <- PGOD21_by_DWP(indata = "14282")
+PGOD21_DWP_22218 <- PGOD21_by_DWP(indata = "22218")
+PGOD21_DWP_14662 <- PGOD21_by_DWP(indata = "14662")
+PGOD21_DWP_14663 <- PGOD21_by_DWP(indata = "14663")
+PGOD21_DWP_22162 <- PGOD21_by_DWP(indata = "22162")
+PGOD21_DWP_22591 <- PGOD21_by_DWP(indata = "22591")
+PGOD21_DWP_22751 <- PGOD21_by_DWP(indata = "22751")
+PGOD21_DWP_28812 <- PGOD21_by_DWP(indata = "28812")
+PGOD21_DWP_22105 <- PGOD21_by_DWP(indata = "22105")
+PGOD21_DWP_16132 <- PGOD21_by_DWP(indata = "16132")
+PGOD21_DWP_28864 <- PGOD21_by_DWP(indata = "28864")
+PGOD21_DWP_2288 <- PGOD21_by_DWP(indata = "2288")
+PGOD21_DWP_22006 <- PGOD21_by_DWP(indata = "22006")
+PGOD21_DWP_2232 <- PGOD21_by_DWP(indata = "2232")
 
+# break down OGSillys into individual DWPs
+PERB16_affected_DWPs <- unique(PERB16.gcl$attributes$DNA_TRAY_CODE)
+PGILMOUR15_affected_DWPs <- unique(PGILMOUR15.gcl$attributes$DNA_TRAY_CODE)
+PGILMOUR16_affected_DWPs <- unique(PGILMOUR16.gcl$attributes$DNA_TRAY_CODE)
+PGILMOUR17_affected_DWPs <- unique(PGILMOUR17.gcl$attributes$DNA_TRAY_CODE)
+PGILMOUR18_affected_DWPs <- unique(PGILMOUR18.gcl$attributes$DNA_TRAY_CODE)
+PPADDY16_affected_DWPs <- unique(PPADDY16.gcl$attributes$DNA_TRAY_CODE)
+
+OGSilly_by_DWP <- function(indata1 = PERB16.gcl$attributes, indata2 = "0000014331") {
+  indata1 %>% 
+    dplyr::filter(DNA_TRAY_CODE == indata2)
+}
+
+PERB16_DWP_14395 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014395")
+PERB16_DWP_14334 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014334")
+PERB16_DWP_14331 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014331")
+PERB16_DWP_14376 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014376")
+PERB16_DWP_14297 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014297")
+PERB16_DWP_14282 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014282")
+PERB16_DWP_14332 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014332")
+
+PGILMOUR15_DWP_2228 <- OGSilly_by_DWP(indata1 = PGILMOUR15.gcl$attributes, indata2 = "00000002228")
+PGILMOUR15_DWP_2232 <- OGSilly_by_DWP(indata1 = PGILMOUR15.gcl$attributes, indata2 = "00000002232")
+
+PGILMOUR16_DWP_14573 <- OGSilly_by_DWP(indata1 = PGILMOUR16.gcl$attributes, indata2 = "0000014573")
+PGILMOUR16_DWP_14662 <- OGSilly_by_DWP(indata1 = PGILMOUR16.gcl$attributes, indata2 = "0000014662")
+PGILMOUR16_DWP_14663 <- OGSilly_by_DWP(indata1 = PGILMOUR16.gcl$attributes, indata2 = "0000014663")
+PGILMOUR16_DWP_15826 <- OGSilly_by_DWP(indata1 = PGILMOUR16.gcl$attributes, indata2 = "0000015826")
+
+PGILMOUR17_DWP_22569 <- OGSilly_by_DWP(indata1 = PGILMOUR17.gcl$attributes, indata2 = "0000022569")
+PGILMOUR17_DWP_22591 <- OGSilly_by_DWP(indata1 = PGILMOUR17.gcl$attributes, indata2 = "0000022591")
+PGILMOUR17_DWP_22595 <- OGSilly_by_DWP(indata1 = PGILMOUR17.gcl$attributes, indata2 = "0000022595")
+PGILMOUR17_DWP_22710 <- OGSilly_by_DWP(indata1 = PGILMOUR17.gcl$attributes, indata2 = "0000022710")
+PGILMOUR17_DWP_22751 <- OGSilly_by_DWP(indata1 = PGILMOUR17.gcl$attributes, indata2 = "0000022751")
+PGILMOUR17_DWP_22701 <- OGSilly_by_DWP(indata1 = PGILMOUR17.gcl$attributes, indata2 = "0000022701")
+
+PGILMOUR18_DWP_28929 <- OGSilly_by_DWP(indata1 = PGILMOUR18.gcl$attributes, indata2 = "0000028929")
+PGILMOUR18_DWP_28864 <- OGSilly_by_DWP(indata1 = PGILMOUR18.gcl$attributes, indata2 = "0000028864")
+PGILMOUR18_DWP_28829 <- OGSilly_by_DWP(indata1 = PGILMOUR18.gcl$attributes, indata2 = "0000028829")
+PGILMOUR18_DWP_28807 <- OGSilly_by_DWP(indata1 = PGILMOUR18.gcl$attributes, indata2 = "0000028807")
+PGILMOUR18_DWP_28812 <- OGSilly_by_DWP(indata1 = PGILMOUR18.gcl$attributes, indata2 = "0000028812")
+
+PPADDY16_DWP_16104 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 = "0000016104")
+PPADDY16_DWP_14463 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 = "0000014463")
+PPADDY16_DWP_16130 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 = "0000016130")
+PPADDY16_DWP_16164 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 = "0000016164")
+PPADDY16_DWP_16132 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 = "0000016132")
+
+############### Ddo I have to figure out how to reconstruct this *.gcl object before doing the matching? And, how?
 ```
 
-
+# #######################################
 
 ```{r}
 DupCheckResults <- DupCheckBetweenSillys.GCL(KeySillys = "PGOD21",
