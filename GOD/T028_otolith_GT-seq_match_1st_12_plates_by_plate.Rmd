@@ -718,10 +718,10 @@ A total of 19 PGOD21 DWPs don't have OGSilly DWP matches, presumably because the
 #### PERB16 DWP 14395
 
 ```{r}
-LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14395_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14395_fish_ids,  username = .username, password = .password)
+# LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14395_fish_ids,  username = .username, password = .password)
+# LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14395_fish_ids,  username = .username, password = .password)
 
-# For comparison from T028
+# From T028 for comparison
 # DupCheckResults <- DupCheckBetweenSillys.GCL(KeySillys = "PSTOCK17QC", 
 #                             KeySillyIDs = list("PSTOCK17QC" = fish_ids), 
 #                             BetweenSillys = ProjectSillys, 
@@ -735,7 +735,7 @@ DupCheckResults <- DupCheckBetweenSillys.GCL(KeySillys = "PGOD21",
                             threshold = 0.9)
 
 
-rm(.password)
+rm(username, .password)
 ```
 
 Top pairwise duplicate rate comparisons
@@ -808,253 +808,56 @@ plotly::ggplotly(ggplot(
 
 #### PERB16 DWP 14334
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14334_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14334_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PERB16 DWP 14331
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14331_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14331_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
 
 #### PERB16 DWP 14376
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14376_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14376_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PERB16 DWP 14297
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14297_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14297_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
 
 #### PERB16 DWP 14282
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14282_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14282_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PERB16 DWP 14332
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14332_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14332_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
 
 #### PGILMOUR15 DWP 2228
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR15, fish_ids = PGILMOUR15_DWP_2228_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_2228_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PGILMOUR15 DWP 2232
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR15, fish_ids = PGILMOUR15_DWP_2232_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_2232_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
 
 #### PGILMOUR16 DWP 14573
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR16, fish_ids = PGILMOUR16_DWP_14573_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14573_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PGILMOUR16 DWP 14662
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR16, fish_ids = PGILMOUR16_DWP_14662_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14662_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
 
 #### PGILMOUR16 DWP 14663
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR16, fish_ids = PGILMOUR16_DWP_14663_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14663_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PGILMOUR16 DWP 15826
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR16, fish_ids = PGILMOUR16_DWP_15826_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_15826_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
 
 #### PGILMOUR17 DWP 22569
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR17, fish_ids = PGILMOUR17_DWP_22569_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_22569_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PGILMOUR17 DWP 22591
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR17, fish_ids = PGILMOUR17_DWP_22591_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_22591_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
 
 #### PGILMOUR17 DWP 22595
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR17, fish_ids = PGILMOUR17_DWP_22595_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_22595_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PGILMOUR17 DWP 22710
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR17, fish_ids = PGILMOUR17_DWP_22710_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_22710_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
 
 #### PGILMOUR17 DWP 22751
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR17, fish_ids = PGILMOUR17_DWP_22751_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_22751_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PGILMOUR17 DWP 22701
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR17, fish_ids = PGILMOUR17_DWP_22701_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_22701_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
 
 #### PGILMOUR18 DWP 28929
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR18, fish_ids = PGILMOUR18_DWP_28929_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_28929_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PGILMOUR18 DWP 28864
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR18, fish_ids = PGILMOUR18_DWP_28864_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_28864_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
 
 #### PGILMOUR18 DWP 28829
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR18, fish_ids = PGILMOUR18_DWP_28829_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_28829_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PGILMOUR18 DWP 28807
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR18, fish_ids = PGILMOUR18_DWP_28807_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_28807_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
 
 #### PGILMOUR18 DWP 28812
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PGILMOUR18, fish_ids = PGILMOUR18_DWP_28812_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_28812_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PPADDY16 DWP 16104
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_DWP_16104_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_16104_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
 
 #### PPADDY16 DWP 14463
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_DWP_14463_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14463_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PPADDY16 DWP 16130
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_DWP_16130_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_16130_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
 
 #### PPADDY16 DWP 16164
 
-```{r}
-LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_DWP_16164_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_16164_fish_ids,  username = .username, password = .password)
-
-rm(.password)
-```
-
 #### PPADDY16 DWP 16132
-
-```{r}
-LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_DWP_16132_fish_ids,  username = .username, password = .password)
-LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_16132_fish_ids,  username = .username, password = .password)
-
-rm(.username, .password)
-```
-
