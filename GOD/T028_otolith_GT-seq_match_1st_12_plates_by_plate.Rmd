@@ -22,8 +22,8 @@ bbind <- function(...) { abind(..., along = 3) }
 .password <- ""
 
 source("~/R/Functions.GCL.R")
-source("LOKI2R_ind.GCL.R")
-source("DupCheckBetweenSillys_all.GCL.r")
+source("../../GOD/LOKI2R_ind.GCL.R")
+source("../../GOD/DupCheckBetweenSillys_all.GCL.r")
 ```
 
 # Objective
@@ -77,7 +77,7 @@ AHRP_oceanak_pull_092021 <- read_csv(file = "../../OceanAK/AHRP Salmon Biologica
 oceanak_affected_DWPs <- AHRP_oceanak_pull_092021[AHRP_oceanak_pull_092021$DNA_TRAY_CODE %in% affected_DWPs, ]
 write_csv(oceanak_affected_DWPs, "oceanak_affected_DWPs.csv")
 
-# get fish IDs for affected DWPs
+# get SILLYs and fish IDs for affected DWPs
 DWP_sillys <- unique(oceanak_affected_DWPs$SILLY_CODE)
 
 DWP_fish_ids <- oceanak_affected_DWPs %>% 
@@ -149,8 +149,6 @@ LOKI2R_ind.GCL(sillyvec = PGILMOUR18, fish_ids = PGILMOUR18_fish_ids, username =
 
 PPADDY16 <- "PPADDY16"
 LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_fish_ids, username = .username, password = .password)
-
-rm(.username, .password)
 ```
 
 Create new directories and save objects
@@ -206,7 +204,7 @@ locus_success_rate_qc %>%
 #     labs(fill = "Percent\ngenotyped")
 # )
 
-# You can zoom, click things, scroll, save image, etc. so you can actually see whats going on...but it keeps failing ("Error in dirname(to) : path too long")and I'm not in the mood to move things around, so back to normal ggplot...
+# You can zoom, click things, scroll, save image, etc. so you can actually see whats going on...but it keeps failing ("Error in dirname(to) : path too long") and I'm not in the mood to move things around, so back to normal ggplot...
 TestQCPercentbyLocus %>%
   as_tibble(rownames = "locus") %>%
   gather(silly, percent,-locus) %>%
@@ -223,7 +221,7 @@ TestQCPercentbyLocus %>%
     labs(fill = "Percent\ngenotyped")
 ```
 
-**0 / 298** loci failed; see table above. Some loci aren't too pretty, though.
+**0 / 298** loci failed; all rates >10% (see table).  Some loci aren't too pretty, though.
 
 ## QA project genotypes
 
@@ -242,9 +240,9 @@ PGOD21.gcl$counts[, , 1] %>%
   arrange(desc(proportion_missing))
 ```
 
-There are 1,120 total otos in PGOD21 this first test round. If we went by the usual 80% rule on all 298 loci, we'd lose 692 otos, which is honestly not as bad as I thought it would be considering what we're dealing with. HOWEVER, we need to keep as many critters as possible. Plus, we're dealing with 298 loci, so we should have a lot of wiggle room considering the original panel was 96 (32% of loci) and we were considering paring that down to 24 (8% of loci). Granted, info content of each locus is not the same. 
+There are 1,120 total otos in PGOD21 this first test round. If we went by the usual 80% rule on all 298 loci, we'd lose 692 otos, which is honestly not as bad as I thought considering what we're dealing with. HOWEVER, we need to keep as many critters as possible. Plus, we're dealing with 298 loci, so we should have wiggle room. Consider that the original panel was 96 (32% of loci) and we though of paring that down to 24 (8% of loci). Here, though, we have to remember that the info content of each locus is not the same. 
 
-So, for a first pass, let's try a 1% cutoff giving us a minimum of 3 loci that must be genotyped and losing 19 fish, leaving us with 1,101 fishies. We'll also largely skip the duplicate check (set at 99% matching), since it probably won't do us much good. We have (1) a low potential to identify true dupes, if there are few loci genotyped and (2) both lefts and unknowns in PGOD21, which could come from the same fish. NOTE: if this doesn't work well, as an alternate, we'll try a 10% cutoff giving us a minimum of 30 loci that must be genotyped and losing 85 fish, leaving us with 1,035 fishies. We'll still keep the duplicate rate check at 99%. 
+So, for a first pass, let's try a 1% cutoff giving us a minimum of 3 loci that must be genotyped, losing 19 otos and leaving us with 1,101. We'll also largely skip the duplicate check (set at 99% matching), since it probably won't do us much good; we have (1) a low potential to identify true dupes, if only a few loci are genotyped, and (2) both lefts and unknowns are in PGOD21, which could come from the same fish. *NOTE: if this doesn't work well, as an alternate, we'll try a 10% cutoff giving us a minimum of 30 loci that must be genotyped and losing 85 fish, leaving us with 1,035 fishies. We'll keep the internal duplicate rate check at 99%.* 
 
 ```{r}
 TestSillys_SampleSizes <-
@@ -312,7 +310,7 @@ TestSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
 TestSillys_SampleSizes
 ```
 
-**1 / 1101**  otos may be a duplicate. IDs aren't sequential (623 and 635), but they may have been in the same jumbled well together, so maybe we'll have to look a bit more closely at the specifics of these two.
+**1 / 1101**  otos may be a duplicate. IDs aren't sequential (623 and 635), but they may have been in the same well jumbledtogether. We can look a bit more closely at the specifics of these two, if we really want.
 
 #### Heterozygosity
 
@@ -369,7 +367,7 @@ qc_proportion_missing_PGOD21 <- qc_proportion_missing()
 qc_proportion_missing_plot()
 ```
 
-Yeah, it's not pretty - we know.
+Yeah, it's not pretty, but we knew that.
 
 ### Hearts
 
@@ -445,25 +443,25 @@ OGSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
 OGSillys_SampleSizes
 ```
 
-Losing a few more here as expected in terms of missingness. Only one dupe in PGILMOUR16. This is what we'd filter in a normal project anyway.
+Losing a few more here as expected in terms of missingness. Only one dupe in PGILMOUR16. This is what we'd filter in a normal project anyway, although we lost more than a third of PERB16.
 
 #### Heterozygosity
 
 ```{r}
-Ho_qc_PERB16 <- Ho_qc(PERB16.gcl$counts[, , 1])
-Ho_qc_PGILMOUR15 <- Ho_qc(PGILMOUR15.gcl$counts[, , 1])
-Ho_qc_PGILMOUR16 <- Ho_qc(PGILMOUR16.gcl$counts[, , 1])
-Ho_qc_PGILMOUR17 <- Ho_qc(PGILMOUR17.gcl$counts[, , 1])
-Ho_qc_PGILMOUR18 <- Ho_qc(PGILMOUR18.gcl$counts[, , 1])
-Ho_qc_PPADDY16 <- Ho_qc(PPADDY16.gcl$counts[, , 1])
-
-
-Ho_qc_plot(Ho_qc_PERB16)
-Ho_qc_plot(Ho_qc_PGILMOUR15)
-Ho_qc_plot(Ho_qc_PGILMOUR16)
-Ho_qc_plot(Ho_qc_PGILMOUR17)
-Ho_qc_plot(Ho_qc_PGILMOUR18)
-Ho_qc_plot(Ho_qc_PPADDY16)
+# Ho_qc_PERB16 <- Ho_qc(PERB16.gcl$counts[, , 1])
+# Ho_qc_PGILMOUR15 <- Ho_qc(PGILMOUR15.gcl$counts[, , 1])
+# Ho_qc_PGILMOUR16 <- Ho_qc(PGILMOUR16.gcl$counts[, , 1])
+# Ho_qc_PGILMOUR17 <- Ho_qc(PGILMOUR17.gcl$counts[, , 1])
+# Ho_qc_PGILMOUR18 <- Ho_qc(PGILMOUR18.gcl$counts[, , 1])
+# Ho_qc_PPADDY16 <- Ho_qc(PPADDY16.gcl$counts[, , 1])
+# 
+# 
+# Ho_qc_plot(Ho_qc_PERB16)
+# Ho_qc_plot(Ho_qc_PGILMOUR15)
+# Ho_qc_plot(Ho_qc_PGILMOUR16)
+# Ho_qc_plot(Ho_qc_PGILMOUR17)
+# Ho_qc_plot(Ho_qc_PGILMOUR18)
+# Ho_qc_plot(Ho_qc_PPADDY16)
 ```
 
 Ho is higher for some hearts, likely due to contamination, but we already knew this, and compared to the PGOD21 otos, it's pretty low.
@@ -471,24 +469,24 @@ Ho is higher for some hearts, likely due to contamination, but we already knew t
 #### Genotyping success
 
 ```{r}
-qc_proportion_missing_PERB16 <- qc_proportion_missing(PERB16.gcl$counts[, , 1])
-qc_proportion_missing_PGILMOUR15 <- qc_proportion_missing(PGILMOUR15.gcl$counts[, , 1])
-qc_proportion_missing_PGILMOUR16 <- qc_proportion_missing(PGILMOUR16.gcl$counts[, , 1])
-qc_proportion_missing_PGILMOUR17 <- qc_proportion_missing(PGILMOUR17.gcl$counts[, , 1])
-qc_proportion_missing_PGILMOUR18 <- qc_proportion_missing(PGILMOUR18.gcl$counts[, , 1])
-qc_proportion_missing_PPADDY16 <- qc_proportion_missing(PPADDY16.gcl$counts[, , 1])
-
-qc_proportion_missing_plot(qc_proportion_missing_PERB16)
-qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR15)
-qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR16)
-qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR17)
-qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR18)
-qc_proportion_missing_plot(qc_proportion_missing_PPADDY16)
+# qc_proportion_missing_PERB16 <- qc_proportion_missing(PERB16.gcl$counts[, , 1])
+# qc_proportion_missing_PGILMOUR15 <- qc_proportion_missing(PGILMOUR15.gcl$counts[, , 1])
+# qc_proportion_missing_PGILMOUR16 <- qc_proportion_missing(PGILMOUR16.gcl$counts[, , 1])
+# qc_proportion_missing_PGILMOUR17 <- qc_proportion_missing(PGILMOUR17.gcl$counts[, , 1])
+# qc_proportion_missing_PGILMOUR18 <- qc_proportion_missing(PGILMOUR18.gcl$counts[, , 1])
+# qc_proportion_missing_PPADDY16 <- qc_proportion_missing(PPADDY16.gcl$counts[, , 1])
+# 
+# qc_proportion_missing_plot(qc_proportion_missing_PERB16)
+# qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR15)
+# qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR16)
+# qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR17)
+# qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR18)
+# qc_proportion_missing_plot(qc_proportion_missing_PPADDY16)
 ```
 
-Lots less missing in the hearts.
+Lots less missing in the hearts, except again maybe PERB16.
 
-### Final datasets
+### Final dataset sample sizes
 
 ```{r}
 PGOD21.gcl$n
@@ -500,16 +498,16 @@ PGILMOUR18.gcl$n
 PPADDY16.gcl$n
 ```
 
-We have a handful o' possible fishies to match back to. As a reminder, PGOD21 covered quite a few more SILLYs than we have heart genotypes for.
+We have a handful o' possible fishies to match back to. As a reminder, PGOD21 genotyped more SILLYs and DWPs than we have heart genotypes for, which comes into play when we do the DWP-by-DWP matching.
 
 ## Duplicate rate check
 
-### Arrange data by DWPs
+### Arrange attributes by DWPs
 ```{r}
 # figure out the SILLYs associated with the DWPs and join
 PGOD21_DWPs <- attributes_and_xfer_PGOD21 %>% 
   dplyr::select(`48_DWP_tray_barcode`) 
-write_csv(PGOD21_DWPs, "PGOD21_DWPs.csv") # used this list and SILLY_CODE and DNA_TRAY_CODE in oceanak_affected_DWPs.csv to do a vlookup in excel for the SILLY_CODE associated with the 48_DWP_tray_barcode - I've since realized it's probably possible to do a vlookup type thing using join, but here we are...
+write_csv(PGOD21_DWPs, "PGOD21_DWPs.csv") # used this list plus SILLY_CODE and DNA_TRAY_CODE in oceanak_affected_DWPs.csv to do a vlookup in excel for the SILLY_CODE associated with the 48_DWP_tray_barcode - it's probably possible to do a vlookup type thing using join, but here we are...
 
 PGOD21_DWPs_and_SILLYs <- read_csv("PGOD21_DWPs_and_SILLYs.csv") # renamed SILLY_CODE column in PGOD21_DWPs.csv to OG_SILLY_CODE, saved as new csv, and uploaded
 
@@ -594,8 +592,8 @@ PERB16_DWP_14297 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0
 PERB16_DWP_14282 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014282")
 PERB16_DWP_14332 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014332")
 
-PGILMOUR15_DWP_2228 <- OGSilly_by_DWP(indata1 = PGILMOUR15.gcl$attributes, indata2 = "00000002228")
-PGILMOUR15_DWP_2232 <- OGSilly_by_DWP(indata1 = PGILMOUR15.gcl$attributes, indata2 = "00000002232")
+PGILMOUR15_DWP_2228 <- OGSilly_by_DWP(indata1 = PGILMOUR15.gcl$attributes, indata2 = "0000002228")
+PGILMOUR15_DWP_2232 <- OGSilly_by_DWP(indata1 = PGILMOUR15.gcl$attributes, indata2 = "0000002232")
 
 PGILMOUR16_DWP_14573 <- OGSilly_by_DWP(indata1 = PGILMOUR16.gcl$attributes, indata2 = "0000014573")
 PGILMOUR16_DWP_14662 <- OGSilly_by_DWP(indata1 = PGILMOUR16.gcl$attributes, indata2 = "0000014662")
@@ -620,18 +618,124 @@ PPADDY16_DWP_14463 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 
 PPADDY16_DWP_16130 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 = "0000016130")
 PPADDY16_DWP_16164 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 = "0000016164")
 PPADDY16_DWP_16132 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 = "0000016132")
-
-############### Ddo I have to figure out how to reconstruct this *.gcl object before doing the matching? And, how?
 ```
 
-# #######################################
+### Pull DWP fish_ids for PGOD21 and the OGSillys
 
 ```{r}
+# pull fish_ids for PGOD21 DWPs
+PGOD21_DWP_14331_fish_ids <- PGOD21_DWP_14331 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_21941_fish_ids <- PGOD21_DWP_21941 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14376_fish_ids <- PGOD21_DWP_14376 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14334_fish_ids <- PGOD21_DWP_14334 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14332_fish_ids <- PGOD21_DWP_14332 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22174_fish_ids <- PGOD21_DWP_22174 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14395_fish_ids <- PGOD21_DWP_14395 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_16104_fish_ids <- PGOD21_DWP_16104 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_16164_fish_ids <- PGOD21_DWP_16164 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14463_fish_ids <- PGOD21_DWP_14463 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_28807_fish_ids <- PGOD21_DWP_28807 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_21900_fish_ids <- PGOD21_DWP_21900 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14297_fish_ids <- PGOD21_DWP_14297 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22108_fish_ids <- PGOD21_DWP_22108 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22221_fish_ids <- PGOD21_DWP_22221 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22104_fish_ids <- PGOD21_DWP_22104 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_2287_fish_ids <- PGOD21_DWP_2287 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22107_fish_ids <- PGOD21_DWP_22107 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14573_fish_ids <- PGOD21_DWP_14573 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_21938_fish_ids <- PGOD21_DWP_21938 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_15826_fish_ids <- PGOD21_DWP_15826 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22050_fish_ids <- PGOD21_DWP_22050 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_21940_fish_ids <- PGOD21_DWP_21940 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22710_fish_ids <- PGOD21_DWP_22710 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22595_fish_ids <- PGOD21_DWP_22595 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22569_fish_ids <- PGOD21_DWP_22569 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22701_fish_ids <- PGOD21_DWP_22701 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_28929_fish_ids <- PGOD21_DWP_28929 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_16130_fish_ids <- PGOD21_DWP_16130 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_2228_fish_ids <- PGOD21_DWP_2228 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_28829_fish_ids <- PGOD21_DWP_28829 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_21937_fish_ids <- PGOD21_DWP_21937 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_21939_fish_ids <- PGOD21_DWP_21939 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22260_fish_ids <- PGOD21_DWP_22260 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14282_fish_ids <- PGOD21_DWP_14282 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22218_fish_ids <- PGOD21_DWP_22218 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14662_fish_ids <- PGOD21_DWP_14662 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14663_fish_ids <- PGOD21_DWP_14663 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22162_fish_ids <- PGOD21_DWP_22162 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22591_fish_ids <- PGOD21_DWP_22591 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22751_fish_ids <- PGOD21_DWP_22751 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_28812_fish_ids <- PGOD21_DWP_28812 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22105_fish_ids <- PGOD21_DWP_22105 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_16132_fish_ids <- PGOD21_DWP_16132 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_28864_fish_ids <- PGOD21_DWP_28864 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_2288_fish_ids <- PGOD21_DWP_2288 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22006_fish_ids <- PGOD21_DWP_22006 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_2232_fish_ids <- PGOD21_DWP_2232 %>% pull(FK_FISH_ID.x)
+
+# pull fish_ids for OGSilly DWPs
+PERB16_DWP_14395_fish_ids <- PERB16_DWP_14395 %>% pull(FK_FISH_ID)
+PERB16_DWP_14334_fish_ids <- PERB16_DWP_14334 %>% pull(FK_FISH_ID)
+PERB16_DWP_14331_fish_ids <- PERB16_DWP_14331 %>% pull(FK_FISH_ID)
+PERB16_DWP_14376_fish_ids <- PERB16_DWP_14376 %>% pull(FK_FISH_ID)
+PERB16_DWP_14297_fish_ids <- PERB16_DWP_14297 %>% pull(FK_FISH_ID)
+PERB16_DWP_14282_fish_ids <- PERB16_DWP_14282 %>% pull(FK_FISH_ID)
+PERB16_DWP_14332_fish_ids <- PERB16_DWP_14332 %>% pull(FK_FISH_ID)
+
+PGILMOUR15_DWP_2228_fish_ids <- PGILMOUR15_DWP_2228 %>% pull(FK_FISH_ID)
+PGILMOUR15_DWP_2232_fish_ids <- PGILMOUR15_DWP_2232 %>% pull(FK_FISH_ID)
+
+PGILMOUR16_DWP_14573_fish_ids <- PGILMOUR16_DWP_14573 %>% pull(FK_FISH_ID)
+PGILMOUR16_DWP_14662_fish_ids <- PGILMOUR16_DWP_14662 %>% pull(FK_FISH_ID)
+PGILMOUR16_DWP_14663_fish_ids <- PGILMOUR16_DWP_14663 %>% pull(FK_FISH_ID)
+PGILMOUR16_DWP_15826_fish_ids <- PGILMOUR16_DWP_15826 %>% pull(FK_FISH_ID)
+
+PGILMOUR17_DWP_22569_fish_ids <- PGILMOUR17_DWP_22569 %>% pull(FK_FISH_ID)
+PGILMOUR17_DWP_22591_fish_ids <- PGILMOUR17_DWP_22591 %>% pull(FK_FISH_ID)
+PGILMOUR17_DWP_22595_fish_ids <- PGILMOUR17_DWP_22595 %>% pull(FK_FISH_ID)
+PGILMOUR17_DWP_22710_fish_ids <- PGILMOUR17_DWP_22710 %>% pull(FK_FISH_ID)
+PGILMOUR17_DWP_22751_fish_ids <- PGILMOUR17_DWP_22751 %>% pull(FK_FISH_ID)
+PGILMOUR17_DWP_22701_fish_ids <- PGILMOUR17_DWP_22701 %>% pull(FK_FISH_ID)
+
+PGILMOUR18_DWP_28929_fish_ids <- PGILMOUR18_DWP_28929 %>% pull(FK_FISH_ID)
+PGILMOUR18_DWP_28864_fish_ids <- PGILMOUR18_DWP_28864 %>% pull(FK_FISH_ID)
+PGILMOUR18_DWP_28829_fish_ids <- PGILMOUR18_DWP_28829 %>% pull(FK_FISH_ID)
+PGILMOUR18_DWP_28807_fish_ids <- PGILMOUR18_DWP_28807 %>% pull(FK_FISH_ID)
+PGILMOUR18_DWP_28812_fish_ids <- PGILMOUR18_DWP_28812 %>% pull(FK_FISH_ID)
+
+PPADDY16_DWP_16104_fish_ids <- PPADDY16_DWP_16104 %>% pull(FK_FISH_ID)
+PPADDY16_DWP_14463_fish_ids <- PPADDY16_DWP_14463 %>% pull(FK_FISH_ID)
+PPADDY16_DWP_16130_fish_ids <- PPADDY16_DWP_16130 %>% pull(FK_FISH_ID)
+PPADDY16_DWP_16164_fish_ids <- PPADDY16_DWP_16164 %>% pull(FK_FISH_ID)
+PPADDY16_DWP_16132_fish_ids <- PPADDY16_DWP_16132 %>% pull(FK_FISH_ID)
+```
+
+# ##########################################################
+### Dupe rate checks by DWP
+
+A total of 19 PGOD21 DWPs don't have OGSilly DWP matches, presumably because they haven't been genotyped yet, leaving 29 DWPs for matching. **Note: LOKI2R_ind.GCL overwrites results per SILLY. Not sure right now how to deal with this for both PGOD21 and OGSillys...**
+
+#### PERB16 DWP 14395
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14395_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14395_fish_ids,  username = .username, password = .password)
+
+# For comparison from T028
+# DupCheckResults <- DupCheckBetweenSillys.GCL(KeySillys = "PSTOCK17QC", 
+#                             KeySillyIDs = list("PSTOCK17QC" = fish_ids), 
+#                             BetweenSillys = ProjectSillys, 
+#                             loci = loci_intersect, 
+#                             threshold = 0.9)
+
 DupCheckResults <- DupCheckBetweenSillys.GCL(KeySillys = "PGOD21",
-                            KeySillyIDs = list("PGOD21" = fish_ids),
-                            BetweenSillys = OGSillys,
+                            KeySillyIDs = list("PGOD21" = PGOD21_DWP_14395_fish_ids),
+                            BetweenSillys = PERB16,
                             loci = loci,
                             threshold = 0.9)
+
+
+rm(.password)
 ```
 
 Top pairwise duplicate rate comparisons
@@ -701,3 +805,256 @@ plotly::ggplotly(ggplot(
   geom_point() +
   theme_bw())
 ```
+
+#### PERB16 DWP 14334
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14334_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14334_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PERB16 DWP 14331
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14331_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14331_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PERB16 DWP 14376
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14376_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14376_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PERB16 DWP 14297
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14297_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14297_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PERB16 DWP 14282
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14282_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14282_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PERB16 DWP 14332
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14332_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14332_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR15 DWP 2228
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR15, fish_ids = PGILMOUR15_DWP_2228_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_2228_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR15 DWP 2232
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR15, fish_ids = PGILMOUR15_DWP_2232_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_2232_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR16 DWP 14573
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR16, fish_ids = PGILMOUR16_DWP_14573_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14573_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR16 DWP 14662
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR16, fish_ids = PGILMOUR16_DWP_14662_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14662_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR16 DWP 14663
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR16, fish_ids = PGILMOUR16_DWP_14663_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14663_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR16 DWP 15826
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR16, fish_ids = PGILMOUR16_DWP_15826_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_15826_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR17 DWP 22569
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR17, fish_ids = PGILMOUR17_DWP_22569_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_22569_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR17 DWP 22591
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR17, fish_ids = PGILMOUR17_DWP_22591_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_22591_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR17 DWP 22595
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR17, fish_ids = PGILMOUR17_DWP_22595_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_22595_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR17 DWP 22710
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR17, fish_ids = PGILMOUR17_DWP_22710_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_22710_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR17 DWP 22751
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR17, fish_ids = PGILMOUR17_DWP_22751_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_22751_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR17 DWP 22701
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR17, fish_ids = PGILMOUR17_DWP_22701_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_22701_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR18 DWP 28929
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR18, fish_ids = PGILMOUR18_DWP_28929_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_28929_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR18 DWP 28864
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR18, fish_ids = PGILMOUR18_DWP_28864_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_28864_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR18 DWP 28829
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR18, fish_ids = PGILMOUR18_DWP_28829_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_28829_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR18 DWP 28807
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR18, fish_ids = PGILMOUR18_DWP_28807_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_28807_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PGILMOUR18 DWP 28812
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PGILMOUR18, fish_ids = PGILMOUR18_DWP_28812_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_28812_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PPADDY16 DWP 16104
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_DWP_16104_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_16104_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PPADDY16 DWP 14463
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_DWP_14463_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14463_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PPADDY16 DWP 16130
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_DWP_16130_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_16130_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PPADDY16 DWP 16164
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_DWP_16164_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_16164_fish_ids,  username = .username, password = .password)
+
+rm(.password)
+```
+
+#### PPADDY16 DWP 16132
+
+```{r}
+LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_DWP_16132_fish_ids,  username = .username, password = .password)
+LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_16132_fish_ids,  username = .username, password = .password)
+
+rm(.username, .password)
+```
+
