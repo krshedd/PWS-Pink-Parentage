@@ -1,5 +1,5 @@
 ---
-title: "Stockdale 2014/2016 Single-generation Parentage Reanalysis with 298 Markers"
+title: "Stockdale 2014/2016 Single-generation Parentage REanalysis with 298 Markers"
 author: "Kristen Gruenthal & Kyle Shedd"
 date: "24 September 2021"
 output:
@@ -123,6 +123,7 @@ paired_14_16_filter %>%
   count(`Sample Year`, SEX, origin) %>% 
   spread(origin, n, fill = 0)
 ```
+YAY! There are more 2016 fish now.
 
   * Seasonal sample size plots
 
@@ -182,7 +183,7 @@ parents_paired_14_16 %>%
   count(origin, `Otolith Mark ID.par`) %>% 
   spread(origin, n)
 ```
-**Results:** Of the **6,804** natural-origin offspring genotyped in 2016, *FRANz* assigned **604**, for an assignment rate of **8.9%**, to **602** parents (**576** natural and **26** hatchery). Most assignments (**479**) were to one parent, but there were **125** two-parent assignments. A total of **699** offspring assignments were to a natural-origin parent and **30** were to a hatchery-origin parent, with **20** from AFK15B, **4** from CCH15, **4** from SGH15, and **2** from WNH15PINKB.
+**Results:** Of the **5,814** natural-origin offspring genotyped in 2016, *FRANz* assigned **1,377**, for an assignment rate of **23.7%**, to **417** parents (**243** natural and **174** hatchery). Most assignments (**979**) were to one parent, but there were **199** two-parent assignments. A total of **964** offspring assignments were to a natural-origin parent and **413** were to a hatchery-origin parent, with **399** from AFK12B, **13** from CCH12, **0** from SGH12, and **1** from WNH12PINKB.
 
 ## Proportion test
 We performed a chi-square test on the data to determine whether the proportions of offspring assigned to hatchery- and natural-origin parents significantly differ from the proportions of hatchery- and natural-origin parents sampled. Note that for this analysis, the data were not divided out by sex. 
@@ -233,7 +234,7 @@ parents_paired_14_16 %>%
   scale_fill_manual(values = cbPalette2) +
   theme_bw()
 ```
-**Results:** Female parents produced **0-5** offspring, while known male parents produced **0-4**.  
+**Results:** Female parents produced **0-13** offspring, while known male parents produced **0-20**.  
 
 # **Reproductive Success (RS)**
 
@@ -251,9 +252,9 @@ paired_14_16_filter_parents <- paired_14_16_filter %>%
 
 # Join with all parents that produced no progeny
 paired_14_16_filter_parents <- left_join(paired_14_16_filter_parents, parents_paired_14_16_count, by = c("franz_id" = "Parent_ID")) %>% 
-  mutate(n = replace_na(n, 0)) %>% 
-  rename(origin = origin.x) %>% 
-  dplyr::select(-origin.y, -SEX.par, -`Sample Year.par`, -`Length Mm.par`, -`Sample Date.par`)
+  dplyr::mutate(n = replace_na(n, 0)) %>% 
+  dplyr::select(-origin.y, -SEX.par, -`Sample Year.par`, -`Length Mm.par`, -`Sample Date.par`) %>% 
+  rename(origin = origin.x)
 
 write_csv(paired_14_16_filter_parents, "Stockdale_paired_14_16r_filter_parents.csv")
 
@@ -330,7 +331,7 @@ paired_14_16_filter_parents %>%
   theme(legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1)) +
   scale_fill_manual(values = cbPalette2)
 ```
-**Results:** RSs for natural-origin fish for both sexes were higher than for hatchery-origin fish. In the histograms, note the large number of potential parents assigned no offspring that were absent from the family size plots above.
+**Results:** RSs for natural-origin fish for both sexes were much higher than for hatchery-origin fish. In the histograms, note the large number of potential parents assigned no offspring that were absent from the family size plots above.
 
 ## Relative reproductive success (RRS)
 
@@ -395,7 +396,7 @@ RRS_0 <- tibble(
 RRS_0 %>%
   spread(Sex, p_value)
 ```
-**Results:** There are significant differences in RRS for both males and females as well as overall. 
+**Results:** There are apparently highly significant differences in RRS for both males and females as well as overall. 
 
 ### *RRS plus 95% CIs for females and males*
 We calculated 95% CIs for RRS estimated above, based on [Kalinowski and Taper (2005)](http://www.nrcresearchpress.com/doi/10.1139/f04-239), a maximum likelihood estimate based on [Hinrichsen (2003)](https://cdnsciencepub.com/doi/10.1139/f03-070). This method has been used in other peer reviewed papers, such as [Ford et al. (2016)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0164801).
@@ -527,7 +528,7 @@ paired_14_16_filter_parents %>%
   theme(panel.grid.minor = element_blank()) +
   scale_fill_manual(values = cbPalette2)
 ```
-**Results:* No obvious trends. Natural origin males may be slightly more successful early mid-season.
+**Results:* Natural-origin fish of both sexes are more successful particularly early and late season.
 
 ### *RS by body length*
 ```{r RS_by_body_length, echo=FALSE, warning=FALSE, message=FALSE}
@@ -546,10 +547,10 @@ paired_14_16_filter_parents %>%
   theme(panel.grid.minor = element_blank()) +
   scale_fill_manual(values = cbPalette2)
 ```
-**Results:** Larger males and females appear to be more successful.
+**Results:** Larger natural-origin males appear to be more successful, while natural-origin females are more successfull regardless of size.
 
 ## Parent pair-offspring trios (triads)
-Because we have **125** individuals assigned two parents, we examined instances of four potential types of crosses. Crosses may be between hatchery fish (HH), between natural fish (NN), and between natural and hatchery fish, with NH indicating a natural-origin mother and hatchery-origin father and HN indicating a hatchery-origin mother and natural-origin father. 
+Because we have **199** individuals assigned two parents, we examined instances of four potential types of crosses. Crosses may be between hatchery fish (HH), between natural fish (NN), and between natural and hatchery fish, with NH indicating a natural-origin mother and hatchery-origin father and HN indicating a hatchery-origin mother and natural-origin father. 
 
 ### *Cross types observed*
 ```{r cross_as_new_grouping_variable, echo=FALSE, warning=FALSE, message=FALSE}
@@ -583,7 +584,7 @@ parents_paired_14_16_cross %>%
   geom_col(position = position_dodge2(preserve = "single"), width = 0.5, colour = "black") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
-  scale_x_continuous(breaks = 1:5) +
+  scale_x_continuous(breaks = 1:10) +
   theme_bw() +
   labs(title = "Distribution of Family Size by Cross (n)", fill = "Cross Type") +
   xlab("Number of Offspring")+
@@ -609,7 +610,7 @@ parents_paired_14_16_cross %>%
   ggplot(aes(x = n, y = p, fill = cross_n))+
   geom_col(position = position_dodge2(preserve = "single"), width = 0.5, colour = "black") +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1, by = 0.1)) +
-  scale_x_continuous(limits = c(0,5), breaks = seq(0, 5, by = 1)) +
+  scale_x_continuous(limits = c(0,10), breaks = seq(0,10, by = 1)) +
   labs(title = "Distribution of Family Size by Cross (p)", fill = "Cross Type") +
   xlab("Number of Offspring (RS)")+
   ylab("Proportion of Families") +
@@ -617,7 +618,7 @@ parents_paired_14_16_cross %>%
   theme(text = element_text(size = 15), legend.position = c(0.8, 0.75), legend.background = element_rect(linetype = 1, size = 0.5, colour = 1)) +
   scale_fill_manual(values = cbPalette1)
 ```
-**Results:** Offspring from three types of crosses are represented. The vast majority (95%) are NN, and there are zero HH crosses.
+**Results:** Offspring from all four types of crosses are represented. The majority (55%) are NN.
 
 ### *Cross type RRS plus 95% CIs*
 Below, we report the mean RS of each cross type and RRS (95% CI).
@@ -642,23 +643,23 @@ Xtype_noff <- parents_paired_14_16_cross %>%
 # RRS plus 95% CIs
 # Update df coordinates, cbind, and colnames if cross type exists!
 # 1. HH vs. NN
-# rrs_HH_14_16 <- as.data.frame(rrs_ci_kalinowski(n_h_off = as.integer(Xtype_noff[1,2]), n_w_off = as.integer(Xtype_noff[4,2]), n_h_par = as.integer(Xtype_nmat[1,2]), n_w_par = as.integer(Xtype_nmat[4,2]), alpha = 0.05)) # DNE
+rrs_HH_14_16 <- as.data.frame(rrs_ci_kalinowski(n_h_off = as.integer(Xtype_noff[1,2]), n_w_off = as.integer(Xtype_noff[4,2]), n_h_par = as.integer(Xtype_nmat[1,2]), n_w_par = as.integer(Xtype_nmat[4,2]), alpha = 0.05))
 
 # 2. HN vs. NN
-rrs_HN_14_16 <- as.data.frame(rrs_ci_kalinowski(n_h_off = as.integer(Xtype_noff[1,2]), n_w_off = as.integer(Xtype_noff[3,2]), n_h_par = as.integer(Xtype_nmat[1,2]), n_w_par = as.integer(Xtype_nmat[3,2]), alpha = 0.05))
+rrs_HN_14_16 <- as.data.frame(rrs_ci_kalinowski(n_h_off = as.integer(Xtype_noff[2,2]), n_w_off = as.integer(Xtype_noff[4,2]), n_h_par = as.integer(Xtype_nmat[2,2]), n_w_par = as.integer(Xtype_nmat[4,2]), alpha = 0.05))
 
 # 3. NH vs. NN
-rrs_NH_14_16 <- as.data.frame(rrs_ci_kalinowski(n_h_off = as.integer(Xtype_noff[2,2]), n_w_off = as.integer(Xtype_noff[3,2]), n_h_par = as.integer(Xtype_nmat[2,2]), n_w_par = as.integer(Xtype_nmat[3,2]), alpha = 0.05))
+rrs_NH_14_16 <- as.data.frame(rrs_ci_kalinowski(n_h_off = as.integer(Xtype_noff[3,2]), n_w_off = as.integer(Xtype_noff[4,2]), n_h_par = as.integer(Xtype_nmat[3,2]), n_w_par = as.integer(Xtype_nmat[4,2]), alpha = 0.05))
 
-rrs_Xtype_14_16 <- cbind(rrs_HN_14_16, rrs_NH_14_16)
+rrs_Xtype_14_16 <- cbind(rrs_HH_14_16,rrs_HN_14_16, rrs_NH_14_16)
 
-colnames(rrs_Xtype_14_16) <- c("Stockdale_HNvsNN_14_16", "Stockdale_NHvsNN_14_16")
+colnames(rrs_Xtype_14_16) <- c("Stockdale_HHvsNN_14_16", "Stockdale_HNvsNN_14_16", "Stockdale_NHvsNN_14_16")
 rownames(rrs_Xtype_14_16) <- c("Lower 95% CL", "RRS", "Upper 95% CL")
 
 rrs_Xtype_14_16 %>% 
   round(2)
 ```
-**Results:** RRS for the comparisons were **`r round(rrs_Xtype_14_16[2,1], 2)` (95% CI [`r round(rrs_Xtype_14_16[1,1], 2)`-`r round(rrs_Xtype_14_16[3,1], 2)`])** for HN and **`r round(rrs_Xtype_14_16[2,2], 2)` (95% CI [`r round(rrs_Xtype_14_16[1,2], 2)`-`r round(rrs_Xtype_14_16[3,2], 2)`])** for NH, indicating no significant differences in RS relative to the NN cross type. It should be noted again, however, that the numbers of NH and HN crosses relative to NN were very small.
+**Results:** RRS for the comparisons were **`r round(rrs_Xtype_14_16[2,1], 2)` (95% CI [`r round(rrs_Xtype_14_16[1,1], 2)`-`r round(rrs_Xtype_14_16[3,1], 2)`])** for HH, **`r round(rrs_Xtype_14_16[2,2], 2)` (95% CI [`r round(rrs_Xtype_14_16[1,2], 2)`-`r round(rrs_Xtype_14_16[3,2], 2)`])** for HN, and **`r round(rrs_Xtype_14_16[2,3], 2)` (95% CI [`r round(rrs_Xtype_14_16[1,3], 2)`-`r round(rrs_Xtype_14_16[3,3], 2)`])** for NH, indicating no significant differences in RS relative to the NN cross type. It should be noted again, however, that the numbers of NH and HN crosses relative to NN were very small.
 
 ### *Mating dynamics*
 We set out to discover who is mating with whom and when. We know multiple matings occur, but we want to understand whether it's males and/or females that have multiple partners. We thus set out to assess promiscuity within the sexes, first determining whether the cross data made sense in light of the sample date for each parent. We next calculated the number of mates for each known female and male parent (dams and sires).
@@ -708,7 +709,7 @@ n_dams_14_16 <- parents_paired_14_16_cross_dam_sire %>%
 
 (n_dams_and_sires_14_16 <- full_join(n_sires_14_16, n_dams_14_16, by = "n_mates"))
 ```
-**Results:** The relationship between dam and sire sample date was generally linear, indicating the cross data are likely correct. Sampled fish mated with either one or two partners. There were **119** unique matings, and both sexes mated with multiple partners. I had to double check by looking into the the specifics of the unique matings, but in both cases 107 fish of each sex mated with one partner and 6 fish of each sex mated with two partners. Note also that the question can be further conceptualized, if warranted, using a pedigree visualization platform (e.g. Helium). 
+**Results:** The relationship between dam and sire sample date was generally linear, with males in the streams earlier than females, indicating the cross data are likely correct. There were **122** unique matings, and both sexes mated with multiple partners, although males were more promiscuous than females.  
 
   * How many dams had multiple sires of differing origin? What was their reproductive success?
 
@@ -735,7 +736,7 @@ parents_paired_14_16_cross_dam_sire %>%
   ylab("Number of offspring") +
   ggtitle("Reproductive success of Dams with Sires\nof a different origin")
 ```
-**Results:** None.
+**Results:** Eight females mated with a sires of a differing origin.
 
   * How many sires had multiple dams of differing origin? What was their reproductive success?
 
@@ -762,7 +763,7 @@ parents_paired_14_16_cross_dam_sire %>%
   ylab("Number of offspring") +
   ggtitle("Reproductive success of Sires with Dams\nof a different origin")
 ```
-**Results:** None again. There weren't very many HN and NH crosses, and the fish in those crosses clearly only mated once with an opposite-origin fish, so we wouldn't have gotten much information anyway.
+**Results:** Eight males mated with a dams of a differing origin.
 
 # **Grandparentage**
 We find the parents (2014) that were assigned to grandparents (2015) and determine how many grandoffspring (2016) were assigned to them. We then estimate RRS according to grandparental origin. The set of panels below include:
@@ -941,11 +942,11 @@ WORK IN PROGRESS - What are we trying to do here and what can we do here?
 
 ## 2014-2016 (Parentage)
 1. Almost all exclusion probabilities were equal to 1, which means we can be confident in the ability of our marker set to correctly assign parents to offspring.  
-2. 604 of 6,804 total offspring were assigned to 602 parents (576 natural and 26 hatchery), for an assignment rate of 8.9%.  
-3. 125 offspring assigned to 2 parents (triads).  
-4. RRS was significant for females (0.38) and males (0.42).  
-5. Although 3 crosses were represented (NH, HN, and NN), there was not enough cross type data (triads) to make meaningful comparisons.  
-6. Family size varied from 0-5 for females and 0-4 for males.  
+2. 1,377 of 5,814 total offspring were assigned to 417 parents (243 natural and 174 hatchery), for an assignment rate of 23.7%.  
+3. 199 offspring assigned to 2 parents (triads).  
+4. RRS was significant for females (0.41) and males (0.29).  
+5. All 4 crosses were represented (HH, NH, HN, and NN), and all 3 crosses had RRS < 1 when compared to the NN cross, although results were not significant.  
+6. Family size varied from 0-13 for females and 0-20 for males.  
 
 ## (Grandparentage)
 
