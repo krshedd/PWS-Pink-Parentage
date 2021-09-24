@@ -73,9 +73,9 @@ Here, we read in paired field and otolith data from *OceanAK* and join that data
 ```{r read_oceanak, message=FALSE}
 # The `genepop2franz.GCL` function we use in the very last step expects the *OceanAK* file to have the "old" names (lowercase with spaces) and not the "new" names (UPPERCASE with _); we convert the column names to the old format here. Note that this is a patch and column names should be double-checked during each new analysis.
 og_names <- suppressMessages(names(read_csv(file = "../../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE))) 
-oceanak <- read_csv(file = "../../OceanAK/AHRP Salmon Biological Data 20210115_100431.csv") # recommend data pull from OceanAK prior to running
+oceanak <- read_csv(file = "../../OceanAK/AHRP Salmon Biological Data 20210920_135754.csv") # recommend data pull from OceanAK prior to running - had to delete extra GOD columns prior to renaming
 names(oceanak) <- og_names
-write_csv(oceanak, "../../OceanAK/AHRP Salmon Biological Data 20210115_100431_names.csv")
+write_csv(oceanak, "../../OceanAK/AHRP Salmon Biological Data 20210920_135754_names.csv")
 
 oceanak %>% 
   count(`Sample Year`, `Location Code`) %>% 
@@ -390,7 +390,7 @@ detach(package:reshape, unload = TRUE)
 source("../genepop2franz.GCL.r")
 genepop2franz.GCL(
   Genepop = "../../Genepop/Stockdale_14_16r/Stockdale_14_16r_postQA.gen",
-  OceanAK = "../../OceanAK/AHRP Salmon Biological Data 20210115_100431_names.csv",
+  OceanAK = "../../OceanAK/AHRP Salmon Biological Data 20210920_135754_names.csv",
   Year = c(2014, 2016),
   Stream = "STOCK",
   output_dir = "../"
