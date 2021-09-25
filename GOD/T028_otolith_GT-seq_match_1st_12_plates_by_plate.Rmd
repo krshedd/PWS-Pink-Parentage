@@ -1,5 +1,7 @@
 ---
-title: "T028 otolith/GT-seq match: First live test of 12 96-well transfer plates"
+title: "PGOD21 otolith/OG SILLY heart GT-seq DWP-by-DWP matching: First live test of 12 96-well otolith transfer plates"
+author: "Kristen Gruenthal"
+date: "24 September 2021"
 output:
   html_notebook:
     theme: united
