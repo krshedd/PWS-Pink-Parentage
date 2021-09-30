@@ -25,7 +25,7 @@ bbind <- function(...) { abind(..., along = 3) }
 
 source("~/R/Functions.GCL.R")
 source("../../GOD/LOKI2R_ind.GCL.R")
-source("../../GOD/DupCheckBetweenSillys_all.GCL.r")
+source("../../GOD/DupCheckBetweenSillys_GOD.GCL.r")
 ```
 
 # Objective
@@ -110,24 +110,9 @@ PPADDY16_fish_ids <- DWP_fish_ids %>%
   dplyr::filter(SILLY_CODE == "PPADDY16") %>% 
   pull(FISH_ID)
 
-# Project SILLYs
+# Project SILLYs by individuals in a SILLY per affected DWP
 # Note that some SILLYs are included in the affected DWPs whose hearts haven't been genotyped yet (e.g., PERB15 and PERB17)
 
-# By otolith transfer plate ID
-# Plate50917 <- c("PGILMOUR15", "PPADDY16")
-# Plate50927 <- c("PGILMOUR15", "PGILMOUR16")
-# Plate50936 <- c("PERB16")
-# Plate50947 <- c("PGILMOUR17", "PGILMOUR18")
-# Plate50956 <- c("PERB16")
-# Plate50964 <- c("PGILMOUR17", "PGILMOUR18")
-# Plate50974 <- c("PERB16", "PGILMOUR17", "PGILMOUR18")
-# Plate50994 <- c("PERB16")
-# Plate50995 <- c("PGILMOUR18", "PPADDY16")
-# Plate50997 <- c("PGILMOUR16")
-# Plate50999 <- c("PPADDY16", "PGILMOUR17", "PGILMOUR18")
-# Plate51000 <- c("PGILMOUR15", "PGILMOUR17", "PGILMOUR18")
-
-# By individuals in a SILLY per affected DWP
 # PERB15 <- "PERB15"
 # LOKI2R_ind.GCL(sillyvec = PERB15, fish_ids = PERB15_fish_ids, username = .username, password = .password)
 
@@ -151,6 +136,8 @@ LOKI2R_ind.GCL(sillyvec = PGILMOUR18, fish_ids = PGILMOUR18_fish_ids, username =
 
 PPADDY16 <- "PPADDY16"
 LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_fish_ids, username = .username, password = .password)
+
+rm(.username, .password)
 ```
 
 Create new directories and save objects
@@ -244,6 +231,19 @@ PGOD21.gcl$counts[, , 1] %>%
 
 There are 1,120 total otos in PGOD21 this first test round. If we went by the usual 80% rule on all 298 loci, we'd lose 692 otos, which is honestly not as bad as I thought considering what we're dealing with. HOWEVER, we need to keep as many critters as possible. Plus, we're dealing with 298 loci, so we should have wiggle room. Consider that the original panel was 96 (32% of loci) and we though of paring that down to 24 (8% of loci). Here, though, we have to remember that the info content of each locus is not the same. 
 
+Plot a histogram of proportion missing.
+```{r}
+PGOD21.gcl$counts[, , 1] %>% 
+  as_tibble(rownames = "fish_id") %>% 
+  gather(locus, genotype, -fish_id) %>% 
+  group_by(fish_id) %>% 
+  summarise(proportion_missing = sum(is.na(genotype)) / length(loci)) %>% 
+  ggplot(aes(x = proportion_missing)) +
+  geom_histogram(binwidth = 0.05) +
+  theme_bw() +
+  ggtitle("% Locus Failure Rate by Fish in PGOD21")
+```
+
 So, for a first pass, let's try a 1% cutoff giving us a minimum of 3 loci that must be genotyped, losing 19 otos and leaving us with 1,101. We'll also largely skip the duplicate check (set at 99% matching), since it probably won't do us much good; we have (1) a low potential to identify true dupes, if only a few loci are genotyped, and (2) both lefts and unknowns are in PGOD21, which could come from the same fish. *NOTE: if this doesn't work well, as an alternate, we'll try a 10% cutoff giving us a minimum of 30 loci that must be genotyped and losing 85 fish, leaving us with 1,035 fishies. We'll keep the internal duplicate rate check at 99%.* 
 
 ```{r}
@@ -314,6 +314,23 @@ TestSillys_SampleSizes
 
 **1 / 1101**  otos may be a duplicate. IDs aren't sequential (623 and 635), but they may have been in the same well jumbledtogether. We can look a bit more closely at the specifics of these two, if we really want.
 
+**NOTE** Similar to the normal AHRP samples, we'll want to remove **BOTH** duplicates, since we won't know which one identifies back to the heart genotype. The function `RemoveDups.GCL` only removes 1 of the duplicates, we need to go in and manually remove the other.
+
+```{r}
+(
+  duplicates_to_remove <- DuplicateCheckReportSummary$PGOD21 %>%
+    select(ID1, ID2) %>%
+    pivot_longer(
+      cols = everything(),
+      names_to = "trash",
+      values_to = "fish_ids"
+    ) %>%
+    pull(fish_ids)
+)
+
+RemoveIDs.GCL(silly = "PGOD21", IDs = duplicates_to_remove)
+```
+
 #### Heterozygosity
 
 Excess heterozygosity can be an indication of contamination. We already know there is some contamination among the heart-derived GT-seq genotypes, but it is a good baseline.
@@ -346,7 +363,7 @@ Ho is high for some otoliths, definitely due to contamination.
 Let's look at it again visually.
 
 ```{r}
-# loci_intersect <- setdiff(loci, failed_loci_otoliths) # all 298 are there
+loci_intersect <- setdiff(loci, failed_loci_otoliths) # all 298 are there
 
 qc_proportion_missing <- function(indata3 = PGOD21.gcl$counts[, , 1]) {
     indata3 %>%
@@ -720,8 +737,9 @@ A total of 19 PGOD21 DWPs don't have OGSilly DWP matches, presumably because the
 #### PERB16 DWP 14395
 
 ```{r}
-# LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_DWP_14395_fish_ids,  username = .username, password = .password)
-# LOKI2R_ind.GCL(sillyvec = TestSillys, fish_ids = PGOD21_DWP_14395_fish_ids,  username = .username, password = .password)
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
 
 # From T028 for comparison
 # DupCheckResults <- DupCheckBetweenSillys.GCL(KeySillys = "PSTOCK17QC", 
@@ -729,40 +747,68 @@ A total of 19 PGOD21 DWPs don't have OGSilly DWP matches, presumably because the
 #                             BetweenSillys = ProjectSillys, 
 #                             loci = loci_intersect, 
 #                             threshold = 0.9)
-
-DupCheckResults <- DupCheckBetweenSillys.GCL(KeySillys = "PGOD21",
-                            KeySillyIDs = list("PGOD21" = PGOD21_DWP_14395_fish_ids),
-                            BetweenSillys = PERB16,
-                            loci = loci,
-                            threshold = 0.9)
-
-
-rm(username, .password)
 ```
-
-Top pairwise duplicate rate comparisons
 
 ```{r}
-(dup_check_results <- dplyr::bind_rows(DupCheckResults, .id = "silly") %>% 
-   tibble::as_tibble())
+(
+  dup_check_results_DWP_14395 <-
+    DupCheckBetweenSillys_GOD.GCL(
+      GODSillys = "PGOD21_DWP_14395",
+      GODSillyIDs = list("PGOD21_DWP_14395" = rownames(PGOD21_DWP_14395.gcl$counts)),
+      HeartSillys = "PERB16_DWP_14395",
+      loci = loci,
+      threshold = 0.9
+    )
+)
 ```
+
+```{r fig.width=10, fig.height=15}
+dup_check_results_DWP_14395_best_match <- dup_check_results_DWP_14395 %>% 
+  group_by(otolith_fish_id) %>% 
+  slice_max(duplicate_rate, n = 1)
+
+
+dup_check_results_DWP_14395 %>% 
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_14395_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(otolith_fish_id)) +
+  theme_bw()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+**everything below here is old and bad**
+
+Top pairwise duplicate rate comparisons
 
 How many PGOD21 fish match only 1 other fish?
 
 ```{r}
-dup_check_results %>% 
-  count(Keysillyvial) %>% 
+dup_check_results_DWP_14395 %>% 
+  count(otolith_fish_id) %>% 
   filter(n == 1) %>% 
-  left_join(dup_check_results, by = "Keysillyvial")
+  left_join(dup_check_results_DWP_14395, by = "otolith_fish_id")
 ```
 
 How many PGOD21 fish match >1 other fish?
 
 ```{r}
-dup_check_results %>% 
+dup_check_results_DWP_14395 %>% 
   count(Keysillyvial) %>% 
   filter(n > 1) %>% 
-  left_join(dup_check_results, by = "Keysillyvial") %>% 
+  left_join(dup_check_results_DWP_14395, by = "Keysillyvial") %>% 
   arrange(Keysillyvial)
 ```
 
@@ -810,56 +856,224 @@ plotly::ggplotly(ggplot(
 
 #### PERB16 DWP 14334
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PERB16 DWP 14331
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
 
 #### PERB16 DWP 14376
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PERB16 DWP 14297
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
 
 #### PERB16 DWP 14282
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PERB16 DWP 14332
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
 
 #### PGILMOUR15 DWP 2228
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PGILMOUR15 DWP 2232
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
 
 #### PGILMOUR16 DWP 14573
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PGILMOUR16 DWP 14662
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
 
 #### PGILMOUR16 DWP 14663
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PGILMOUR16 DWP 15826
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
 
 #### PGILMOUR17 DWP 22569
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PGILMOUR17 DWP 22591
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
 
 #### PGILMOUR17 DWP 22595
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PGILMOUR17 DWP 22710
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
 
 #### PGILMOUR17 DWP 22751
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PGILMOUR17 DWP 22701
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
 
 #### PGILMOUR18 DWP 28929
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PGILMOUR18 DWP 28864
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
 
 #### PGILMOUR18 DWP 28829
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PGILMOUR18 DWP 28807
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
 
 #### PGILMOUR18 DWP 28812
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PPADDY16 DWP 16104
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
 
 #### PPADDY16 DWP 14463
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PPADDY16 DWP 16130
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
 
 #### PPADDY16 DWP 16164
 
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
 #### PPADDY16 DWP 16132
+
+```{r}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
