@@ -173,7 +173,7 @@ locus_success_rate_qc %>%
   filter(success_rate == 0) %>%
   pull(locus))
 
-# Added by Chase Jalbert on 4/2020. This version of a levelplot has WAY more features and actually works with large datasets.
+# Added by Chase Jalbert on 4/2020. This version of a levelplot has WAY more features and actually works with large datasets. You can zoom, click things, scroll, save image, etc. so you can actually see whats going on...
 # plotly::ggplotly(
 #   ggplot(
 #     TestQCPercentbyLocus %>%
@@ -193,7 +193,7 @@ locus_success_rate_qc %>%
 #     labs(fill = "Percent\ngenotyped")
 # )
 
-# You can zoom, click things, scroll, save image, etc. so you can actually see whats going on...but it keeps failing ("Error in dirname(to) : path too long") and I'm not in the mood to move things around, so back to normal ggplot...
+# ...but it keeps failing me ("Error in dirname(to) : path too long") and I'm not in the mood to move things around, so back to normal ggplot...
 TestQCPercentbyLocus %>%
   as_tibble(rownames = "locus") %>%
   gather(silly, percent,-locus) %>%
@@ -210,7 +210,7 @@ TestQCPercentbyLocus %>%
     labs(fill = "Percent\ngenotyped")
 ```
 
-**0 / 298** loci failed; all rates >10% (see table).  Some loci aren't too pretty, though.
+**0 / 298** loci failed; all rates >10% (see table). Some loci aren't too pretty, though.
 
 ## QA project genotypes
 
@@ -218,7 +218,7 @@ TestQCPercentbyLocus %>%
 
 #### Remove fails and dupes
 
-Need to remove any particularly egregious project fish. *Here's where we can decide our cutoff, if any, for minimum number of loci.*
+Need to remove any particularly egregious otos, so let's see how badly they genotyped. 
 
 ```{r}
 PGOD21.gcl$counts[, , 1] %>% 
@@ -229,7 +229,7 @@ PGOD21.gcl$counts[, , 1] %>%
   arrange(desc(proportion_missing))
 ```
 
-There are 1,120 total otos in PGOD21 this first test round. If we went by the usual 80% rule on all 298 loci, we'd lose 692 otos, which is honestly not as bad as I thought considering what we're dealing with. HOWEVER, we need to keep as many critters as possible. Plus, we're dealing with 298 loci, so we should have wiggle room. Consider that the original panel was 96 (32% of loci) and we though of paring that down to 24 (8% of loci). Here, though, we have to remember that the info content of each locus is not the same. 
+*Here's where we can start deciding our genotyping rate cutoff, if any.* There are 1,120 total otos in PGOD21 this first test round. If we went by the usual 80% rule on all 298 loci, we'd lose 692 otos, which is honestly not as bad as I thought considering what we're dealing with. HOWEVER, we need to keep as many critters as possible. Plus, we're dealing with 298 loci, so we should have wiggle room. Consider that the original panel was 96 (32% of loci) and we though of paring that down to 24 (8% of loci), but we also have to remember that the info content of each locus is not the same. 
 
 Plot a histogram of proportion missing.
 ```{r}
@@ -244,49 +244,44 @@ PGOD21.gcl$counts[, , 1] %>%
   ggtitle("% Locus Failure Rate by Fish in PGOD21")
 ```
 
-So, for a first pass, let's try a 1% cutoff giving us a minimum of 3 loci that must be genotyped, losing 19 otos and leaving us with 1,101. We'll also largely skip the duplicate check (set at 99% matching), since it probably won't do us much good; we have (1) a low potential to identify true dupes, if only a few loci are genotyped, and (2) both lefts and unknowns are in PGOD21, which could come from the same fish. *NOTE: if this doesn't work well, as an alternate, we'll try a 10% cutoff giving us a minimum of 30 loci that must be genotyped and losing 85 fish, leaving us with 1,035 fishies. We'll keep the internal duplicate rate check at 99%.* 
+For a first pass, we tried a 1% cutoff giving us a minimum of 3 loci that must be genotyped, losing 19 otos and leaving us with 1,101. We largely skipped the duplicate check (set at 99% matching), since it probably wouldn't do us much good; we have (1) a low potential to identify true dupes, if only a few loci are genotyped, and (2) both lefts and unknowns are in PGOD21, which could come from the same fish. This didn't work well IMO.
+
+As an alternate, we tested a 10% cutoff giving us a minimum of 30 loci that must be genotyped, and kept the internal duplicate rate check at 99%. This also had hearts matching multiple otos. 
+
+*Conclusion:* We're just going to leave everything in, keep the 99% duplicate rate check, and see how bad the mess really is.
 
 ```{r}
-TestSillys_SampleSizes <-
-  matrix(
+TestSillys_SampleSizes <- matrix(
     data = NA,
     nrow = length(TestSillys),
     ncol = 4,
-    dimnames = list(TestSillys, c(
-      "Genotyped", "Missing", "Duplicate", "Final"
-    ))
+    dimnames = list(TestSillys, c("Genotyped", "Missing", "Duplicate", "Final"))
   )
 
-TestSillys_SampleSizes[, "Genotyped"] <-
-  sapply(paste(TestSillys, ".gcl", sep = ''), function(x)
+TestSillys_SampleSizes[, "Genotyped"] <- sapply(paste(TestSillys, ".gcl", sep = ''), function(x)
     get(x)$n)
 
 
-(MissLoci <-
-    RemoveIndMissLoci.GCL(sillyvec = TestSillys, proportion = 0.01))
+# (MissLoci <- RemoveIndMissLoci.GCL(sillyvec = TestSillys, proportion = 0.10))
 
-ColSizePostMissLoci <-
-  sapply(paste(TestSillys, ".gcl", sep = ''), function(x)
+ColSizePostMissLoci <- sapply(paste(TestSillys, ".gcl", sep = ''), function(x)
     get(x)$n)
 
 TestSillys_SampleSizes[, "Missing"] <- TestSillys_SampleSizes[, "Genotyped"] - ColSizePostMissLoci
 
-DuplicateCheck99MinProportion <-
-  CheckDupWithinSilly.GCL(
+DuplicateCheck99MinProportion <- CheckDupWithinSilly.GCL(
     sillyvec = TestSillys,
     loci = loci,
     quantile = NULL,
     minproportion = 0.99
   )
 
-DuplicateCheckReportSummary <-
-  sapply(TestSillys, function(x)
+DuplicateCheckReportSummary <- sapply(TestSillys, function(x)
     DuplicateCheck99MinProportion[[x]]$report, simplify = FALSE)
 
 DuplicateCheckReportSummary
 
-nDupsBySilly <-
-  sapply(DuplicateCheckReportSummary, function(silly) {
+nDupsBySilly <- sapply(DuplicateCheckReportSummary, function(silly) {
     ifelse(is.character(silly), 0, nrow(as.matrix(silly)))
   })
 RemovedDups <- RemoveDups.GCL(DuplicateCheck99MinProportion)
@@ -304,15 +299,14 @@ DuplicateCheckReportSummary[nDupsBySilly >= 1]  # Show within silly duplicates
 ColSizePostDuplicate <- ColSizePostMissLoci - nDupsBySilly
 ColSizePostDuplicate <- sapply(paste(TestSillys, ".gcl", sep = ''), function(x) get(x)$n)
 
-TestSillys_SampleSizes[, "Duplicate"] <-
-  ColSizePostMissLoci - ColSizePostDuplicate
+TestSillys_SampleSizes[, "Duplicate"] <- ColSizePostMissLoci - ColSizePostDuplicate
 
 TestSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
 
 TestSillys_SampleSizes
 ```
 
-**1 / 1101**  otos may be a duplicate. IDs aren't sequential (623 and 635), but they may have been in the same well jumbledtogether. We can look a bit more closely at the specifics of these two, if we really want.
+We kept all otos in, but 14 pairwise comparisons failed our duplicate rate check. Most must have been purged during our earlier genotyping rate tests, if they are now all of a sudden showing up here.
 
 **NOTE** Similar to the normal AHRP samples, we'll want to remove **BOTH** duplicates, since we won't know which one identifies back to the heart genotype. The function `RemoveDups.GCL` only removes 1 of the duplicates, we need to go in and manually remove the other.
 
@@ -330,6 +324,8 @@ TestSillys_SampleSizes
 
 RemoveIDs.GCL(silly = "PGOD21", IDs = duplicates_to_remove)
 ```
+
+Purging 19 otos (9 / 28 are duplicate IDs in the list), leaving 1101 otos going forward.
 
 #### Heterozygosity
 
@@ -386,7 +382,7 @@ qc_proportion_missing_PGOD21 <- qc_proportion_missing()
 qc_proportion_missing_plot()
 ```
 
-Yeah, it's not pretty, but we knew that.
+Yeah, it's still not pretty, but we knew that.
 
 ### Hearts
 
@@ -397,46 +393,37 @@ For the other SILLYS we'll compare to, we'll leave the cutoff at 80% and perform
 ```{r}
 OGSillys <- c("PERB16", "PGILMOUR15", "PGILMOUR16", "PGILMOUR17", "PGILMOUR18", "PPADDY16")
 
-OGSillys_SampleSizes <-
-  matrix(
+OGSillys_SampleSizes <- matrix(
     data = NA,
     nrow = length(OGSillys),
     ncol = 4,
-    dimnames = list(OGSillys, c(
-      "Genotyped", "Missing", "Duplicate", "Final"
-    ))
+    dimnames = list(OGSillys, c("Genotyped", "Missing", "Duplicate", "Final"))
   )
 
-OGSillys_SampleSizes[, "Genotyped"] <-
-  sapply(paste(OGSillys, ".gcl", sep = ''), function(x)
+OGSillys_SampleSizes[, "Genotyped"] <- sapply(paste(OGSillys, ".gcl", sep = ''), function(x)
     get(x)$n)
 
 
-(MissLoci <-
-    RemoveIndMissLoci.GCL(sillyvec = OGSillys, proportion = 0.8))
+(MissLoci <- RemoveIndMissLoci.GCL(sillyvec = OGSillys, proportion = 0.8))
 
-ColSizePostMissLoci <-
-  sapply(paste(OGSillys, ".gcl", sep = ''), function(x)
+ColSizePostMissLoci <- sapply(paste(OGSillys, ".gcl", sep = ''), function(x)
     get(x)$n)
 
 OGSillys_SampleSizes[, "Missing"] <- OGSillys_SampleSizes[, "Genotyped"] - ColSizePostMissLoci
 
-DuplicateCheck95MinProportion <-
-  CheckDupWithinSilly.GCL(
+DuplicateCheck95MinProportion <- CheckDupWithinSilly.GCL(
     sillyvec = OGSillys,
     loci = loci,
     quantile = NULL,
     minproportion = 0.95
   )
 
-DuplicateCheckReportSummary <-
-  sapply(OGSillys, function(x)
+DuplicateCheckReportSummary <- sapply(OGSillys, function(x)
     DuplicateCheck95MinProportion[[x]]$report, simplify = FALSE)
 
 DuplicateCheckReportSummary
 
-nDupsBySilly <-
-  sapply(DuplicateCheckReportSummary, function(silly) {
+nDupsBySilly <- sapply(DuplicateCheckReportSummary, function(silly) {
     ifelse(is.character(silly), 0, nrow(as.matrix(silly)))
   })
 RemovedDups <- RemoveDups.GCL(DuplicateCheck95MinProportion)
@@ -454,8 +441,7 @@ DuplicateCheckReportSummary[nDupsBySilly >= 1]  # Show within silly duplicates
 ColSizePostDuplicate <- ColSizePostMissLoci - nDupsBySilly
 ColSizePostDuplicate <- sapply(paste(OGSillys, ".gcl", sep = ''), function(x) get(x)$n)
 
-OGSillys_SampleSizes[, "Duplicate"] <-
-  ColSizePostMissLoci - ColSizePostDuplicate
+OGSillys_SampleSizes[, "Duplicate"] <- ColSizePostMissLoci - ColSizePostDuplicate
 
 OGSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
 
@@ -463,47 +449,6 @@ OGSillys_SampleSizes
 ```
 
 Losing a few more here as expected in terms of missingness. Only one dupe in PGILMOUR16. This is what we'd filter in a normal project anyway, although we lost more than a third of PERB16.
-
-#### Heterozygosity
-
-```{r}
-# Ho_qc_PERB16 <- Ho_qc(PERB16.gcl$counts[, , 1])
-# Ho_qc_PGILMOUR15 <- Ho_qc(PGILMOUR15.gcl$counts[, , 1])
-# Ho_qc_PGILMOUR16 <- Ho_qc(PGILMOUR16.gcl$counts[, , 1])
-# Ho_qc_PGILMOUR17 <- Ho_qc(PGILMOUR17.gcl$counts[, , 1])
-# Ho_qc_PGILMOUR18 <- Ho_qc(PGILMOUR18.gcl$counts[, , 1])
-# Ho_qc_PPADDY16 <- Ho_qc(PPADDY16.gcl$counts[, , 1])
-# 
-# 
-# Ho_qc_plot(Ho_qc_PERB16)
-# Ho_qc_plot(Ho_qc_PGILMOUR15)
-# Ho_qc_plot(Ho_qc_PGILMOUR16)
-# Ho_qc_plot(Ho_qc_PGILMOUR17)
-# Ho_qc_plot(Ho_qc_PGILMOUR18)
-# Ho_qc_plot(Ho_qc_PPADDY16)
-```
-
-Ho is higher for some hearts, likely due to contamination, but we already knew this, and compared to the PGOD21 otos, it's pretty low.
-
-#### Genotyping success
-
-```{r}
-# qc_proportion_missing_PERB16 <- qc_proportion_missing(PERB16.gcl$counts[, , 1])
-# qc_proportion_missing_PGILMOUR15 <- qc_proportion_missing(PGILMOUR15.gcl$counts[, , 1])
-# qc_proportion_missing_PGILMOUR16 <- qc_proportion_missing(PGILMOUR16.gcl$counts[, , 1])
-# qc_proportion_missing_PGILMOUR17 <- qc_proportion_missing(PGILMOUR17.gcl$counts[, , 1])
-# qc_proportion_missing_PGILMOUR18 <- qc_proportion_missing(PGILMOUR18.gcl$counts[, , 1])
-# qc_proportion_missing_PPADDY16 <- qc_proportion_missing(PPADDY16.gcl$counts[, , 1])
-# 
-# qc_proportion_missing_plot(qc_proportion_missing_PERB16)
-# qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR15)
-# qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR16)
-# qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR17)
-# qc_proportion_missing_plot(qc_proportion_missing_PGILMOUR18)
-# qc_proportion_missing_plot(qc_proportion_missing_PPADDY16)
-```
-
-Lots less missing in the hearts, except again maybe PERB16.
 
 ### Final dataset sample sizes
 
@@ -517,7 +462,7 @@ PGILMOUR18.gcl$n
 PPADDY16.gcl$n
 ```
 
-We have a handful o' possible fishies to match back to. As a reminder, PGOD21 genotyped more SILLYs and DWPs than we have heart genotypes for, which comes into play when we do the DWP-by-DWP matching.
+We have a handful o' possible fishy hearts to match back to. As a reminder, PGOD21 genotyped more SILLYs and DWPs than we have heart genotypes for, which comes into play when we do the DWP-by-DWP matching.
 
 ## Duplicate rate check
 
@@ -729,10 +674,9 @@ PPADDY16_DWP_16164_fish_ids <- PPADDY16_DWP_16164 %>% pull(FK_FISH_ID)
 PPADDY16_DWP_16132_fish_ids <- PPADDY16_DWP_16132 %>% pull(FK_FISH_ID)
 ```
 
-# ##########################################################
 ### Dupe rate checks by DWP
 
-A total of 19 PGOD21 DWPs don't have OGSilly DWP matches, presumably because they haven't been genotyped yet, leaving 29 DWPs for matching. **Note: LOKI2R_ind.GCL overwrites results per SILLY. Not sure right now how to deal with this for both PGOD21 and OGSillys...**
+A total of 19 PGOD21 DWPs don't have OGSilly DWP matches, presumably because they haven't been genotyped yet, leaving 29 DWPs for matching.
 
 #### PERB16 DWP 14395
 
@@ -740,142 +684,308 @@ A total of 19 PGOD21 DWPs don't have OGSilly DWP matches, presumably because the
 # create *.gcl objects for comparison according to *._fish_ids
 PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
 PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
-
-# From T028 for comparison
-# DupCheckResults <- DupCheckBetweenSillys.GCL(KeySillys = "PSTOCK17QC", 
-#                             KeySillyIDs = list("PSTOCK17QC" = fish_ids), 
-#                             BetweenSillys = ProjectSillys, 
-#                             loci = loci_intersect, 
-#                             threshold = 0.9)
 ```
 
 ```{r}
-(
-  dup_check_results_DWP_14395 <-
-    DupCheckBetweenSillys_GOD.GCL(
+# generate a tibble of all pairwise duplicate rates
+(dup_check_results_DWP_14395 <- DupCheckBetweenSillys_GOD.GCL(
       GODSillys = "PGOD21_DWP_14395",
       GODSillyIDs = list("PGOD21_DWP_14395" = rownames(PGOD21_DWP_14395.gcl$counts)),
       HeartSillys = "PERB16_DWP_14395",
       loci = loci,
-      threshold = 0.9
-    )
-)
+      threshold = 0.9))
 ```
 
 ```{r fig.width=10, fig.height=15}
-dup_check_results_DWP_14395_best_match <- dup_check_results_DWP_14395 %>% 
+# select the row with the highest match rate
+(dup_check_results_DWP_14395_best_match <- dup_check_results_DWP_14395 %>% 
   group_by(otolith_fish_id) %>% 
-  slice_max(duplicate_rate, n = 1)
+  slice_max(duplicate_rate, n = 1))
 
-
+# facet by oto ID
 dup_check_results_DWP_14395 %>% 
   ggplot(aes(x = duplicate_rate)) +
   geom_histogram(binwidth = 0.05) +
   geom_text(data = dup_check_results_DWP_14395_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
   facet_wrap(facets = vars(otolith_fish_id)) +
   theme_bw()
-```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-**everything below here is old and bad**
-
-Top pairwise duplicate rate comparisons
-
-How many PGOD21 fish match only 1 other fish?
-
-```{r}
+# facet by heart ID
 dup_check_results_DWP_14395 %>% 
-  count(otolith_fish_id) %>% 
-  filter(n == 1) %>% 
-  left_join(dup_check_results_DWP_14395, by = "otolith_fish_id")
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_14395_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(heart_fish_id)) +
+  theme_bw()
 ```
 
-How many PGOD21 fish match >1 other fish?
+Most otos match one heart really cleanly. The problem is that 3-5 hearts match more than one oto.
+
+##### Top pairwise duplicate rate comparisons
 
 ```{r}
-dup_check_results_DWP_14395 %>% 
-  count(Keysillyvial) %>% 
-  filter(n > 1) %>% 
-  left_join(dup_check_results_DWP_14395, by = "Keysillyvial") %>% 
-  arrange(Keysillyvial)
-```
-
-Check top match vs. 2nd best
-
-```{r}
-dup_check_all_top2 <- dup_check_all %>% 
-  mutate(qc_fish_id = str_remove(string = qc_fish_id, pattern = "PGOD21"),
-         fish_id = str_remove(string = fish_id, pattern = c("PGILMOUR15", "PGILMOUR16_", "PGILMOUR17_", "PGILMOUR18_", "PERB16_", "PERB18_", "PPADDY16_", "PPADDY18_"))) %>% 
-  group_by(qc_fish_id) %>% 
-  dplyr::top_n(duplicate_rate, n = 2) %>% 
+dup_check_results_DWP_14395_1stbest <- dup_check_results_DWP_14395 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
   mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
-  top_n(duplicate_rate, n = 1) %>% 
-  mutate(matchy = qc_fish_id == fish_id) %>% 
+  slice_max(duplicate_rate, n = 1) %>% 
+  add_column(rank = 1:1) %>% 
   ungroup()
 
-dup_ties <- dup_check_all_top2 %>% 
-  count(qc_fish_id) %>% 
-  filter(n > 1) %>% 
-  pull(qc_fish_id)
+dup_check_results_DWP_14395_2ndbest <- dup_check_results_DWP_14395 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  slice_min(duplicate_rate, n = 1) %>% 
+  add_column(rank = 2:2) %>% 
+  ungroup()
 
-dup_check_all_top2 %>% 
-  filter(!(qc_fish_id %in% dup_ties & matchy == TRUE)) %>% 
-  select(qc_fish_id, matchy) %>% 
-  distinct() %>% 
-  count(matchy)
+(dup_check_results_DWP_14395_top_2 <- rbind(dup_check_results_DWP_14395_1stbest, dup_check_results_DWP_14395_2ndbest))
 
-dup_check_all_top2 %>% 
-  ggplot(aes(x = diff, y = duplicate_rate, colour = matchy, text = qc_fish_id)) +
+ggplot(data = dup_check_results_DWP_14395_top_2, aes(x = diff, y = duplicate_rate, color = rank)) +
   geom_point() +
   theme_bw()
+```
 
-plotly::ggplotly(ggplot(
-  data = dup_check_all_top2,
-  aes(
-    x = diff,
-    y = duplicate_rate,
-    colour = best_match,
-    text = qc_fish_id
-  )
-) +
-  geom_point() +
-  theme_bw())
+This will require careful cutoffs for dupe rate and dupe rate difference - suggest duplicate_rate >= 0.7 and diff >= 0.3? 
+
+##### Results
+
+```{r}
+(dup_check_results_DWP_14395_pass <- dup_check_results_DWP_14395_1stbest %>% 
+  filter(duplicate_rate >= 0.7) %>% 
+  filter(diff >= 0.3))
 ```
 
 #### PERB16 DWP 14334
 
 ```{r}
 # create *.gcl objects for comparison according to *._fish_ids
-PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
-PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14334_fish_ids)), newname = "PERB16_DWP_14334")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14334_fish_ids)), newname = "PGOD21_DWP_14334")
+```
+
+```{r}
+# generate a tibble of all pairwise duplicate rates
+(dup_check_results_DWP_14334 <- DupCheckBetweenSillys_GOD.GCL(
+      GODSillys = "PGOD21_DWP_14334",
+      GODSillyIDs = list("PGOD21_DWP_14334" = rownames(PGOD21_DWP_14334.gcl$counts)),
+      HeartSillys = "PERB16_DWP_14334",
+      loci = loci,
+      threshold = 0.9))
+```
+
+```{r fig.width=10, fig.height=15}
+# select the row with the highest match rate
+(dup_check_results_DWP_14334_best_match <- dup_check_results_DWP_14334 %>% 
+  group_by(otolith_fish_id) %>% 
+  slice_max(duplicate_rate, n = 1))
+
+# facet by oto ID
+dup_check_results_DWP_14334 %>% 
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_14334_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(otolith_fish_id)) +
+  theme_bw()
+
+# facet by heart ID
+dup_check_results_DWP_14334 %>% 
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_14334_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(heart_fish_id)) +
+  theme_bw()
+```
+
+Of the otos that worked, most matched one heart cleanly, but one heart matched 2 otos and the remaining otos failed. This was not a great DWP.
+
+##### Top pairwise duplicate rate comparisons
+
+```{r}
+dup_check_results_DWP_14334_1stbest <- dup_check_results_DWP_14334 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  slice_max(duplicate_rate, n = 1) %>% 
+  add_column(rank = 1:1) %>% 
+  ungroup()
+
+dup_check_results_DWP_14334_2ndbest <- dup_check_results_DWP_14334 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  slice_min(duplicate_rate, n = 1) %>% 
+  add_column(rank = 2:2) %>% 
+  ungroup()
+
+(dup_check_results_DWP_14334_top_2 <- rbind(dup_check_results_DWP_14334_1stbest, dup_check_results_DWP_14334_2ndbest))
+
+ggplot(data = dup_check_results_DWP_14334_top_2, aes(x = diff, y = duplicate_rate, color = rank)) +
+  geom_point() +
+  theme_bw()
+```
+
+A whopping five otos worked.
+
+##### Results
+
+```{r}
+
 ```
 
 #### PERB16 DWP 14331
 
 ```{r}
 # create *.gcl objects for comparison according to *._fish_ids
-PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
-PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14331_fish_ids)), newname = "PERB16_DWP_14331")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14331_fish_ids)), newname = "PGOD21_DWP_14331")
+```
+
+```{r}
+# generate a tibble of all pairwise duplicate rates
+(dup_check_results_DWP_14331 <- DupCheckBetweenSillys_GOD.GCL(
+      GODSillys = "PGOD21_DWP_14331",
+      GODSillyIDs = list("PGOD21_DWP_14331" = rownames(PGOD21_DWP_14331.gcl$counts)),
+      HeartSillys = "PERB16_DWP_14331",
+      loci = loci,
+      threshold = 0.9))
+```
+
+```{r fig.width=10, fig.height=15}
+# select the row with the highest match rate
+(dup_check_results_DWP_14331_best_match <- dup_check_results_DWP_14331 %>% 
+  group_by(otolith_fish_id) %>% 
+  slice_max(duplicate_rate, n = 1))
+
+# facet by oto ID
+dup_check_results_DWP_14331 %>% 
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_14331_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(otolith_fish_id)) +
+  theme_bw()
+
+# facet by heart ID
+dup_check_results_DWP_14331 %>% 
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_14331_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(heart_fish_id)) +
+  theme_bw()
+```
+
+Ugh.
+
+##### Top pairwise duplicate rate comparisons
+
+```{r}
+dup_check_results_DWP_14331_1stbest <- dup_check_results_DWP_14331 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  slice_max(duplicate_rate, n = 1) %>% 
+  add_column(rank = 1:1) %>% 
+  ungroup()
+
+dup_check_results_DWP_14331_2ndbest <- dup_check_results_DWP_14331 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  slice_min(duplicate_rate, n = 1) %>% 
+  add_column(rank = 2:2) %>% 
+  ungroup()
+
+(dup_check_results_DWP_14331_top_2 <- rbind(dup_check_results_DWP_14331_1stbest, dup_check_results_DWP_14331_2ndbest))
+
+ggplot(data = dup_check_results_DWP_14331_top_2, aes(x = diff, y = duplicate_rate, color = rank)) +
+  geom_point() +
+  theme_bw()
+```
+
+Are we going to have to set different cutoffs for dupe rate and dupe rate difference for each DWP? Suggested duplicate_rate >= 0.7 and diff >= 0.3 for 14395, but those cutoffs could cull all but one oto here. However, maybe saving an extra two otos doesn't really matter in the grand scheme of things.
+
+##### Results
+
+```{r}
+
 ```
 
 #### PERB16 DWP 14376
 
 ```{r}
 # create *.gcl objects for comparison according to *._fish_ids
-PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
-PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14376")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14376")
+```
+
+```{r}
+# generate a tibble of all pairwise duplicate rates
+(dup_check_results_DWP_14376 <- DupCheckBetweenSillys_GOD.GCL(
+      GODSillys = "PGOD21_DWP_14376",
+      GODSillyIDs = list("PGOD21_DWP_14376" = rownames(PGOD21_DWP_14376.gcl$counts)),
+      HeartSillys = "PERB16_DWP_14376",
+      loci = loci,
+      threshold = 0.9))
+```
+
+```{r fig.width=10, fig.height=15}
+# select the row with the highest match rate
+(dup_check_results_DWP_14376_best_match <- dup_check_results_DWP_14376 %>% 
+  group_by(otolith_fish_id) %>% 
+  slice_max(duplicate_rate, n = 1))
+
+# facet by oto ID
+dup_check_results_DWP_14376 %>% 
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_14376_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(otolith_fish_id)) +
+  theme_bw()
+
+# facet by heart ID
+dup_check_results_DWP_14376 %>% 
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_14376_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(heart_fish_id)) +
+  theme_bw()
+```
+
+Okay, this DWP was better. Most otos matched one heart well, but five heart matched at least two otos.
+
+##### Top pairwise duplicate rate comparisons
+
+```{r}
+dup_check_results_DWP_14376_1stbest <- dup_check_results_DWP_14376 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  slice_max(duplicate_rate, n = 1) %>% 
+  add_column(rank = 1:1) %>% 
+  ungroup()
+
+dup_check_results_DWP_14376_2ndbest <- dup_check_results_DWP_14376 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  slice_min(duplicate_rate, n = 1) %>% 
+  add_column(rank = 2:2) %>% 
+  ungroup()
+
+(dup_check_results_DWP_14376_top_2 <- rbind(dup_check_results_DWP_14376_1stbest, dup_check_results_DWP_14376_2ndbest))
+
+ggplot(data = dup_check_results_DWP_14376_top_2, aes(x = diff, y = duplicate_rate, color = rank)) +
+  geom_point() +
+  theme_bw()
+```
+
+Definitely starting to think we going to have to set different cutoffs for dupe rate and dupe rate difference for each DWP. Originally suggested duplicate_rate >= 0.7 and diff >= 0.3 for 14395, but for this DWP, we might be able to get away with duplicate_rate >= 0.7 and diff >= 0.15. Would be nice if ggplotly worked and didn't keep throwing a "filepath too long" error.
+
+##### Results
+
+```{r}
+
 ```
 
 #### PERB16 DWP 14297
