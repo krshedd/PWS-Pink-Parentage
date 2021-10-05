@@ -674,7 +674,7 @@ PPADDY16_DWP_16164_fish_ids <- PPADDY16_DWP_16164 %>% pull(FK_FISH_ID)
 PPADDY16_DWP_16132_fish_ids <- PPADDY16_DWP_16132 %>% pull(FK_FISH_ID)
 ```
 
-### Dupe rate checks by DWP
+### Duplicate rate checks by DWP
 
 A total of 19 PGOD21 DWPs don't have OGSilly DWP matches, presumably because they haven't been genotyped yet, leaving 29 DWPs for matching.
 
@@ -747,15 +747,23 @@ ggplot(data = dup_check_results_DWP_14395_top_2, aes(x = diff, y = duplicate_rat
   theme_bw()
 ```
 
-This will require careful cutoffs for dupe rate and dupe rate difference - suggest duplicate_rate >= 0.7 and diff >= 0.3? 
+This will require careful cutoffs for dupe rate and dupe rate difference - suggest duplicate_rate >= 0.7 and diff >= 0.15? 
 
 ##### Results
+
+Who makes the cutoffs.
 
 ```{r}
 (dup_check_results_DWP_14395_pass <- dup_check_results_DWP_14395_1stbest %>% 
   filter(duplicate_rate >= 0.7) %>% 
-  filter(diff >= 0.3))
+  filter(diff >= 0.15))
 ```
+
+```{r}
+lenth(unique(dup_check_results_DWP_14395_pass$heart_fish_id))
+length(unique(dup_check_results_DWP_14395_pass$otolith_fish_id))
+```
+
 
 #### PERB16 DWP 14334
 
@@ -903,7 +911,7 @@ ggplot(data = dup_check_results_DWP_14331_top_2, aes(x = diff, y = duplicate_rat
   theme_bw()
 ```
 
-Are we going to have to set different cutoffs for dupe rate and dupe rate difference for each DWP? Suggested duplicate_rate >= 0.7 and diff >= 0.3 for 14395, but those cutoffs could cull all but one oto here. However, maybe saving an extra two otos doesn't really matter in the grand scheme of things.
+Are we going to have to set different cutoffs for dupe rate and dupe rate difference for each DWP? Suggested duplicate_rate >= 0.7 and diff >= 0.15 for 14395; those cutoffs could cull all but two otos here. However, maybe saving an extra three otos doesn't really matter in the grand scheme of things?
 
 ##### Results
 
@@ -980,7 +988,7 @@ ggplot(data = dup_check_results_DWP_14376_top_2, aes(x = diff, y = duplicate_rat
   theme_bw()
 ```
 
-Definitely starting to think we going to have to set different cutoffs for dupe rate and dupe rate difference for each DWP. Originally suggested duplicate_rate >= 0.7 and diff >= 0.3 for 14395, but for this DWP, we might be able to get away with duplicate_rate >= 0.7 and diff >= 0.15. Would be nice if ggplotly worked and didn't keep throwing a "filepath too long" error.
+Definitely starting to think we going to have to set different cutoffs for dupe rate and dupe rate difference for each DWP. Originally suggested duplicate_rate >= 0.7 and diff >= 0.15 for 14395, and that seems to work for this plate, too. Would be nice if ggplotly worked and didn't keep throwing a "filepath too long" error.
 
 ##### Results
 
