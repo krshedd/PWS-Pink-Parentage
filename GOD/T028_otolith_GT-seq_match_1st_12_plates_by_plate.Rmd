@@ -1269,7 +1269,7 @@ ggplot(data = dup_check_results_DWP_14332_top_2, aes(x = diff, y = duplicate_rat
 
 This one is a little better. 
 
-##### Results: not OK; PGOD21_65 matches 2 otos
+##### Results: OK
 
 Duplicate_rate >= 0.7 and diff >= 0.15
 
@@ -1284,18 +1284,6 @@ nrow(dup_check_results_DWP_14332_pass)
 length(unique(dup_check_results_DWP_14332_pass$heart_fish_id))
 length(unique(dup_check_results_DWP_14332_pass$otolith_fish_id))
 ```
-
-##### Purge multi-matching otos
-
-```{r}
-dup_check_results_DWP_14332_pass_dup <- dup_check_results_DWP_14332_pass[duplicated(dup_check_results_DWP_14332_pass$otolith_fish_id), ]
-dup_check_results_DWP_14332_pass_dup <- dup_check_results_DWP_14332_pass_dup$otolith_fish_id
-
-(dup_check_results_DWP_14332_pass_purged <- dup_check_results_DWP_14332_pass[!(dup_check_results_DWP_14332_pass$otolith_fish_id == dup_check_results_DWP_14332_pass_dup), ])
-
-length(unique(dup_check_results_DWP_14332_pass_purged$otolith_fish_id)) == nrow(dup_check_results_DWP_14332_pass_purged)
-```
-
 
 #### **8. PGILMOUR15 DWP 2228**
 
@@ -3152,3 +3140,62 @@ nrow(dup_check_results_DWP_16132_pass)
 length(unique(dup_check_results_DWP_16132_pass$heart_fish_id))
 length(unique(dup_check_results_DWP_16132_pass$otolith_fish_id))
 ```
+
+#### All passing
+
+```{r}
+dup_check_results_DWP_1st12_pass <- bind_rows(
+dup_check_results_DWP_14395_pass,
+dup_check_results_DWP_14334_pass,
+dup_check_results_DWP_14331_pass,
+dup_check_results_DWP_14376_pass,
+dup_check_results_DWP_14297_pass,
+dup_check_results_DWP_14282_pass,
+dup_check_results_DWP_14332_pass,
+dup_check_results_DWP_2228_pass_purged,
+dup_check_results_DWP_2232_pass,
+dup_check_results_DWP_14573_pass,
+dup_check_results_DWP_14662_pass,
+dup_check_results_DWP_14663_pass,
+dup_check_results_DWP_15826_pass,
+dup_check_results_DWP_22569_pass,
+dup_check_results_DWP_22591_pass_purged,
+dup_check_results_DWP_22595_pass,
+dup_check_results_DWP_22710_pass,
+dup_check_results_DWP_22751_pass,
+dup_check_results_DWP_22701_pass,
+dup_check_results_DWP_28929_pass,
+dup_check_results_DWP_28864_pass,
+dup_check_results_DWP_28829_pass,
+dup_check_results_DWP_28807_pass,
+dup_check_results_DWP_28812_pass,
+dup_check_results_DWP_16104_pass,
+dup_check_results_DWP_14463_pass,
+dup_check_results_DWP_16130_pass,
+dup_check_results_DWP_16164_pass,
+dup_check_results_DWP_16132_pass)
+
+write_csv(dup_check_results_DWP_1st12_pass, "dup_check_results_DWP_1st12_pass.csv")
+```
+
+```{r}
+# read in the tray position and well code key
+well_location_key <- read_csv("../../GOD/KEY_WELL_CODE_tray_posn_by_col.csv")
+
+# join with original and jumbled DWP well info
+oceanak_affected_DWP_wells <- oceanak_affected_DWPs %>% 
+  select(c(SILLY_CODE, FISH_ID, DNA_TRAY_CODE, DNA_TRAY_WELL_CODE)) 
+oceanak_affected_DWP_wells$heart_fish_id <- paste0(oceanak_affected_DWP_wells$SILLY_CODE, "_", oceanak_affected_DWP_wells$FISH_ID)
+
+dup_check_results_DWP_1st12_pass_with_wells <- attributes_and_xfer_PGOD21 %>% 
+  mutate(otolith_fish_id = SillySource) %>% 
+  right_join(dup_check_results_DWP_1st12_pass, by = "otolith_fish_id") %>% 
+  select(c(otolith_fish_id, `48_DWP_tray_barcode`, `48_DWP_tray_position`, heart_fish_id)) %>% 
+  right_join(oceanak_affected_DWP_wells, by = "heart_fish_id") %>% 
+  select(-c(SILLY_CODE, FISH_ID, DNA_TRAY_CODE)) %>% 
+  inner_join(well_location_key, by = "DNA_TRAY_WELL_CODE") %>% 
+  select(`48_DWP_tray_barcode`, heart_fish_id, OG_48_DWP_tray_position, otolith_fish_id, `48_DWP_tray_position`)
+
+write_csv(dup_check_results_DWP_1st12_pass_with_wells, "dup_check_results_DWP_1st12_pass_with_wells.csv")
+```
+
