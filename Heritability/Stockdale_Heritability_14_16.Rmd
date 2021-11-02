@@ -1,7 +1,7 @@
 ---
 title: "Heritability of body length, sample date, location, and RS according to Cross Type and Parental/Offspring Sex for Stockdale 2014-2016"
 author: "Kristen Gruenthal"
-date: "29 July 2021"
+date: "22 October 2021"
 output:
   html_notebook:
     theme: united
@@ -244,28 +244,62 @@ parents_paired_length <- function(indata_triads_length = stock_triads_length_14_
                              Sex.off == "M" ~ "Male")) 
 }
 
+# overall
+(stock_parents_paired_14_16_length0 <- parents_paired_length() %>% 
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+
+# by cross
 (stock_parents_paired_14_16_length1 <- parents_paired_length() %>% 
   group_by(Cross) %>%
   summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+
+# all offspring
+(stock_parents_paired_14_16_length4 <- parents_paired_length() %>% 
+  group_by(sex.dam) %>%
+  summarise(correlation = round(cor(Length.off, Length.dam), 3), r2 = round(cor(Length.off, Length.dam)^2, 3)))
+
+(stock_parents_paired_14_16_length5 <- parents_paired_length() %>% 
+  group_by(sex.sire) %>%
+  summarise(correlation = round(cor(Length.off, Length.sire), 3), r2 = round(cor(Length.off, Length.sire)^2, 3)))
+
+# by sex
 (stock_parents_paired_14_16_length2 <- parents_paired_length() %>% 
   group_by(sex.dam, sex.off) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+  summarise(correlation = round(cor(Length.off, Length.dam), 3), r2 = round(cor(Length.off, Length.dam)^2, 3)))
+
 (stock_parents_paired_14_16_length3 <- parents_paired_length() %>% 
   group_by(sex.sire, sex.off) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+  summarise(correlation = round(cor(Length.off, Length.sire), 3), r2 = round(cor(Length.off, Length.sire)^2, 3)))
 
+# make dfs
+stock_parents_paired_14_16_length0_All <- as.data.frame(c(stock_parents_paired_14_16_length0[1,1], stock_parents_paired_14_16_length0[1,2]*2))
 stock_parents_paired_14_16_length1_NN <- as.data.frame(c(stock_parents_paired_14_16_length1[4,2], stock_parents_paired_14_16_length1[4,3]*2))
 stock_parents_paired_14_16_length1_NH <- as.data.frame(c(stock_parents_paired_14_16_length1[3,2], stock_parents_paired_14_16_length1[3,3]*2))
 stock_parents_paired_14_16_length1_HN <- as.data.frame(c(stock_parents_paired_14_16_length1[2,2], stock_parents_paired_14_16_length1[2,3]*2))
 stock_parents_paired_14_16_length1_HH <- as.data.frame(c(stock_parents_paired_14_16_length1[1,2], stock_parents_paired_14_16_length1[1,3]*2))
+stock_parents_paired_14_16_length4_dAll <- as.data.frame(c(stock_parents_paired_14_16_length4[1,2], stock_parents_paired_14_16_length4[1,3]*2))
+stock_parents_paired_14_16_length5_sAll <- as.data.frame(c(stock_parents_paired_14_16_length5[1,2], stock_parents_paired_14_16_length5[1,3]*2))
 stock_parents_paired_14_16_length2_dF <- as.data.frame(c(stock_parents_paired_14_16_length2[1,3], stock_parents_paired_14_16_length2[1,4]*2))
 stock_parents_paired_14_16_length2_dM <- as.data.frame(c(stock_parents_paired_14_16_length2[2,3], stock_parents_paired_14_16_length2[2,4]*2))
 stock_parents_paired_14_16_length3_sF <- as.data.frame(c(stock_parents_paired_14_16_length3[1,3], stock_parents_paired_14_16_length3[1,4]*2))
 stock_parents_paired_14_16_length3_sM <- as.data.frame(c(stock_parents_paired_14_16_length3[2,3], stock_parents_paired_14_16_length3[2,4]*2))
 
-stock_r_and_h2_length_14_16 <- rbind(stock_parents_paired_14_16_length1_NN, stock_parents_paired_14_16_length1_NH, stock_parents_paired_14_16_length1_HN, stock_parents_paired_14_16_length1_HH, stock_parents_paired_14_16_length2_dF, stock_parents_paired_14_16_length2_dM, stock_parents_paired_14_16_length3_sF, stock_parents_paired_14_16_length3_sM) %>% round(3)
+stock_r_and_h2_length_14_16 <- rbind(stock_parents_paired_14_16_length0_All,
+                                     stock_parents_paired_14_16_length1_NN, 
+                                     stock_parents_paired_14_16_length1_NH, 
+                                     stock_parents_paired_14_16_length1_HN, 
+                                     stock_parents_paired_14_16_length1_HH,
+                                     stock_parents_paired_14_16_length4_dAll,
+                                     stock_parents_paired_14_16_length5_sAll,
+                                     stock_parents_paired_14_16_length2_dF, 
+                                     stock_parents_paired_14_16_length2_dM, 
+                                     stock_parents_paired_14_16_length3_sF, 
+                                     stock_parents_paired_14_16_length3_sM) %>%
+                                round(3)
+
 colnames(stock_r_and_h2_length_14_16) <- c("Correlation (r)", "Heritability (h^2)")
-stock_r_and_h2_length_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+stock_r_and_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
 (stock_r_and_h2_length_14_16 <- stock_r_and_h2_length_14_16[,c(3,1,2)])
 ```
 
@@ -275,24 +309,42 @@ If we use the parents' phenotypic variance as a measure of VP, we can estimate h
 trait_value_offspring = Cov_parent_offspring / Var_parent x trait_value_parent + c. The slope of the line (number under "estimate" for "Length.*" in the tibbles below) is mathematically equivalent to h^2.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-# by cross
+# overall
 stock_h2_length_14_16_all_tbl <- tidy(lm(Length.off ~ Length.par, data = stock_triads_length_14_16))
+
+# by cross
 stock_h2_length_14_16_NN_tbl <- tidy(lm(Length.off ~ Length.par, data = stock_triads_length_14_16 %>% filter(Cross == "NN")))
 stock_h2_length_14_16_NH_tbl <- tidy(lm(Length.off ~ Length.par, data = stock_triads_length_14_16 %>% filter(Cross == "NH")))
 stock_h2_length_14_16_HN_tbl <- tidy(lm(Length.off ~ Length.par, data = stock_triads_length_14_16 %>% filter(Cross == "HN")))
 stock_h2_length_14_16_HH_tbl <- tidy(lm(Length.off ~ Length.par, data = stock_triads_length_14_16 %>% filter(Cross == "HH")))
 
-# by sex
+# all offspring
 stock_h2_length_14_16_dam_tbl <- tidy(lm(Length.off ~ Length.dam, data = stock_triads_length_14_16))
 stock_h2_length_14_16_sire_tbl <- tidy(lm(Length.off ~ Length.sire, data = stock_triads_length_14_16))
+
+# by sex
 stock_h2_length_14_16_dF_tbl <- tidy(lm(Length.off ~ Length.dam, data = stock_triads_length_14_16 %>% filter(Sex.off == "F")))
 stock_h2_length_14_16_dM_tbl <- tidy(lm(Length.off ~ Length.dam, data = stock_triads_length_14_16 %>% filter(Sex.off == "M")))
 stock_h2_length_14_16_sF_tbl <- tidy(lm(Length.off ~ Length.sire, data = stock_triads_length_14_16 %>% filter(Sex.off == "F")))
 stock_h2_length_14_16_sM_tbl <- tidy(lm(Length.off ~ Length.sire, data = stock_triads_length_14_16 %>% filter(Sex.off == "M")))
 
-stock_slope_as_h2_length_14_16 <- as.data.frame(rbind(stock_h2_length_14_16_all_tbl[2,2], stock_h2_length_14_16_NN_tbl[2,2], stock_h2_length_14_16_NH_tbl[2,2], stock_h2_length_14_16_HN_tbl[2,2], stock_h2_length_14_16_HH_tbl[2,2], stock_h2_length_14_16_dam_tbl[2,2], stock_h2_length_14_16_sire_tbl[2,2], stock_h2_length_14_16_dF_tbl[2,2], stock_h2_length_14_16_dM_tbl[2,2], stock_h2_length_14_16_sF_tbl[2,2], stock_h2_length_14_16_sM_tbl[2,2]) %>% round(3))
+# make df
+stock_slope_as_h2_length_14_16 <- as.data.frame(rbind(stock_h2_length_14_16_all_tbl[2,2], 
+                                                      stock_h2_length_14_16_NN_tbl[2,2], 
+                                                      stock_h2_length_14_16_NH_tbl[2,2], 
+                                                      stock_h2_length_14_16_HN_tbl[2,2], 
+                                                      stock_h2_length_14_16_HH_tbl[2,2], 
+                                                      stock_h2_length_14_16_dam_tbl[2,2], 
+                                                      stock_h2_length_14_16_sire_tbl[2,2], 
+                                                      stock_h2_length_14_16_dF_tbl[2,2], 
+                                                      stock_h2_length_14_16_dM_tbl[2,2], 
+                                                      stock_h2_length_14_16_sF_tbl[2,2], 
+                                                      stock_h2_length_14_16_sM_tbl[2,2]) %>% 
+                                                  round(3))
+
 colnames(stock_slope_as_h2_length_14_16) <- c("Heritability (h^2)")
 stock_slope_as_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
 (stock_slope_as_h2_length_14_16 <- stock_slope_as_h2_length_14_16[,c(2,1)])
 ```
 
@@ -301,12 +353,14 @@ stock_slope_as_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", 
 Narrow-sense heritabilities (h^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h^2 = VA/VP) per Evans et al. (2019) [https://link.springer.com/article/10.1007/s10592-019-01174-4]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
 
 ```{r}
+# overall
 stock_h2_length_14_16_dam_sire <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = stock_triads_length_14_16, na.action = na.omit)
 (summary(stock_h2_length_14_16_dam_sire))
 stock_h2_length_14_16_all <- (1.903 + 16.347) / (1.903 + 16.347 + 485.707)
 plot(stock_h2_length_14_16_dam_sire)
 hist(resid(stock_h2_length_14_16_dam_sire))
 
+# by cross
 stock_h2_length_14_16_NN <- stock_triads_length_14_16 %>% filter(Cross == "NN")
 stock_h2_length_14_16_dam_sire_NN <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = stock_h2_length_14_16_NN, na.action = na.omit)
 (summary(stock_h2_length_14_16_dam_sire_NN))
@@ -327,6 +381,11 @@ stock_h2_length_14_16_dam_sire_HH <- lmer(Length.off ~ (1|Length.sire)+(1|Length
 (summary(stock_h2_length_14_16_dam_sire_HH))
 stock_h2_length_14_16_HH <- 0.00 / (0.00 + 0.00 + 356)
 
+# all offspring
+stock_h2_length_14_16_dAll <- (16.347) / (1.903 + 16.347 + 485.707)
+stock_h2_length_14_16_sAll <- (1.903) / (1.903 + 16.347 + 485.707)
+
+# by sex
 stock_h2_length_14_16_F <- stock_triads_length_14_16 %>% filter(Sex.off == "F")
 stock_h2_length_14_16_dam_sire_F <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = stock_h2_length_14_16_F, na.action = na.omit)
 (summary(stock_h2_length_14_16_dam_sire_F))
@@ -339,9 +398,23 @@ stock_h2_length_14_16_dam_sire_M <- lmer(Length.off ~ (1|Length.sire)+(1|Length.
 stock_h2_length_14_16_dam_M <- 0.0000001303 / (56.73 + 0.0000001303 + 641.2)
 stock_h2_length_14_16_sire_M <- 56.73 / (56.73 + 0.0000001303 + 641.2)
 
-stock_am_for_h2_length_14_16 <- as.data.frame(c(stock_h2_length_14_16_all, stock_h2_length_14_16_NN, stock_h2_length_14_16_NH, stock_h2_length_14_16_HN, stock_h2_length_14_16_HH, stock_h2_length_14_16_dam_F, stock_h2_length_14_16_dam_M, stock_h2_length_14_16_sire_F, stock_h2_length_14_16_sire_M)) %>% round(3)
+# make dfs
+stock_am_for_h2_length_14_16 <- as.data.frame(c(stock_h2_length_14_16_all, 
+                                                stock_h2_length_14_16_NN, 
+                                                stock_h2_length_14_16_NH, 
+                                                stock_h2_length_14_16_HN, 
+                                                stock_h2_length_14_16_HH, 
+                                                stock_h2_length_14_16_dAll,
+                                                stock_h2_length_14_16_sAll,
+                                                stock_h2_length_14_16_dam_F, 
+                                                stock_h2_length_14_16_dam_M, 
+                                                stock_h2_length_14_16_sire_F, 
+                                                stock_h2_length_14_16_sire_M)) %>% 
+                                              round(3)
+
 colnames(stock_am_for_h2_length_14_16) <- c("Heritability (h^2)")
-stock_am_for_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+stock_am_for_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
 (stock_am_for_h2_length_14_16 <- stock_am_for_h2_length_14_16[,c(2,1)])
 ```
 
@@ -353,7 +426,7 @@ stock_r_and_h2_length_14_16 <- stock_r_and_h2_length_14_16[,c(1,3)]
 stock_h2_length_14_16 <- merge(stock_r_and_h2_length_14_16, stock_slope_as_h2_length_14_16,  by="Category") %>% 
     merge(stock_am_for_h2_length_14_16, by="Category") %>% 
     rename(Stockdale_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
-(stock_h2_length_14_16 <- stock_h2_length_14_16[c(6,5,4,3,1,2,7,8),])
+(stock_h2_length_14_16 <- stock_h2_length_14_16[c(8,7,6,5,4,1,9,2,3,10,11),])
 ```
 
 Some evidence for heritability of body size, but it is sporadic and not overly consistent among methods.
@@ -431,28 +504,62 @@ parents_paired_date <- function(indata_triads_date = stock_triads_date_14_16) {
                              Sex.off == "M" ~ "Male")) 
 }
 
+# overall
+(stock_parents_paired_14_16_date0 <- parents_paired_date() %>% 
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+
+# by cross
 (stock_parents_paired_14_16_date1 <- parents_paired_date() %>% 
   group_by(Cross) %>%
   summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+
+# all offspring
+(stock_parents_paired_14_16_date4 <- parents_paired_date() %>% 
+  group_by(sex.dam) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.dam), 3), r2 = round(cor(DOY.off, DOY.dam)^2, 3)))
+
+(stock_parents_paired_14_16_date5 <- parents_paired_date() %>% 
+  group_by(sex.sire) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.sire), 3), r2 = round(cor(DOY.off, DOY.sire)^2, 3)))
+
+# by sex
 (stock_parents_paired_14_16_date2 <- parents_paired_date() %>% 
   group_by(sex.dam, sex.off) %>%
-  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+  summarise(correlation = round(cor(DOY.off, DOY.dam), 3), r2 = round(cor(DOY.off, DOY.dam)^2, 3)))
+
 (stock_parents_paired_14_16_date3 <- parents_paired_date() %>% 
   group_by(sex.sire, sex.off) %>%
-  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+  summarise(correlation = round(cor(DOY.off, DOY.sire), 3), r2 = round(cor(DOY.off, DOY.sire)^2, 3)))
 
+# make dfs
+stock_parents_paired_14_16_date0_All <- as.data.frame(c(stock_parents_paired_14_16_date0[1,1], stock_parents_paired_14_16_date0[1,2]*2))
 stock_parents_paired_14_16_date1_NN <- as.data.frame(c(stock_parents_paired_14_16_date1[4,2], stock_parents_paired_14_16_date1[4,3]*2))
 stock_parents_paired_14_16_date1_NH <- as.data.frame(c(stock_parents_paired_14_16_date1[3,2], stock_parents_paired_14_16_date1[3,3]*2))
 stock_parents_paired_14_16_date1_HN <- as.data.frame(c(stock_parents_paired_14_16_date1[2,2], stock_parents_paired_14_16_date1[2,3]*2))
 stock_parents_paired_14_16_date1_HH <- as.data.frame(c(stock_parents_paired_14_16_date1[1,2], stock_parents_paired_14_16_date1[1,3]*2))
+stock_parents_paired_14_16_date4_dAll <- as.data.frame(c(stock_parents_paired_14_16_date4[1,2], stock_parents_paired_14_16_date4[1,3]*2))
+stock_parents_paired_14_16_date5_sAll <- as.data.frame(c(stock_parents_paired_14_16_date5[1,2], stock_parents_paired_14_16_date5[1,3]*2))
 stock_parents_paired_14_16_date2_dF <- as.data.frame(c(stock_parents_paired_14_16_date2[1,3], stock_parents_paired_14_16_date2[1,4]*2))
 stock_parents_paired_14_16_date2_dM <- as.data.frame(c(stock_parents_paired_14_16_date2[2,3], stock_parents_paired_14_16_date2[2,4]*2))
 stock_parents_paired_14_16_date3_sF <- as.data.frame(c(stock_parents_paired_14_16_date3[1,3], stock_parents_paired_14_16_date3[1,4]*2))
 stock_parents_paired_14_16_date3_sM <- as.data.frame(c(stock_parents_paired_14_16_date3[2,3], stock_parents_paired_14_16_date3[2,4]*2))
 
-stock_r_and_h2_date_14_16 <- rbind(stock_parents_paired_14_16_date1_NN, stock_parents_paired_14_16_date1_NH, stock_parents_paired_14_16_date1_HN,stock_parents_paired_14_16_date1_HH, stock_parents_paired_14_16_date2_dF, stock_parents_paired_14_16_date2_dM, stock_parents_paired_14_16_date3_sF, stock_parents_paired_14_16_date3_sM) %>% round(3)
+stock_r_and_h2_date_14_16 <- rbind(stock_parents_paired_14_16_date0_All,
+                                     stock_parents_paired_14_16_date1_NN, 
+                                     stock_parents_paired_14_16_date1_NH, 
+                                     stock_parents_paired_14_16_date1_HN, 
+                                     stock_parents_paired_14_16_date1_HH,
+                                     stock_parents_paired_14_16_date4_dAll,
+                                     stock_parents_paired_14_16_date5_sAll,
+                                     stock_parents_paired_14_16_date2_dF, 
+                                     stock_parents_paired_14_16_date2_dM, 
+                                     stock_parents_paired_14_16_date3_sF, 
+                                     stock_parents_paired_14_16_date3_sM) %>%
+                                round(3)
+
 colnames(stock_r_and_h2_date_14_16) <- c("Correlation (r)", "Heritability (h^2)")
-stock_r_and_h2_date_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+stock_r_and_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
 (stock_r_and_h2_date_14_16 <- stock_r_and_h2_date_14_16[,c(3,1,2)])
 ```
 
@@ -462,24 +569,42 @@ If we use the parents' phenotypic variance as a measure of VP, we can estimate h
 trait_value_offspring = Cov_parent_offspring / Var_parent x trait_value_parent + c. The slope of the line is mathematically equivalent to h^2.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-# by cross
+# overall
 stock_h2_date_14_16_all_tbl <- tidy(lm(DOY.off ~ DOY.par, data = stock_triads_date_14_16))
+
+# by cross
 stock_h2_date_14_16_NN_tbl <- tidy(lm(DOY.off ~ DOY.par, data = stock_triads_date_14_16 %>% filter(Cross == "NN")))
 stock_h2_date_14_16_NH_tbl <- tidy(lm(DOY.off ~ DOY.par, data = stock_triads_date_14_16 %>% filter(Cross == "NH")))
 stock_h2_date_14_16_HN_tbl <- tidy(lm(DOY.off ~ DOY.par, data = stock_triads_date_14_16 %>% filter(Cross == "HN")))
 stock_h2_date_14_16_HH_tbl <- tidy(lm(DOY.off ~ DOY.par, data = stock_triads_date_14_16 %>% filter(Cross == "HH")))
 
-# by sex
+# all offspring
 stock_h2_date_14_16_dam_tbl <- tidy(lm(DOY.off ~ DOY.dam, data = stock_triads_date_14_16))
 stock_h2_date_14_16_sire_tbl <- tidy(lm(DOY.off ~ DOY.sire, data = stock_triads_date_14_16))
+
+# by sex
 stock_h2_date_14_16_dF_tbl <- tidy(lm(DOY.off ~ DOY.dam, data = stock_triads_date_14_16 %>% filter(Sex.off == "F")))
 stock_h2_date_14_16_dM_tbl <- tidy(lm(DOY.off ~ DOY.dam, data = stock_triads_date_14_16 %>% filter(Sex.off == "M")))
 stock_h2_date_14_16_sF_tbl <- tidy(lm(DOY.off ~ DOY.sire, data = stock_triads_date_14_16 %>% filter(Sex.off == "F")))
 stock_h2_date_14_16_sM_tbl <- tidy(lm(DOY.off ~ DOY.sire, data = stock_triads_date_14_16 %>% filter(Sex.off == "M")))
 
-stock_slope_as_h2_date_14_16 <- rbind(stock_h2_date_14_16_all_tbl[2,2], stock_h2_date_14_16_NN_tbl[2,2], stock_h2_date_14_16_NH_tbl[2,2], stock_h2_date_14_16_HN_tbl[2,2], stock_h2_date_14_16_HH_tbl[2,2], stock_h2_date_14_16_dam_tbl[2,2], stock_h2_date_14_16_sire_tbl[2,2], stock_h2_date_14_16_dF_tbl[2,2], stock_h2_date_14_16_dM_tbl[2,2], stock_h2_date_14_16_sF_tbl[2,2], stock_h2_date_14_16_sM_tbl[2,2]) %>% round(3)
+# make df
+stock_slope_as_h2_date_14_16 <- as.data.frame(rbind(stock_h2_date_14_16_all_tbl[2,2], 
+                                                      stock_h2_date_14_16_NN_tbl[2,2], 
+                                                      stock_h2_date_14_16_NH_tbl[2,2], 
+                                                      stock_h2_date_14_16_HN_tbl[2,2], 
+                                                      stock_h2_date_14_16_HH_tbl[2,2], 
+                                                      stock_h2_date_14_16_dam_tbl[2,2], 
+                                                      stock_h2_date_14_16_sire_tbl[2,2], 
+                                                      stock_h2_date_14_16_dF_tbl[2,2], 
+                                                      stock_h2_date_14_16_dM_tbl[2,2], 
+                                                      stock_h2_date_14_16_sF_tbl[2,2], 
+                                                      stock_h2_date_14_16_sM_tbl[2,2]) %>% 
+                                                  round(3))
+
 colnames(stock_slope_as_h2_date_14_16) <- c("Heritability (h^2)")
 stock_slope_as_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
 (stock_slope_as_h2_date_14_16 <- stock_slope_as_h2_date_14_16[,c(2,1)])
 ```
 
@@ -488,12 +613,14 @@ stock_slope_as_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "D
 Narrow-sense heritabilities (h^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h^2 = VA/VP) per Evans et al. (2019) [https://link.springer.com/article/10.1007/s10592-019-01174-4]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
 
 ```{r}
+# overall
 stock_h2_date_14_16_dam_sire <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = stock_triads_date_14_16, na.action = na.omit)
 (summary(stock_h2_date_14_16_dam_sire))
 stock_h2_date_14_16_all <- (1.068 + 7.114) / (1.068 + 7.114 + 48.328)
 plot(stock_h2_date_14_16_dam_sire)
 hist(resid(stock_h2_date_14_16_dam_sire))
 
+# by cross
 stock_h2_date_14_16_NN <- stock_triads_date_14_16 %>% filter(Cross == "NN")
 stock_h2_date_14_16_dam_sire_NN <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = stock_h2_date_14_16_NN, na.action = na.omit)
 (summary(stock_h2_date_14_16_dam_sire_NN))
@@ -514,6 +641,11 @@ stock_h2_date_14_16_dam_sire_HH <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data
 (summary(stock_h2_date_14_16_dam_sire_HH))
 stock_h2_date_14_16_HH <- (11.912 + 1.723) / (11.912 + 1.723 + 31.797)
 
+# all offspring
+stock_h2_date_14_16_dAll <- (7.114) / (1.068 + 7.114 + 48.328)
+stock_h2_date_14_16_sAll <- (1.068) / (1.068 + 7.114 + 48.328)
+
+# by sex
 stock_h2_date_14_16_F <- stock_triads_date_14_16 %>% filter(Sex.off == "F")
 stock_h2_date_14_16_dam_sire_F <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = stock_h2_date_14_16_F, na.action = na.omit)
 (summary(stock_h2_date_14_16_dam_sire_F))
@@ -526,9 +658,23 @@ stock_h2_date_14_16_dam_sire_M <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data 
 stock_h2_date_14_16_dam_M <- 2.022 / (0.00 + 2.022 + 58.533)
 stock_h2_date_14_16_sire_M <- 0.00 / (0.00 + 2.022 + 58.533)
 
-stock_am_for_h2_date_14_16 <- as.data.frame(c(stock_h2_date_14_16_all, stock_h2_date_14_16_NN, stock_h2_date_14_16_NH, stock_h2_date_14_16_HN, stock_h2_date_14_16_HH, stock_h2_date_14_16_dam_F, stock_h2_date_14_16_dam_M, stock_h2_date_14_16_sire_F, stock_h2_date_14_16_sire_M)) %>% round(3)
+# make dfs
+stock_am_for_h2_date_14_16 <- as.data.frame(c(stock_h2_date_14_16_all, 
+                                              stock_h2_date_14_16_NN, 
+                                              stock_h2_date_14_16_NH, 
+                                              stock_h2_date_14_16_HN, 
+                                              stock_h2_date_14_16_HH, 
+                                              stock_h2_date_14_16_dAll,
+                                              stock_h2_date_14_16_sAll,
+                                              stock_h2_date_14_16_dam_F, 
+                                              stock_h2_date_14_16_dam_M, 
+                                              stock_h2_date_14_16_sire_F, 
+                                              stock_h2_date_14_16_sire_M)) %>% 
+                                            round(3)
+
 colnames(stock_am_for_h2_date_14_16) <- c("Heritability (h^2)")
-stock_am_for_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+stock_am_for_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
 (stock_am_for_h2_date_14_16 <- stock_am_for_h2_date_14_16[,c(2,1)])
 ```
 
@@ -540,13 +686,13 @@ stock_r_and_h2_date_14_16 <- stock_r_and_h2_date_14_16[,c(1,3)]
 stock_h2_date_14_16 <- merge(stock_r_and_h2_date_14_16, stock_slope_as_h2_date_14_16,  by="Category") %>% 
     merge(stock_am_for_h2_date_14_16, by="Category") %>% 
     rename(Stockdale_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
-(stock_h2_date_14_16 <- stock_h2_date_14_16[c(6,5,4,3,1,2,7,8),])
+(stock_h2_date_14_16 <- stock_h2_date_14_16[c(8,7,6,5,4,1,9,2,3,10,11),])
 ```
 
 Better evidence for heritability of sample date as a proxy for return time, especially between female parents and offspring. There's some inconsistency among estimation methods, however.
 
 
-## Sample Location
+## Sample Location: Stream location/distance DNE for most samples
 
 **Note:** Correlation between parent-offspring sample location and narrow-sense heritability of sample location *not yet available* for parental years beyond 2014. GIS-based stream distance mapping is *in progress* by Chase Jalbert.
 
@@ -582,8 +728,9 @@ Location is reported as distance from stream mouth.
 
 ### *Results*
 
-Stream location/distance data not yet available for all sample sets.
+```{r}
 
+```
 
 ## Reproductive success
 
@@ -651,9 +798,25 @@ parents_paired_rs <- function(indata_triads_rs = stock_triads_rs_14_16) {
                              Sex.off == "M" ~ "Male")) 
 }
 
+# overall
+(stock_parents_paired_14_16_rs0 <- parents_paired_rs() %>% 
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+
+# by cross
 (stock_parents_paired_14_16_rs1 <- parents_paired_rs() %>% 
   group_by(Cross) %>%
   summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+
+# all offspring
+(stock_parents_paired_14_16_rs4 <- parents_paired_rs() %>% 
+  group_by(sex.dam) %>%
+  summarise(correlation = round(cor(n.off, n.dam), 3), r2 = round(cor(n.off, n.dam)^2, 3)))
+
+(stock_parents_paired_14_16_rs5 <- parents_paired_rs() %>% 
+  group_by(sex.sire) %>%
+  summarise(correlation = round(cor(n.off, n.sire), 3), r2 = round(cor(n.off, n.sire)^2, 3)))
+
+# by sex
 (stock_parents_paired_14_16_rs2 <- parents_paired_rs() %>% 
   group_by(sex.dam, sex.off) %>%
   summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
@@ -661,54 +824,90 @@ parents_paired_rs <- function(indata_triads_rs = stock_triads_rs_14_16) {
   group_by(sex.sire, sex.off) %>%
   summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
 
+stock_parents_paired_14_16_rs0_All <- as.data.frame(c(stock_parents_paired_14_16_rs0[1,1], stock_parents_paired_14_16_rs0[1,2]*2))
 stock_parents_paired_14_16_rs1_NN <- as.data.frame(c(stock_parents_paired_14_16_rs1[4,2], stock_parents_paired_14_16_rs1[4,3]*2))
 stock_parents_paired_14_16_rs1_NH <- as.data.frame(c(stock_parents_paired_14_16_rs1[3,2], stock_parents_paired_14_16_rs1[3,3]*2))
 stock_parents_paired_14_16_rs1_HN <- as.data.frame(c(stock_parents_paired_14_16_rs1[2,2], stock_parents_paired_14_16_rs1[2,3]*2))
 stock_parents_paired_14_16_rs1_HH <- as.data.frame(c(stock_parents_paired_14_16_rs1[1,2], stock_parents_paired_14_16_rs1[1,3]*2))
+stock_parents_paired_14_16_rs4_dAll <- as.data.frame(c(stock_parents_paired_14_16_rs4[1,2], stock_parents_paired_14_16_rs4[1,3]*2))
+stock_parents_paired_14_16_rs5_sAll <- as.data.frame(c(stock_parents_paired_14_16_rs5[1,2], stock_parents_paired_14_16_rs5[1,3]*2))
 stock_parents_paired_14_16_rs2_dF <- as.data.frame(c(stock_parents_paired_14_16_rs2[1,3], stock_parents_paired_14_16_rs2[1,4]*2))
 stock_parents_paired_14_16_rs2_dM <- as.data.frame(c(stock_parents_paired_14_16_rs2[2,3], stock_parents_paired_14_16_rs2[2,4]*2))
 stock_parents_paired_14_16_rs3_sF <- as.data.frame(c(stock_parents_paired_14_16_rs3[1,3], stock_parents_paired_14_16_rs3[1,4]*2))
 stock_parents_paired_14_16_rs3_sM <- as.data.frame(c(stock_parents_paired_14_16_rs3[2,3], stock_parents_paired_14_16_rs3[2,4]*2))
 
-stock_r_and_h2_rs_14_16 <- rbind(stock_parents_paired_14_16_rs1_NN, stock_parents_paired_14_16_rs1_NH, stock_parents_paired_14_16_rs1_HN, stock_parents_paired_14_16_rs1_HH, stock_parents_paired_14_16_rs2_dF, stock_parents_paired_14_16_rs2_dM, stock_parents_paired_14_16_rs3_sF, stock_parents_paired_14_16_rs3_sM) %>% round(3)
+stock_r_and_h2_rs_14_16 <- rbind(stock_parents_paired_14_16_rs0_All,
+                                     stock_parents_paired_14_16_rs1_NN, 
+                                     stock_parents_paired_14_16_rs1_NH, 
+                                     stock_parents_paired_14_16_rs1_HN, 
+                                     stock_parents_paired_14_16_rs1_HH,
+                                     stock_parents_paired_14_16_rs4_dAll,
+                                     stock_parents_paired_14_16_rs5_sAll,
+                                     stock_parents_paired_14_16_rs2_dF, 
+                                     stock_parents_paired_14_16_rs2_dM, 
+                                     stock_parents_paired_14_16_rs3_sF, 
+                                     stock_parents_paired_14_16_rs3_sM) %>%
+                                round(3)
+
 colnames(stock_r_and_h2_rs_14_16) <- c("Correlation (r)", "Heritability (h^2)")
-stock_r_and_h2_rs_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+stock_r_and_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
 (stock_r_and_h2_rs_14_16 <- stock_r_and_h2_rs_14_16[,c(3,1,2)])
 ```
 
 ### Slope
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-# by cross
+# overall
 stock_h2_rs_14_16_all_tbl <- tidy(lm(n.off ~ rs.par, data = stock_triads_rs_14_16))
+
+# by cross
 stock_h2_rs_14_16_NN_tbl <- tidy(lm(n.off ~ rs.par, data = stock_triads_rs_14_16 %>% filter(Cross == "NN")))
 stock_h2_rs_14_16_NH_tbl <- tidy(lm(n.off ~ rs.par, data = stock_triads_rs_14_16 %>% filter(Cross == "NH")))
 stock_h2_rs_14_16_HN_tbl <- tidy(lm(n.off ~ rs.par, data = stock_triads_rs_14_16 %>% filter(Cross == "HN")))
 stock_h2_rs_14_16_HH_tbl <- tidy(lm(n.off ~ rs.par, data = stock_triads_rs_14_16 %>% filter(Cross == "HH")))
 
-# by sex
+# all offspring
 stock_h2_rs_14_16_dam_tbl <- tidy(lm(n.off ~ n.dam, data = stock_triads_rs_14_16))
 stock_h2_rs_14_16_sire_tbl <- tidy(lm(n.off ~ n.sire, data = stock_triads_rs_14_16))
+
+# by sex
 stock_h2_rs_14_16_dF_tbl <- tidy(lm(n.off ~ n.dam, data = stock_triads_rs_14_16 %>% filter(Sex.off == "F")))
-stock_h2_rs_14_16_sM_tbl <- tidy(lm(n.off ~ n.sire, data = stock_triads_rs_14_16 %>% filter(Sex.off == "M")))
 stock_h2_rs_14_16_dM_tbl <- tidy(lm(n.off ~ n.dam, data = stock_triads_rs_14_16 %>% filter(Sex.off == "M")))
 stock_h2_rs_14_16_sF_tbl <- tidy(lm(n.off ~ n.sire, data = stock_triads_rs_14_16 %>% filter(Sex.off == "F")))
+stock_h2_rs_14_16_sM_tbl <- tidy(lm(n.off ~ n.sire, data = stock_triads_rs_14_16 %>% filter(Sex.off == "M")))
 
-stock_slope_as_h2_rs_14_16 <- rbind(stock_h2_rs_14_16_all_tbl[2,2], stock_h2_rs_14_16_NN_tbl[2,2], stock_h2_rs_14_16_NH_tbl[2,2], stock_h2_rs_14_16_HN_tbl[2,2], stock_h2_rs_14_16_HH_tbl[2,2], stock_h2_rs_14_16_dam_tbl[2,2], stock_h2_rs_14_16_sire_tbl[2,2], stock_h2_rs_14_16_dF_tbl[2,2], stock_h2_rs_14_16_dM_tbl[2,2], stock_h2_rs_14_16_sF_tbl[2,2], stock_h2_rs_14_16_sM_tbl[2,2]) %>% round(3)
+# make df
+stock_slope_as_h2_rs_14_16 <- as.data.frame(rbind(stock_h2_rs_14_16_all_tbl[2,2], 
+                                                      stock_h2_rs_14_16_NN_tbl[2,2], 
+                                                      stock_h2_rs_14_16_NH_tbl[2,2], 
+                                                      stock_h2_rs_14_16_HN_tbl[2,2], 
+                                                      stock_h2_rs_14_16_HH_tbl[2,2], 
+                                                      stock_h2_rs_14_16_dam_tbl[2,2], 
+                                                      stock_h2_rs_14_16_sire_tbl[2,2], 
+                                                      stock_h2_rs_14_16_dF_tbl[2,2], 
+                                                      stock_h2_rs_14_16_dM_tbl[2,2], 
+                                                      stock_h2_rs_14_16_sF_tbl[2,2], 
+                                                      stock_h2_rs_14_16_sM_tbl[2,2]) %>% 
+                                                  round(3))
+
 colnames(stock_slope_as_h2_rs_14_16) <- c("Heritability (h^2)")
 stock_slope_as_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
 (stock_slope_as_h2_rs_14_16 <- stock_slope_as_h2_rs_14_16[,c(2,1)])
 ```
 
 ### Animal model
 
 ```{r}
+# overall
 stock_h2_rs_14_16_dam_sire <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = stock_triads_rs_14_16, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire))
 stock_h2_rs_14_16_all <- 0.00 / (0.00 + 0.00 + 0.1275)
 plot(stock_h2_rs_14_16_dam_sire)
 hist(resid(stock_h2_rs_14_16_dam_sire))
 
+# by cross
 stock_h2_rs_14_16_NN <- stock_triads_rs_14_16 %>% filter(Cross == "NN")
 stock_h2_rs_14_16_dam_sire_NN <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_NN, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire_NN))
@@ -729,6 +928,11 @@ stock_h2_rs_14_16_HN <- 0.00 / (0.00 + 0.00 + 0.06237)
 # (summary(stock_h2_rs_14_16_dam_sire_HH))
 # stock_h2_rs_14_16_HH <- (11.912 + 1.723) / (11.912 + 1.723 + 31.797)
 
+# all offspring
+stock_h2_rs_14_16_dAll <- 0.00 / (0.00 + 0.00 + 0.1275)
+stock_h2_rs_14_16_sAll <- 0.00 / (0.00 + 0.00 + 0.1275)
+
+# by sex
 stock_h2_rs_14_16_F <- stock_triads_rs_14_16 %>% filter(Sex.off == "F")
 stock_h2_rs_14_16_dam_sire_F <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_F, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire_F))
@@ -741,9 +945,23 @@ stock_h2_rs_14_16_dam_sire_M <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = stock_
 stock_h2_rs_14_16_dam_M <- 0.00 / (0.00 + 0.00 + 0.1363)
 stock_h2_rs_14_16_sire_M <- 0.00 / (0.00 + 0.00 + 0.1363)
 
-stock_am_for_h2_rs_14_16 <- as.data.frame(c(stock_h2_rs_14_16_all, stock_h2_rs_14_16_NN, stock_h2_rs_14_16_NH, stock_h2_rs_14_16_HN, stock_h2_rs_14_16_dam_F, stock_h2_rs_14_16_dam_M, stock_h2_rs_14_16_sire_F, stock_h2_rs_14_16_sire_M)) %>% round(3)
+# make dfs
+stock_am_for_h2_rs_14_16 <- as.data.frame(c(stock_h2_rs_14_16_all, 
+                                              stock_h2_rs_14_16_NN, 
+                                              stock_h2_rs_14_16_NH, 
+                                              stock_h2_rs_14_16_HN, 
+                                              stock_h2_rs_14_16_HH, 
+                                              stock_h2_rs_14_16_dAll,
+                                              stock_h2_rs_14_16_sAll,
+                                              stock_h2_rs_14_16_dam_F, 
+                                              stock_h2_rs_14_16_dam_M, 
+                                              stock_h2_rs_14_16_sire_F, 
+                                              stock_h2_rs_14_16_sire_M)) %>% 
+                                            round(3)
+
 colnames(stock_am_for_h2_rs_14_16) <- c("Heritability (h^2)")
-stock_am_for_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+stock_am_for_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
 (stock_am_for_h2_rs_14_16 <- stock_am_for_h2_rs_14_16[,c(2,1)])
 ```
 
@@ -755,7 +973,7 @@ stock_r_and_h2_rs_14_16 <- stock_r_and_h2_rs_14_16[,c(1,3)]
 stock_h2_rs_14_16 <- merge(stock_r_and_h2_rs_14_16, stock_slope_as_h2_rs_14_16,  by="Category") %>% 
     merge(stock_am_for_h2_rs_14_16, by="Category") %>% 
     rename(Stockdale_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
-(stock_h2_rs_14_16 <- stock_h2_rs_14_16[c(5,4,3,1,2,6,7),])
+(stock_h2_rs_14_16 <- stock_h2_rs_14_16[c(8,7,6,5,4,1,9,2,3,10,11),])
 ```
 
 Nothing to see here.
