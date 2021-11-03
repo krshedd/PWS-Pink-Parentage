@@ -353,9 +353,10 @@ stock_slope_as_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", 
 Narrow-sense heritabilities (h^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h^2 = VA/VP) per Evans et al. (2019) [https://link.springer.com/article/10.1007/s10592-019-01174-4]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
 
 ```{r}
+# lme4
 # overall
-stock_h2_length_14_16_dam_sire <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = stock_triads_length_14_16, na.action = na.omit)
-(summary(stock_h2_length_14_16_dam_sire))
+stock_h2_lmer_length_14_16_dam_sire <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = stock_triads_length_14_16, na.action = na.omit)
+(summary(stock_h2_lmer_length_14_16_dam_sire))
 stock_h2_length_14_16_all <- (1.903 + 16.347) / (1.903 + 16.347 + 485.707)
 plot(stock_h2_length_14_16_dam_sire)
 hist(resid(stock_h2_length_14_16_dam_sire))
@@ -399,17 +400,17 @@ stock_h2_length_14_16_dam_M <- 0.0000001303 / (56.73 + 0.0000001303 + 641.2)
 stock_h2_length_14_16_sire_M <- 56.73 / (56.73 + 0.0000001303 + 641.2)
 
 # make dfs
-stock_am_for_h2_length_14_16 <- as.data.frame(c(stock_h2_length_14_16_all, 
-                                                stock_h2_length_14_16_NN, 
-                                                stock_h2_length_14_16_NH, 
-                                                stock_h2_length_14_16_HN, 
-                                                stock_h2_length_14_16_HH, 
+stock_am_for_h2_length_14_16 <- as.data.frame(c(stock_h2_length_14_16_all,
+                                                stock_h2_length_14_16_NN,
+                                                stock_h2_length_14_16_NH,
+                                                stock_h2_length_14_16_HN,
+                                                stock_h2_length_14_16_HH,
                                                 stock_h2_length_14_16_dAll,
                                                 stock_h2_length_14_16_sAll,
-                                                stock_h2_length_14_16_dam_F, 
-                                                stock_h2_length_14_16_dam_M, 
-                                                stock_h2_length_14_16_sire_F, 
-                                                stock_h2_length_14_16_sire_M)) %>% 
+                                                stock_h2_length_14_16_dam_F,
+                                                stock_h2_length_14_16_dam_M,
+                                                stock_h2_length_14_16_sire_F,
+                                                stock_h2_length_14_16_sire_M)) %>%
                                               round(3)
 
 colnames(stock_am_for_h2_length_14_16) <- c("Heritability (h^2)")
@@ -900,6 +901,9 @@ stock_slope_as_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam
 ### Animal model
 
 ```{r}
+# lme4::lmer
+# BUT RS has a zero-inflated negative binomial distribution; lmer not really appropriate for model fitting
+# HOWEVER does it really matter if everything comes up h^2 = 0?
 # overall
 stock_h2_rs_14_16_dam_sire <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = stock_triads_rs_14_16, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire))
@@ -926,7 +930,7 @@ stock_h2_rs_14_16_HN <- 0.00 / (0.00 + 0.00 + 0.06237)
 # stock_h2_rs_14_16_HH <- stock_triads_rs_14_16 %>% filter(Cross == "HH")
 # stock_h2_rs_14_16_dam_sire_HH <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_HH, na.action = na.omit)
 # (summary(stock_h2_rs_14_16_dam_sire_HH))
-# stock_h2_rs_14_16_HH <- (11.912 + 1.723) / (11.912 + 1.723 + 31.797)
+stock_h2_rs_14_16_HH <- 0.00
 
 # all offspring
 stock_h2_rs_14_16_dAll <- 0.00 / (0.00 + 0.00 + 0.1275)
@@ -960,10 +964,76 @@ stock_am_for_h2_rs_14_16 <- as.data.frame(c(stock_h2_rs_14_16_all,
                                             round(3)
 
 colnames(stock_am_for_h2_rs_14_16) <- c("Heritability (h^2)")
-stock_am_for_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+stock_am_for_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH*", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
 
 (stock_am_for_h2_rs_14_16 <- stock_am_for_h2_rs_14_16[,c(2,1)])
+
+# lmer::glmer
+# overall
+stock_h2_rs_14_16_dam_sire_glmer <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_triads_rs_14_16, na.action = na.omit)
+(summary(stock_h2_rs_14_16_dam_sire_glmer))
+# stock_h2_rs_14_16_all_glmer <- 0.00 / (0.00 + 0.00)
+plot(stock_h2_rs_14_16_dam_sire_glmer)
+hist(resid(stock_h2_rs_14_16_dam_sire_glmer))
+
+# by cross
+stock_h2_rs_14_16_NN_glmer <- stock_triads_rs_14_16 %>% filter(Cross == "NN")
+stock_h2_rs_14_16_dam_sire_NN_glmer <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_NN, na.action = na.omit)
+(summary(stock_h2_rs_14_16_dam_sire_NN_glmer))
+# stock_h2_rs_14_16_NN_glmer <- 0.00 / (0.00 + 0.000000000001826)
+
+stock_h2_rs_14_16_NH_glmer <- stock_triads_rs_14_16 %>% filter(Cross == "NH")
+stock_h2_rs_14_16_dam_sire_NH_glmer <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_NH, na.action = na.omit)
+(summary(stock_h2_rs_14_16_dam_sire_NH_glmer))
+# stock_h2_rs_14_16_NH_glmer <- 0.00 / (0.00 + 0.00 + 0.07123)
+
+stock_h2_rs_14_16_HN_glmer <- stock_triads_rs_14_16 %>% filter(Cross == "HN")
+stock_h2_rs_14_16_dam_sire_HN_glmer <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_HN, na.action = na.omit)
+(summary(stock_h2_rs_14_16_dam_sire_HN_glmer))
+# stock_h2_rs_14_16_HN_glmer <- 0.00 / (0.00 + 0.00 + 0.06237)
+
+stock_h2_rs_14_16_HH_glmer <- stock_triads_rs_14_16 %>% filter(Cross == "HH")
+stock_h2_rs_14_16_dam_sire_HH_glmer <- glmer(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_HH, na.action = na.omit)
+(summary(stock_h2_rs_14_16_dam_sire_HH_glmer))
+# stock_h2_rs_14_16_HH_glmer <- 0.00 / (0.00 + 0.00 + 0.06237)
+
+# all offspring
+# stock_h2_rs_14_16_dAll_glmer <- 0.00 / (0.00 + 0.00 + 0.1275)
+# stock_h2_rs_14_16_sAll_glmer <- 0.00 / (0.00 + 0.00 + 0.1275)
+
+# by sex
+stock_h2_rs_14_16_F_glmer <- stock_triads_rs_14_16 %>% filter(Sex.off == "F")
+stock_h2_rs_14_16_dam_sire_F_glmer <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_F, na.action = na.omit)
+(summary(stock_h2_rs_14_16_dam_sire_F_glmer))
+# stock_h2_rs_14_16_dam_F_glmer <- 0.00 / (0.00 + 0.00 + 0.1211)
+# stock_h2_rs_14_16_sire_F_glmer <- 0.00 / (0.00 + 0.00 + 0.1211)
+
+stock_h2_rs_14_16_M_glmer <- stock_triads_rs_14_16 %>% filter(Sex.off == "M")
+stock_h2_rs_14_16_dam_sire_M_glmer <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_M, na.action = na.omit)
+(summary(stock_h2_rs_14_16_dam_sire_M_glmer))
+# stock_h2_rs_14_16_dam_M_glmer <- 0.00 / (0.00 + 0.00 + 0.1363)
+# stock_h2_rs_14_16_sire_M_glmer <- 0.00 / (0.00 + 0.00 + 0.1363)
+
+# make dfs
+# stock_am_for_h2_rs_14_16_glmer <- as.data.frame(c(stock_h2_rs_14_16_all_glmer, 
+#                                               stock_h2_rs_14_16_NN_glmer, 
+#                                               stock_h2_rs_14_16_NH_glmer, 
+#                                               stock_h2_rs_14_16_HN_glmer, 
+#                                               stock_h2_rs_14_16_HH_glmer, 
+#                                               stock_h2_rs_14_16_dAll_glmer,
+#                                               stock_h2_rs_14_16_sAll_glmer,
+#                                               stock_h2_rs_14_16_dam_F_glmer, 
+#                                               stock_h2_rs_14_16_dam_M_glmer, 
+#                                               stock_h2_rs_14_16_sire_F_glmer, 
+#                                               stock_h2_rs_14_16_sire_M_glmer)) %>% 
+#                                             round(3)
+# 
+# colnames(stock_am_for_h2_rs_14_16_glmer) <- c("Heritability (h^2)")
+# stock_am_for_h2_rs_14_16_glmer$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+# 
+# (stock_am_for_h2_rs_14_16_glmer <- stock_am_for_h2_rs_14_16_glmer[,c(2,1)])
 ```
+*: could not be calculated ("Error in asMethod(object) : not a positive definite matrix")
 
 ### *Results*
 
