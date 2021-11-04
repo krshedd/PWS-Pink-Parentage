@@ -57,11 +57,12 @@ AKalbers <- "+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154
 ```
 
 
+Shapefile location for stream
 ```{r prep}
 # The shapefile (*.shp) of river network
-shapefile = paste0("../GIS/R/",stream,"/",stream,"_stream_clean.shp")
+shapefile_path = normalizePath(paste0("../GIS/R/",stream,"/"))
+shapefile_name = paste0(stream, "_stream_clean")
 ```
-
 
 # Begin Script
 
@@ -73,7 +74,7 @@ First, get the shapefiles and gps points ready for 'riverdist', then perform bas
 
 ```{r load_files}
 # Import and make sure it's projected into AKAlbers
-rivernetwork <- line2network(path = shapefile, reproject = AKalbers)
+rivernetwork <- line2network(path = shapefile_path, layer = shapefile_name, reproject = AKalbers)
 ```
 
 ```{r plotnetwork}
