@@ -1,0 +1,104 @@
+---
+title: "Otolith Shift DWP Visualization"
+subtitle: "Where did DNA matched otoliths move from?"
+author: "Kyle Shedd"
+date: "November, 2021"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Background  
+
+Kristen successfully re-paired the shifted otoliths to hearts via DNA matching. Now we want to visualize where those shifted otoliths originated and ended up, to see if our DNA matching makes sense (i.e. follows a pattern)>
+
+# Load data
+
+```{r setup}
+while(!require(pacman)){ install.packages("pacman") }
+  p_load(tidyverse)  # use pacman to load or install + load necessary packages
+```
+
+```{r}
+(matchy_data <- read_csv(file = "dup_check_results_DWP_1st12_pass_with_wells.csv"))
+```
+
+# Transform data
+
+```{r}
+(
+  matchy_data_mod <- matchy_data %>%
+    filter(!is.na(`48_DWP_tray_barcode`)) %>%  # filter out any fish that aren't matched up with DWP (i.e. not run yet)
+    separate(
+      col = OG_48_DWP_tray_position,
+      into = c("OG_row", "OG_col"),
+      sep = 1
+    ) %>%  # separate row and column designators
+    separate(
+      col = `48_DWP_tray_position`,
+      into = c("row", "col"),
+      sep = 1
+    ) %>%
+    mutate(
+      OG_row = factor(x = OG_row, levels = LETTERS[8:1]),
+      row = factor(x = row, levels = LETTERS[8:1]),
+      OG_col = factor(x = OG_col, levels = as.character(1:6)),
+      col = factor(x = col, levels = as.character(1:6))
+    )  # make row and columns factors so they all plot
+)
+```
+
+
+# Plot DWPs
+
+**Blue** shows the original location of the otolith  
+**Red** shows where that otolith ended up  
+**If** there is an arrow, the otolith got shifted, otherwise the blue and red overplot each other :)
+```{r}
+# DWP <- unique(matchy_data_mod$`48_DWP_tray_barcode`)[1]
+
+sapply(unique(matchy_data_mod$`48_DWP_tray_barcode`), function(DWP) {
+  matchy_data_mod %>%
+    filter(`48_DWP_tray_barcode` == DWP) %>%
+    ggplot() +
+    geom_point(aes(x = OG_col, y = OG_row, colour = "OG"),
+               cex = 8,
+               alpha = 0.5) +
+    geom_point(aes(x = col, y = row, colour = "shifted"),
+               cex = 6,
+               alpha = 0.5) +
+    geom_segment(
+      data = filter(
+        .data = matchy_data_mod,
+        `48_DWP_tray_barcode` == DWP,
+        OG_row != row | OG_col != col
+      ),
+      aes(
+        x = OG_col,
+        y = OG_row,
+        xend = col,
+        yend = row
+      ),
+      arrow = arrow(type = "closed", length = unit(0.5, "cm")), 
+      lwd = 1.5
+    ) +
+    scale_x_discrete(drop = FALSE) +  # forces all factor levels to plot
+    scale_y_discrete(drop = FALSE) +  # forces all factor levels to plot
+    scale_color_manual(
+      name = '',
+      breaks = c('OG', 'shifted'),
+      values = c('OG' = 'blue', 'shifted' = 'red')
+    ) +
+    xlab("Column") +
+    ylab("Row") +
+    theme_bw() +
+    facet_wrap(facets = vars(`48_DWP_tray_barcode`))
+}, simplify = FALSE)
+```
+
+Whoa, some of these are pretty "simple", with most otoliths not moving at all and just a few jumping into neighboring cells, however, others are just a mess.
+
+We should compare these "shifty maps" to the original otolith count maps that we made at the MTAL, to see if these make sense.
