@@ -965,9 +965,9 @@ stock_h2_rs_14_16_dam_sire_HN <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = s
 (summary(stock_h2_rs_14_16_dam_sire_HN))
 stock_h2_rs_14_16_HN <- 0.00 / (0.00 + 0.00 + 0.06237)
 
-stock_h2_rs_14_16_HH <- stock_triads_rs_14_16 %>% filter(Cross == "HH")
-stock_h2_rs_14_16_dam_sire_HH <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_HH, na.action = na.omit)
-(summary(stock_h2_rs_14_16_dam_sire_HH))
+# stock_h2_rs_14_16_HH <- stock_triads_rs_14_16 %>% filter(Cross == "HH")
+# stock_h2_rs_14_16_dam_sire_HH <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_HH, na.action = na.omit)
+# (summary(stock_h2_rs_14_16_dam_sire_HH))
 stock_h2_rs_14_16_HH <- 0.00
 
 # all offspring
