@@ -1,7 +1,7 @@
 ---
 title: "Heritability of body length, sample date, location, and RS according to Cross Type and Parental/Offspring Sex for Stockdale 2014-2016"
 author: "Kristen Gruenthal"
-date: "22 October 2021"
+date: "10 November 2021"
 output:
   html_notebook:
     theme: united
@@ -942,10 +942,11 @@ stock_slope_as_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam
 ```{r}
 # lme4::glmer.nb
 # RS has a (probably zero-inflated) negative binomial distribution; lmer not appropriate for model fitting
+# the residual variance is fixed to (π^2)/3 in GLMMs with logistic regression (Nakagawa and Schielzeth. 2010. Biol. Rev. 85:935-956; Wu et al. 2012. Contempory Clinical Trials 33: 869-880)
 # overall
 stock_h2_rs_14_16_dam_sire <- glmer.nb(n.off ~ rs.par + (1|n.sire)+(1|n.dam), data = stock_triads_rs_14_16, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire))
-stock_h2_rs_14_16_all <- 0.00 / (0.00 + 0.00 + 0.1275)
+stock_h2_rs_14_16_all <- (0.0000000002037 + 0.00000000007082) / (0.0000000002037 + 0.00000000007082 + (pi * pi / 3))
 plot(stock_h2_rs_14_16_dam_sire)
 hist(resid(stock_h2_rs_14_16_dam_sire))
 
@@ -953,39 +954,39 @@ hist(resid(stock_h2_rs_14_16_dam_sire))
 stock_h2_rs_14_16_NN <- stock_triads_rs_14_16 %>% filter(Cross == "NN")
 stock_h2_rs_14_16_dam_sire_NN <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_NN, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire_NN))
-stock_h2_rs_14_16_NN <- 0.00 / (0.00 + 0.00 + 0.1797)
+stock_h2_rs_14_16_NN <- (0.000 + 0.000000000001826) / (0.000 + 0.000000000001826 + (pi * pi / 3))
 
 stock_h2_rs_14_16_NH <- stock_triads_rs_14_16 %>% filter(Cross == "NH")
 stock_h2_rs_14_16_dam_sire_NH <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_NH, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire_NH))
-stock_h2_rs_14_16_NH <- 0.00 / (0.00 + 0.00 + 0.07123)
+stock_h2_rs_14_16_NH <- (0.000 + 0.000) / (0.000 + 0.000 + (pi * pi / 3))
 
 stock_h2_rs_14_16_HN <- stock_triads_rs_14_16 %>% filter(Cross == "HN")
 stock_h2_rs_14_16_dam_sire_HN <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_HN, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire_HN))
-stock_h2_rs_14_16_HN <- 0.00 / (0.00 + 0.00 + 0.06237)
+stock_h2_rs_14_16_HN <- (0.000 + 0.0000000000006283) / (0.000 + 0.0000000000006283 + (pi * pi / 3))
 
 # stock_h2_rs_14_16_HH <- stock_triads_rs_14_16 %>% filter(Cross == "HH")
 # stock_h2_rs_14_16_dam_sire_HH <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_HH, na.action = na.omit)
 # (summary(stock_h2_rs_14_16_dam_sire_HH))
-stock_h2_rs_14_16_HH <- 0.00
+stock_h2_rs_14_16_HH <- 0.000
 
 # all offspring
-stock_h2_rs_14_16_dAll <- 0.00 / (0.00 + 0.00 + 0.1275)
-stock_h2_rs_14_16_sAll <- 0.00 / (0.00 + 0.00 + 0.1275)
+stock_h2_rs_14_16_dAll <- (0.00000000007082) / (0.0000000002037 + 0.00000000007082 + (pi * pi / 3))
+stock_h2_rs_14_16_sAll <- (0.0000000002037) / (0.0000000002037 + 0.00000000007082 + (pi * pi / 3))
 
 # by sex
 stock_h2_rs_14_16_F <- stock_triads_rs_14_16 %>% filter(Sex.off == "F")
 stock_h2_rs_14_16_dam_sire_F <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_F, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire_F))
-stock_h2_rs_14_16_dam_F <- 0.00 / (0.00 + 0.00 + 0.1211)
-stock_h2_rs_14_16_sire_F <- 0.00 / (0.00 + 0.00 + 0.1211)
+stock_h2_rs_14_16_dam_F <- (0.2110) / (0.9592 + 0.2110 + (pi * pi / 3))
+stock_h2_rs_14_16_sire_F <- (0.9592) / (0.9592 + 0.2110 + (pi * pi / 3))
 
 stock_h2_rs_14_16_M <- stock_triads_rs_14_16 %>% filter(Sex.off == "M")
 stock_h2_rs_14_16_dam_sire_M <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_M, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire_M))
-stock_h2_rs_14_16_dam_M <- 0.00 / (0.00 + 0.00 + 0.1363)
-stock_h2_rs_14_16_sire_M <- 0.00 / (0.00 + 0.00 + 0.1363)
+stock_h2_rs_14_16_dam_M <- (0.00000000006653) / (0.000000000001743 + 0.00000000006653 + (pi * pi / 3))
+stock_h2_rs_14_16_sire_M <- (0.000000000001743) / (0.000000000001743 + 0.00000000006653 + (pi * pi / 3))
 
 # make dfs
 stock_am_for_h2_rs_14_16 <- as.data.frame(c(stock_h2_rs_14_16_all,
