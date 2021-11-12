@@ -937,7 +937,7 @@ stock_slope_as_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam
 (stock_slope_as_h2_rs_14_16 <- stock_slope_as_h2_rs_14_16[,c(2,1)])
 ```
 
-### Animal model ****************************
+### Animal model
 
 ```{r}
 # lme4::glmer.nb
@@ -1003,12 +1003,12 @@ stock_am_for_h2_rs_14_16 <- as.data.frame(c(stock_h2_rs_14_16_all,
                                             round(3)
 
 colnames(stock_am_for_h2_rs_14_16) <- c("Heritability (h^2)")
-stock_am_for_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH*", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+stock_am_for_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
 
 (stock_am_for_h2_rs_14_16 <- stock_am_for_h2_rs_14_16[,c(2,1)])
 ```
 
-\*: could not be calculated ("Error in asMethod(object) : not a positive definite matrix")
+HH: 0.000 as placeholder; could not be calculated ("Error in asMethod(object) : not a positive definite matrix")
 
 ### *Results*
 
