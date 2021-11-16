@@ -1,0 +1,986 @@
+---
+title: "Summaries of 1. RRS results to data and\n2. Otolith/heart DWP-by-DWP genotype matching: live test of first 12 96-well otolith transfer plates"
+author: "Kristen Gruenthal"
+date: "22 November 2021"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+# **1. RRS-TO-DATE**
+
+## *Background*
+
+Below is an overview of analyses of parentage results for even and/or odd lineages of pink salmon in all pedigree streams in Prince William Sound. Due to the 2020 otolith shipping issue, we do not have full otolith reads for Gilmour, Erb, and Paddy 2016 and 2018. The even-year analyses reported below include all fish sampled for those years; analyses will be revised once otolith heart re-pairing has been completed.  RRS estimates are still not available for Gilmour, Erb, and Paddy odd years, analyses on which are also pending re-pairing.
+
+## *Results*
+
+### Single-generation RRS Results (Parent-offspring)
+
+Table 1: Single-generation RRS Results to Date
+
+![](TABLE_1-RRS_results_to_date.png){#id .class width=100% height=100%}
+
+Figure 1: Single-generation RRS Results to Date
+
+![](FIGURE_1-RRS_results_to_date.png){#id .class width=100% height=100%}
+
+## *Summary*
+
+Single-generation RRS (Table 1, Fig. 1) is still <1 globally, with 22 of 28 (79%) of estimates significantly so (in **bold**). No new multi-generation results are available.
+
+```{r setupecho=FALSE, warning=FALSE, message=FALSE, results='hide'}
+rm(list=ls())
+
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(DT)
+library(abind)
+bbind <- function(...) { abind(..., along = 3) }
+
+source("~/R/Functions.GCL.R")
+source("../../../GOD/LOKI2R_ind.GCL.R")
+source("../../../GOD/DupCheckBetweenSillys_GOD.GCL.r")
+```
+
+# **2. OTOLITH/HEART RE-PAIRING**
+
+## Objective
+
+The purpose of this notebook is to successfully re-pair GTseq genotypes from otolith-derived DNA with GT-seq genotypes from heart-derived DNA for individuals of unknown origin.
+
+## Background
+
+During shipment of otolith samples to the MTA in Juneau for reading, a significant proportion of otoliths migrated between cells within DWPs due to poor containment of the acetate lids that were attached with rubber bands to the DWPs. This incident is known as "the great otolith debacle", aka the "GOD" incident. Since some otoliths moved from their original cells in the DWP, the paired integrity of the otolith-origin information and the rest of the paired data (genotype + field data) was lost for many individuals. In an attempt to rectify the "GOD" incident, we are extracting DNA from the otolith tissues, genotyping the otolith-derived DNA at 298 GT-seq loci, and attempting to re-pair the otolith-heart samples from their genotypes.
+
+## Methods
+
+DNA was extracted from left-side or unknown otolith tissues of unknown origin using conventional Machery-Nagel DNA extraction kits. Otoliths were placed in T1 buffer for an overnight soak in clear 96 shallow-well plates (SWP). Preamp at 14 cycles. Final elution volume was 75uL. All otoliths were transferred among plates with a jig. All liquid handling was done by robot.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+.username <- "kmgruenthal"
+.password <- ""
+```
+
+### LocusControl
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+TestSillys <- "PGOD21"
+
+loci <- dget("../../../Objects/loci298.txt") # saved list of loci
+
+CreateLocusControl.GCL(locusnames = loci, username = .username, password = .password)
+loci <- LocusControl$locusnames
+nalleles <- LocusControl$nalleles
+ploidy <- LocusControl$ploidy
+alleles <- LocusControl$alleles
+
+# change sillyvec as needed
+LOKI2R.GCL(sillyvec = TestSillys, username = .username, password = .password)
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+# create a csv from the otolith transfer spreadsheet from MTAL, read in the data, and create a concatenated tray and well column
+oto_xfer_data_042721 <- read_csv("otolith_transfer_042721.csv")
+oto_xfer_data_042721$DNA_TRAY_AND_WELL <- paste0(oto_xfer_data_042721$`96_oto_tray_barcode`, "_", oto_xfer_data_042721$`96_oto_tray_position`)
+  
+# download csv of PGOD21 sample data from OceanAK and append with _PGOD21
+oceanak_PGOD21 <- read_csv("GEN_SAMPLED_FISH_TISSUE_PGOD21.csv")
+
+# pull the attributes table from PGOD21.gcl, create a new tray a well column, and join with the otolith transfer data
+attributes_PGOD21 <- PGOD21.gcl$attributes %>%
+  transform(DNA_TRAY_CODE = as.numeric(DNA_TRAY_CODE))
+attributes_PGOD21$DNA_TRAY_AND_WELL <- paste0(attributes_PGOD21$DNA_TRAY_CODE, "_", attributes_PGOD21$DNA_TRAY_WELL_CODE)
+attributes_and_xfer_PGOD21 <- left_join(attributes_PGOD21, oto_xfer_data_042721, by = "DNA_TRAY_AND_WELL")
+
+# get a list of the affected DWPs
+affected_DWPs <- unique(attributes_and_xfer_PGOD21$`48_DWP_tray_barcode`)
+
+# filter OceanAK data pull for the list of affected DWPs
+AHRP_oceanak_pull_092021 <- read_csv(file = "../../../OceanAK/AHRP Salmon Biological Data 20210920_135754.csv") # do a new pull if latest date stamp is old
+oceanak_affected_DWPs <- AHRP_oceanak_pull_092021[AHRP_oceanak_pull_092021$DNA_TRAY_CODE %in% affected_DWPs, ]
+write_csv(oceanak_affected_DWPs, "oceanak_affected_DWPs.csv")
+
+# get SILLYs and fish IDs for affected DWPs
+DWP_sillys <- unique(oceanak_affected_DWPs$SILLY_CODE)
+
+DWP_fish_ids <- oceanak_affected_DWPs %>% 
+  dplyr::select(SILLY_CODE, FISH_ID) 
+
+PERB15_fish_ids <- DWP_fish_ids %>% 
+  dplyr::filter(SILLY_CODE == "PERB15") %>% 
+  pull(FISH_ID)
+PERB16_fish_ids <- DWP_fish_ids %>% 
+  dplyr::filter(SILLY_CODE == "PERB16") %>% 
+  pull(FISH_ID)
+PERB17_fish_ids <- DWP_fish_ids %>% 
+  dplyr::filter(SILLY_CODE == "PERB17") %>% 
+  pull(FISH_ID)
+PGILMOUR15_fish_ids <- DWP_fish_ids %>% 
+  dplyr::filter(SILLY_CODE == "PGILMOUR15") %>% 
+  pull(FISH_ID)
+PGILMOUR16_fish_ids <- DWP_fish_ids %>% 
+  dplyr::filter(SILLY_CODE == "PGILMOUR16") %>% 
+ pull(FISH_ID)
+PGILMOUR17_fish_ids <- DWP_fish_ids %>% 
+  dplyr::filter(SILLY_CODE == "PGILMOUR17") %>% 
+  pull(FISH_ID)
+PGILMOUR18_fish_ids <- DWP_fish_ids %>% 
+  dplyr::filter(SILLY_CODE == "PGILMOUR18") %>% 
+  pull(FISH_ID)
+PPADDY16_fish_ids <- DWP_fish_ids %>% 
+  dplyr::filter(SILLY_CODE == "PPADDY16") %>% 
+  pull(FISH_ID)
+
+# Project SILLYs by individuals in a SILLY per affected DWP
+# Note that some SILLYs are included in the affected DWPs whose hearts haven't been genotyped yet (e.g., PERB15 and PERB17)
+
+# PERB15 <- "PERB15"
+# LOKI2R_ind.GCL(sillyvec = PERB15, fish_ids = PERB15_fish_ids, username = .username, password = .password)
+
+PERB16 <- "PERB16"
+LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_fish_ids, username = .username, password = .password)
+
+# PERB17 <- "PERB17"
+# LOKI2R_ind.GCL(sillyvec = PERB17, fish_ids = PERB17_fish_ids, username = .username, password = .password)
+
+PGILMOUR15 <- "PGILMOUR15"
+LOKI2R_ind.GCL(sillyvec = PGILMOUR15, fish_ids = PGILMOUR15_fish_ids, username = .username, password = .password)
+
+PGILMOUR16 <- "PGILMOUR16"
+LOKI2R_ind.GCL(sillyvec = PGILMOUR16, fish_ids = PGILMOUR16_fish_ids, username = .username, password = .password)
+
+PGILMOUR17 <- "PGILMOUR17"
+LOKI2R_ind.GCL(sillyvec = PGILMOUR17, fish_ids = PGILMOUR17_fish_ids, username = .username, password = .password)
+
+PGILMOUR18 <- "PGILMOUR18"
+LOKI2R_ind.GCL(sillyvec = PGILMOUR18, fish_ids = PGILMOUR18_fish_ids, username = .username, password = .password)
+
+PPADDY16 <- "PPADDY16"
+LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_fish_ids, username = .username, password = .password)
+
+rm(.username, .password)
+```
+
+Create new directories and save objects
+
+```{r save_locus_control_sillys, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+if(!dir.exists("../../../Objects/GOD_21_Round1/")) {dir.create("../../../Objects/GOD_21_Round1/")}
+save_objects(objects = c("LocusControl", "loci", "TestSillys", "PERB16", "PGILMOUR15", "PGILMOUR16", "PGILMOUR17", "PGILMOUR18", "PPADDY16"), path = "../../../Objects/GOD_21_Round1/")
+
+if(!dir.exists("../../../Genotypes/GOD_21_Round1/")) {dir.create("../../../Genotypes/GOD_21_Round1/")}
+save_sillys(sillyvec = c("PGOD21", "PERB16", "PGILMOUR15", "PGILMOUR16", "PGILMOUR17", "PGILMOUR18", "PPADDY16"), path = "../../../Genotypes/GOD_21_Round1/")
+```
+
+### Otolith genotyping success
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all', fig.height=12}
+TestQCSampleSizebyLocus <-
+  SampSizeByLocus.GCL(sillyvec = TestSillys, loci = loci)
+
+TestQCPercentbyLocus <-
+  apply(TestQCSampleSizebyLocus, 1, function(row) {
+    row / max(row)
+  })
+
+(locus_success_rate_qc <- TestQCPercentbyLocus %>% 
+  as_tibble(rownames = "locus") %>%
+  dplyr::rename(success_rate = PGOD21) %>%
+  arrange(success_rate))
+
+locus_success_rate_qc %>%
+  filter(success_rate == 0)
+
+(failed_loci_otoliths <- locus_success_rate_qc %>%
+  filter(success_rate == 0) %>%
+  pull(locus))
+
+# Added by Chase Jalbert on 4/2020. This version of a levelplot has WAY more features and actually works with large datasets. You can zoom, click things, scroll, save image, etc. so you can actually see whats going on...
+# plotly::ggplotly(
+#   ggplot(
+#     TestQCPercentbyLocus %>%
+#       as_tibble(rownames = "locus") %>%
+#       gather(silly, percent,-locus),
+#     aes(x = silly, y = locus)
+#   ) +
+#     geom_tile(aes(fill = percent), color = "white") +
+#     scale_fill_gradient(
+#       low = "black",
+#       high = "white",
+#       limits = c(0, 1)
+#     ) +
+#     ylab("Locus") +
+#     xlab("SILLY") +
+#     ggtitle("Percent PGOD21 genotyped by Locus") +
+#     labs(fill = "Percent\ngenotyped")
+# )
+
+# ...but it keeps failing me ("Error in dirname(to) : path too long") and I'm not in the mood to move things around, so back to normal ggplot...
+TestQCPercentbyLocus %>%
+  as_tibble(rownames = "locus") %>%
+  gather(silly, percent,-locus) %>%
+  ggplot(aes(x = silly, y = locus)) +
+    geom_tile(aes(fill = percent), color = "white") +
+    scale_fill_gradient(
+      low = "black",
+      high = "white",
+      limits = c(0, 1)
+    ) +
+    ylab("Locus") +
+    xlab("SILLY") +
+    ggtitle("Percent genotyped by silly/locus") +
+    labs(fill = "Percent\ngenotyped")
+```
+
+**0 / 298** loci failed; all rates \>10% (see table). Some loci weren't too pretty, though.
+
+### QA project genotypes
+
+#### Otoliths
+
+We needed to remove particularly egregious otos. First, we wanted an overview of how badly they genotyped.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+PGOD21.gcl$counts[, , 1] %>% 
+  as_tibble(rownames = "fish_id") %>% 
+  gather(locus, genotype, -fish_id) %>% 
+  group_by(fish_id) %>% 
+  summarise(proportion_missing = sum(is.na(genotype)) / length(loci)) %>% 
+  arrange(proportion_missing)
+```
+
+Here's where we started to decide on our genotyping rate cutoff, if any. There are 1,120 total otos in PGOD21 this first test round. If we went by the usual 80% rule on all 298 loci, we'd lose 692 otos (keeping 428), which is not terrible considering the situation. However, we also need to keep as many otoliths as possible, and we have 298 loci, so we should have wiggle room in terms of the number of loci needed to generate a good match, despite the fact that the info content of each locus is not the same. Consider that the original panel used for testing was 96 loci (32% of the 298 panel), and we considered paring that down to 24 (8% of loci).
+
+##### *Initial genotyping success rate*
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+PGOD21.gcl$counts[, , 1] %>% 
+  as_tibble(rownames = "fish_id") %>% 
+  gather(locus, genotype, -fish_id) %>% 
+  group_by(fish_id) %>% 
+  summarise(proportion_missing = sum(is.na(genotype)) / length(loci)) %>% 
+  ggplot(aes(x = proportion_missing)) +
+  geom_histogram(binwidth = 0.05) +
+  theme_bw() +
+  ggtitle("% Locus Failure Rate by Fish in PGOD21")
+```
+
+For a first pass, we tried a 1% genotyping success rate cutoff giving us a minimum of 3 loci that must be genotyped. We largely skipped the duplicate rate check (set at 99% matching) because we have (1) a low potential to identify true dupes, if only a few loci are genotyped, and (2) both lefts and unknowns are in PGOD21, which could come from the same fish. As an alternate, we also tested a 10% genotyping rate cutoff, giving us a minimum of 30 loci that must be genotyped, but kept the internal duplicate rate check at 99%.
+
+**Conclusion:** Both methods had hearts matching multiple otos. Therefore, to keep the bulk of available date, we left all otoliths in, regardless of genotyping success rate, and kept the 99% duplicate rate check. Fourteen 14 pairwise comparisons failed our duplicate rate check and had to be purged.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+TestSillys_SampleSizes <- matrix(
+    data = NA,
+    nrow = length(TestSillys),
+    ncol = 4,
+    dimnames = list(TestSillys, c("Genotyped", "Missing", "Duplicate", "Final"))
+  )
+
+TestSillys_SampleSizes[, "Genotyped"] <- sapply(paste(TestSillys, ".gcl", sep = ''), function(x)
+    get(x)$n)
+
+
+# (MissLoci <- RemoveIndMissLoci.GCL(sillyvec = TestSillys, proportion = 0.10))
+
+ColSizePostMissLoci <- sapply(paste(TestSillys, ".gcl", sep = ''), function(x)
+    get(x)$n)
+
+TestSillys_SampleSizes[, "Missing"] <- TestSillys_SampleSizes[, "Genotyped"] - ColSizePostMissLoci
+
+DuplicateCheck99MinProportion <- CheckDupWithinSilly.GCL(
+    sillyvec = TestSillys,
+    loci = loci,
+    quantile = NULL,
+    minproportion = 0.99
+  )
+
+DuplicateCheckReportSummary <- sapply(TestSillys, function(x)
+    DuplicateCheck99MinProportion[[x]]$report, simplify = FALSE)
+
+# DuplicateCheckReportSummary
+
+nDupsBySilly <- sapply(DuplicateCheckReportSummary, function(silly) {
+    ifelse(is.character(silly), 0, nrow(as.matrix(silly)))
+  })
+RemovedDups <- RemoveDups.GCL(DuplicateCheck99MinProportion)
+
+sapply(DuplicateCheckReportSummary[nDupsBySilly >= 1], function(silly) {
+  if (1 %in% abs(as.numeric(levels(silly$ID1)) - as.numeric(levels(silly$ID2)))) {
+    "Sequential IDs found as duplicates, check 'DuplicateCheckReportSummary' for duplicated rows"
+  } else {
+    "Duplicates exist, but IDs do not appear sequential"
+  }
+})
+
+DuplicateCheckReportSummary[nDupsBySilly >= 1]  # Show within silly duplicates
+
+ColSizePostDuplicate <- ColSizePostMissLoci - nDupsBySilly
+ColSizePostDuplicate <- sapply(paste(TestSillys, ".gcl", sep = ''), function(x) get(x)$n)
+
+TestSillys_SampleSizes[, "Duplicate"] <- ColSizePostMissLoci - ColSizePostDuplicate
+
+TestSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
+
+# TestSillys_SampleSizes
+```
+
+**Note:** Similar to the normal AHRP samples, we needed to remove both duplicates, since we won't know which one is the true match for the heart genotype. The in-house GCL function used only removes 1 of the duplicates, so we manually removed the other.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+(
+  duplicates_to_remove <- DuplicateCheckReportSummary$PGOD21 %>%
+    select(ID1, ID2) %>%
+    pivot_longer(
+      cols = everything(),
+      names_to = "trash",
+      values_to = "fish_ids"
+    ) %>%
+    pull(fish_ids)
+)
+
+RemoveIDs.GCL(silly = "PGOD21", IDs = duplicates_to_remove)
+```
+
+**In the end, we purged 19, leaving us with 1,101 otosmoving forward.**
+
+##### *Heterozygosity*
+
+Excess heterozygosity can be an indication of contamination, and Ho was clearly high for some otoliths. We know there is some contamination even among the heart-derived GT-seq genotypes, but it allowed us to understand the extent of the otolith contamination.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+Ho_qc <- function(indata1 = PGOD21.gcl$counts[ , , 1]) {
+  indata1 %>% 
+  as_tibble(rownames = "qc_fish_id") %>% 
+  gather(locus, genotype, -qc_fish_id) %>% 
+  group_by(qc_fish_id) %>% 
+  summarise(Ho_qc = sum(genotype == 1, na.rm = TRUE) / length(!is.na(genotype)), .groups = "drop") %>% 
+  arrange(desc(Ho_qc))
+}
+
+Ho_qc_plot <- function(indata2 = Ho_qc_PGOD21) {
+  indata2 %>% 
+  ggplot(aes(x = Ho_qc)) +
+  geom_histogram(binwidth = 1/298) +
+  theme_bw()
+}
+
+Ho_qc_PGOD21 <- Ho_qc()
+Ho_qc_plot()
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+# *Final genotyping success*
+loci_intersect <- setdiff(loci, failed_loci_otoliths) # all 298 are there
+
+qc_proportion_missing <- function(indata3 = PGOD21.gcl$counts[, , 1]) {
+    indata3 %>%
+    as_tibble(rownames = "fish_id") %>%
+    gather(locus, genotype,-fish_id) %>%
+    group_by(fish_id) %>%
+    summarise(proportion_missing = sum(is.na(genotype)) / 298) %>%
+    arrange(desc(proportion_missing))
+}
+
+# qc_proportion_missing_plot <- function(indata4 = qc_proportion_missing_PGOD21) {
+#   indata4 %>% 
+#   ggplot(aes(x = proportion_missing)) +
+#   geom_histogram() +
+#   xlim(0, 1.1) +
+#   theme_bw()
+# }
+
+qc_proportion_missing_PGOD21 <- qc_proportion_missing()
+# qc_proportion_missing_plot()
+```
+
+#### Hearts
+
+For the heart SILLYS we compared the otoliths to, we left the genotyping rate cutoff at 80% and performed the standard 95% duplicate rate check.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+OGSillys <- c("PERB16", "PGILMOUR15", "PGILMOUR16", "PGILMOUR17", "PGILMOUR18", "PPADDY16")
+
+OGSillys_SampleSizes <- matrix(
+    data = NA,
+    nrow = length(OGSillys),
+    ncol = 4,
+    dimnames = list(OGSillys, c("Genotyped", "Missing", "Duplicate", "Final"))
+  )
+
+OGSillys_SampleSizes[, "Genotyped"] <- sapply(paste(OGSillys, ".gcl", sep = ''), function(x)
+    get(x)$n)
+
+MissLoci <- RemoveIndMissLoci.GCL(sillyvec = OGSillys, proportion = 0.8)
+
+ColSizePostMissLoci <- sapply(paste(OGSillys, ".gcl", sep = ''), function(x)
+    get(x)$n)
+
+OGSillys_SampleSizes[, "Missing"] <- OGSillys_SampleSizes[, "Genotyped"] - ColSizePostMissLoci
+
+DuplicateCheck95MinProportion <- CheckDupWithinSilly.GCL(
+    sillyvec = OGSillys,
+    loci = loci,
+    quantile = NULL,
+    minproportion = 0.95
+  )
+
+DuplicateCheckReportSummary <- sapply(OGSillys, function(x)
+    DuplicateCheck95MinProportion[[x]]$report, simplify = FALSE)
+
+# DuplicateCheckReportSummary
+
+nDupsBySilly <- sapply(DuplicateCheckReportSummary, function(silly) {
+    ifelse(is.character(silly), 0, nrow(as.matrix(silly)))
+  })
+
+RemovedDups <- RemoveDups.GCL(DuplicateCheck95MinProportion)
+
+sapply(DuplicateCheckReportSummary[nDupsBySilly >= 1], function(silly) {
+  if (1 %in% abs(as.numeric(levels(silly$ID1)) - as.numeric(levels(silly$ID2)))) {
+    "Sequential IDs found as duplicates, check 'DuplicateCheckReportSummary' for duplicated rows"
+  } else {
+    "Duplicates exist, but IDs do not appear sequential"
+  }
+})
+
+ColSizePostDuplicate <- ColSizePostMissLoci - nDupsBySilly
+ColSizePostDuplicate <- sapply(paste(OGSillys, ".gcl", sep = ''), function(x) get(x)$n)
+
+OGSillys_SampleSizes[, "Duplicate"] <- ColSizePostMissLoci - ColSizePostDuplicate
+
+OGSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
+
+OGSillys_SampleSizes # sample size table
+DuplicateCheckReportSummary[nDupsBySilly >= 1]  # Show within silly duplicates
+```
+
+Lost quite a few hearts as expected due to missingness, including more than a third of PERB16, which genotyped poorly. Only one duplicate was identified in PGILMOUR16 (IDs 2225 and 2226).
+
+### Duplicate rate checks by DWP
+
+PGOD21 genotyped more SILLYs and DWPs than we have represented by the heart genotypes, which affects the DWP-by-DWP matching. For this dataset, PGOD21 was represented by 12 96-well otolith plates, which covered 48 DWPs. However, a total of 19 PGOD21 DWPs did not have original SILLY DWP matches, presumably because they have not been genotyped yet. This left 29 DWPs, which were both heart and otolith genotyped, for matching.
+
+Here, we cover three (of 29) DWPs representing different match characteristics. Much like in the quality filtering within SILLYs above, we used a modification of the genotype duplicate rate analysis to match otoliths back to the hearts within each DWP.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+### Duplicate rate check
+#### Arrange attributes by DWPs
+
+# figure out the SILLYs associated with the DWPs and join
+PGOD21_DWPs <- attributes_and_xfer_PGOD21 %>% 
+  dplyr::select(`48_DWP_tray_barcode`) 
+write_csv(PGOD21_DWPs, "PGOD21_DWPs.csv") # used this list plus SILLY_CODE and DNA_TRAY_CODE in oceanak_affected_DWPs.csv to do a vlookup in excel for the SILLY_CODE associated with the 48_DWP_tray_barcode - it's probably possible to do a vlookup type thing using join, but here we are...
+
+PGOD21_DWPs_and_SILLYs <- read_csv("PGOD21_DWPs_and_SILLYs.csv") # renamed SILLY_CODE column in PGOD21_DWPs.csv to OG_SILLY_CODE, saved as new csv, and uploaded
+
+attributes_xfer_and_SILLY_PGOD21 <- attributes_and_xfer_PGOD21 
+attributes_xfer_and_SILLY_PGOD21$OG_SILLY_CODE <- PGOD21_DWPs_and_SILLYs$OG_SILLY_CODE
+
+new_PGOD21_attributes_and_SILLY <- left_join(PGOD21.gcl$attributes, attributes_xfer_and_SILLY_PGOD21, by = "SillySource")
+
+# break down new_PGOD21_attributes_and_SILLY into individual DWPs
+PGOD21_by_DWP <- function(indata = "14331") {
+  new_PGOD21_attributes_and_SILLY %>% 
+    dplyr::filter(`48_DWP_tray_barcode` == indata)
+}
+
+PGOD21_DWP_14331 <- PGOD21_by_DWP(indata = "14331")
+PGOD21_DWP_21941 <- PGOD21_by_DWP(indata = "21941")
+PGOD21_DWP_14376 <- PGOD21_by_DWP(indata = "14376")
+PGOD21_DWP_14334 <- PGOD21_by_DWP(indata = "14334")
+PGOD21_DWP_14332 <- PGOD21_by_DWP(indata = "14332")
+PGOD21_DWP_22174 <- PGOD21_by_DWP(indata = "22174")
+PGOD21_DWP_14395 <- PGOD21_by_DWP(indata = "14395")
+PGOD21_DWP_16104 <- PGOD21_by_DWP(indata = "16104")
+PGOD21_DWP_16164 <- PGOD21_by_DWP(indata = "16164")
+PGOD21_DWP_14463 <- PGOD21_by_DWP(indata = "14463")
+PGOD21_DWP_28807 <- PGOD21_by_DWP(indata = "28807")
+PGOD21_DWP_21900 <- PGOD21_by_DWP(indata = "21900")
+PGOD21_DWP_14297 <- PGOD21_by_DWP(indata = "14297")
+PGOD21_DWP_22108 <- PGOD21_by_DWP(indata = "22108")
+PGOD21_DWP_22221 <- PGOD21_by_DWP(indata = "22221")
+PGOD21_DWP_22104 <- PGOD21_by_DWP(indata = "22104")
+PGOD21_DWP_2287 <- PGOD21_by_DWP(indata = "2287")
+PGOD21_DWP_22107 <- PGOD21_by_DWP(indata = "22107")
+PGOD21_DWP_14573 <- PGOD21_by_DWP(indata = "14573")
+PGOD21_DWP_21938 <- PGOD21_by_DWP(indata = "21938")
+PGOD21_DWP_15826 <- PGOD21_by_DWP(indata = "15826")
+PGOD21_DWP_22050 <- PGOD21_by_DWP(indata = "22050")
+PGOD21_DWP_21940 <- PGOD21_by_DWP(indata = "21940")
+PGOD21_DWP_22710 <- PGOD21_by_DWP(indata = "22710")
+PGOD21_DWP_22595 <- PGOD21_by_DWP(indata = "22595")
+PGOD21_DWP_22569 <- PGOD21_by_DWP(indata = "22569")
+PGOD21_DWP_22701 <- PGOD21_by_DWP(indata = "22701")
+PGOD21_DWP_28929 <- PGOD21_by_DWP(indata = "28929")
+PGOD21_DWP_16130 <- PGOD21_by_DWP(indata = "16130")
+PGOD21_DWP_2228 <- PGOD21_by_DWP(indata = "2228")
+PGOD21_DWP_28829 <- PGOD21_by_DWP(indata = "28829")
+PGOD21_DWP_21937 <- PGOD21_by_DWP(indata = "21937")
+PGOD21_DWP_21939 <- PGOD21_by_DWP(indata = "21939")
+PGOD21_DWP_22260 <- PGOD21_by_DWP(indata = "22260")
+PGOD21_DWP_14282 <- PGOD21_by_DWP(indata = "14282")
+PGOD21_DWP_22218 <- PGOD21_by_DWP(indata = "22218")
+PGOD21_DWP_14662 <- PGOD21_by_DWP(indata = "14662")
+PGOD21_DWP_14663 <- PGOD21_by_DWP(indata = "14663")
+PGOD21_DWP_22162 <- PGOD21_by_DWP(indata = "22162")
+PGOD21_DWP_22591 <- PGOD21_by_DWP(indata = "22591")
+PGOD21_DWP_22751 <- PGOD21_by_DWP(indata = "22751")
+PGOD21_DWP_28812 <- PGOD21_by_DWP(indata = "28812")
+PGOD21_DWP_22105 <- PGOD21_by_DWP(indata = "22105")
+PGOD21_DWP_16132 <- PGOD21_by_DWP(indata = "16132")
+PGOD21_DWP_28864 <- PGOD21_by_DWP(indata = "28864")
+PGOD21_DWP_2288 <- PGOD21_by_DWP(indata = "2288")
+PGOD21_DWP_22006 <- PGOD21_by_DWP(indata = "22006")
+PGOD21_DWP_2232 <- PGOD21_by_DWP(indata = "2232")
+
+# break down OGSillys into individual DWPs
+PERB16_affected_DWPs <- unique(PERB16.gcl$attributes$DNA_TRAY_CODE)
+PGILMOUR15_affected_DWPs <- unique(PGILMOUR15.gcl$attributes$DNA_TRAY_CODE)
+PGILMOUR16_affected_DWPs <- unique(PGILMOUR16.gcl$attributes$DNA_TRAY_CODE)
+PGILMOUR17_affected_DWPs <- unique(PGILMOUR17.gcl$attributes$DNA_TRAY_CODE)
+PGILMOUR18_affected_DWPs <- unique(PGILMOUR18.gcl$attributes$DNA_TRAY_CODE)
+PPADDY16_affected_DWPs <- unique(PPADDY16.gcl$attributes$DNA_TRAY_CODE)
+
+OGSilly_by_DWP <- function(indata1 = PERB16.gcl$attributes, indata2 = "0000014331") {
+  indata1 %>% 
+    dplyr::filter(DNA_TRAY_CODE == indata2)
+}
+
+PERB16_DWP_14395 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014395")
+PERB16_DWP_14334 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014334")
+PERB16_DWP_14331 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014331")
+PERB16_DWP_14376 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014376")
+PERB16_DWP_14297 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014297")
+PERB16_DWP_14282 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014282")
+PERB16_DWP_14332 <- OGSilly_by_DWP(indata1 = PERB16.gcl$attributes, indata2 = "0000014332")
+
+PGILMOUR15_DWP_2228 <- OGSilly_by_DWP(indata1 = PGILMOUR15.gcl$attributes, indata2 = "0000002228")
+PGILMOUR15_DWP_2232 <- OGSilly_by_DWP(indata1 = PGILMOUR15.gcl$attributes, indata2 = "0000002232")
+
+PGILMOUR16_DWP_14573 <- OGSilly_by_DWP(indata1 = PGILMOUR16.gcl$attributes, indata2 = "0000014573")
+PGILMOUR16_DWP_14662 <- OGSilly_by_DWP(indata1 = PGILMOUR16.gcl$attributes, indata2 = "0000014662")
+PGILMOUR16_DWP_14663 <- OGSilly_by_DWP(indata1 = PGILMOUR16.gcl$attributes, indata2 = "0000014663")
+PGILMOUR16_DWP_15826 <- OGSilly_by_DWP(indata1 = PGILMOUR16.gcl$attributes, indata2 = "0000015826")
+
+PGILMOUR17_DWP_22569 <- OGSilly_by_DWP(indata1 = PGILMOUR17.gcl$attributes, indata2 = "0000022569")
+PGILMOUR17_DWP_22591 <- OGSilly_by_DWP(indata1 = PGILMOUR17.gcl$attributes, indata2 = "0000022591")
+PGILMOUR17_DWP_22595 <- OGSilly_by_DWP(indata1 = PGILMOUR17.gcl$attributes, indata2 = "0000022595")
+PGILMOUR17_DWP_22710 <- OGSilly_by_DWP(indata1 = PGILMOUR17.gcl$attributes, indata2 = "0000022710")
+PGILMOUR17_DWP_22751 <- OGSilly_by_DWP(indata1 = PGILMOUR17.gcl$attributes, indata2 = "0000022751")
+PGILMOUR17_DWP_22701 <- OGSilly_by_DWP(indata1 = PGILMOUR17.gcl$attributes, indata2 = "0000022701")
+
+PGILMOUR18_DWP_28929 <- OGSilly_by_DWP(indata1 = PGILMOUR18.gcl$attributes, indata2 = "0000028929")
+PGILMOUR18_DWP_28864 <- OGSilly_by_DWP(indata1 = PGILMOUR18.gcl$attributes, indata2 = "0000028864")
+PGILMOUR18_DWP_28829 <- OGSilly_by_DWP(indata1 = PGILMOUR18.gcl$attributes, indata2 = "0000028829")
+PGILMOUR18_DWP_28807 <- OGSilly_by_DWP(indata1 = PGILMOUR18.gcl$attributes, indata2 = "0000028807")
+PGILMOUR18_DWP_28812 <- OGSilly_by_DWP(indata1 = PGILMOUR18.gcl$attributes, indata2 = "0000028812")
+
+PPADDY16_DWP_16104 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 = "0000016104")
+PPADDY16_DWP_14463 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 = "0000014463")
+PPADDY16_DWP_16130 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 = "0000016130")
+PPADDY16_DWP_16164 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 = "0000016164")
+PPADDY16_DWP_16132 <- OGSilly_by_DWP(indata1 = PPADDY16.gcl$attributes, indata2 = "0000016132")
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+#### Pull DWP fish_ids for PGOD21 and the OGSillys
+
+# pull fish_ids for PGOD21 DWPs
+PGOD21_DWP_14331_fish_ids <- PGOD21_DWP_14331 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_21941_fish_ids <- PGOD21_DWP_21941 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14376_fish_ids <- PGOD21_DWP_14376 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14334_fish_ids <- PGOD21_DWP_14334 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14332_fish_ids <- PGOD21_DWP_14332 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22174_fish_ids <- PGOD21_DWP_22174 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14395_fish_ids <- PGOD21_DWP_14395 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_16104_fish_ids <- PGOD21_DWP_16104 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_16164_fish_ids <- PGOD21_DWP_16164 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14463_fish_ids <- PGOD21_DWP_14463 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_28807_fish_ids <- PGOD21_DWP_28807 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_21900_fish_ids <- PGOD21_DWP_21900 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14297_fish_ids <- PGOD21_DWP_14297 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22108_fish_ids <- PGOD21_DWP_22108 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22221_fish_ids <- PGOD21_DWP_22221 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22104_fish_ids <- PGOD21_DWP_22104 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_2287_fish_ids <- PGOD21_DWP_2287 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22107_fish_ids <- PGOD21_DWP_22107 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14573_fish_ids <- PGOD21_DWP_14573 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_21938_fish_ids <- PGOD21_DWP_21938 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_15826_fish_ids <- PGOD21_DWP_15826 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22050_fish_ids <- PGOD21_DWP_22050 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_21940_fish_ids <- PGOD21_DWP_21940 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22710_fish_ids <- PGOD21_DWP_22710 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22595_fish_ids <- PGOD21_DWP_22595 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22569_fish_ids <- PGOD21_DWP_22569 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22701_fish_ids <- PGOD21_DWP_22701 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_28929_fish_ids <- PGOD21_DWP_28929 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_16130_fish_ids <- PGOD21_DWP_16130 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_2228_fish_ids <- PGOD21_DWP_2228 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_28829_fish_ids <- PGOD21_DWP_28829 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_21937_fish_ids <- PGOD21_DWP_21937 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_21939_fish_ids <- PGOD21_DWP_21939 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22260_fish_ids <- PGOD21_DWP_22260 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14282_fish_ids <- PGOD21_DWP_14282 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22218_fish_ids <- PGOD21_DWP_22218 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14662_fish_ids <- PGOD21_DWP_14662 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_14663_fish_ids <- PGOD21_DWP_14663 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22162_fish_ids <- PGOD21_DWP_22162 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22591_fish_ids <- PGOD21_DWP_22591 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22751_fish_ids <- PGOD21_DWP_22751 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_28812_fish_ids <- PGOD21_DWP_28812 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22105_fish_ids <- PGOD21_DWP_22105 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_16132_fish_ids <- PGOD21_DWP_16132 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_28864_fish_ids <- PGOD21_DWP_28864 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_2288_fish_ids <- PGOD21_DWP_2288 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_22006_fish_ids <- PGOD21_DWP_22006 %>% pull(FK_FISH_ID.x)
+PGOD21_DWP_2232_fish_ids <- PGOD21_DWP_2232 %>% pull(FK_FISH_ID.x)
+
+# pull fish_ids for OGSilly DWPs
+PERB16_DWP_14395_fish_ids <- PERB16_DWP_14395 %>% pull(FK_FISH_ID)
+PERB16_DWP_14334_fish_ids <- PERB16_DWP_14334 %>% pull(FK_FISH_ID)
+PERB16_DWP_14331_fish_ids <- PERB16_DWP_14331 %>% pull(FK_FISH_ID)
+PERB16_DWP_14376_fish_ids <- PERB16_DWP_14376 %>% pull(FK_FISH_ID)
+PERB16_DWP_14297_fish_ids <- PERB16_DWP_14297 %>% pull(FK_FISH_ID)
+PERB16_DWP_14282_fish_ids <- PERB16_DWP_14282 %>% pull(FK_FISH_ID)
+PERB16_DWP_14332_fish_ids <- PERB16_DWP_14332 %>% pull(FK_FISH_ID)
+
+PGILMOUR15_DWP_2228_fish_ids <- PGILMOUR15_DWP_2228 %>% pull(FK_FISH_ID)
+PGILMOUR15_DWP_2232_fish_ids <- PGILMOUR15_DWP_2232 %>% pull(FK_FISH_ID)
+
+PGILMOUR16_DWP_14573_fish_ids <- PGILMOUR16_DWP_14573 %>% pull(FK_FISH_ID)
+PGILMOUR16_DWP_14662_fish_ids <- PGILMOUR16_DWP_14662 %>% pull(FK_FISH_ID)
+PGILMOUR16_DWP_14663_fish_ids <- PGILMOUR16_DWP_14663 %>% pull(FK_FISH_ID)
+PGILMOUR16_DWP_15826_fish_ids <- PGILMOUR16_DWP_15826 %>% pull(FK_FISH_ID)
+
+PGILMOUR17_DWP_22569_fish_ids <- PGILMOUR17_DWP_22569 %>% pull(FK_FISH_ID)
+PGILMOUR17_DWP_22591_fish_ids <- PGILMOUR17_DWP_22591 %>% pull(FK_FISH_ID)
+PGILMOUR17_DWP_22595_fish_ids <- PGILMOUR17_DWP_22595 %>% pull(FK_FISH_ID)
+PGILMOUR17_DWP_22710_fish_ids <- PGILMOUR17_DWP_22710 %>% pull(FK_FISH_ID)
+PGILMOUR17_DWP_22751_fish_ids <- PGILMOUR17_DWP_22751 %>% pull(FK_FISH_ID)
+PGILMOUR17_DWP_22701_fish_ids <- PGILMOUR17_DWP_22701 %>% pull(FK_FISH_ID)
+
+PGILMOUR18_DWP_28929_fish_ids <- PGILMOUR18_DWP_28929 %>% pull(FK_FISH_ID)
+PGILMOUR18_DWP_28864_fish_ids <- PGILMOUR18_DWP_28864 %>% pull(FK_FISH_ID)
+PGILMOUR18_DWP_28829_fish_ids <- PGILMOUR18_DWP_28829 %>% pull(FK_FISH_ID)
+PGILMOUR18_DWP_28807_fish_ids <- PGILMOUR18_DWP_28807 %>% pull(FK_FISH_ID)
+PGILMOUR18_DWP_28812_fish_ids <- PGILMOUR18_DWP_28812 %>% pull(FK_FISH_ID)
+
+PPADDY16_DWP_16104_fish_ids <- PPADDY16_DWP_16104 %>% pull(FK_FISH_ID)
+PPADDY16_DWP_14463_fish_ids <- PPADDY16_DWP_14463 %>% pull(FK_FISH_ID)
+PPADDY16_DWP_16130_fish_ids <- PPADDY16_DWP_16130 %>% pull(FK_FISH_ID)
+PPADDY16_DWP_16164_fish_ids <- PPADDY16_DWP_16164 %>% pull(FK_FISH_ID)
+PPADDY16_DWP_16132_fish_ids <- PPADDY16_DWP_16132 %>% pull(FK_FISH_ID)
+```
+
+#### **Plate 1. PERB16 DWP 14395**
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14395_fish_ids)), newname = "PERB16_DWP_14395")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14395_fish_ids)), newname = "PGOD21_DWP_14395")
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+# generate a tibble of all pairwise duplicate rates
+dup_check_results_DWP_14395 <- DupCheckBetweenSillys_GOD.GCL(
+      GODSillys = "PGOD21_DWP_14395",
+      GODSillyIDs = list("PGOD21_DWP_14395" = rownames(PGOD21_DWP_14395.gcl$counts)),
+      HeartSillys = "PERB16_DWP_14395",
+      loci = loci,
+      threshold = 0.9)
+```
+
+These graphs represent the duplicate rate distributions. Duplicate rate is on the x-axis and a count of the number of hearts or otoliths is on the y-axis. Duplicate rate distributions within each DWP were generated for each: 
+
+1. otolith, documented with the best matching heart ID(s)
+
+```{r fig.width=10, fig.height=15, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+# select the row with the highest match rate
+dup_check_results_DWP_14395_best_match <- dup_check_results_DWP_14395 %>% 
+  group_by(otolith_fish_id) %>% 
+  slice_max(duplicate_rate, n = 1)
+
+# facet by oto ID
+dup_check_results_DWP_14395 %>% 
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_14395_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(otolith_fish_id)) +
+  theme_bw()
+```
+
+2. heart, documented with the best matching otolith ID(s)
+
+```{r fig.width=10, fig.height=15, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+# facet by heart ID
+dup_check_results_DWP_14395 %>% 
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_14395_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(heart_fish_id)) +
+  theme_bw()
+```
+
+**Conclusion:** Most otos match one heart relatively cleanly. The problem is that some hearts match more than one oto. Next, we cover how we dealt with this problem.
+
+##### *Top pairwise duplicate rate comparisons*
+
+The table provides the 1st and 2nd best heart matches for each otolith, including the duplicate rate, number of missing loci, and the difference in duplicate rate between the 1st and 2nd best match. The graph provides a visual representation of this information, with the duplicate rate on the y-axis and the difference on the x-axis.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+dup_check_results_DWP_14395_1stbest <- dup_check_results_DWP_14395 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  slice_max(duplicate_rate, n = 1) %>% 
+  mutate(Rank = "1st") %>% 
+  ungroup()
+
+dup_check_results_DWP_14395_2ndbest <- dup_check_results_DWP_14395 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  slice_min(duplicate_rate, n = 1) %>% 
+  mutate(Rank = "2nd") %>% 
+  ungroup()
+
+(dup_check_results_DWP_14395_top_2 <- rbind(dup_check_results_DWP_14395_1stbest, dup_check_results_DWP_14395_2ndbest))
+
+ggplot(data = dup_check_results_DWP_14395_top_2, aes(x = diff, y = duplicate_rate, color = Rank)) +
+  geom_point() +
+  theme_bw()
+```
+
+Deciding which otolith-heart matches we were confident of required careful cutoffs for dupe rate and dupe rate difference. For this DWP, we settled on a duplicate_rate \>= 0.7 and diff \>= 0.15. These are those matches within that upper right quadrant. 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# filtered results table
+(dup_check_results_DWP_14395_pass <- dup_check_results_DWP_14395_1stbest %>% 
+  filter(duplicate_rate >= 0.7) %>% 
+  filter(diff >= 0.15))
+
+# vector lengths
+nrow(dup_check_results_DWP_14395_pass)
+length(unique(dup_check_results_DWP_14395_pass$heart_fish_id))
+length(unique(dup_check_results_DWP_14395_pass$otolith_fish_id))
+```
+
+We then took the above results and identified where those otoliths started and where they ended up in each DWP to determine whether our assignments made sense. For this plate, there was a lot of movement, generally from the righthand side to the left of (and/or upwards in) the plate.
+
+![](14395_plate_maps.png){#id .class width=60% height=60%}
+
+
+#### **Plate 2. PERB16 DWP 14334**
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PERB16", loci = loci, IDs = list("PERB16" = as.character(PERB16_DWP_14334_fish_ids)), newname = "PERB16_DWP_14334")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_14334_fish_ids)), newname = "PGOD21_DWP_14334")
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+# generate a tibble of all pairwise duplicate rates
+(dup_check_results_DWP_14334 <- DupCheckBetweenSillys_GOD.GCL(
+      GODSillys = "PGOD21_DWP_14334",
+      GODSillyIDs = list("PGOD21_DWP_14334" = rownames(PGOD21_DWP_14334.gcl$counts)),
+      HeartSillys = "PERB16_DWP_14334",
+      loci = loci,
+      threshold = 0.9))
+```
+
+Duplicate rate distributions within each DWP were generated for each: 
+
+1. otolith, documented with the best matching heart ID(s)
+
+```{r fig.width=10, fig.height=15, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+# select the row with the highest match rate
+(dup_check_results_DWP_14334_best_match <- dup_check_results_DWP_14334 %>% 
+  group_by(otolith_fish_id) %>% 
+  slice_max(duplicate_rate, n = 1))
+
+# facet by oto ID
+dup_check_results_DWP_14334 %>% 
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_14334_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(otolith_fish_id)) +
+  theme_bw()
+```
+
+2. heart, documented with the best matching otolith ID(s)
+
+```{r fig.width=10, fig.height=15, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+# facet by heart ID
+dup_check_results_DWP_14334 %>% 
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_14334_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(heart_fish_id)) +
+  theme_bw()
+```
+
+**Conclusion:** Again, of the otos that worked, most matched one heart cleanly. At first, there may appear to be a significant number of failures. However, as we will see below, this DWP had only six otoliths of questionable identity.
+
+##### Top pairwise duplicate rate comparisons
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+dup_check_results_DWP_14334_1stbest <- dup_check_results_DWP_14334 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  slice_max(duplicate_rate, n = 1) %>% 
+  mutate(Rank = "1st") %>% 
+  ungroup()
+
+dup_check_results_DWP_14334_2ndbest <- dup_check_results_DWP_14334 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  slice_min(duplicate_rate, n = 1) %>% 
+  mutate(Rank = "2nd") %>% 
+  ungroup()
+
+(dup_check_results_DWP_14334_top_2 <- rbind(dup_check_results_DWP_14334_1stbest, dup_check_results_DWP_14334_2ndbest))
+
+ggplot(data = dup_check_results_DWP_14334_top_2, aes(x = diff, y = duplicate_rate, color = Rank)) +
+  geom_point() +
+  theme_bw()
+```
+
+All six otos worked with cutoffs (again) of a duplicate_rate \>= 0.7 and diff \>= 0.15. These cutoff values were later determined to be a generally good starting point (or default).
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# filtered results table
+(dup_check_results_DWP_14334_pass <- dup_check_results_DWP_14334_1stbest %>% 
+  filter(duplicate_rate >= 0.7) %>% 
+  filter(diff >= 0.15))
+
+# vector lengths
+nrow(dup_check_results_DWP_14334_pass)
+length(unique(dup_check_results_DWP_14334_pass$heart_fish_id))
+length(unique(dup_check_results_DWP_14334_pass$otolith_fish_id))
+```
+
+As noted above, most of this plate was fine; there were only six otoliths in question. All six had apparently remained in their original wells.
+
+![](14334_plate_maps.png){#id .class width=60% height=60%}
+
+#### **Plate 8. PGILMOUR15 DWP 2228**
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+# create *.gcl objects for comparison according to *._fish_ids
+PoolCollections.GCL(collections = "PGILMOUR15", loci = loci, IDs = list("PGILMOUR15" = as.character(PGILMOUR15_DWP_2228_fish_ids)), newname = "PGILMOUR15_DWP_2228")
+PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_2228_fish_ids)), newname = "PGOD21_DWP_2228")
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+# generate a tibble of all pairwise duplicate rates
+(dup_check_results_DWP_2228 <- DupCheckBetweenSillys_GOD.GCL(
+      GODSillys = "PGOD21_DWP_2228",
+      GODSillyIDs = list("PGOD21_DWP_2228" = rownames(PGOD21_DWP_2228.gcl$counts)),
+      HeartSillys = "PGILMOUR15_DWP_2228",
+      loci = loci,
+      threshold = 0.9))
+```
+
+Duplicate rate distributions within each DWP were generated for each: 
+
+1. otolith, documented with the best matching heart ID(s)
+
+```{r fig.width=10, fig.height=15, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+# select the row with the highest match rate
+(dup_check_results_DWP_2228_best_match <- dup_check_results_DWP_2228 %>% 
+  group_by(otolith_fish_id) %>% 
+  slice_max(duplicate_rate, n = 1))
+
+# facet by oto ID
+dup_check_results_DWP_2228 %>% 
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_2228_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(otolith_fish_id)) +
+  theme_bw()
+```
+
+2. heart, documented with the best matching otolith ID(s)
+
+```{r fig.width=10, fig.height=15, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+# facet by heart ID
+dup_check_results_DWP_2228 %>% 
+  ggplot(aes(x = duplicate_rate)) +
+  geom_histogram(binwidth = 0.05) +
+  geom_text(data = dup_check_results_DWP_2228_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(heart_fish_id)) +
+  theme_bw()
+```
+
+**Conclusion:** This plate was a bit of a mess.
+
+##### Top pairwise duplicate rate comparisons
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+dup_check_results_DWP_2228_1stbest <- dup_check_results_DWP_2228 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  slice_max(duplicate_rate, n = 1) %>% 
+  mutate(Rank = "1st") %>% 
+  ungroup()
+
+dup_check_results_DWP_2228_2ndbest <- dup_check_results_DWP_2228 %>% 
+  group_by(heart_fish_id) %>% 
+  dplyr::slice_max(duplicate_rate, n = 2) %>% 
+  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
+  slice_min(duplicate_rate, n = 1) %>% 
+  mutate(Rank = "2nd") %>% 
+  ungroup()
+
+(dup_check_results_DWP_2228_top_2 <- rbind(dup_check_results_DWP_2228_1stbest, dup_check_results_DWP_2228_2ndbest))
+
+ggplot(data = dup_check_results_DWP_2228_top_2, aes(x = diff, y = duplicate_rate, color = Rank)) +
+  geom_point() +
+  theme_bw()
+```
+
+The default cutoff values did not work well for this plate. However, cutoffs reset to a duplicate_rate \>= 0.8 and diff \>= 0.15 still resulted in one otolith (PGOD21_581) still matching 5 hearts, the comparisons among which needed to be removed.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# filtered results table
+(dup_check_results_DWP_2228_pass <- dup_check_results_DWP_2228_1stbest %>% 
+  filter(duplicate_rate >= 0.8) %>% 
+  filter(diff >= 0.15))
+
+# vector lengths
+nrow(dup_check_results_DWP_2228_pass)
+length(unique(dup_check_results_DWP_2228_pass$heart_fish_id))
+length(unique(dup_check_results_DWP_2228_pass$otolith_fish_id))
+```
+
+##### Purge multi-matching otos
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+dup_check_results_DWP_2228_pass_dup <- dup_check_results_DWP_2228_pass[duplicated(dup_check_results_DWP_2228_pass$otolith_fish_id), ]
+dup_check_results_DWP_2228_pass_dup <- dup_check_results_DWP_2228_pass_dup$otolith_fish_id
+
+(dup_check_results_DWP_2228_pass_purged <- dup_check_results_DWP_2228_pass[!(dup_check_results_DWP_2228_pass$otolith_fish_id == dup_check_results_DWP_2228_pass_dup), ])
+
+length(unique(dup_check_results_DWP_2228_pass_purged$otolith_fish_id)) == nrow(dup_check_results_DWP_2228_pass_purged)
+```
+
+This entire DWP was slated for genotyping. However, few of the otolith-heart matches passed our filters. Many otoliths were lost from the plate and cross contamination of those remaining in the plate appeared to be high.
+
+![](2228_plate_maps.png){#id .class width=60% height=60%}
+
+## **Conclusions:**
+
+1. We can re-pair the jumbled otoliths with their hearts.  
+2. Ability to match otoliths back to hearts appears to be DWP-specific
+3. A duplicate rate cutoff of \>= 0.7 and top-two duplicate rate difference cutoff \>= 0.15 worked well for most tested DWPs
+    + Each DWP still requires individual evaluation of cutoffs and assignments
+4. Whether additional otolith-heart pairs can be saved from each DWP (or whether they are worth saving) is unknown at this time
+    + We hope to have enough data even with these more stringent cutoffs
