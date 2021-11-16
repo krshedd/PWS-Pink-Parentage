@@ -736,60 +736,6 @@ stock_h2_date_14_16 <- merge(stock_r_and_h2_date_14_16, stock_slope_as_h2_date_1
 
 Better evidence for heritability of sample date as a proxy for return time, especially between female parents and offspring. There's some inconsistency among estimation methods, however.
 
-## **Sample Location**
-
-**Note:** Correlation between parent-offspring sample location and narrow-sense heritability of sample location *not yet available* for parental years beyond 2014. GIS-based stream distance mapping is *in progress* by Chase Jalbert.
-
-```{r}
-
-```
-
-### Scatterplots
-
-```{r}
-parents_paired_cross_riverdist_location <- function(indata_location = stock_parents_paired_14_16_cross_riverdist_spacetime) {
-  indata_location %>% 
-  ggplot(aes(x = distance.sire, y = distance.dam), alpha = 0.05) +
-  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
-  geom_abline(slope = 1)+
-  theme_bw() +
-  ggtitle("Distance from Stream Mouth by Cross Type") +
-  xlab("Sire Distance (m)") +
-  ylab("Dam Distance(m)") +
-  labs(size = "RS", 
-       colour = "Parent: Cross Type") +
-  theme(text = element_text(size = 20))  
-}
-
-(stock_parents_paired_14_16_cross_riverdist_location <- parents_paired_cross_riverdist_location())
-```
-
-### Correlation
-
-Location is reported as distance from stream mouth.
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-
-```
-
-### Slope
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-
-```
-
-### Animal model
-
-```{r}
-
-```
-
-### *Results*
-
-```{r}
-
-```
-
 ## **Reproductive success**
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
