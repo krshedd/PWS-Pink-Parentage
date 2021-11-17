@@ -1,36 +1,16 @@
 ---
-title: "Summaries of 1. RRS results to data and\n2. Otolith/heart DWP-by-DWP genotype matching: live test of first 12 96-well otolith transfer plates"
+title: "Update on Otolith/heart DWP-by-DWP genotype matching"
+subtitle: "live test of first 12 96-well otolith transfer plates"
 author: "Kristen Gruenthal"
 date: "22 November 2021"
 output:
   html_notebook:
     theme: united
     toc: yes
+    toc_float: yes
 editor_options: 
   chunk_output_type: inline
 ---
-
-# **1. RRS-TO-DATE**
-
-## *Background*
-
-Below is an overview of analyses of parentage results for even and/or odd lineages of pink salmon in all pedigree streams in Prince William Sound. Due to the 2020 otolith shipping issue, we do not have full otolith reads for Gilmour, Erb, and Paddy 2016 and 2018. The even-year analyses reported below include all fish sampled for those years; analyses will be revised once otolith heart re-pairing has been completed.  RRS estimates are still not available for Gilmour, Erb, and Paddy odd years, analyses on which are also pending re-pairing.
-
-## *Results*
-
-### Single-generation RRS Results (Parent-offspring)
-
-Table 1: Single-generation RRS Results to Date
-
-![](TABLE_1-RRS_results_to_date.png){#id .class width=100% height=100%}
-
-Figure 1: Single-generation RRS Results to Date
-
-![](FIGURE_1-RRS_results_to_date.png){#id .class width=100% height=100%}
-
-## *Summary*
-
-Single-generation RRS (Table 1, Fig. 1) is still <1 globally, with 22 of 28 (79%) of estimates significantly so (in **bold**). No new multi-generation results are available.
 
 ```{r setupecho=FALSE, warning=FALSE, message=FALSE, results='hide'}
 rm(list=ls())
@@ -47,7 +27,7 @@ source("../../../GOD/LOKI2R_ind.GCL.R")
 source("../../../GOD/DupCheckBetweenSillys_GOD.GCL.r")
 ```
 
-# **2. OTOLITH/HEART RE-PAIRING**
+# **OTOLITH/HEART RE-PAIRING**
 
 ## Objective
 
