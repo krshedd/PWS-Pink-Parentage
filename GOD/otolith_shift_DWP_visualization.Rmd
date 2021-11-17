@@ -34,7 +34,7 @@ while(!require(pacman)){ install.packages("pacman") }
     filter(!is.na(`48_DWP_tray_barcode`)) %>%  # filter out any fish that aren't matched up with DWP (i.e. not run yet)
     separate(
       col = OG_48_DWP_tray_position,
-      into = c("OG_row", "OG_col"),
+      into = c("original_row", "original_col"),
       sep = 1
     ) %>%  # separate row and column designators
     separate(
@@ -43,9 +43,9 @@ while(!require(pacman)){ install.packages("pacman") }
       sep = 1
     ) %>%
     mutate(
-      OG_row = factor(x = OG_row, levels = LETTERS[8:1]),
+      original_row = factor(x = original_row, levels = LETTERS[8:1]),
       row = factor(x = row, levels = LETTERS[8:1]),
-      OG_col = factor(x = OG_col, levels = as.character(1:6)),
+      original_col = factor(x = original_col, levels = as.character(1:6)),
       col = factor(x = col, levels = as.character(1:6))
     )  # make row and columns factors so they all plot
 )
@@ -64,7 +64,7 @@ sapply(unique(matchy_data_mod$`48_DWP_tray_barcode`), function(DWP) {
   matchy_data_mod %>%
     filter(`48_DWP_tray_barcode` == DWP) %>%
     ggplot() +
-    geom_point(aes(x = OG_col, y = OG_row, colour = "OG"),
+    geom_point(aes(x = original_col, y = original_row, colour = "original"),
                cex = 8,
                alpha = 0.5) +
     geom_point(aes(x = col, y = row, colour = "shifted"),
@@ -74,11 +74,11 @@ sapply(unique(matchy_data_mod$`48_DWP_tray_barcode`), function(DWP) {
       data = filter(
         .data = matchy_data_mod,
         `48_DWP_tray_barcode` == DWP,
-        OG_row != row | OG_col != col
+        original_row != row | original_col != col
       ),
       aes(
-        x = OG_col,
-        y = OG_row,
+        x = original_col,
+        y = original_row,
         xend = col,
         yend = row
       ),
@@ -89,8 +89,8 @@ sapply(unique(matchy_data_mod$`48_DWP_tray_barcode`), function(DWP) {
     scale_y_discrete(drop = FALSE) +  # forces all factor levels to plot
     scale_color_manual(
       name = '',
-      breaks = c('OG', 'shifted'),
-      values = c('OG' = 'blue', 'shifted' = 'red')
+      breaks = c('original', 'shifted'),
+      values = c('original' = 'blue', 'shifted' = 'red')
     ) +
     xlab("Column") +
     ylab("Row") +
