@@ -1,6 +1,6 @@
 ---
-title: "Update on Otolith/heart DWP-by-DWP genotype matching"
-subtitle: "live test of first 12 96-well otolith transfer plates"
+title: "Update on Otolith/Heart DWP-by-DWP genotype matching"
+subtitle: "Live test of first 12 96-well otolith transfer plates"
 author: "Kristen Gruenthal"
 date: "22 November 2021"
 output:
@@ -12,7 +12,7 @@ editor_options:
   chunk_output_type: inline
 ---
 
-```{r setupecho=FALSE, warning=FALSE, message=FALSE, results='hide'}
+```{r setup, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 rm(list=ls())
 
 knitr::opts_chunk$set(echo = TRUE)
@@ -22,31 +22,31 @@ library(DT)
 library(abind)
 bbind <- function(...) { abind(..., along = 3) }
 
-source("~/R/Functions.GCL.R")
+source("~/../R/Functions.GCL.R")  # source("~/R/Functions.GCL.R")
 source("../../../GOD/LOKI2R_ind.GCL.R")
 source("../../../GOD/DupCheckBetweenSillys_GOD.GCL.r")
 ```
 
-# **OTOLITH/HEART RE-PAIRING**
+# Objective
 
-## Objective
+The purpose of this notebook is to successfully re-pair GT-seq genotypes from otolith-derived DNA with GT-seq genotypes from heart-derived DNA for individuals of unknown origin.
 
-The purpose of this notebook is to successfully re-pair GTseq genotypes from otolith-derived DNA with GT-seq genotypes from heart-derived DNA for individuals of unknown origin.
+# Background
 
-## Background
+During shipment of otolith samples to the MTA in Juneau for reading, a significant proportion of otoliths migrated between cells within DWPs due to poor containment of the acetate lids that were attached with rubber bands to the DWPs. This incident is known as "the great otolith debacle", aka the "GOD" incident. Since some otoliths moved from their original cells in the DWP, the paired integrity of the otolith-origin information and the rest of the paired data (genotype + field data) was lost for many individuals. In an attempt to rectify the "GOD" incident, we are extracting DNA from the otolith tissues, genotyping the otolith-derived DNA at 298 GT-seq loci, and attempting to re-pair the otolith-heart samples from their genotypes. Once successfully re-paired, the otoliths will be read to determine origin.
 
-During shipment of otolith samples to the MTA in Juneau for reading, a significant proportion of otoliths migrated between cells within DWPs due to poor containment of the acetate lids that were attached with rubber bands to the DWPs. This incident is known as "the great otolith debacle", aka the "GOD" incident. Since some otoliths moved from their original cells in the DWP, the paired integrity of the otolith-origin information and the rest of the paired data (genotype + field data) was lost for many individuals. In an attempt to rectify the "GOD" incident, we are extracting DNA from the otolith tissues, genotyping the otolith-derived DNA at 298 GT-seq loci, and attempting to re-pair the otolith-heart samples from their genotypes.
-
-## Methods
+# Methods
 
 DNA was extracted from left-side or unknown otolith tissues of unknown origin using conventional Machery-Nagel DNA extraction kits. Otoliths were placed in T1 buffer for an overnight soak in clear 96 shallow-well plates (SWP). Preamp at 14 cycles. Final elution volume was 75uL. All otoliths were transferred among plates with a jig. All liquid handling was done by robot.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
-.username <- "kmgruenthal"
-.password <- ""
+.username <- readLines("~/../R/usr_pw.txt", n = 1)  # "kmgruenthal"
+.password <- readLines("~/../R/usr_pw.txt" , n = 2)[[2]]  # ""
 ```
 
-### LocusControl
+## Locus Control and Genotypes
+
+Read in otolith and heart genotype data.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 TestSillys <- "PGOD21"
@@ -146,7 +146,7 @@ LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_fish_ids, username = .us
 rm(.username, .password)
 ```
 
-Create new directories and save objects
+Create new directories and save objects.
 
 ```{r save_locus_control_sillys, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 if(!dir.exists("../../../Objects/GOD_21_Round1/")) {dir.create("../../../Objects/GOD_21_Round1/")}
@@ -156,9 +156,11 @@ if(!dir.exists("../../../Genotypes/GOD_21_Round1/")) {dir.create("../../../Genot
 save_sillys(sillyvec = c("PGOD21", "PERB16", "PGILMOUR15", "PGILMOUR16", "PGILMOUR17", "PGILMOUR18", "PPADDY16"), path = "../../../Genotypes/GOD_21_Round1/")
 ```
 
-### Otolith genotyping success
+## Otolith genotyping success
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all', fig.height=12}
+### Success by Locus
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all', fig.height=8}
 TestQCSampleSizebyLocus <-
   SampSizeByLocus.GCL(sillyvec = TestSillys, loci = loci)
 
@@ -167,17 +169,17 @@ TestQCPercentbyLocus <-
     row / max(row)
   })
 
-(locus_success_rate_qc <- TestQCPercentbyLocus %>% 
+locus_success_rate_qc <- TestQCPercentbyLocus %>% 
   as_tibble(rownames = "locus") %>%
   dplyr::rename(success_rate = PGOD21) %>%
-  arrange(success_rate))
+  arrange(success_rate)
 
-locus_success_rate_qc %>%
-  filter(success_rate == 0)
+# locus_success_rate_qc %>%
+#   filter(success_rate == 0)
 
-(failed_loci_otoliths <- locus_success_rate_qc %>%
+failed_loci_otoliths <- locus_success_rate_qc %>%
   filter(success_rate == 0) %>%
-  pull(locus))
+  pull(locus)
 
 # Added by Chase Jalbert on 4/2020. This version of a levelplot has WAY more features and actually works with large datasets. You can zoom, click things, scroll, save image, etc. so you can actually see whats going on...
 # plotly::ggplotly(
@@ -200,60 +202,81 @@ locus_success_rate_qc %>%
 # )
 
 # ...but it keeps failing me ("Error in dirname(to) : path too long") and I'm not in the mood to move things around, so back to normal ggplot...
-TestQCPercentbyLocus %>%
-  as_tibble(rownames = "locus") %>%
-  gather(silly, percent,-locus) %>%
-  ggplot(aes(x = silly, y = locus)) +
-    geom_tile(aes(fill = percent), color = "white") +
-    scale_fill_gradient(
-      low = "black",
-      high = "white",
-      limits = c(0, 1)
-    ) +
-    ylab("Locus") +
-    xlab("SILLY") +
-    ggtitle("Percent genotyped by silly/locus") +
-    labs(fill = "Percent\ngenotyped")
+# TestQCPercentbyLocus %>%
+#   as_tibble(rownames = "locus") %>%
+#   gather(silly, percent,-locus) %>%
+#   ggplot(aes(x = silly, y = locus)) +
+#   geom_tile(aes(fill = percent), color = "white") +
+#   scale_fill_gradient(
+#     low = "black",
+#     high = "white",
+#     limits = c(0, 1)
+#   ) +
+#   ylab("Locus") +
+#   xlab("SILLY") +
+#   theme_bw(base_size = 12) +
+#   ggtitle("Percent genotyped by silly/locus") +
+#   labs(fill = "Percent\ngenotyped")
+
+
+# Kyle update on 11/17/21
+# Rather than show this "barcode" style plot, I'm opting for a histogram of genotyping success, I think that would be more informative for the SP
+
+locus_success_rate_qc %>% 
+  ggplot(aes(x = success_rate * 100)) +
+  geom_histogram(binwidth = 5) +
+  theme_bw(base_size = 18) + 
+  xlab("Genotyping Success Rate (% of Otoliths Genotyped)") +
+  ylab("Count of Loci") +
+  ggtitle("Distribution of Otolith Genotyping Success Rate by Locus")
 ```
 
-**0 / 298** loci failed; all rates \>10% (see table). Some loci weren't too pretty, though.
+In general, most loci had fairly decent genotyping success for the otolith-DNA. Certainly lower than for heart tissue, but not terrible. No loci completely failed for the otoltihs.
 
-### QA project genotypes
-
-#### Otoliths
+### Success by Individual Otolith
 
 We needed to remove particularly egregious otos. First, we wanted an overview of how badly they genotyped.
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all', fig.height=8}
 PGOD21.gcl$counts[, , 1] %>% 
   as_tibble(rownames = "fish_id") %>% 
   gather(locus, genotype, -fish_id) %>% 
   group_by(fish_id) %>% 
-  summarise(proportion_missing = sum(is.na(genotype)) / length(loci)) %>% 
-  arrange(proportion_missing)
+  summarise(proportion_missing = sum(!is.na(genotype)) / length(loci) * 100) %>%  # converted to success rate
+  ggplot(aes(x = proportion_missing)) +
+  geom_histogram(binwidth = 5) +
+  theme_bw(base_size = 18) + 
+  xlab("Genotyping Success Rate (% of Loci Genotyped)") +
+  ylab("Count of Fish") +
+  ggtitle("Distribution of Otolith Genotyping Success Rate by Fish")
 ```
+
+A fairly wide distribution of otolith genotyping success rate. Not terribly surprising though given that we are trying to pull DNA off of otoliths. Normally, we exclude individuals with genotyping success <80%, however, we will need to be much less stringent with the otoliths if we want to retain as many as possible.
 
 Here's where we started to decide on our genotyping rate cutoff, if any. There are 1,120 total otos in PGOD21 this first test round. If we went by the usual 80% rule on all 298 loci, we'd lose 692 otos (keeping 428), which is not terrible considering the situation. However, we also need to keep as many otoliths as possible, and we have 298 loci, so we should have wiggle room in terms of the number of loci needed to generate a good match, despite the fact that the info content of each locus is not the same. Consider that the original panel used for testing was 96 loci (32% of the 298 panel), and we considered paring that down to 24 (8% of loci).
 
-##### *Initial genotyping success rate*
+## Quality Assurance
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
-PGOD21.gcl$counts[, , 1] %>% 
-  as_tibble(rownames = "fish_id") %>% 
-  gather(locus, genotype, -fish_id) %>% 
-  group_by(fish_id) %>% 
-  summarise(proportion_missing = sum(is.na(genotype)) / length(loci)) %>% 
-  ggplot(aes(x = proportion_missing)) +
-  geom_histogram(binwidth = 0.05) +
-  theme_bw() +
-  ggtitle("% Locus Failure Rate by Fish in PGOD21")
-```
+Our standard quality assurance (QA) procedure involves three filtering steps:  
 
-For a first pass, we tried a 1% genotyping success rate cutoff giving us a minimum of 3 loci that must be genotyped. We largely skipped the duplicate rate check (set at 99% matching) because we have (1) a low potential to identify true dupes, if only a few loci are genotyped, and (2) both lefts and unknowns are in PGOD21, which could come from the same fish. As an alternate, we also tested a 10% genotyping rate cutoff, giving us a minimum of 30 loci that must be genotyped, but kept the internal duplicate rate check at 99%.
+  1) remove individuals missing too many genotypes (i.e. % loci genotyped cutoff)  
+  2) remove individuals that have duplicate genotypes with another sample (either due to field or lab error)  
+  3) remove individuals with excessively heterozygous genotypes (a sign of contamination due to multiple individuals)  
+
+### Otoliths
+
+For a first pass, we tried a 1% genotyping success rate cutoff giving us a minimum of 3 loci that must be genotyped. 
+
+We largely skipped the duplicate rate check (set at 99% matching) because we have:  
+
+  1) a low potential to identify true dupes, if only a few loci are genotyped, and  
+  2) both lefts and unknowns are in PGOD21, which could come from the same fish.  
+
+As an alternate, we also tested a 10% genotyping rate cutoff, giving us a minimum of 30 loci that must be genotyped, but kept the internal duplicate rate check at 99%.
 
 **Conclusion:** Both methods had hearts matching multiple otos. Therefore, to keep the bulk of available date, we left all otoliths in, regardless of genotyping success rate, and kept the 99% duplicate rate check. Fourteen 14 pairwise comparisons failed our duplicate rate check and had to be purged.
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 TestSillys_SampleSizes <- matrix(
     data = NA,
     nrow = length(TestSillys),
@@ -289,15 +312,15 @@ nDupsBySilly <- sapply(DuplicateCheckReportSummary, function(silly) {
   })
 RemovedDups <- RemoveDups.GCL(DuplicateCheck99MinProportion)
 
-sapply(DuplicateCheckReportSummary[nDupsBySilly >= 1], function(silly) {
-  if (1 %in% abs(as.numeric(levels(silly$ID1)) - as.numeric(levels(silly$ID2)))) {
-    "Sequential IDs found as duplicates, check 'DuplicateCheckReportSummary' for duplicated rows"
-  } else {
-    "Duplicates exist, but IDs do not appear sequential"
-  }
-})
+# sapply(DuplicateCheckReportSummary[nDupsBySilly >= 1], function(silly) {
+#   if (1 %in% abs(as.numeric(levels(silly$ID1)) - as.numeric(levels(silly$ID2)))) {
+#     "Sequential IDs found as duplicates, check 'DuplicateCheckReportSummary' for duplicated rows"
+#   } else {
+#     "Duplicates exist, but IDs do not appear sequential"
+#   }
+# })
 
-DuplicateCheckReportSummary[nDupsBySilly >= 1]  # Show within silly duplicates
+# DuplicateCheckReportSummary[nDupsBySilly >= 1]  # Show within silly duplicates
 
 ColSizePostDuplicate <- ColSizePostMissLoci - nDupsBySilly
 ColSizePostDuplicate <- sapply(paste(TestSillys, ".gcl", sep = ''), function(x) get(x)$n)
@@ -306,7 +329,7 @@ TestSillys_SampleSizes[, "Duplicate"] <- ColSizePostMissLoci - ColSizePostDuplic
 
 TestSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
 
-# TestSillys_SampleSizes
+TestSillys_SampleSizes
 ```
 
 **Note:** Similar to the normal AHRP samples, we needed to remove both duplicates, since we won't know which one is the true match for the heart genotype. The in-house GCL function used only removes 1 of the duplicates, so we manually removed the other.
@@ -324,13 +347,15 @@ TestSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
 )
 
 RemoveIDs.GCL(silly = "PGOD21", IDs = duplicates_to_remove)
+
+PGOD21.gcl$n
 ```
 
 **In the end, we purged 19, leaving us with 1,101 otosmoving forward.**
 
-##### *Heterozygosity*
+#### *Heterozygosity*
 
-Excess heterozygosity can be an indication of contamination, and Ho was clearly high for some otoliths. We know there is some contamination even among the heart-derived GT-seq genotypes, but it allowed us to understand the extent of the otolith contamination.
+Excess heterozygosity can be an indication of contamination, and observed heterozygosity (H)o was clearly high for some otoliths. We know there is some contamination even among the heart-derived GT-seq genotypes, but it allowed us to understand the extent of the otolith contamination.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 Ho_qc <- function(indata1 = PGOD21.gcl$counts[ , , 1]) {
@@ -378,9 +403,9 @@ qc_proportion_missing_PGOD21 <- qc_proportion_missing()
 # qc_proportion_missing_plot()
 ```
 
-#### Hearts
+### Hearts
 
-For the heart SILLYS we compared the otoliths to, we left the genotyping rate cutoff at 80% and performed the standard 95% duplicate rate check.
+For the heart tissues, we kept out standard genotyping rate cutoff of 80% and performed the standard 95% duplicate rate check.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 OGSillys <- c("PERB16", "PGILMOUR15", "PGILMOUR16", "PGILMOUR17", "PGILMOUR18", "PPADDY16")
@@ -420,13 +445,13 @@ nDupsBySilly <- sapply(DuplicateCheckReportSummary, function(silly) {
 
 RemovedDups <- RemoveDups.GCL(DuplicateCheck95MinProportion)
 
-sapply(DuplicateCheckReportSummary[nDupsBySilly >= 1], function(silly) {
-  if (1 %in% abs(as.numeric(levels(silly$ID1)) - as.numeric(levels(silly$ID2)))) {
-    "Sequential IDs found as duplicates, check 'DuplicateCheckReportSummary' for duplicated rows"
-  } else {
-    "Duplicates exist, but IDs do not appear sequential"
-  }
-})
+# sapply(DuplicateCheckReportSummary[nDupsBySilly >= 1], function(silly) {
+#   if (1 %in% abs(as.numeric(levels(silly$ID1)) - as.numeric(levels(silly$ID2)))) {
+#     "Sequential IDs found as duplicates, check 'DuplicateCheckReportSummary' for duplicated rows"
+#   } else {
+#     "Duplicates exist, but IDs do not appear sequential"
+#   }
+# })
 
 ColSizePostDuplicate <- ColSizePostMissLoci - nDupsBySilly
 ColSizePostDuplicate <- sapply(paste(OGSillys, ".gcl", sep = ''), function(x) get(x)$n)
@@ -436,16 +461,16 @@ OGSillys_SampleSizes[, "Duplicate"] <- ColSizePostMissLoci - ColSizePostDuplicat
 OGSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
 
 OGSillys_SampleSizes # sample size table
-DuplicateCheckReportSummary[nDupsBySilly >= 1]  # Show within silly duplicates
+# DuplicateCheckReportSummary[nDupsBySilly >= 1]  # Show within silly duplicates
 ```
 
 Lost quite a few hearts as expected due to missingness, including more than a third of PERB16, which genotyped poorly. Only one duplicate was identified in PGILMOUR16 (IDs 2225 and 2226).
 
-### Duplicate rate checks by DWP
+## Duplicate rate checks by DWP
 
-PGOD21 genotyped more SILLYs and DWPs than we have represented by the heart genotypes, which affects the DWP-by-DWP matching. For this dataset, PGOD21 was represented by 12 96-well otolith plates, which covered 48 DWPs. However, a total of 19 PGOD21 DWPs did not have original SILLY DWP matches, presumably because they have not been genotyped yet. This left 29 DWPs, which were both heart and otolith genotyped, for matching.
+In order to do the re-pairing, we need both heart and otolith genotypes from the same DWPs. Unfortunately, we do not yet have heart genotypes for all of the collections represented by the DWPs involved in this initial live test of otoliths that were moved into the 12 96-well otolith trays genotyped here. For this dataset, PGOD21 was represented by 12 96-well otolith plates, which covered 48 DWPs. However, a total of 19 PGOD21 DWPs did not have heart genotype DWP matches, because they have not been genotyped yet. This left 29 DWPs with both heart and otolith genotypes for matching.
 
-Here, we cover three (of 29) DWPs representing different match characteristics. Much like in the quality filtering within SILLYs above, we used a modification of the genotype duplicate rate analysis to match otoliths back to the hearts within each DWP.
+Here, we cover **three** (of 29) DWPs representing different match characteristics. Much like in the quality filtering within SILLYs above, we used a modification of the genotype duplicate rate analysis to match otoliths back to the hearts within each DWP.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 ### Duplicate rate check
@@ -657,7 +682,7 @@ PPADDY16_DWP_16164_fish_ids <- PPADDY16_DWP_16164 %>% pull(FK_FISH_ID)
 PPADDY16_DWP_16132_fish_ids <- PPADDY16_DWP_16132 %>% pull(FK_FISH_ID)
 ```
 
-#### **Plate 1. PERB16 DWP 14395**
+### **Plate 1. PERB16 DWP 14395**
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 # create *.gcl objects for comparison according to *._fish_ids
@@ -675,9 +700,9 @@ dup_check_results_DWP_14395 <- DupCheckBetweenSillys_GOD.GCL(
       threshold = 0.9)
 ```
 
-These graphs represent the duplicate rate distributions. Duplicate rate is on the x-axis and a count of the number of hearts or otoliths is on the y-axis. Duplicate rate distributions within each DWP were generated for each: 
+These graphs represent the duplicate rate distributions. Duplicate rate is on the x-axis and a count of the number of hearts or otoliths is on the y-axis. Duplicate rate distributions within each DWP were generated for each:
 
-1. otolith, documented with the best matching heart ID(s)
+1.  each plot is an otolith, documented with the best matching heart ID(s)
 
 ```{r fig.width=10, fig.height=15, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 # select the row with the highest match rate
@@ -686,29 +711,54 @@ dup_check_results_DWP_14395_best_match <- dup_check_results_DWP_14395 %>%
   slice_max(duplicate_rate, n = 1)
 
 # facet by oto ID
-dup_check_results_DWP_14395 %>% 
+dup_check_results_DWP_14395 %>%
   ggplot(aes(x = duplicate_rate)) +
   geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_14395_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(otolith_fish_id)) +
-  theme_bw()
+  geom_text(
+    data = dup_check_results_DWP_14395_best_match,
+    aes(x = duplicate_rate, y = 5, label = heart_fish_id),
+    colour = "red",
+    angle = 90,
+    hjust = 0
+  ) +
+  facet_wrap(facets = vars(otolith_fish_id), ncol = 6) +
+  theme_bw(base_size = 14) +
+  xlab("Genotype Duplicate Rate (Proportion of Genotypes Shared)") +
+  ylab("Count of Hearts in the DWP") +
+  ggtitle("Which Heart Best Matches the Otolith for DWP 14395?")
 ```
 
-2. heart, documented with the best matching otolith ID(s)
+2.  each plot is a heart, documented with the best matching otolith ID(s)
 
 ```{r fig.width=10, fig.height=15, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 # facet by heart ID
-dup_check_results_DWP_14395 %>% 
+dup_check_results_DWP_14395 %>%
   ggplot(aes(x = duplicate_rate)) +
   geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_14395_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(heart_fish_id)) +
-  theme_bw()
+  geom_text(
+    data = dup_check_results_DWP_14395_best_match,
+    aes(x = duplicate_rate, y = 5, label = otolith_fish_id),
+    colour = "red",
+    angle = 90,
+    hjust = 0
+  ) +
+  facet_wrap(facets = vars(heart_fish_id), ncol = 6) +
+  theme_bw(base_size = 14) +
+  xlab("Genotype Duplicate Rate (Proportion of Genotypes Shared)") +
+  ylab("Count of Otoliths in the DWP") +
+  ggtitle("Which Otolith Best Matches the Heart for DWP 14395?")
 ```
 
 **Conclusion:** Most otos match one heart relatively cleanly. The problem is that some hearts match more than one oto. Next, we cover how we dealt with this problem.
 
-##### *Top pairwise duplicate rate comparisons*
+#### *Top pairwise duplicate rate comparisons*
+
+Ideally, each otolith would clearly and unambiguously match a single heart and vice versa. However, since that is not always the case, and we are not going to go through each individual otolith at time, we came up with two metrics to help us determine how good of a match we have.  
+
+  1) Duplicate rate - how many loci were genotyped in common between the heart and otolith  ?
+  2) Duplicate rate difference - how close is the duplicate rate between the 1st and 2nd best match?
+  
+The idea here is that correctly matching hearts/otoliths would have both a high duplicate rate and a large difference between the 1st and 2nd best matches.
 
 The table provides the 1st and 2nd best heart matches for each otolith, including the duplicate rate, number of missing loci, and the difference in duplicate rate between the 1st and 2nd best match. The graph provides a visual representation of this information, with the duplicate rate on the y-axis and the difference on the x-axis.
 
@@ -733,10 +783,13 @@ dup_check_results_DWP_14395_2ndbest <- dup_check_results_DWP_14395 %>%
 
 ggplot(data = dup_check_results_DWP_14395_top_2, aes(x = diff, y = duplicate_rate, color = Rank)) +
   geom_point() +
-  theme_bw()
+  theme_bw(base_size = 14) +
+  xlab("Difference in Duplicate Rate Between 1st and 2nd Best Match") +
+  ylab("Duplicate Rate") +
+  ggtitle("Comparison of 1st and 2nd Best Matches")
 ```
 
-Deciding which otolith-heart matches we were confident of required careful cutoffs for dupe rate and dupe rate difference. For this DWP, we settled on a duplicate_rate \>= 0.7 and diff \>= 0.15. These are those matches within that upper right quadrant. 
+Deciding which otolith-heart matches we were confident of required careful cutoffs for duplicate rate and duplicate rate difference. For this DWP, we settled on a duplicate_rate \>= 0.7 and diff \>= 0.15. These are those matches within that upper right quadrant.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # filtered results table
@@ -745,17 +798,17 @@ Deciding which otolith-heart matches we were confident of required careful cutof
   filter(diff >= 0.15))
 
 # vector lengths
-nrow(dup_check_results_DWP_14395_pass)
-length(unique(dup_check_results_DWP_14395_pass$heart_fish_id))
-length(unique(dup_check_results_DWP_14395_pass$otolith_fish_id))
+# nrow(dup_check_results_DWP_14395_pass)
+# length(unique(dup_check_results_DWP_14395_pass$heart_fish_id))
+# length(unique(dup_check_results_DWP_14395_pass$otolith_fish_id))
 ```
 
 We then took the above results and identified where those otoliths started and where they ended up in each DWP to determine whether our assignments made sense. For this plate, there was a lot of movement, generally from the righthand side to the left of (and/or upwards in) the plate.
 
-![](14395_plate_maps.png){#id .class width=60% height=60%}
+![](14395_plate_maps.png){#id .class width="75%" height="75%"}
 
 
-#### **Plate 2. PERB16 DWP 14334**
+### **Plate 2. PERB16 DWP 14334**
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 # create *.gcl objects for comparison according to *._fish_ids
@@ -773,40 +826,58 @@ PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = a
       threshold = 0.9))
 ```
 
-Duplicate rate distributions within each DWP were generated for each: 
+Duplicate rate distributions within each DWP were generated for each:
 
-1. otolith, documented with the best matching heart ID(s)
+1.  each plot is an otolith, documented with the best matching heart ID(s)
 
-```{r fig.width=10, fig.height=15, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+```{r fig.width=10, fig.height = 3, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 # select the row with the highest match rate
-(dup_check_results_DWP_14334_best_match <- dup_check_results_DWP_14334 %>% 
+dup_check_results_DWP_14334_best_match <- dup_check_results_DWP_14334 %>% 
   group_by(otolith_fish_id) %>% 
-  slice_max(duplicate_rate, n = 1))
+  slice_max(duplicate_rate, n = 1)
 
 # facet by oto ID
-dup_check_results_DWP_14334 %>% 
+dup_check_results_DWP_14334 %>%
   ggplot(aes(x = duplicate_rate)) +
   geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_14334_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(otolith_fish_id)) +
-  theme_bw()
+  geom_text(
+    data = dup_check_results_DWP_14334_best_match,
+    aes(x = duplicate_rate, y = 5, label = heart_fish_id),
+    colour = "red",
+    angle = 90,
+    hjust = 0
+  ) +
+  facet_wrap(facets = vars(otolith_fish_id), ncol = 6) +
+  theme_bw(base_size = 14) +
+  xlab("Genotype Duplicate Rate (Proportion of Genotypes Shared)") +
+  ylab("Count of Hearts in the DWP") +
+  ggtitle("Which Heart Best Matches the Otolith for DWP 14334?")
 ```
 
-2. heart, documented with the best matching otolith ID(s)
+2.  each plot is a heart, documented with the best matching otolith ID(s)
 
 ```{r fig.width=10, fig.height=15, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 # facet by heart ID
-dup_check_results_DWP_14334 %>% 
+dup_check_results_DWP_14334 %>%
   ggplot(aes(x = duplicate_rate)) +
   geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_14334_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(heart_fish_id)) +
-  theme_bw()
+  geom_text(
+    data = dup_check_results_DWP_14334_best_match,
+    aes(x = duplicate_rate, y = 1.5, label = otolith_fish_id),
+    colour = "red",
+    angle = 90,
+    hjust = 0
+  ) +
+  facet_wrap(facets = vars(heart_fish_id), ncol = 6) +
+  theme_bw(base_size = 14) +
+  xlab("Genotype Duplicate Rate (Proportion of Genotypes Shared)") +
+  ylab("Count of Otoliths in the DWP") +
+  ggtitle("Which Otolith Best Matches the Heart for DWP 14334?")
 ```
 
 **Conclusion:** Again, of the otos that worked, most matched one heart cleanly. At first, there may appear to be a significant number of failures. However, as we will see below, this DWP had only six otoliths of questionable identity.
 
-##### Top pairwise duplicate rate comparisons
+#### Top pairwise duplicate rate comparisons
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 dup_check_results_DWP_14334_1stbest <- dup_check_results_DWP_14334 %>% 
@@ -829,7 +900,10 @@ dup_check_results_DWP_14334_2ndbest <- dup_check_results_DWP_14334 %>%
 
 ggplot(data = dup_check_results_DWP_14334_top_2, aes(x = diff, y = duplicate_rate, color = Rank)) +
   geom_point() +
-  theme_bw()
+  theme_bw(base_size = 14) +
+  xlab("Difference in Duplicate Rate Between 1st and 2nd Best Match") +
+  ylab("Duplicate Rate") +
+  ggtitle("Comparison of 1st and 2nd Best Matches")
 ```
 
 All six otos worked with cutoffs (again) of a duplicate_rate \>= 0.7 and diff \>= 0.15. These cutoff values were later determined to be a generally good starting point (or default).
@@ -841,16 +915,16 @@ All six otos worked with cutoffs (again) of a duplicate_rate \>= 0.7 and diff \>
   filter(diff >= 0.15))
 
 # vector lengths
-nrow(dup_check_results_DWP_14334_pass)
-length(unique(dup_check_results_DWP_14334_pass$heart_fish_id))
-length(unique(dup_check_results_DWP_14334_pass$otolith_fish_id))
+# nrow(dup_check_results_DWP_14334_pass)
+# length(unique(dup_check_results_DWP_14334_pass$heart_fish_id))
+# length(unique(dup_check_results_DWP_14334_pass$otolith_fish_id))
 ```
 
 As noted above, most of this plate was fine; there were only six otoliths in question. All six had apparently remained in their original wells.
 
-![](14334_plate_maps.png){#id .class width=60% height=60%}
+![](14334_plate_maps.png){#id .class width="75%" height="75%"}
 
-#### **Plate 8. PGILMOUR15 DWP 2228**
+### **Plate 8. PGILMOUR15 DWP 2228**
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 # create *.gcl objects for comparison according to *._fish_ids
@@ -868,40 +942,58 @@ PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = a
       threshold = 0.9))
 ```
 
-Duplicate rate distributions within each DWP were generated for each: 
+Duplicate rate distributions within each DWP were generated for each:
 
-1. otolith, documented with the best matching heart ID(s)
+1.  each plot is an otolith, documented with the best matching heart ID(s)
 
-```{r fig.width=10, fig.height=15, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
+```{r fig.width=10, fig.height=16, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 # select the row with the highest match rate
-(dup_check_results_DWP_2228_best_match <- dup_check_results_DWP_2228 %>% 
+dup_check_results_DWP_2228_best_match <- dup_check_results_DWP_2228 %>% 
   group_by(otolith_fish_id) %>% 
-  slice_max(duplicate_rate, n = 1))
+  slice_max(duplicate_rate, n = 1)
 
 # facet by oto ID
-dup_check_results_DWP_2228 %>% 
+dup_check_results_DWP_2228 %>%
   ggplot(aes(x = duplicate_rate)) +
   geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_2228_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(otolith_fish_id)) +
-  theme_bw()
+  geom_text(
+    data = dup_check_results_DWP_2228_best_match,
+    aes(x = duplicate_rate, y = 3, label = heart_fish_id),
+    colour = "red",
+    angle = 90,
+    hjust = 0
+  ) +
+  facet_wrap(facets = vars(otolith_fish_id), ncol = 6) +
+  theme_bw(base_size = 14) +
+  xlab("Genotype Duplicate Rate (Proportion of Genotypes Shared)") +
+  ylab("Count of Hearts in the DWP") +
+  ggtitle("Which Heart Best Matches the Otolith for DWP 2228?")
 ```
 
-2. heart, documented with the best matching otolith ID(s)
+2.  each plot is a heart, documented with the best matching otolith ID(s)
 
 ```{r fig.width=10, fig.height=15, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 # facet by heart ID
-dup_check_results_DWP_2228 %>% 
+dup_check_results_DWP_2228 %>%
   ggplot(aes(x = duplicate_rate)) +
   geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_2228_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(heart_fish_id)) +
-  theme_bw()
+  geom_text(
+    data = dup_check_results_DWP_2228_best_match,
+    aes(x = duplicate_rate, y = 5, label = otolith_fish_id),
+    colour = "red",
+    angle = 90,
+    hjust = 0
+  ) +
+  facet_wrap(facets = vars(heart_fish_id), ncol = 6) +
+  theme_bw(base_size = 14) +
+  xlab("Genotype Duplicate Rate (Proportion of Genotypes Shared)") +
+  ylab("Count of Otoliths in the DWP") +
+  ggtitle("Which Otolith Best Matches the Heart for DWP 2228?")
 ```
 
 **Conclusion:** This plate was a bit of a mess.
 
-##### Top pairwise duplicate rate comparisons
+#### Top pairwise duplicate rate comparisons
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 dup_check_results_DWP_2228_1stbest <- dup_check_results_DWP_2228 %>% 
@@ -924,7 +1016,10 @@ dup_check_results_DWP_2228_2ndbest <- dup_check_results_DWP_2228 %>%
 
 ggplot(data = dup_check_results_DWP_2228_top_2, aes(x = diff, y = duplicate_rate, color = Rank)) +
   geom_point() +
-  theme_bw()
+  theme_bw(base_size = 14) +
+  xlab("Difference in Duplicate Rate Between 1st and 2nd Best Match") +
+  ylab("Duplicate Rate") +
+  ggtitle("Comparison of 1st and 2nd Best Matches")
 ```
 
 The default cutoff values did not work well for this plate. However, cutoffs reset to a duplicate_rate \>= 0.8 and diff \>= 0.15 still resulted in one otolith (PGOD21_581) still matching 5 hearts, the comparisons among which needed to be removed.
@@ -936,12 +1031,12 @@ The default cutoff values did not work well for this plate. However, cutoffs res
   filter(diff >= 0.15))
 
 # vector lengths
-nrow(dup_check_results_DWP_2228_pass)
-length(unique(dup_check_results_DWP_2228_pass$heart_fish_id))
-length(unique(dup_check_results_DWP_2228_pass$otolith_fish_id))
+# nrow(dup_check_results_DWP_2228_pass)
+# length(unique(dup_check_results_DWP_2228_pass$heart_fish_id))
+# length(unique(dup_check_results_DWP_2228_pass$otolith_fish_id))
 ```
 
-##### Purge multi-matching otos
+#### Purge multi-matching otos
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 dup_check_results_DWP_2228_pass_dup <- dup_check_results_DWP_2228_pass[duplicated(dup_check_results_DWP_2228_pass$otolith_fish_id), ]
@@ -954,13 +1049,18 @@ length(unique(dup_check_results_DWP_2228_pass_purged$otolith_fish_id)) == nrow(d
 
 This entire DWP was slated for genotyping. However, few of the otolith-heart matches passed our filters. Many otoliths were lost from the plate and cross contamination of those remaining in the plate appeared to be high.
 
-![](2228_plate_maps.png){#id .class width=60% height=60%}
+![](2228_plate_maps.png){#id .class width="75%" height="75%"}
 
-## **Conclusions:**
+# **Conclusions:**
 
-1. We can re-pair the jumbled otoliths with their hearts.  
-2. Ability to match otoliths back to hearts appears to be DWP-specific
-3. A duplicate rate cutoff of \>= 0.7 and top-two duplicate rate difference cutoff \>= 0.15 worked well for most tested DWPs
-    + Each DWP still requires individual evaluation of cutoffs and assignments
-4. Whether additional otolith-heart pairs can be saved from each DWP (or whether they are worth saving) is unknown at this time
-    + We hope to have enough data even with these more stringent cutoffs
+1.  We can re-pair the jumbled otoliths with their hearts.\
+
+2.  Ability to match otoliths back to hearts appears to be DWP-specific
+
+3.  A duplicate rate cutoff of \>= 0.7 and top-two duplicate rate difference cutoff \>= 0.15 worked well for most tested DWPs
+
+    -   Each DWP still requires individual evaluation of cutoffs and assignments
+
+4.  Whether additional otolith-heart pairs can be saved from each DWP (or whether they are worth saving) is unknown at this time
+
+    -   We hope to have enough data even with these more stringent cutoffs
