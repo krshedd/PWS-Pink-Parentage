@@ -26,6 +26,12 @@ source("../../GOD/LOKI2R_ind.GCL.R")
 source("../../GOD/DupCheckBetweenSillys_GOD.GCL.r")
 ```
 
+# README 1/7/22 Kyle Shedd
+
+Before we finalize these "matches", there are a few modifications that I'd like to make:  
+  * we need a genotyping success threshold for otoliths, it doesn't have to be very high (likely ~5-10%), but we need something to weed out matches where we only have 5 loci for an otolith
+  * we need to implement a heterozygosity filter for hearts, just like we do for parentage analysis, otherwise we'll end up with some very heterozygous heart genotypes that will match *very* well to our highly contaminated (read heterozygous) otoliths 
+
 # Objective
 
 The purpose of this notebook is to determine whether we can successfully re-pair GTseq genotypes from otolith-derived DNA with GT-seq genotypes from heart-derived DNA for individuals of unknown origin.
@@ -152,6 +158,13 @@ save_objects(objects = c("LocusControl", "loci", "TestSillys", "PERB16", "PGILMO
 if(!dir.exists("../../Genotypes/GOD_21_Round1/")) {dir.create("../../Genotypes/GOD_21_Round1/")}
 save_sillys(sillyvec = c("PGOD21", "PERB16", "PGILMOUR15", "PGILMOUR16", "PGILMOUR17", "PGILMOUR18", "PPADDY16"), path = "../../Genotypes/GOD_21_Round1/")
 ```
+
+Load objects if revisiting
+```{r load_objects}
+load_objects(path = "../../Objects/GOD_21_Round1")
+load_sillys(path = "../../Genotypes/GOD_21_Round1")
+```
+
 
 ### Otolith genotyping success
 
@@ -723,6 +736,20 @@ dup_check_results_DWP_14395 %>%
 ```
 
 Most otos match one heart really cleanly. The problem is that 3-5 hearts match more than one oto.
+
+Investigate the relationship between duplicate rate and otolith genotyping success for each heart.
+```{r fig.width=10, fig.height=15}
+# facet by heart ID
+dup_check_results_DWP_14395 %>% 
+  mutate(oto_geno_success = 1 - (missing_loci_otolith / 298)) %>% 
+  ggplot(aes(x = duplicate_rate, y = oto_geno_success)) +
+  geom_point() +
+  geom_vline(xintercept = 0.7, colour = "red") + 
+  scale_y_continuous(limits = c(0, 1)) +
+  # geom_text(data = dup_check_results_DWP_14395_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(heart_fish_id)) +
+  theme_bw()
+```
 
 ##### Top pairwise duplicate rate comparisons
 
@@ -3199,3 +3226,136 @@ dup_check_results_DWP_1st12_pass_with_wells <- attributes_and_xfer_PGOD21 %>%
 write_csv(dup_check_results_DWP_1st12_pass_with_wells, "dup_check_results_DWP_1st12_pass_with_wells.csv")
 ```
 
+# Investigating instances with multiple otos matching the same heart
+
+Bind duplicate check results from all DWPs
+```{r}
+dup_check_results_DWP_1st12_all <- bind_rows(
+dup_check_results_DWP_14395,
+dup_check_results_DWP_14334,
+dup_check_results_DWP_14331,
+dup_check_results_DWP_14376,
+dup_check_results_DWP_14297,
+dup_check_results_DWP_14282,
+dup_check_results_DWP_14332,
+dup_check_results_DWP_2228,
+dup_check_results_DWP_2232,
+dup_check_results_DWP_14573,
+dup_check_results_DWP_14662,
+dup_check_results_DWP_14663,
+dup_check_results_DWP_15826,
+dup_check_results_DWP_22569,
+dup_check_results_DWP_22591,
+dup_check_results_DWP_22595,
+dup_check_results_DWP_22710,
+dup_check_results_DWP_22751,
+dup_check_results_DWP_22701,
+dup_check_results_DWP_28929,
+dup_check_results_DWP_28864,
+dup_check_results_DWP_28829,
+dup_check_results_DWP_28807,
+dup_check_results_DWP_28812,
+dup_check_results_DWP_16104,
+dup_check_results_DWP_14463,
+dup_check_results_DWP_16130,
+dup_check_results_DWP_16164,
+dup_check_results_DWP_16132)
+```
+
+Filter for hearts that have multiple otos matching at > 0.70 duplicate rate
+We never went below 0.70 duplicate rate, so that is what I went with ;)
+```{r}
+(
+  hearts_with_multiple_matchy_otos <-
+    dup_check_results_DWP_1st12_all %>%
+    filter(duplicate_rate > 0.7) %>%
+    count(heart_fish_id) %>%
+    filter(n > 1) %>%
+    pull(heart_fish_id)
+)
+```
+
+Plot otolith genotyping success vs. duplicate rate for these multiple matchers
+```{r fig.width=10, fig.height=20}
+# facet by heart ID
+dup_check_results_DWP_1st12_all %>% 
+  filter(heart_fish_id %in% hearts_with_multiple_matchy_otos) %>% 
+  mutate(oto_geno_success = 1 - (missing_loci_otolith / 298)) %>% 
+  ggplot(aes(x = duplicate_rate, y = oto_geno_success)) +
+  geom_point() +
+  geom_vline(xintercept = 0.7, colour = "red") + 
+  scale_y_continuous(limits = c(0, 1)) +
+  # geom_text(data = dup_check_results_DWP_14395_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(heart_fish_id), ncol = 7) +
+  theme_bw()
+```
+
+## Investigate heterozygosity
+
+WTF is going on with some of these fish, like PGILMOUR15_2951? Must have lots of hets due to contamination, right???
+
+Create function
+```{r}
+Ho_ind <- function(silly = "PGILMOUR15") {
+  
+  indata1 <- get(paste0(silly, ".gcl"))$counts[ , , 1]
+  
+  indata1 %>% 
+  as_tibble(rownames = "fish_id") %>% 
+  gather(locus, genotype, -fish_id) %>% 
+  group_by(fish_id) %>% 
+  summarise(Ho = sum(genotype == 1, na.rm = TRUE) / length(!is.na(genotype)), .groups = "drop") %>% 
+  arrange(desc(Ho))
+}
+```
+
+### PGILMOUR15
+
+```{r}
+(Ho_PGILMOUR15 <- Ho_ind(silly = "PGILMOUR15"))
+```
+Oh ya, that fish is for sure contaminated. Better caclulate Ho for all hearts and just purge anything over 0.50 (overly simplified!!!) for now just to reduce the noise factor.
+
+### All hearts
+
+Calculate Ho
+```{r}
+(
+  Ho_OGSillys <- sapply(OGSillys, function(silly) {
+    Ho_ind(silly = silly)
+  }, simplify = FALSE) %>%
+    bind_rows(.id = "silly") %>% 
+    unite(col = "heart_fish_id", c("silly", "fish_id"))
+)
+```
+
+Get a vector of heart fish ids with Ho >0.5
+```{r}
+hearts_too_Ho <- Ho_OGSillys %>% 
+  filter(Ho > 0.5) %>% 
+  pull(heart_fish_id)
+```
+
+How many hearts does that remove?
+```{r}
+length(hearts_with_multiple_matchy_otos)
+length(setdiff(hearts_with_multiple_matchy_otos, hearts_too_Ho))
+```
+
+Great, down to only 53 hearts with multiple matchy otoliths :)
+
+Plot otolith genotyping success vs. duplicate rate for these multiple matchers
+```{r fig.width=10, fig.height=15}
+# facet by heart ID
+dup_check_results_DWP_1st12_all %>% 
+  filter(heart_fish_id %in% hearts_with_multiple_matchy_otos,
+         !heart_fish_id %in% hearts_too_Ho) %>% 
+  mutate(oto_geno_success = 1 - (missing_loci_otolith / 298)) %>% 
+  ggplot(aes(x = duplicate_rate, y = oto_geno_success)) +
+  geom_point() +
+  geom_vline(xintercept = 0.7, colour = "red") + 
+  scale_y_continuous(limits = c(0, 1)) +
+  # geom_text(data = dup_check_results_DWP_14395_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
+  facet_wrap(facets = vars(heart_fish_id), ncol = 7) +
+  theme_bw()
+```
