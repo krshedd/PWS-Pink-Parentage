@@ -1,7 +1,7 @@
 ---
 title: "Update on Otolith/Heart DWP-by-DWP genotype matching"
 subtitle: "Live test of first 12 96-well otolith transfer plates"
-author: "Kristen Gruenthal"
+author: "Kristen Gruenthal and Kyle Shedd"
 date: "22 November 2021"
 output:
   html_notebook:
@@ -29,15 +29,17 @@ source("../../../GOD/DupCheckBetweenSillys_GOD.GCL.r")
 
 # Objective
 
-The purpose of this notebook is to successfully re-pair GT-seq genotypes from otolith-derived DNA with GT-seq genotypes from heart-derived DNA for individuals of unknown origin.
+The purpose of this notebook is to successfully re-pair GT-seq genotypes from otolith-derived DNA with GT-seq genotypes from heart-derived DNA for individuals of unknown origin. 
 
 # Background
 
-During shipment of otolith samples to the MTA in Juneau for reading, a significant proportion of otoliths migrated between cells within DWPs due to poor containment of the acetate lids that were attached with rubber bands to the DWPs. This incident is known as "the great otolith debacle", aka the "GOD" incident. Since some otoliths moved from their original cells in the DWP, the paired integrity of the otolith-origin information and the rest of the paired data (genotype + field data) was lost for many individuals. In an attempt to rectify the "GOD" incident, we are extracting DNA from the otolith tissues, genotyping the otolith-derived DNA at 298 GT-seq loci, and attempting to re-pair the otolith-heart samples from their genotypes. Once successfully re-paired, the otoliths will be read to determine origin.
+During shipment of otolith samples to the MTA in Juneau for reading, a significant proportion of otoliths migrated between cells within DWPs due to poor containment of the acetate lids that were attached with rubber bands to the DWPs. We've nicknamed this incident "the great otolith debacle" (a.k.a. the "GOD" incident), and hence, we've named the database SILLY code PGOD21 for pink salmon GOD 2021 as you will see below. Since some otoliths moved from their original cells in the DWP, the paired integrity of the otolith-origin information and the rest of the paired data (genotype + field data) was lost for many individuals. In an attempt to rectify the "GOD" incident, we are extracting DNA from the otolith tissues, genotyping the otolith-derived DNA at 298 GT-seq loci, and re-pairing the otolith-heart samples using their genotypes. Once successfully re-paired, the otoliths can be read to determine origin.
+
+This notebook describes the results associated with 12 96-well plates covering 48 DWPs with otoliths demmed affected the GOD incident.
 
 # Methods
 
-DNA was extracted from left-side or unknown otolith tissues of unknown origin using conventional Machery-Nagel DNA extraction kits. Otoliths were placed in T1 buffer for an overnight soak in clear 96 shallow-well plates (SWP). Preamp at 14 cycles. Final elution volume was 75uL. All otoliths were transferred among plates with a jig. All liquid handling was done by robot.
+DNA was extracted from left-side or unknown otolith-associated tissues of unknown origin using conventional Machery-Nagel DNA extraction kits. Otoliths were placed in T1 buffer for an overnight soak in clear 96 shallow-well plates (SWP), with a final elution volume was 75uL. All otoliths were transferred among plates with a jig. All liquid handling was done by robot.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 .username <- readLines("~/../R/usr_pw.txt", n = 1)  # "kmgruenthal"
@@ -156,7 +158,7 @@ if(!dir.exists("../../../Genotypes/GOD_21_Round1/")) {dir.create("../../../Genot
 save_sillys(sillyvec = c("PGOD21", "PERB16", "PGILMOUR15", "PGILMOUR16", "PGILMOUR17", "PGILMOUR18", "PPADDY16"), path = "../../../Genotypes/GOD_21_Round1/")
 ```
 
-## Otolith genotyping success
+## Otolith Genotyping Success
 
 ### Success by Locus
 
@@ -231,11 +233,11 @@ locus_success_rate_qc %>%
   ggtitle("Distribution of Otolith Genotyping Success Rate by Locus")
 ```
 
-In general, most loci had fairly decent genotyping success for the otolith-DNA. Certainly lower than for heart tissue, but not terrible. No loci completely failed for the otoltihs.
+In general, most loci exhibited fairly decent genotyping success with the otolith-DNA. Rates were certainly lower than for heart tissue but not terrible, and no loci completely failed.
 
 ### Success by Individual Otolith
 
-We needed to remove particularly egregious otos. First, we wanted an overview of how badly they genotyped.
+We needed to remove particularly egregious otos. First, we wanted an overview of how badly the otoliths genotyped.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all', fig.height=8}
 PGOD21.gcl$counts[, , 1] %>% 
@@ -251,9 +253,9 @@ PGOD21.gcl$counts[, , 1] %>%
   ggtitle("Distribution of Otolith Genotyping Success Rate by Fish")
 ```
 
-A fairly wide distribution of otolith genotyping success rate. Not terribly surprising though given that we are trying to pull DNA off of otoliths. Normally, we exclude individuals with genotyping success <80%, however, we will need to be much less stringent with the otoliths if we want to retain as many as possible.
+There was a fairly wide distribution of otolith genotyping success rate -- not terribly surprising given that we are trying to pull DNA off of otoliths. Normally, we exclude individuals with genotyping success <80%, but we will need to be much less stringent with the otoliths, if we want to retain as many as possible.
 
-Here's where we started to decide on our genotyping rate cutoff, if any. There are 1,120 total otos in PGOD21 this first test round. If we went by the usual 80% rule on all 298 loci, we'd lose 692 otos (keeping 428), which is not terrible considering the situation. However, we also need to keep as many otoliths as possible, and we have 298 loci, so we should have wiggle room in terms of the number of loci needed to generate a good match, despite the fact that the info content of each locus is not the same. Consider that the original panel used for testing was 96 loci (32% of the 298 panel), and we considered paring that down to 24 (8% of loci).
+Here's where we started to decide on our genotyping rate cutoff, if any. There are 1,120 total otos in PGOD21 this first test round. If we went by the usual 80% rule on all 298 loci, we'd lose 692 otos (keeping 428), which is not terrible considering the situation. However, we again need to keep as many otoliths as possible. We have 298 loci, so we should have wiggle room in terms of the number of loci needed to generate a good match, despite the fact that the info content of each locus is not the same. Consider that the original panel used for testing was 96 loci (32% of the 298 panel), and we considered paring that down to 24 (8% of loci).
 
 ## Quality Assurance
 
@@ -274,7 +276,7 @@ We largely skipped the duplicate rate check (set at 99% matching) because we hav
 
 As an alternate, we also tested a 10% genotyping rate cutoff, giving us a minimum of 30 loci that must be genotyped, but kept the internal duplicate rate check at 99%.
 
-**Conclusion:** Both methods had hearts matching multiple otos. Therefore, to keep the bulk of available date, we left all otoliths in, regardless of genotyping success rate, and kept the 99% duplicate rate check. Fourteen 14 pairwise comparisons failed our duplicate rate check and had to be purged.
+**Conclusion:** Both methods had hearts matching multiple otos. Therefore, to keep the bulk of available date, we left all otoliths in, regardless of genotyping success rate, and kept the 99% duplicate rate check. Fourteen (14) pairwise comparisons failed our duplicate rate check and had to be purged.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 TestSillys_SampleSizes <- matrix(
@@ -332,7 +334,7 @@ TestSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
 TestSillys_SampleSizes
 ```
 
-**Note:** Similar to the normal AHRP samples, we needed to remove both duplicates, since we won't know which one is the true match for the heart genotype. The in-house GCL function used only removes 1 of the duplicates, so we manually removed the other.
+**Note:** Similar to the normal AHRP samples, we needed to remove both duplicates, since we won't know which one is the true match for the heart genotype. The in-house GCL function used only removes one (1) of the duplicates, so we manually removed the other.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 (
@@ -351,11 +353,11 @@ RemoveIDs.GCL(silly = "PGOD21", IDs = duplicates_to_remove)
 PGOD21.gcl$n
 ```
 
-**In the end, we purged 19, leaving us with 1,101 otosmoving forward.**
+**In the end, we purged 19 and retained 1,101 otoliths moving forward.**
 
 #### *Heterozygosity*
 
-Excess heterozygosity can be an indication of contamination, and observed heterozygosity (H)o was clearly high for some otoliths. We know there is some contamination even among the heart-derived GT-seq genotypes, but it allowed us to understand the extent of the otolith contamination.
+Excess heterozygosity can be an indication of contamination, and observed heterozygosity (H~o~) was clearly high for some otoliths. We know there is some contamination even among the heart-derived GT-seq genotypes, but it has allowed us to understand the extent of the otolith contamination.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 Ho_qc <- function(indata1 = PGOD21.gcl$counts[ , , 1]) {
@@ -405,7 +407,7 @@ qc_proportion_missing_PGOD21 <- qc_proportion_missing()
 
 ### Hearts
 
-For the heart tissues, we kept out standard genotyping rate cutoff of 80% and performed the standard 95% duplicate rate check.
+For the heart tissues, we kept our standard  genotyping rate cutoff and 95% duplicate rate check.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 OGSillys <- c("PERB16", "PGILMOUR15", "PGILMOUR16", "PGILMOUR17", "PGILMOUR18", "PPADDY16")
@@ -464,11 +466,11 @@ OGSillys_SampleSizes # sample size table
 # DuplicateCheckReportSummary[nDupsBySilly >= 1]  # Show within silly duplicates
 ```
 
-Lost quite a few hearts as expected due to missingness, including more than a third of PERB16, which genotyped poorly. Only one duplicate was identified in PGILMOUR16 (IDs 2225 and 2226).
+Lost quite a few hearts as expected due to missingness, including more than a third of PERB16, which genotyped poorly. Only one duplicate was identified in PGILMOUR16 (Fish IDs 2225 and 2226).
 
 ## Duplicate rate checks by DWP
 
-In order to do the re-pairing, we need both heart and otolith genotypes from the same DWPs. Unfortunately, we do not yet have heart genotypes for all of the collections represented by the DWPs involved in this initial live test of otoliths that were moved into the 12 96-well otolith trays genotyped here. For this dataset, PGOD21 was represented by 12 96-well otolith plates, which covered 48 DWPs. However, a total of 19 PGOD21 DWPs did not have heart genotype DWP matches, because they have not been genotyped yet. This left 29 DWPs with both heart and otolith genotypes for matching.
+To do the re-pairing, we need both heart and otolith genotypes from the same DWPs. Unfortunately, we do not yet have heart genotypes for all of the collections represented by the 48 DWPs involved in this initial live test of GOD otoliths moved into the 12 96-well otolith trays and genotyped here. In total, 19 PGOD21 DWPs did not have heart genotype DWP matches because they have not been genotyped yet. This left 29 DWPs with both heart and otolith genotypes for matching.
 
 Here, we cover **three** (of 29) DWPs representing different match characteristics. Much like in the quality filtering within SILLYs above, we used a modification of the genotype duplicate rate analysis to match otoliths back to the hearts within each DWP.
 
@@ -682,7 +684,7 @@ PPADDY16_DWP_16164_fish_ids <- PPADDY16_DWP_16164 %>% pull(FK_FISH_ID)
 PPADDY16_DWP_16132_fish_ids <- PPADDY16_DWP_16132 %>% pull(FK_FISH_ID)
 ```
 
-### **Plate 1. PERB16 DWP 14395**
+### **Plate 1: PERB16 DWP 14395**
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 # create *.gcl objects for comparison according to *._fish_ids
@@ -700,7 +702,7 @@ dup_check_results_DWP_14395 <- DupCheckBetweenSillys_GOD.GCL(
       threshold = 0.9)
 ```
 
-These graphs represent the duplicate rate distributions. Duplicate rate is on the x-axis and a count of the number of hearts or otoliths is on the y-axis. Duplicate rate distributions within each DWP were generated for each:
+These graphs represent the duplicate rate distributions. Duplicate rate is on the x-axis and a count of the number of hearts or otoliths is on the y-axis. Duplicate rate distributions within each DWP were generated, where:
 
 1.  each plot is an otolith, documented with the best matching heart ID(s)
 
@@ -728,6 +730,8 @@ dup_check_results_DWP_14395 %>%
   ggtitle("Which Heart Best Matches the Otolith for DWP 14395?")
 ```
 
+These plots give us an idea of whether each GOD otolith tended to match one or more hearts.
+
 2.  each plot is a heart, documented with the best matching otolith ID(s)
 
 ```{r fig.width=10, fig.height=15, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
@@ -749,16 +753,18 @@ dup_check_results_DWP_14395 %>%
   ggtitle("Which Otolith Best Matches the Heart for DWP 14395?")
 ```
 
-**Conclusion:** Most otos match one heart relatively cleanly. The problem is that some hearts match more than one oto. Next, we cover how we dealt with this problem.
+These plots give us an idea as to whether one or more otoliths matched the same heart.
+
+**Conclusion:** Most otos match one heart relatively cleanly. The problem is that some hearts matched more than one oto. In other words, tissue from the same heart was found on more than one otolith. Next, we cover how we dealt with this problem.
 
 #### *Top pairwise duplicate rate comparisons*
 
-Ideally, each otolith would clearly and unambiguously match a single heart and vice versa. However, since that is not always the case, and we are not going to go through each individual otolith at time, we came up with two metrics to help us determine how good of a match we have.  
+Ideally, each otolith would clearly and unambiguously match a single heart and vice versa. However, since that is not always the case. We came up with two metrics to help us determine how good of a match we have.  
 
-  1) Duplicate rate - how many loci were genotyped in common between the heart and otolith  ?
+  1) Duplicate rate - what was the proportion of loci genotyped in common between the heart and otolith?
   2) Duplicate rate difference - how close is the duplicate rate between the 1st and 2nd best match?
   
-The idea here is that correctly matching hearts/otoliths would have both a high duplicate rate and a large difference between the 1st and 2nd best matches.
+The idea here is that well-matched heart/otolith pairs would have both a high duplicate rate and a large difference in duplicated rate between the 1st and 2nd best matches.
 
 The table provides the 1st and 2nd best heart matches for each otolith, including the duplicate rate, number of missing loci, and the difference in duplicate rate between the 1st and 2nd best match. The graph provides a visual representation of this information, with the duplicate rate on the y-axis and the difference on the x-axis.
 
@@ -789,7 +795,7 @@ ggplot(data = dup_check_results_DWP_14395_top_2, aes(x = diff, y = duplicate_rat
   ggtitle("Comparison of 1st and 2nd Best Matches")
 ```
 
-Deciding which otolith-heart matches we were confident of required careful cutoffs for duplicate rate and duplicate rate difference. For this DWP, we settled on a duplicate_rate \>= 0.7 and diff \>= 0.15. These are those matches within that upper right quadrant.
+Deciding which otolith-heart matches we were confident of required careful cutoffs for duplicate rate and duplicate rate difference. For this DWP, we settled on a duplicate_rate \>= 0.7 and diff \>= 0.15. These matches within that can be seen easily in coral in the upper right quadrant.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # filtered results table
@@ -803,12 +809,12 @@ Deciding which otolith-heart matches we were confident of required careful cutof
 # length(unique(dup_check_results_DWP_14395_pass$otolith_fish_id))
 ```
 
-We then took the above results and identified where those otoliths started and where they ended up in each DWP to determine whether our assignments made sense. For this plate, there was a lot of movement, generally from the righthand side to the left of (and/or upwards in) the plate.
+We then took the above results and identified where those otoliths started and where they ended up in each DWP to determine whether our otolith/heart pair assignments made sense. For this plate, there was a lot of displacement, generally from the right hand side to the left of (and/or upwards in) the plate.
 
 ![](14395_plate_maps.png){#id .class width="75%" height="75%"}
 
 
-### **Plate 2. PERB16 DWP 14334**
+### **Plate 2: PERB16 DWP 14334**
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 # create *.gcl objects for comparison according to *._fish_ids
@@ -826,7 +832,7 @@ PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = a
       threshold = 0.9))
 ```
 
-Duplicate rate distributions within each DWP were generated for each:
+Duplicate rate distributions within each DWP were generated, where:
 
 1.  each plot is an otolith, documented with the best matching heart ID(s)
 
@@ -924,7 +930,7 @@ As noted above, most of this plate was fine; there were only six otoliths in que
 
 ![](14334_plate_maps.png){#id .class width="75%" height="75%"}
 
-### **Plate 8. PGILMOUR15 DWP 2228**
+### **Plate 8: PGILMOUR15 DWP 2228**
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 # create *.gcl objects for comparison according to *._fish_ids
@@ -942,7 +948,7 @@ PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = a
       threshold = 0.9))
 ```
 
-Duplicate rate distributions within each DWP were generated for each:
+Duplicate rate distributions within each DWP were generated, where:
 
 1.  each plot is an otolith, documented with the best matching heart ID(s)
 
@@ -991,7 +997,7 @@ dup_check_results_DWP_2228 %>%
   ggtitle("Which Otolith Best Matches the Heart for DWP 2228?")
 ```
 
-**Conclusion:** This plate was a bit of a mess.
+**Conclusion:** This plate was a bit of a mess, with more than one heart matching a single otolith and more than one otolith matching a single heart. 
 
 #### Top pairwise duplicate rate comparisons
 
@@ -1022,7 +1028,7 @@ ggplot(data = dup_check_results_DWP_2228_top_2, aes(x = diff, y = duplicate_rate
   ggtitle("Comparison of 1st and 2nd Best Matches")
 ```
 
-The default cutoff values did not work well for this plate. However, cutoffs reset to a duplicate_rate \>= 0.8 and diff \>= 0.15 still resulted in one otolith (PGOD21_581) still matching 5 hearts, the comparisons among which needed to be removed.
+The default cutoff values did not work well for this plate. However, cutoffs reset to a higher duplicate_rate \>= 0.8 and diff \>= 0.15 still resulted in one otolith (PGOD21_581) matching 5 different hearts. Otolith 581 needed to be removed.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # filtered results table
@@ -1047,20 +1053,22 @@ dup_check_results_DWP_2228_pass_dup <- dup_check_results_DWP_2228_pass_dup$otoli
 length(unique(dup_check_results_DWP_2228_pass_purged$otolith_fish_id)) == nrow(dup_check_results_DWP_2228_pass_purged)
 ```
 
-This entire DWP was slated for genotyping. However, few of the otolith-heart matches passed our filters. Many otoliths were lost from the plate and cross contamination of those remaining in the plate appeared to be high.
+This entire DWP was slated for genotyping. However, few of the otolith-heart matches passed our filters. Many otoliths were completely lost from the plate, and cross contamination of those remaining in the plate appeared to be high.
 
 ![](2228_plate_maps.png){#id .class width="75%" height="75%"}
 
 # **Conclusions:**
 
-1.  We can re-pair the jumbled otoliths with their hearts.\
+1.  We can re-pair the jumbled otoliths with their hearts.
 
-2.  Ability to match otoliths back to hearts appears to be DWP-specific
+2.  Our ability to match otoliths back to hearts is DWP-specific
 
 3.  A duplicate rate cutoff of \>= 0.7 and top-two duplicate rate difference cutoff \>= 0.15 worked well for most tested DWPs
 
-    -   Each DWP still requires individual evaluation of cutoffs and assignments
+    -   Each DWP still requires individual evaluation of cutoffs and assignments\n 
 
 4.  Whether additional otolith-heart pairs can be saved from each DWP (or whether they are worth saving) is unknown at this time
 
-    -   We hope to have enough data even with these more stringent cutoffs
+    -   For example, when two (2) otolith match a single heart, if one oto was identified as a "left" and the other as "unknown," those otos may have come from the same fish (hence, they would match the same heart)
+
+    -   Nevertheless, we hope to have enough data even with these more stringent duplicate rate and match cutoffs

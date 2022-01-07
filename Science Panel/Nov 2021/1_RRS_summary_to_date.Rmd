@@ -1,6 +1,6 @@
 ---
 title: "Summary of RRS results to date"
-author: "Kristen Gruenthal"
+author: "Kristen Gruenthal and Kyle Shedd"
 date: "22 November 2021"
 output:
   html_notebook:
@@ -31,4 +31,4 @@ Figure 1: Single-generation RRS Results to Date
 
 ## *Summary*
 
-Single-generation RRS (Table 1, Fig. 1) is still <1 globally, with 22 of 28 (79%) of estimates significantly so (in **bold**). No new multi-generation results are available.
+Single-generation RRS (Table 1, Fig. 1) are still <1 globally, with 22 of 28 (79%) of estimates significantly so (in **bold**). No new multi-generation results are available.

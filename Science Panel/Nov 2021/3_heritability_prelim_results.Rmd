@@ -13,7 +13,7 @@ editor_options:
 
 # **INTRODUCTION**
 
-The purpose of these analyses are to more fully explore the parent-pair offspring trio/triad data (i.e. cross data) in terms of spatiotemporal patterning and generate preliminary estimates of narrow-sense heritability using three methods, including correlation, slope, and the animal model. We used Stockdale Creek 2014-2016, a sample set with good dual parent-offspring data, as a case study.
+The purpose of these analyses are to more fully explore the parent-pair offspring trio/triad data (i.e. cross data) in terms of spatiotemporal patterning and generate preliminary estimates of narrow-sense heritability (h^2^) using three methods, including correlation, slope, and the animal model. We used Stockdale Creek 2014-2016, a sample set with good dual parent-offspring data, as a case study.
 
 ```{r setup, include=FALSE}
 rm(list=ls())
@@ -106,7 +106,7 @@ parents_paired_cross_riverdist_spacetime <- function(indata_spacetime = stock_pa
 
 ## Offspring with assigned parents - dyads and triads
 
-One row per offspring that was assigned at least 1 parent.
+One row per offspring that was assigned at least one (1) parent.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 # dyad relationships - one row per offspring
@@ -179,9 +179,7 @@ triads <- function(indata_triads = stock_parents_paired_14_16_dam_sire) {
 
 # **HERITABILITY**
 
-For traits associated with fitness in natural populations, heritability is typically 0.1--0.2 (Wray and Visscher 2008 [<https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/>] per Visscher et al. 2008).
-
-*Note:* Correlation between parent-offspring sample location and narrow-sense heritability of sample location *not yet available*. GIS-based stream distance mapping is *in progress* by Chase Jalbert.
+For traits associated with fitness in natural populations, heritability is typically 0.1--0.2 (Wray and Visscher 2008 [<https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/>] per Visscher et al. 2008). Here, we estimated h^2^ of body length, sample location, and RS. Correlation between parent-offspring sample location and h^2^ of sample location *not yet available*; GIS-based stream distance mapping is *in progress* by Chase Jalbert. Again estimates of h^2^ were generated using the correlation and slope of the regression line. For the animal model, h^2^ of body length and sample location were estimated from the residuals of the random effects using the linear mixed effects lmer function in the r package lme4 [<https://cran.r-project.org/web/packages/lme4/lme4.pdf>], whereas we used the generalized linear mixed effects glmer.nb function for negative binomials in lme4 to estimate h^2^ of RS.
 
 ## **Body Length**
 
@@ -243,7 +241,7 @@ h2_length_graph()
 
 ### Correlation
 
-We estimate narrow-sense heritability here, as well as for location and sample date, from r = √(½)h\^2.
+We estimate h^2^ here, as well as for location and sample date, from r = √(½)h\^2.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 parents_paired_length <- function(indata_triads_length = stock_triads_length_14_16) {
@@ -461,7 +459,7 @@ stock_h2_length_14_16 <- merge(stock_r_and_h2_length_14_16, stock_slope_as_h2_le
 (stock_h2_length_14_16 <- stock_h2_length_14_16[c(8,7,6,5,4,1,9,2,3,10,11),])
 ```
 
-Some evidence for heritability of body size, but it is sporadic and not overly consistent among methods.
+**Conclusion:** There is some evidence for heritability of body size, but it is sporadic and not overly consistent among methods.
 
 ## **Sample Date**
 
@@ -522,8 +520,6 @@ h2_date_graph()
 ```
 
 ### Correlation
-
-We estimate narrow-sense heritability here, as well as for location and sample date, from r = √(½)h\^2.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 parents_paired_date <- function(indata_triads_date = stock_triads_date_14_16) {
@@ -596,8 +592,6 @@ stock_r_and_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/
 
 ### Slope
 
-If we use the parents' phenotypic variance as a measure of VP, we can estimate h\^2 by solving for: trait_value_offspring = Cov_parent_offspring / Var_parent x trait_value_parent + c. The slope of the line is mathematically equivalent to h\^2.
-
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 # overall
 stock_h2_date_14_16_all_tbl <- tidy(lm(DOY.off ~ DOY.par, data = stock_triads_date_14_16))
@@ -639,8 +633,6 @@ stock_slope_as_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "D
 ```
 
 ### Animal model
-
-Narrow-sense heritabilities (h\^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h\^2 = VA/VP) per Evans et al. (2019) [<https://link.springer.com/article/10.1007/s10592-019-01174-4>]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.keep='all'}
 # lme4::lmer
@@ -741,7 +733,7 @@ stock_h2_date_14_16 <- merge(stock_r_and_h2_date_14_16, stock_slope_as_h2_date_1
 (stock_h2_date_14_16 <- stock_h2_date_14_16[c(8,7,6,5,4,1,9,2,3,10,11),])
 ```
 
-Better evidence for heritability of sample date as a proxy for return time, especially between female parents and offspring. There's some inconsistency among estimation methods, however.
+**Conclusion:** Better evidence for heritability of sample date as a proxy for return time, especially between female parents and offspring. There is some inconsistency among estimation methods, however.
 
 ## **Reproductive success**
 
@@ -992,4 +984,4 @@ stock_h2_rs_14_16 <- merge(stock_r_and_h2_rs_14_16, stock_slope_as_h2_rs_14_16, 
 (stock_h2_rs_14_16 <- stock_h2_rs_14_16[c(8,7,6,5,4,1,9,2,3,10,11),])
 ```
 
-Nothing to see here.
+**Conclusion:** Nothing to see here.
