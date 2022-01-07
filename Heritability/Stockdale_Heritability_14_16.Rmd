@@ -104,7 +104,8 @@ parents_paired_cross_riverdist_spacetime <- function(indata_spacetime = stock_pa
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # dyad relationships - one row per offspring
 stock_parents_paired_14_16 <- read_csv("../Stockdale/stock_parents_paired_14_16.csv") %>% 
-     mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
+  mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery"))) %>% 
+  filter(`Length Mm.par` > 300)
 
 # Read in paired data
 stock_postQA_OceanAK_paired_14_16 <- read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv")
@@ -186,12 +187,43 @@ triads_length <- function(indata_triads_length = stock_triads_14_16) {
 }
 
 stock_triads_length_14_16 <- triads_length()
+
+write_csv(stock_triads_length_14_16, "stock_triads_length_14_16.csv")
 ```
 
 ### Scatterplots
 
 ```{r}
-parents_paired_length_graph <- function(indata_parents_paired_length_graph = stock_parents_paired_14_16, title = "Stockdale_14_16\n\nRegression of Body Length by Sex") {
+# overall
+h2_length_graph <- function(indata_h2_length_graph = stock_triads_length_14_16, title = "Stockdale_14_16\n\nRegression of Body Length") {
+  indata_h2_length_graph %>% 
+  ggplot(aes(x = Length.par, y = Length.off)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title) +
+  xlab("Mid-parent Length (mm)") +
+  ylab("Offspring Length (mm)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+# by cross
+h2_length_graph_cross <- function(indata_h2_length_graph_cross = stock_triads_length_14_16, title = "Stockdale_14_16\n\nRegression of Body Length by Cross") {
+  indata_h2_length_graph_cross %>% 
+  ggplot(aes(x = Length.par, y = Length.off, colour = Cross)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title, colour = "Parent: Origin") +
+  xlab("Mid-parent Length (mm)") +
+  ylab("Offspring Length (mm)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+# by sex
+h2_length_graph_sex <- function(indata_parents_paired_length_graph = stock_parents_paired_14_16, title = "Stockdale_14_16\n\nRegression of Body Length by Sex") {
   indata_parents_paired_length_graph %>% 
   rename(length.par = "Length Mm.par", 
          length.off = "Length Mm.off") %>% 
@@ -212,22 +244,9 @@ parents_paired_length_graph <- function(indata_parents_paired_length_graph = sto
   theme(text = element_text(size = 20))
 }
 
-parents_paired_length_graph()
-
-h2_length_graph <- function(indata_h2_length_graph = stock_triads_length_14_16, title = "Stockdale_14_16\n\nRegression of Body Length by Cross") {
-  indata_h2_length_graph %>% 
-  ggplot(aes(x = Length.par, y = Length.off, colour = Cross)) +
-  geom_abline(slope = 1) +
-  geom_jitter(size = 2) +
-  geom_smooth(method = "lm") +
-  labs(title = title, colour = "Parent: Origin") +
-  xlab("Mid-parent Length (mm)") +
-  ylab("Offspring Length (mm)") +
-  theme_bw() +
-  theme(text = element_text(size = 20))
-}
-
 h2_length_graph()
+h2_length_graph_cross()
+h2_length_graph_sex()
 ```
 
 ### Correlation
@@ -245,31 +264,31 @@ parents_paired_length <- function(indata_triads_length = stock_triads_length_14_
 }
 
 # overall
-(stock_parents_paired_14_16_length0 <- parents_paired_length() %>% 
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+stock_parents_paired_14_16_length0 <- parents_paired_length() %>% 
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
 
 # by cross
-(stock_parents_paired_14_16_length1 <- parents_paired_length() %>% 
+stock_parents_paired_14_16_length1 <- parents_paired_length() %>% 
   group_by(Cross) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
 
 # all offspring
-(stock_parents_paired_14_16_length4 <- parents_paired_length() %>% 
+stock_parents_paired_14_16_length4 <- parents_paired_length() %>% 
   group_by(sex.dam) %>%
-  summarise(correlation = round(cor(Length.off, Length.dam), 3), r2 = round(cor(Length.off, Length.dam)^2, 3)))
+  summarise(correlation = round(cor(Length.off, Length.dam), 3), r2 = round(cor(Length.off, Length.dam)^2, 3))
 
-(stock_parents_paired_14_16_length5 <- parents_paired_length() %>% 
+stock_parents_paired_14_16_length5 <- parents_paired_length() %>% 
   group_by(sex.sire) %>%
-  summarise(correlation = round(cor(Length.off, Length.sire), 3), r2 = round(cor(Length.off, Length.sire)^2, 3)))
+  summarise(correlation = round(cor(Length.off, Length.sire), 3), r2 = round(cor(Length.off, Length.sire)^2, 3))
 
 # by sex
-(stock_parents_paired_14_16_length2 <- parents_paired_length() %>% 
+stock_parents_paired_14_16_length2 <- parents_paired_length() %>% 
   group_by(sex.dam, sex.off) %>%
-  summarise(correlation = round(cor(Length.off, Length.dam), 3), r2 = round(cor(Length.off, Length.dam)^2, 3)))
+  summarise(correlation = round(cor(Length.off, Length.dam), 3), r2 = round(cor(Length.off, Length.dam)^2, 3))
 
-(stock_parents_paired_14_16_length3 <- parents_paired_length() %>% 
+stock_parents_paired_14_16_length3 <- parents_paired_length() %>% 
   group_by(sex.sire, sex.off) %>%
-  summarise(correlation = round(cor(Length.off, Length.sire), 3), r2 = round(cor(Length.off, Length.sire)^2, 3)))
+  summarise(correlation = round(cor(Length.off, Length.sire), 3), r2 = round(cor(Length.off, Length.sire)^2, 3))
 
 # make dfs
 stock_parents_paired_14_16_length0_All <- as.data.frame(c(stock_parents_paired_14_16_length0[1,1], stock_parents_paired_14_16_length0[1,2]*2))
@@ -352,48 +371,76 @@ stock_slope_as_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", 
 Narrow-sense heritabilities (h\^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h\^2 = VA/VP) per Evans et al. (2019) [<https://link.springer.com/article/10.1007/s10592-019-01174-4>]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
 
 ```{r}
+# run linear model
 # lme4::lmer
+# fixed effects: offspring sex, parental brood year (doesn't matter for pinks), parental origin
+# random effects: offspring breeding value (deviation of the offspring of a given parent from the population average), parental ID
+
+# breeding values
+stock_triads_length_14_16_bv <- stock_triads_length_14_16 %>% 
+  mutate(Length.bv.off = stock_slope_as_h2_length_14_16[1,2] * (Length.off - mean(Length.off, na.rm = TRUE))) %>% 
+  mutate(Length.bv.dam = stock_slope_as_h2_length_14_16[1,2] * (Length.dam - mean(Length.dam, na.rm = TRUE))) %>% 
+  mutate(Length.bv.sire = stock_slope_as_h2_length_14_16[1,2] * (Length.sire - mean(Length.sire, na.rm = TRUE)))
+
 # overall
-# stock_h2_length_14_16_dam_sire <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = stock_triads_length_14_16, na.action = na.omit)
-stock_h2_length_14_16_dam_sire <- lmer(Length.off ~ Length.par + (1|Length.sire)+(1|Length.dam), 
-                                        data = stock_triads_length_14_16, 
+# stock_h2_length_14_16_dam_sire <- lmer(Length.off ~ Length.par + (1|Length.sire)+(1|Length.dam), 
+                                        # data = stock_triads_length_14_16, 
+                                        # na.action = na.omit)
+stock_h2_length_14_16_dam_sire <- lmer(Length.bv.off ~ Sex.off+Origin.dam+Origin.sire + (1|Parent_ID.sire)+(1|Parent_ID.dam)+(1|Length.bv.sire)+(1|Length.bv.dam), 
+                                        data = stock_triads_length_14_16_bv, 
                                         na.action = na.omit)
 (summary(stock_h2_length_14_16_dam_sire))
-stock_h2_length_14_16_all <- (0.00 + 13.35) / (0.00 + 13.35 + 482.61)
 plot(stock_h2_length_14_16_dam_sire)
 hist(resid(stock_h2_length_14_16_dam_sire))
 
 # by cross
-stock_h2_length_14_16_NN <- stock_triads_length_14_16 %>% filter(Cross == "NN")
-# stock_h2_length_14_16_dam_sire_NN <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = stock_h2_length_14_16_NN, na.action = na.omit)
-stock_h2_length_14_16_dam_sire_NN <- lmer(Length.off ~ Length.par + (1|Length.sire)+(1|Length.dam), 
+stock_h2_length_14_16_NN <- stock_triads_length_14_16_bv %>% filter(Cross == "NN")
+stock_h2_length_14_16_dam_sire_NN <- lmer(Length.bv.off ~ Sex.off + (1|Parent_ID.sire)+(1|Parent_ID.dam)+(1|Length.bv.sire)+(1|Length.bv.dam), 
                                           data = stock_h2_length_14_16_NN, 
                                           na.action = na.omit)
 (summary(stock_h2_length_14_16_dam_sire_NN))
-stock_h2_length_14_16_NN <- (0.00000000000002205 + 59.15) / (0.00000000000002205 + 59.15 + 482.3)
 
-stock_h2_length_14_16_NH <- stock_triads_length_14_16 %>% filter(Cross == "NH")
-# stock_h2_length_14_16_dam_sire_NH <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = stock_h2_length_14_16_NH, na.action = na.omit)
-stock_h2_length_14_16_dam_sire_NH <- lmer(Length.off ~ Length.par + (1|Length.sire)+(1|Length.dam), 
+stock_h2_length_14_16_NH <- stock_triads_length_14_16_bv %>% filter(Cross == "NH")
+stock_h2_length_14_16_dam_sire_NH <- lmer(Length.bv.off ~ Sex.off + (1|Parent_ID.sire)+(1|Parent_ID.dam)+(1|Length.bv.sire)+(1|Length.bv.dam), 
                                           data = stock_h2_length_14_16_NH, 
                                           na.action = na.omit)
 (summary(stock_h2_length_14_16_dam_sire_NH))
-stock_h2_length_14_16_NH <- (0.000003134 + 26.35) / (0.000003134 + 26.35 + 429.2)
 
-stock_h2_length_14_16_HN <- stock_triads_length_14_16 %>% filter(Cross == "HN")
-# stock_h2_length_14_16_dam_sire_HN <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = stock_h2_length_14_16_HN, na.action = na.omit)
-stock_h2_length_14_16_dam_sire_HN <- lmer(Length.off ~ Length.par + (1|Length.sire)+(1|Length.dam), 
+stock_h2_length_14_16_HN <- stock_triads_length_14_16_bv %>% filter(Cross == "HN")
+stock_h2_length_14_16_dam_sire_HN <- lmer(Length.bv.off ~ Sex.off + (1|Parent_ID.sire)+(1|Parent_ID.dam)+(1|Length.bv.sire)+(1|Length.bv.dam), 
                                           data = stock_h2_length_14_16_HN,
                                           na.action = na.omit)
 (summary(stock_h2_length_14_16_dam_sire_HN))
-stock_h2_length_14_16_HN <- (41.26 + 0.00) / (41.26 + 0.00 + 512.72)
 
-stock_h2_length_14_16_HH <- stock_triads_length_14_16 %>% filter(Cross == "HH")
-# stock_h2_length_14_16_dam_sire_HH <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = stock_h2_length_14_16_HH, na.action = na.omit)
-stock_h2_length_14_16_dam_sire_HH <- lmer(Length.off ~ Length.par + (1|Length.sire)+(1|Length.dam), 
+stock_h2_length_14_16_HH <- stock_triads_length_14_16_bv %>% filter(Cross == "HH")
+stock_h2_length_14_16_dam_sire_HH <- lmer(Length.bv.off ~ Sex.off + (1|Parent_ID.sire)+(1|Parent_ID.dam)+(1|Length.bv.sire)+(1|Length.bv.dam), 
                                           data = stock_h2_length_14_16_HH, 
                                           na.action = na.omit)
 (summary(stock_h2_length_14_16_dam_sire_HH))
+
+# by sex
+stock_h2_length_14_16_F <- stock_triads_length_14_16_bv %>% filter(Sex.off == "F")
+stock_h2_length_14_16_dam_sire_F <- lmer(Length.bv.off ~ Origin.dam+Origin.sire + (1|Parent_ID.sire)+(1|Parent_ID.dam)+(1|Length.bv.sire)+(1|Length.bv.dam), 
+                                         data = stock_h2_length_14_16_F, 
+                                         na.action = na.omit)
+(summary(stock_h2_length_14_16_dam_sire_F))
+
+stock_h2_length_14_16_M <- stock_triads_length_14_16_bv %>% filter(Sex.off == "M")
+stock_h2_length_14_16_dam_sire_M <- lmer(Length.bv.off ~ Origin.dam+Origin.sire + (1|Parent_ID.sire)+(1|Parent_ID.dam)+(1|Length.bv.sire)+(1|Length.bv.dam), 
+                                         data = stock_h2_length_14_16_M, 
+                                         na.action = na.omit)
+(summary(stock_h2_length_14_16_dam_sire_M))
+```
+
+```{r}
+# calc H^2 and make table
+# overall
+(stock_h2_length_14_16_all <- 374 / (0.00000000007264 + 374))
+
+# by cross
+stock_h2_length_14_16_NN <- (0.00000000000002205 + 59.15) / (0.00000000000002205 + 59.15 + 482.3)
+stock_h2_length_14_16_NH <- (0.000003134 + 26.35) / (0.000003134 + 26.35 + 429.2)
+stock_h2_length_14_16_HN <- (41.26 + 0.00) / (41.26 + 0.00 + 512.72)
 stock_h2_length_14_16_HH <- (0.00 + 19.17) / (0.00 + 19.17 + 300.66)
 
 # all offspring
@@ -401,21 +448,8 @@ stock_h2_length_14_16_dAll <- (13.357) / (0.00 + 13.35 + 482.61)
 stock_h2_length_14_16_sAll <- (0.00) / (0.00 + 13.35 + 482.61)
 
 # by sex
-stock_h2_length_14_16_F <- stock_triads_length_14_16 %>% filter(Sex.off == "F")
-# stock_h2_length_14_16_dam_sire_F <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = stock_h2_length_14_16_F, na.action = na.omit)
-stock_h2_length_14_16_dam_sire_F <- lmer(Length.off ~ Length.par + (1|Length.sire)+(1|Length.dam), 
-                                         data = stock_h2_length_14_16_F, 
-                                         na.action = na.omit)
-(summary(stock_h2_length_14_16_dam_sire_F))
 stock_h2_length_14_16_dam_F <- (29.54) / (0.00000000000000004950 + 39.54 + 299.0)
 stock_h2_length_14_16_sire_F <- (0.00000000000000004950) / (0.00000000000000004950 + 39.54 + 299.0)
-
-stock_h2_length_14_16_M <- stock_triads_length_14_16 %>% filter(Sex.off == "M")
-# stock_h2_length_14_16_dam_sire_M <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = stock_h2_length_14_16_M, na.action = na.omit)
-stock_h2_length_14_16_dam_sire_M <- lmer(Length.off ~ Length.par + (1|Length.sire)+(1|Length.dam), 
-                                         data = stock_h2_length_14_16_M, 
-                                         na.action = na.omit)
-(summary(stock_h2_length_14_16_dam_sire_M))
 stock_h2_length_14_16_dam_M <- (12.49) / (22.47 + 12.49 + 639.19)
 stock_h2_length_14_16_sire_M <- (22.47) / (22.47 + 12.49 + 639.19)
 
@@ -438,6 +472,7 @@ stock_am_for_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "D
 
 (stock_am_for_h2_length_14_16 <- stock_am_for_h2_length_14_16[,c(2,1)])
 ```
+
 
 ### *Results*
 
@@ -639,7 +674,6 @@ stock_h2_date_14_16_dam_sire <- lmer(DOY.off ~ DOY.par + (1|DOY.sire)+(1|DOY.dam
                                         data = stock_triads_date_14_16, 
                                         na.action = na.omit)
 (summary(stock_h2_date_14_16_dam_sire))
-stock_h2_date_14_16_all <- (1.753 + 0.00) / (1.753 + 0.00 + 49.522)
 plot(stock_h2_date_14_16_dam_sire)
 hist(resid(stock_h2_date_14_16_dam_sire))
 
@@ -650,7 +684,6 @@ stock_h2_date_14_16_dam_sire_NN <- lmer(DOY.off ~ DOY.par + (1|DOY.sire)+(1|DOY.
                                           data = stock_h2_date_14_16_NN, 
                                           na.action = na.omit)
 (summary(stock_h2_date_14_16_dam_sire_NN))
-stock_h2_date_14_16_NN <- (5.082 + 1.011) / (5.082 + 1.011 + 39.891)
 
 stock_h2_date_14_16_NH <- stock_triads_date_14_16 %>% filter(Cross == "NH")
 # stock_h2_date_14_16_dam_sire_NH <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = stock_h2_date_14_16_NH, na.action = na.omit)
@@ -658,7 +691,6 @@ stock_h2_date_14_16_dam_sire_NH <- lmer(DOY.off ~ DOY.par + (1|DOY.sire)+(1|DOY.
                                           data = stock_h2_date_14_16_NH, 
                                           na.action = na.omit)
 (summary(stock_h2_date_14_16_dam_sire_NH))
-stock_h2_date_14_16_NH <- (0.00 + 9.867) / (0.00 + 9.867 + 87.151)
 
 stock_h2_date_14_16_HN <- stock_triads_date_14_16 %>% filter(Cross == "HN")
 # stock_h2_date_14_16_dam_sire_HN <- lmer(DOY.off ~ (1|DOY.sire)+(1|date.dam), data = stock_h2_date_14_16_HN, na.action = na.omit)
@@ -666,7 +698,6 @@ stock_h2_date_14_16_dam_sire_HN <- lmer(DOY.off ~ DOY.par + (1|DOY.sire)+(1|DOY.
                                           data = stock_h2_date_14_16_HN,
                                           na.action = na.omit)
 (summary(stock_h2_date_14_16_dam_sire_HN))
-stock_h2_date_14_16_HN <- (26.14 + 0.00) / (26.14 + 0.00 + 34.04)
 
 stock_h2_date_14_16_HH <- stock_triads_date_14_16 %>% filter(Cross == "HH")
 # stock_h2_date_14_16_dam_sire_HH <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = stock_h2_date_14_16_HH, na.action = na.omit)
@@ -674,11 +705,8 @@ stock_h2_date_14_16_dam_sire_HH <- lmer(DOY.off ~ DOY.par + (1|DOY.sire)+(1|DOY.
                                           data = stock_h2_date_14_16_HH, 
                                           na.action = na.omit)
 (summary(stock_h2_date_14_16_dam_sire_HH))
-stock_h2_date_14_16_HH <- (25.39 + 0.00) / (25.39 + 0.00 + 29.25)
 
 # all offspring
-stock_h2_date_14_16_dAll <- (0.00) / (1.753 + 0.00 + 49.522)
-stock_h2_date_14_16_sAll <- (1.753) / (1.753 + 0.00 + 49.522)
 
 # by sex
 stock_h2_date_14_16_F <- stock_triads_date_14_16 %>% filter(Sex.off == "F")
@@ -687,8 +715,6 @@ stock_h2_date_14_16_dam_sire_F <- lmer(DOY.off ~ DOY.par + (1|DOY.sire)+(1|DOY.d
                                          data = stock_h2_date_14_16_F, 
                                          na.action = na.omit)
 (summary(stock_h2_date_14_16_dam_sire_F))
-stock_h2_date_14_16_dam_F <- (3.2257) / (3.2257 + 0.1196 + 39.6428)
-stock_h2_date_14_16_sire_F <- (0.1196) / (3.2257 + 0.1196 + 39.6428)
 
 stock_h2_date_14_16_M <- stock_triads_date_14_16 %>% filter(Sex.off == "M")
 # stock_h2_date_14_16_dam_sire_M <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = stock_h2_date_14_16_M, na.action = na.omit)
@@ -696,6 +722,28 @@ stock_h2_date_14_16_dam_sire_M <- lmer(DOY.off ~ DOY.par + (1|DOY.sire)+(1|DOY.d
                                          data = stock_h2_date_14_16_M, 
                                          na.action = na.omit)
 (summary(stock_h2_date_14_16_dam_sire_M))
+
+```
+
+```{r}
+# calc h^2 and make table
+
+# overall
+stock_h2_date_14_16_all <- (1.753 + 0.00) / (1.753 + 0.00 + 49.522)
+
+# by cross
+stock_h2_date_14_16_NN <- (5.082 + 1.011) / (5.082 + 1.011 + 39.891)
+stock_h2_date_14_16_NH <- (0.00 + 9.867) / (0.00 + 9.867 + 87.151)
+stock_h2_date_14_16_HN <- (26.14 + 0.00) / (26.14 + 0.00 + 34.04)
+stock_h2_date_14_16_HH <- (25.39 + 0.00) / (25.39 + 0.00 + 29.25)
+
+# all offspring
+stock_h2_date_14_16_dAll <- (0.00) / (1.753 + 0.00 + 49.522)
+stock_h2_date_14_16_sAll <- (1.753) / (1.753 + 0.00 + 49.522)
+
+# by sex
+stock_h2_date_14_16_dam_F <- (3.2257) / (3.2257 + 0.1196 + 39.6428)
+stock_h2_date_14_16_sire_F <- (0.1196) / (3.2257 + 0.1196 + 39.6428)
 stock_h2_date_14_16_dam_M <- (0.7172) / (0.00 + 0.7172 + 59.3910)
 stock_h2_date_14_16_sire_M <- (0.00) / (0.00 + 0.7172 + 59.3910)
 
@@ -940,13 +988,51 @@ stock_slope_as_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam
 ### Animal model
 
 ```{r}
-# lme4::glmer.nb
-# RS has a (probably zero-inflated) negative binomial distribution; lmer not appropriate for model fitting
+# run linear model
+
+# # lme4::glmer.nb
+# # RS has a (probably zero-inflated) negative binomial distribution; lmer not appropriate for model fitting
+# # the residual variance is fixed to (π^2)/3 in GLMMs with logistic regression (Nakagawa and Schielzeth. 2010. Biol. Rev. 85:935-956; Wu et al. 2012. Contempory Clinical Trials 33: 869-880)
+# 
+# # overall
+# stock_h2_rs_14_16_dam_sire <- glmer.nb(n.off ~ rs.par + (1|n.sire)+(1|n.dam), data = stock_triads_rs_14_16, na.action = na.omit)
+# (summary(stock_h2_rs_14_16_dam_sire))
+# plot(stock_h2_rs_14_16_dam_sire)
+# hist(resid(stock_h2_rs_14_16_dam_sire))
+# 
+# # by cross
+# stock_h2_rs_14_16_NN <- stock_triads_rs_14_16 %>% filter(Cross == "NN")
+# stock_h2_rs_14_16_dam_sire_NN <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_NN, na.action = na.omit)
+# (summary(stock_h2_rs_14_16_dam_sire_NN))
+# 
+# stock_h2_rs_14_16_NH <- stock_triads_rs_14_16 %>% filter(Cross == "NH")
+# stock_h2_rs_14_16_dam_sire_NH <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_NH, na.action = na.omit)
+# (summary(stock_h2_rs_14_16_dam_sire_NH))
+# 
+# stock_h2_rs_14_16_HN <- stock_triads_rs_14_16 %>% filter(Cross == "HN")
+# stock_h2_rs_14_16_dam_sire_HN <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_HN, na.action = na.omit)
+# (summary(stock_h2_rs_14_16_dam_sire_HN))
+# 
+# # stock_h2_rs_14_16_HH <- stock_triads_rs_14_16 %>% filter(Cross == "HH")
+# # stock_h2_rs_14_16_dam_sire_HH <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_HH, na.action = na.omit)
+# # (summary(stock_h2_rs_14_16_dam_sire_HH))
+# 
+# # by sex
+# stock_h2_rs_14_16_F <- stock_triads_rs_14_16 %>% filter(Sex.off == "F")
+# stock_h2_rs_14_16_dam_sire_F <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_F, na.action = na.omit)
+# (summary(stock_h2_rs_14_16_dam_sire_F))
+# 
+# stock_h2_rs_14_16_M <- stock_triads_rs_14_16 %>% filter(Sex.off == "M")
+# stock_h2_rs_14_16_dam_sire_M <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_M, na.action = na.omit)
+# (summary(stock_h2_rs_14_16_dam_sire_M))
+
+# mgcv::ziP??? or pscl
+# assuming RS has a zero-inflated negative binomial (or Poisson) distribution, we tried packages that incorporate zero-inflation for model fitting
 # the residual variance is fixed to (π^2)/3 in GLMMs with logistic regression (Nakagawa and Schielzeth. 2010. Biol. Rev. 85:935-956; Wu et al. 2012. Contempory Clinical Trials 33: 869-880)
+
 # overall
 stock_h2_rs_14_16_dam_sire <- glmer.nb(n.off ~ rs.par + (1|n.sire)+(1|n.dam), data = stock_triads_rs_14_16, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire))
-stock_h2_rs_14_16_all <- (0.0000000002037 + 0.00000000007082) / (0.0000000002037 + 0.00000000007082 + (pi * pi / 3))
 plot(stock_h2_rs_14_16_dam_sire)
 hist(resid(stock_h2_rs_14_16_dam_sire))
 
@@ -954,21 +1040,38 @@ hist(resid(stock_h2_rs_14_16_dam_sire))
 stock_h2_rs_14_16_NN <- stock_triads_rs_14_16 %>% filter(Cross == "NN")
 stock_h2_rs_14_16_dam_sire_NN <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_NN, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire_NN))
-stock_h2_rs_14_16_NN <- (0.000 + 0.000000000001826) / (0.000 + 0.000000000001826 + (pi * pi / 3))
 
 stock_h2_rs_14_16_NH <- stock_triads_rs_14_16 %>% filter(Cross == "NH")
 stock_h2_rs_14_16_dam_sire_NH <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_NH, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire_NH))
-stock_h2_rs_14_16_NH <- (0.000 + 0.000) / (0.000 + 0.000 + (pi * pi / 3))
 
 stock_h2_rs_14_16_HN <- stock_triads_rs_14_16 %>% filter(Cross == "HN")
 stock_h2_rs_14_16_dam_sire_HN <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_HN, na.action = na.omit)
 (summary(stock_h2_rs_14_16_dam_sire_HN))
-stock_h2_rs_14_16_HN <- (0.000 + 0.0000000000006283) / (0.000 + 0.0000000000006283 + (pi * pi / 3))
 
-# stock_h2_rs_14_16_HH <- stock_triads_rs_14_16 %>% filter(Cross == "HH")
-# stock_h2_rs_14_16_dam_sire_HH <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_HH, na.action = na.omit)
-# (summary(stock_h2_rs_14_16_dam_sire_HH))
+stock_h2_rs_14_16_HH <- stock_triads_rs_14_16 %>% filter(Cross == "HH")
+stock_h2_rs_14_16_dam_sire_HH <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_HH, na.action = na.omit)
+(summary(stock_h2_rs_14_16_dam_sire_HH))
+
+# by sex
+stock_h2_rs_14_16_F <- stock_triads_rs_14_16 %>% filter(Sex.off == "F")
+stock_h2_rs_14_16_dam_sire_F <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_F, na.action = na.omit)
+(summary(stock_h2_rs_14_16_dam_sire_F))
+
+stock_h2_rs_14_16_M <- stock_triads_rs_14_16 %>% filter(Sex.off == "M")
+stock_h2_rs_14_16_dam_sire_M <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_M, na.action = na.omit)
+(summary(stock_h2_rs_14_16_dam_sire_M))
+```
+```{r}
+# calc h^2 and make table
+
+# overall
+stock_h2_rs_14_16_all <- (0.0000000002037 + 0.00000000007082) / (0.0000000002037 + 0.00000000007082 + (pi * pi / 3))
+
+# by cross
+stock_h2_rs_14_16_NN <- (0.000 + 0.000000000001826) / (0.000 + 0.000000000001826 + (pi * pi / 3))
+stock_h2_rs_14_16_NH <- (0.000 + 0.000) / (0.000 + 0.000 + (pi * pi / 3))
+stock_h2_rs_14_16_HN <- (0.000 + 0.0000000000006283) / (0.000 + 0.0000000000006283 + (pi * pi / 3))
 stock_h2_rs_14_16_HH <- 0.000
 
 # all offspring
@@ -976,15 +1079,8 @@ stock_h2_rs_14_16_dAll <- (0.00000000007082) / (0.0000000002037 + 0.000000000070
 stock_h2_rs_14_16_sAll <- (0.0000000002037) / (0.0000000002037 + 0.00000000007082 + (pi * pi / 3))
 
 # by sex
-stock_h2_rs_14_16_F <- stock_triads_rs_14_16 %>% filter(Sex.off == "F")
-stock_h2_rs_14_16_dam_sire_F <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_F, na.action = na.omit)
-(summary(stock_h2_rs_14_16_dam_sire_F))
 stock_h2_rs_14_16_dam_F <- (0.2110) / (0.9592 + 0.2110 + (pi * pi / 3))
 stock_h2_rs_14_16_sire_F <- (0.9592) / (0.9592 + 0.2110 + (pi * pi / 3))
-
-stock_h2_rs_14_16_M <- stock_triads_rs_14_16 %>% filter(Sex.off == "M")
-stock_h2_rs_14_16_dam_sire_M <- glmer.nb(n.off ~ (1|n.sire)+(1|n.dam), data = stock_h2_rs_14_16_M, na.action = na.omit)
-(summary(stock_h2_rs_14_16_dam_sire_M))
 stock_h2_rs_14_16_dam_M <- (0.00000000006653) / (0.000000000001743 + 0.00000000006653 + (pi * pi / 3))
 stock_h2_rs_14_16_sire_M <- (0.000000000001743) / (0.000000000001743 + 0.00000000006653 + (pi * pi / 3))
 
