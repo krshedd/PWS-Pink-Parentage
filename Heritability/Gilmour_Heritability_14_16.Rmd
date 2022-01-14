@@ -1,7 +1,7 @@
 ---
 title: "Heritability of body length, sample date, location, and RS according to Cross Type and Parental/Offspring Sex for Gilmour 2014-2016"
 author: "Kristen Gruenthal"
-date: "30 July 2021"
+date: "13 January 2022"
 output:
   html_notebook:
     theme: united
@@ -12,7 +12,7 @@ editor_options:
 
 # **INTRODUCTION**
 
-The purpose of these analyses are to more fully explore the parent-pair offspring trio/triad data (i.e. cross data) for Gilmour Creek 2014-2016 in terms of spatiotemporal patterning and generate preliminary estimates of narrow-sense heritability using regression slope analysis. **NOTE: The bulk of 2016 origin data for Gilmour is missing as a result of the otolith shipping issue.**
+The purpose of these analyses are to more fully explore the parent-pair offspring trio/triad data (i.e. cross data) for Gilmour Creek 2014-2016 in terms of spatiotemporal patterning and generate preliminary estimates of narrow-sense heritability using regression slope analysis.
 
 ```{r setup, include=FALSE}
 rm(list=ls())
@@ -31,25 +31,24 @@ library(gganimate)
 library(broom)
 library(tidyr)
 library(purrr)
-library(MCMCglmm)
-library(lme4)
-library(lmerTest)
+library(gremlin)
+library(nadiv)
 
 knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.width = 10)
 ```
 
 # **WHO**
 
-Who are the two-parents, both dam and sire, for each cross type offspring and where were they sampled? Note: River kilometer not determined yet for Gilmour.
+Who are the two-parents, both dam and sire, for each cross type offspring and where were they sampled?
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-# gilmour_riverdist_14_16 <- read_csv("../../GIS/R/Gilmour/gilmour_distances.csv") %>% 
+# gilmour_riverdist_14_16 <- read_csv("../../GIS/R/gilmour/gilmour_distances.csv") %>% 
 #   mutate(Intertidal = case_when(dist2tide > 0 ~ "Upstream",
 #                                 dist2tide <= 0 ~ "Intertidal")) %>% 
 #   rename(Distance = mouthdist, Segment = seg)
-# 
-# gilmour_parents_paired_14_16_cross <- read_csv("../Gilmour/gilmour_parents_paired_14_16_cross.csv")
-# 
+
+gilmour_parents_paired_14_16_cross <- read_csv("../gilmour/gilmour_parents_paired_14_16_cross.csv")
+
 # # organize by sire and dam, join riverdist data
 # parents_paired_cross_riverdist_spacetime <- function(indata_spacetime = gilmour_parents_paired_14_16_cross, indata_riverdist = gilmour_riverdist_14_16) {
 #   indata_spacetime %>% 
@@ -104,7 +103,8 @@ Who are the two-parents, both dam and sire, for each cross type offspring and wh
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 # dyad relationships - one row per offspring
 gilmour_parents_paired_14_16 <- read_csv("../Gilmour/gilmour_parents_paired_14_16.csv") %>% 
-     mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
+  mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery"))) %>% 
+  filter(`Length Mm.par` > 300)
 
 # Read in paired data
 gilmour_postQA_OceanAK_paired_14_16 <- read_csv("../Franz/Gilmour_14_16_postQA_OceanAK_paired_2014_2016_GILMOUR.csv")
@@ -144,16 +144,20 @@ ods_relationships <- function(indata_ods = gilmour_parents_paired_14_16) {
 gilmour_offspring_dam_sire_14_16 <- ods_relationships()
 
 # Join back paired data to offspring, dam, and sire
-(gilmour_parents_paired_14_16_dam_sire <- gilmour_offspring_dam_sire_14_16 %>% 
-  left_join(gilmour_OceanAK_paired_14_16, by = c("Offspring" = "franz_id")) %>% 
-  left_join(gilmour_OceanAK_paired_14_16, by = c("Parent_ID.dam" = "franz_id"), suffix = c(".off", "")) %>% 
-  left_join(gilmour_OceanAK_paired_14_16, by = c("Parent_ID.sire" = "franz_id"), suffix = c(".dam", ".sire")) %>% 
+parents_paired_dam_sire <- function(indata_ods2 = gilmour_offspring_dam_sire_14_16, indata_OceanAK_paired2 = gilmour_OceanAK_paired_14_16) {
+  indata_ods2 %>% 
+  left_join(indata_OceanAK_paired2, by = c("Offspring" = "franz_id")) %>% 
+  left_join(indata_OceanAK_paired2, by = c("Parent_ID.dam" = "franz_id"), suffix = c(".off", "")) %>% 
+  left_join(indata_OceanAK_paired2, by = c("Parent_ID.sire" = "franz_id"), suffix = c(".dam", ".sire")) %>% 
   mutate(date.off = dmy(`Sample Date.off`),
          date.dam = dmy(`Sample Date.dam`),
-         date.sire = dmy(`Sample Date.sire`)) %>% 
+         date.sire = dmy(`Sample Date.sire`)) %>%
   mutate(DOY.off = yday(date.off),
          DOY.dam = yday(date.dam),
-         DOY.sire = yday(date.sire)))
+         DOY.sire = yday(date.sire))
+}
+
+(gilmour_parents_paired_14_16_dam_sire <- parents_paired_dam_sire())
 ```
 
 ## Triads - used for remaining analyses
@@ -169,7 +173,7 @@ triads <- function(indata_triads = gilmour_parents_paired_14_16_dam_sire) {
 
 # **HERITABILITY**
 
-For traits associated with fitness in natural populations, heritability is typically 0.1–0.2 (Wray and Visscher 2008 [https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/] per Visscher et al. 2008). 
+For traits associated with fitness in natural populations, heritability is typically 0.1--0.2 (Wray and Visscher 2008 [<https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/>] per Visscher et al. 2008).
 
 ## Body Length
 
@@ -185,53 +189,71 @@ triads_length <- function(indata_triads_length = gilmour_triads_14_16) {
 }
 
 gilmour_triads_length_14_16 <- triads_length()
+
+write_csv(gilmour_triads_length_14_16, "gilmour_triads_length_14_16.csv")
 ```
 
 ### Scatterplots
 
 ```{r}
-parents_paired_length_graph <- function(indata_parents_paired_length_graph = gilmour_parents_paired_14_16, title = "Gilmour_14_16\n\nRegression of Body Length by Sex") {
-  indata_parents_paired_length_graph %>% 
-  rename(length.par = "Length Mm.par", 
-         length.off = "Length Mm.off") %>% 
-  mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
-                             SEX.par == "M" ~ "Parent: Male")) %>% 
-  mutate(sex.off = case_when(SEX.off == "F" ~ "Offspring: Female",
-                             SEX.off == "M" ~ "Offspring: Male")) %>% 
-  group_by(sex.par, sex.off) %>%
-  ggplot(aes(x = length.par, y = length.off, colour = origin.par)) +
-  geom_abline(slope = 1) +
-  geom_jitter(alpha = 0.2) +
-  geom_smooth(method = "lm") +
-  facet_grid(sex.off ~ sex.par) +
-  labs(title = title,  colour = "Parent: Origin") +
-  xlab("Parent Length (mm)") +
-  ylab("Offspring Length (mm)") +
-  theme_bw() +
-  theme(text = element_text(size = 20))
-}
-
-parents_paired_length_graph()
-
-h2_length_graph <- function(indata_h2_length_graph = gilmour_triads_length_14_16, title = "Gilmour_14_16\n\nRegression of Body Length by Cross") {
+# overall
+h2_length_graph <- function(indata_h2_length_graph = gilmour_triads_length_14_16, title = "Gilmour_14_16\n\nRegression of Body Length") {
   indata_h2_length_graph %>% 
-  ggplot(aes(x = Length.par, y = Length.off, colour = Cross)) +
+  ggplot(aes(x = Length.par, y = Length.off)) +
   geom_abline(slope = 1) +
   geom_jitter(size = 2) +
   geom_smooth(method = "lm") +
-  labs(title = title, colour = "Parent: Origin") +
+  labs(title = title) +
   xlab("Mid-parent Length (mm)") +
   ylab("Offspring Length (mm)") +
   theme_bw() +
   theme(text = element_text(size = 20))
 }
 
+# by cross
+h2_length_graph_cross <- function(indata_h2_length_graph_cross = gilmour_triads_length_14_16, title = "Gilmour_14_16\n\nRegression of Body Length by Cross") {
+  indata_h2_length_graph_cross %>% 
+  ggplot(aes(x = Length.par, y = Length.off, colour = Cross)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title, colour = "Cross") +
+  xlab("Mid-parent Length (mm)") +
+  ylab("Offspring Length (mm)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+# by sex
+h2_length_graph_sex <- function(indata_parents_paired_length_graph = gilmour_parents_paired_14_16, title = "Gilmour_14_16\n\nRegression of Body Length by Sex") {
+  indata_parents_paired_length_graph %>% 
+  rename(length.par = "Length Mm.par", 
+         length.off = "Length Mm.off") %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Dam",
+                             SEX.par == "M" ~ "Sire")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Female",
+                             SEX.off == "M" ~ "Male")) %>% 
+  group_by(sex.par, sex.off) %>%
+  ggplot(aes(x = length.par, y = length.off, colour = origin.par)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(sex.off ~ sex.par) +
+  labs(title = title,  colour = "Parent Origin") +
+  xlab("Parent Length (mm)") +
+  ylab("Offspring Length (mm)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
 h2_length_graph()
+h2_length_graph_cross()
+h2_length_graph_sex()
 ```
 
 ### Correlation
 
-We estimate narrow-sense heritability here, as well as for location and sample date, from r = √(½)h^2.
+We estimate narrow-sense heritability here, as well as for location and sample date, from r = √(½)h\^2.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 parents_paired_length <- function(indata_triads_length = gilmour_triads_length_14_16) {
@@ -243,121 +265,176 @@ parents_paired_length <- function(indata_triads_length = gilmour_triads_length_1
                              Sex.off == "M" ~ "Male")) 
 }
 
-(gilmour_parents_paired_14_16_length1 <- parents_paired_length() %>% 
-  group_by(Cross) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
-(gilmour_parents_paired_14_16_length2 <- parents_paired_length() %>% 
-  group_by(sex.dam, sex.off) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
-(gilmour_parents_paired_14_16_length3 <- parents_paired_length() %>% 
-  group_by(sex.sire, sex.off) %>%
-  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+# overall
+gilmour_parents_paired_14_16_length0 <- parents_paired_length() %>% 
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
 
+# by cross
+gilmour_parents_paired_14_16_length1 <- parents_paired_length() %>% 
+  group_by(Cross) %>%
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
+
+# all offspring
+gilmour_parents_paired_14_16_length4 <- parents_paired_length() %>% 
+  group_by(sex.dam) %>%
+  summarise(correlation = round(cor(Length.off, Length.dam), 3), r2 = round(cor(Length.off, Length.dam)^2, 3))
+
+gilmour_parents_paired_14_16_length5 <- parents_paired_length() %>% 
+  group_by(sex.sire) %>%
+  summarise(correlation = round(cor(Length.off, Length.sire), 3), r2 = round(cor(Length.off, Length.sire)^2, 3))
+
+# by sex
+gilmour_parents_paired_14_16_length2 <- parents_paired_length() %>% 
+  group_by(sex.dam, sex.off) %>%
+  summarise(correlation = round(cor(Length.off, Length.dam), 3), r2 = round(cor(Length.off, Length.dam)^2, 3))
+
+gilmour_parents_paired_14_16_length3 <- parents_paired_length() %>% 
+  group_by(sex.sire, sex.off) %>%
+  summarise(correlation = round(cor(Length.off, Length.sire), 3), r2 = round(cor(Length.off, Length.sire)^2, 3))
+
+# make dfs
+gilmour_parents_paired_14_16_length0_All <- as.data.frame(c(gilmour_parents_paired_14_16_length0[1,1], gilmour_parents_paired_14_16_length0[1,2]*2))
 gilmour_parents_paired_14_16_length1_NN <- as.data.frame(c(gilmour_parents_paired_14_16_length1[4,2], gilmour_parents_paired_14_16_length1[4,3]*2))
 gilmour_parents_paired_14_16_length1_NH <- as.data.frame(c(gilmour_parents_paired_14_16_length1[3,2], gilmour_parents_paired_14_16_length1[3,3]*2))
 gilmour_parents_paired_14_16_length1_HN <- as.data.frame(c(gilmour_parents_paired_14_16_length1[2,2], gilmour_parents_paired_14_16_length1[2,3]*2))
 gilmour_parents_paired_14_16_length1_HH <- as.data.frame(c(gilmour_parents_paired_14_16_length1[1,2], gilmour_parents_paired_14_16_length1[1,3]*2))
+gilmour_parents_paired_14_16_length4_dAll <- as.data.frame(c(gilmour_parents_paired_14_16_length4[1,2], gilmour_parents_paired_14_16_length4[1,3]*2))
+gilmour_parents_paired_14_16_length5_sAll <- as.data.frame(c(gilmour_parents_paired_14_16_length5[1,2], gilmour_parents_paired_14_16_length5[1,3]*2))
 gilmour_parents_paired_14_16_length2_dF <- as.data.frame(c(gilmour_parents_paired_14_16_length2[1,3], gilmour_parents_paired_14_16_length2[1,4]*2))
 gilmour_parents_paired_14_16_length2_dM <- as.data.frame(c(gilmour_parents_paired_14_16_length2[2,3], gilmour_parents_paired_14_16_length2[2,4]*2))
 gilmour_parents_paired_14_16_length3_sF <- as.data.frame(c(gilmour_parents_paired_14_16_length3[1,3], gilmour_parents_paired_14_16_length3[1,4]*2))
 gilmour_parents_paired_14_16_length3_sM <- as.data.frame(c(gilmour_parents_paired_14_16_length3[2,3], gilmour_parents_paired_14_16_length3[2,4]*2))
 
-gilmour_r_and_h2_length_14_16 <- rbind(gilmour_parents_paired_14_16_length1_NN, gilmour_parents_paired_14_16_length1_NH, gilmour_parents_paired_14_16_length1_HN, gilmour_parents_paired_14_16_length1_HH, gilmour_parents_paired_14_16_length2_dF, gilmour_parents_paired_14_16_length2_dM, gilmour_parents_paired_14_16_length3_sF, gilmour_parents_paired_14_16_length3_sM) %>% round(3)
+gilmour_r_and_h2_length_14_16 <- rbind(gilmour_parents_paired_14_16_length0_All,
+                                     gilmour_parents_paired_14_16_length1_NN, 
+                                     gilmour_parents_paired_14_16_length1_NH, 
+                                     gilmour_parents_paired_14_16_length1_HN, 
+                                     gilmour_parents_paired_14_16_length1_HH,
+                                     gilmour_parents_paired_14_16_length4_dAll,
+                                     gilmour_parents_paired_14_16_length5_sAll,
+                                     gilmour_parents_paired_14_16_length2_dF, 
+                                     gilmour_parents_paired_14_16_length2_dM, 
+                                     gilmour_parents_paired_14_16_length3_sF, 
+                                     gilmour_parents_paired_14_16_length3_sM) %>%
+                                round(3)
+
 colnames(gilmour_r_and_h2_length_14_16) <- c("Correlation (r)", "Heritability (h^2)")
-gilmour_r_and_h2_length_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+gilmour_r_and_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
 (gilmour_r_and_h2_length_14_16 <- gilmour_r_and_h2_length_14_16[,c(3,1,2)])
 ```
 
 ### Slope
 
-If we use the parents' phenotypic variance as a measure of VP, we can estimate h^2 by solving for:
-trait_value_offspring = Cov_parent_offspring / Var_parent x trait_value_parent + c. The slope of the line (number under "estimate" for "Length.*" in the tibbles below) is mathematically equivalent to h^2.
+If we use the parents' phenotypic variance as a measure of VP, we can estimate h\^2 by solving for: trait_value_offspring = Cov_parent_offspring / Var_parent x trait_value_parent + c. The slope of the line (number under "estimate" for "Length.\*" in the tibbles below) is mathematically equivalent to h\^2.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# overall
+gilmour_h2_length_14_16_all_slope <- lm(Length.off ~ Length.par, data = gilmour_triads_length_14_16, na.action = na.omit)
+gilmour_h2_length_14_16_all_slope_tbl <- tidy(gilmour_h2_length_14_16_all_slope)
+
 # by cross
-gilmour_h2_length_14_16_all_tbl <- tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length_14_16))
-gilmour_h2_length_14_16_NN_tbl <- tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length_14_16 %>% filter(Cross == "NN")))
-gilmour_h2_length_14_16_NH_tbl <- tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length_14_16 %>% filter(Cross == "NH")))
-gilmour_h2_length_14_16_HN_tbl <- tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length_14_16 %>% filter(Cross == "HN")))
-gilmour_h2_length_14_16_HH_tbl <- tidy(lm(Length.off ~ Length.par, data = gilmour_triads_length_14_16 %>% filter(Cross == "HH")))
+gilmour_h2_length_14_16_NN_slope <- lm(Length.off ~ Length.par, data = gilmour_triads_length_14_16 %>% filter(Cross == "NN"), na.action = na.omit)
+gilmour_h2_length_14_16_NN_slope_tbl <- tidy(gilmour_h2_length_14_16_NN_slope)
+
+gilmour_h2_length_14_16_NH_slope <- lm(Length.off ~ Length.par, data = gilmour_triads_length_14_16 %>% filter(Cross == "NH"), na.action = na.omit)
+gilmour_h2_length_14_16_NH_slope_tbl <- tidy(gilmour_h2_length_14_16_NH_slope)
+
+gilmour_h2_length_14_16_HN_slope <- lm(Length.off ~ Length.par, data = gilmour_triads_length_14_16 %>% filter(Cross == "HN"), na.action = na.omit)
+gilmour_h2_length_14_16_HN_slope_tbl <- tidy(gilmour_h2_length_14_16_HN_slope)
+
+gilmour_h2_length_14_16_HH_slope <- lm(Length.off ~ Length.par, data = gilmour_triads_length_14_16 %>% filter(Cross == "HH"), na.action = na.omit)
+gilmour_h2_length_14_16_HH_slope_tbl <- tidy(gilmour_h2_length_14_16_HH_slope)
+
+# all offspring
+gilmour_h2_length_14_16_dam_slope <- lm(Length.off ~ Length.dam, data = gilmour_triads_length_14_16, na.action = na.omit)
+gilmour_h2_length_14_16_dam_slope_tbl <- tidy(gilmour_h2_length_14_16_dam_slope)
+
+gilmour_h2_length_14_16_sire_slope <- lm(Length.off ~ Length.sire, data = gilmour_triads_length_14_16, na.action = na.omit)
+gilmour_h2_length_14_16_sire_slope_tbl <- tidy(gilmour_h2_length_14_16_sire_slope)
 
 # by sex
-gilmour_h2_length_14_16_dam_tbl <- tidy(lm(Length.off ~ Length.dam, data = gilmour_triads_length_14_16))
-gilmour_h2_length_14_16_sire_tbl <- tidy(lm(Length.off ~ Length.sire, data = gilmour_triads_length_14_16))
-gilmour_h2_length_14_16_dF_tbl <- tidy(lm(Length.off ~ Length.dam, data = gilmour_triads_length_14_16 %>% filter(Sex.off == "F")))
-gilmour_h2_length_14_16_dM_tbl <- tidy(lm(Length.off ~ Length.dam, data = gilmour_triads_length_14_16 %>% filter(Sex.off == "M")))
-gilmour_h2_length_14_16_sF_tbl <- tidy(lm(Length.off ~ Length.sire, data = gilmour_triads_length_14_16 %>% filter(Sex.off == "F")))
-gilmour_h2_length_14_16_sM_tbl <- tidy(lm(Length.off ~ Length.sire, data = gilmour_triads_length_14_16 %>% filter(Sex.off == "M")))
+gilmour_h2_length_14_16_dF_slope <- lm(Length.off ~ Length.dam, data = gilmour_triads_length_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+gilmour_h2_length_14_16_dF_slope_tbl <- tidy(gilmour_h2_length_14_16_dF_slope)
 
-gilmour_slope_as_h2_length_14_16 <- as.data.frame(rbind(gilmour_h2_length_14_16_all_tbl[2,2], gilmour_h2_length_14_16_NN_tbl[2,2], gilmour_h2_length_14_16_NH_tbl[2,2], gilmour_h2_length_14_16_HN_tbl[2,2], gilmour_h2_length_14_16_HH_tbl[2,2], gilmour_h2_length_14_16_dam_tbl[2,2], gilmour_h2_length_14_16_sire_tbl[2,2], gilmour_h2_length_14_16_dF_tbl[2,2], gilmour_h2_length_14_16_dM_tbl[2,2], gilmour_h2_length_14_16_sF_tbl[2,2], gilmour_h2_length_14_16_sM_tbl[2,2]) %>% round(3))
-colnames(gilmour_slope_as_h2_length_14_16) <- c("Heritability (h^2)")
+gilmour_h2_length_14_16_dM_slope <- lm(Length.off ~ Length.dam, data = gilmour_triads_length_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+gilmour_h2_length_14_16_dM_slope_tbl <- tidy(gilmour_h2_length_14_16_dM_slope)
+
+gilmour_h2_length_14_16_sF_slope <- lm(Length.off ~ Length.sire, data = gilmour_triads_length_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+gilmour_h2_length_14_16_sF_slope_tbl <- tidy(gilmour_h2_length_14_16_sF_slope)
+
+gilmour_h2_length_14_16_sM_slope <- lm(Length.off ~ Length.sire, data = gilmour_triads_length_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+gilmour_h2_length_14_16_sM_slope_tbl <- tidy(gilmour_h2_length_14_16_sM_slope)
+
+# make df
+gilmour_slope_as_h2_length_14_16 <- as.data.frame(cbind((rbind(gilmour_h2_length_14_16_all_slope_tbl[2,2], 
+                                                      gilmour_h2_length_14_16_NN_slope_tbl[2,2], 
+                                                      gilmour_h2_length_14_16_NH_slope_tbl[2,2], 
+                                                      gilmour_h2_length_14_16_HN_slope_tbl[2,2], 
+                                                      gilmour_h2_length_14_16_HH_slope_tbl[2,2], 
+                                                      gilmour_h2_length_14_16_dam_slope_tbl[2,2], 
+                                                      gilmour_h2_length_14_16_sire_slope_tbl[2,2], 
+                                                      gilmour_h2_length_14_16_dF_slope_tbl[2,2], 
+                                                      gilmour_h2_length_14_16_dM_slope_tbl[2,2], 
+                                                      gilmour_h2_length_14_16_sF_slope_tbl[2,2], 
+                                                      gilmour_h2_length_14_16_sM_slope_tbl[2,2]) %>% 
+                                                  round(3)),
+                                                  (rbind(gilmour_h2_length_14_16_all_slope_tbl[2,3], 
+                                                      gilmour_h2_length_14_16_NN_slope_tbl[2,3], 
+                                                      gilmour_h2_length_14_16_NH_slope_tbl[2,3], 
+                                                      gilmour_h2_length_14_16_HN_slope_tbl[2,3], 
+                                                      gilmour_h2_length_14_16_HH_slope_tbl[2,3], 
+                                                      gilmour_h2_length_14_16_dam_slope_tbl[2,3], 
+                                                      gilmour_h2_length_14_16_sire_slope_tbl[2,3], 
+                                                      gilmour_h2_length_14_16_dF_slope_tbl[2,3], 
+                                                      gilmour_h2_length_14_16_dM_slope_tbl[2,3], 
+                                                      gilmour_h2_length_14_16_sF_slope_tbl[2,3], 
+                                                      gilmour_h2_length_14_16_sM_slope_tbl[2,3]) %>% 
+                                                  round(3)),
+                                                  (rbind(gilmour_h2_length_14_16_all_slope_tbl[2,5], 
+                                                      gilmour_h2_length_14_16_NN_slope_tbl[2,5], 
+                                                      gilmour_h2_length_14_16_NH_slope_tbl[2,5], 
+                                                      gilmour_h2_length_14_16_HN_slope_tbl[2,5], 
+                                                      gilmour_h2_length_14_16_HH_slope_tbl[2,5], 
+                                                      gilmour_h2_length_14_16_dam_slope_tbl[2,5], 
+                                                      gilmour_h2_length_14_16_sire_slope_tbl[2,5], 
+                                                      gilmour_h2_length_14_16_dF_slope_tbl[2,5], 
+                                                      gilmour_h2_length_14_16_dM_slope_tbl[2,5], 
+                                                      gilmour_h2_length_14_16_sF_slope_tbl[2,5], 
+                                                      gilmour_h2_length_14_16_sM_slope_tbl[2,5]) %>% 
+                                                  round(3))))
+
+colnames(gilmour_slope_as_h2_length_14_16) <- c("Heritability (h^2)", "+/- SE", "P")
 gilmour_slope_as_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
-(gilmour_slope_as_h2_length_14_16 <- gilmour_slope_as_h2_length_14_16[,c(2,1)])
+
+(gilmour_slope_as_h2_length_14_16 <- gilmour_slope_as_h2_length_14_16[,c(4,1,2,3)])
 ```
 
-### Animal model
+### ~~~~~~~~~~~~~~~~~~~Animal model
 
-Narrow-sense heritabilities (h^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h^2 = VA/VP) per Evans et al. (2019) [https://link.springer.com/article/10.1007/s10592-019-01174-4]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
+Narrow-sense heritabilities (h\^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h\^2 = VA/VP) per Evans et al. (2019) [<https://link.springer.com/article/10.1007/s10592-019-01174-4>]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
 
 ```{r}
-gilmour_h2_length_14_16_dam_sire <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = gilmour_triads_length_14_16, na.action = na.omit)
-(summary(gilmour_h2_length_14_16_dam_sire))
-plot(gilmour_h2_length_14_16_dam_sire)
-hist(resid(gilmour_h2_length_14_16_dam_sire))
 
-gilmour_h2_length_14_16_NN <- gilmour_triads_length_14_16 %>% filter(Cross == "NN")
-gilmour_h2_length_14_16_dam_sire_NN <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = gilmour_h2_length_14_16_NN, na.action = na.omit)
-(summary(gilmour_h2_length_14_16_dam_sire_NN))
-
-gilmour_h2_length_14_16_NH <- gilmour_triads_length_14_16 %>% filter(Cross == "NH")
-gilmour_h2_length_14_16_dam_sire_NH <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = gilmour_h2_length_14_16_NH, na.action = na.omit)
-(summary(gilmour_h2_length_14_16_dam_sire_NH))
-
-gilmour_h2_length_14_16_HN <- gilmour_triads_length_14_16 %>% filter(Cross == "HN")
-gilmour_h2_length_14_16_dam_sire_HN <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = gilmour_h2_length_14_16_HN, na.action = na.omit)
-(summary(gilmour_h2_length_14_16_dam_sire_HN))
-
-gilmour_h2_length_14_16_HH <- gilmour_triads_length_14_16 %>% filter(Cross == "HH")
-gilmour_h2_length_14_16_dam_sire_HH <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = gilmour_h2_length_14_16_HH, na.action = na.omit)
-(summary(gilmour_h2_length_14_16_dam_sire_HH))
-
-gilmour_h2_length_14_16_F <- gilmour_triads_length_14_16 %>% filter(Sex.off == "F")
-gilmour_h2_length_14_16_dam_sire_F <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = gilmour_h2_length_14_16_F, na.action = na.omit)
-(summary(gilmour_h2_length_14_16_dam_sire_F))
-
-gilmour_h2_length_14_16_M <- gilmour_triads_length_14_16 %>% filter(Sex.off == "M")
-gilmour_h2_length_14_16_dam_sire_M <- lmer(Length.off ~ (1|Length.sire)+(1|Length.dam), data = gilmour_h2_length_14_16_M, na.action = na.omit)
-(summary(gilmour_h2_length_14_16_dam_sire_M))
-
-gilmour_h2_length_14_16_all <- 17.64 / (17.64 + 0.00 + 474.84)
-gilmour_h2_length_14_16_NN <- (47.25 + 70.31) / (47.25 + 70.31 + 441.91)
-gilmour_h2_length_14_16_NH <- 0.00 / (0.00 + 0.00 + 326.5)
-gilmour_h2_length_14_16_HN <- (196.536 + 9.784) / (196.536 + 9.784 + 539.361)
-gilmour_h2_length_14_16_HH <- 37.41 / (0.00 + 37.41 + 406.01)
-gilmour_h2_length_14_16_dam_F <- 39.85 / (80.32 + 39.85 + 280.48)
-gilmour_h2_length_14_16_sire_F <- 80.32 / (80.32 + 39.85 + 280.48)
-gilmour_h2_length_14_16_dam_M <- 0.00 / (0.00 + 0.00 + 592.7)
-gilmour_h2_length_14_16_sire_M <- 0.00 / (0.00 + 0.00 + 592.7)
-
-gilmour_am_for_h2_length_14_16 <- as.data.frame(c(gilmour_h2_length_14_16_all, gilmour_h2_length_14_16_NN, gilmour_h2_length_14_16_NH, gilmour_h2_length_14_16_HN, gilmour_h2_length_14_16_HH, gilmour_h2_length_14_16_dam_F, gilmour_h2_length_14_16_dam_M, gilmour_h2_length_14_16_sire_F, gilmour_h2_length_14_16_sire_M)) %>% round(3)
-colnames(gilmour_am_for_h2_length_14_16) <- c("Heritability (h^2)")
-gilmour_am_for_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
-(gilmour_am_for_h2_length_14_16 <- gilmour_am_for_h2_length_14_16[,c(2,1)])
 ```
-
-### *Results*
 
 ```{r}
-gilmour_r_and_h2_length_14_16 <- gilmour_r_and_h2_length_14_16[,c(1,3)]
 
-gilmour_h2_length_14_16 <- merge(gilmour_r_and_h2_length_14_16, gilmour_slope_as_h2_length_14_16,  by="Category") %>% 
-    merge(gilmour_am_for_h2_length_14_16, by="Category") %>% 
-    rename(gilmour_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
-(gilmour_h2_length_14_16 <- gilmour_h2_length_14_16[c(6,5,4,3,1,2,7,8),])
 ```
 
-There is some evidence for heritability of body size for certain crosses, although cross data is confounded by missing origin info in 2018.
 
+### ~~~~~~~~~~~~~~~~~~~*Summary*
+
+```{r}
+# gilmour_r_and_h2_length_14_16 <- gilmour_r_and_h2_length_14_16[,c(1,3)]
+# 
+# gilmour_h2_length_14_16 <- merge(gilmour_r_and_h2_length_14_16, gilmour_slope_as_h2_length_14_16,  by="Category") %>% 
+#     merge(gilmour_am_for_h2_length_14_16, by="Category") %>% 
+#     rename(Gilmour_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
+# (gilmour_h2_length_14_16 <- gilmour_h2_length_14_16[c(8,7,6,5,4,1,9,2,3,10,11),])
+```
+
+Some evidence for heritability of body size, but it is sporadic and not overly consistent among methods.
 
 ## Sample Date
 
@@ -378,48 +455,64 @@ gilmour_triads_date_14_16 <- triads_date()
 ### Scatterplots
 
 ```{r}
-parents_paired_date_graph <- function(indata_parents_paired_date_graph = gilmour_parents_paired_14_16, title = "Gilmour_14_16\n\nRegression of Sample Date by Sex") {
+# overall
+h2_date_graph <- function(indata_h2_date_graph = gilmour_triads_date_14_16, title = "Gilmour_14_16\n\nRegression of Sample Date") {
+  indata_h2_date_graph %>% 
+  ggplot(aes(x = DOY.par, y = DOY.off)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title) +
+  xlab("Mid-parent DOY") +
+  ylab("Offspring DOY") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+# by cross
+h2_date_graph_cross <- function(indata_h2_date_graph = gilmour_triads_date_14_16, title = "Gilmour_14_16\n\nRegression of Sample Date by Cross") {
+  indata_h2_date_graph %>% 
+  ggplot(aes(x = DOY.par, y = DOY.off, colour = Cross)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title, colour = "Cross") +
+  xlab("Mid-parent DOY") +
+  ylab("Offspring DOY") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+# by sex
+h2_date_graph_sex <- function(indata_parents_paired_date_graph = gilmour_parents_paired_14_16, title = "Gilmour_14_16\n\nRegression of Sample Date by Sex") {
   indata_parents_paired_date_graph %>% 
   rename(DOY.par = "DOY.par", 
          DOY.off = "DOY.off") %>% 
-  mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
-                             SEX.par == "M" ~ "Parent: Male")) %>% 
-  mutate(sex.off = case_when(SEX.off == "F" ~ "Offspring: Female",
-                             SEX.off == "M" ~ "Offspring: Male")) %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Dam",
+                             SEX.par == "M" ~ "Sire")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Female",
+                             SEX.off == "M" ~ "Male")) %>% 
   group_by(sex.par, sex.off) %>%
   ggplot(aes(x = DOY.par, y = DOY.off, colour = origin.par)) +
   geom_abline(slope = 1) +
   geom_jitter(alpha = 0.2) +
   geom_smooth(method = "lm") +
   facet_grid(sex.off ~ sex.par) +
-  labs(title = title,  colour = "Parent: Origin") +
-  xlab("Parent DOY (mm)") +
-  ylab("Offspring DOY (mm)") +
-  theme_bw() +
-  theme(text = element_text(size = 20))
-}
-
-parents_paired_date_graph()
-
-h2_date_graph <- function(indata_h2_date_graph = gilmour_triads_date_14_16, title = "Gilmour_14_16\n\nRegression of Sample Date by Cross") {
-  indata_h2_date_graph %>% 
-  ggplot(aes(x = DOY.par, y = DOY.off, colour = Cross)) +
-  geom_abline(slope = 1) +
-  geom_jitter(size = 2) +
-  geom_smooth(method = "lm") +
-  labs(title = title, colour = "Parent: Origin") +
-  xlab("Mid-parent DOY (mm)") +
-  ylab("Offspring DOY (mm)") +
+  labs(title = title,  colour = "Parent Origin") +
+  xlab("Parent DOY") +
+  ylab("Offspring DOY") +
   theme_bw() +
   theme(text = element_text(size = 20))
 }
 
 h2_date_graph()
+h2_date_graph_cross()
+h2_date_graph_sex()
 ```
 
 ### Correlation
 
-We estimate narrow-sense heritability here, as well as for location and sample date, from r = √(½)h^2.
+We estimate narrow-sense heritability here, as well as for location and sample date, from r = √(½)h\^2.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 parents_paired_date <- function(indata_triads_date = gilmour_triads_date_14_16) {
@@ -431,160 +524,176 @@ parents_paired_date <- function(indata_triads_date = gilmour_triads_date_14_16) 
                              Sex.off == "M" ~ "Male")) 
 }
 
+# overall
+(gilmour_parents_paired_14_16_date0 <- parents_paired_date() %>% 
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+
+# by cross
 (gilmour_parents_paired_14_16_date1 <- parents_paired_date() %>% 
   group_by(Cross) %>%
   summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+
+# all offspring
+(gilmour_parents_paired_14_16_date4 <- parents_paired_date() %>% 
+  group_by(sex.dam) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.dam), 3), r2 = round(cor(DOY.off, DOY.dam)^2, 3)))
+
+(gilmour_parents_paired_14_16_date5 <- parents_paired_date() %>% 
+  group_by(sex.sire) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.sire), 3), r2 = round(cor(DOY.off, DOY.sire)^2, 3)))
+
+# by sex
 (gilmour_parents_paired_14_16_date2 <- parents_paired_date() %>% 
   group_by(sex.dam, sex.off) %>%
-  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+  summarise(correlation = round(cor(DOY.off, DOY.dam), 3), r2 = round(cor(DOY.off, DOY.dam)^2, 3)))
+
 (gilmour_parents_paired_14_16_date3 <- parents_paired_date() %>% 
   group_by(sex.sire, sex.off) %>%
-  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+  summarise(correlation = round(cor(DOY.off, DOY.sire), 3), r2 = round(cor(DOY.off, DOY.sire)^2, 3)))
 
+# make dfs
+gilmour_parents_paired_14_16_date0_All <- as.data.frame(c(gilmour_parents_paired_14_16_date0[1,1], gilmour_parents_paired_14_16_date0[1,2]*2))
 gilmour_parents_paired_14_16_date1_NN <- as.data.frame(c(gilmour_parents_paired_14_16_date1[4,2], gilmour_parents_paired_14_16_date1[4,3]*2))
 gilmour_parents_paired_14_16_date1_NH <- as.data.frame(c(gilmour_parents_paired_14_16_date1[3,2], gilmour_parents_paired_14_16_date1[3,3]*2))
 gilmour_parents_paired_14_16_date1_HN <- as.data.frame(c(gilmour_parents_paired_14_16_date1[2,2], gilmour_parents_paired_14_16_date1[2,3]*2))
 gilmour_parents_paired_14_16_date1_HH <- as.data.frame(c(gilmour_parents_paired_14_16_date1[1,2], gilmour_parents_paired_14_16_date1[1,3]*2))
+gilmour_parents_paired_14_16_date4_dAll <- as.data.frame(c(gilmour_parents_paired_14_16_date4[1,2], gilmour_parents_paired_14_16_date4[1,3]*2))
+gilmour_parents_paired_14_16_date5_sAll <- as.data.frame(c(gilmour_parents_paired_14_16_date5[1,2], gilmour_parents_paired_14_16_date5[1,3]*2))
 gilmour_parents_paired_14_16_date2_dF <- as.data.frame(c(gilmour_parents_paired_14_16_date2[1,3], gilmour_parents_paired_14_16_date2[1,4]*2))
 gilmour_parents_paired_14_16_date2_dM <- as.data.frame(c(gilmour_parents_paired_14_16_date2[2,3], gilmour_parents_paired_14_16_date2[2,4]*2))
 gilmour_parents_paired_14_16_date3_sF <- as.data.frame(c(gilmour_parents_paired_14_16_date3[1,3], gilmour_parents_paired_14_16_date3[1,4]*2))
 gilmour_parents_paired_14_16_date3_sM <- as.data.frame(c(gilmour_parents_paired_14_16_date3[2,3], gilmour_parents_paired_14_16_date3[2,4]*2))
 
-gilmour_r_and_h2_date_14_16 <- rbind(gilmour_parents_paired_14_16_date1_NN, gilmour_parents_paired_14_16_date1_NH, gilmour_parents_paired_14_16_date1_HN, gilmour_parents_paired_14_16_date1_HH, gilmour_parents_paired_14_16_date2_dF, gilmour_parents_paired_14_16_date2_dM, gilmour_parents_paired_14_16_date3_sF, gilmour_parents_paired_14_16_date3_sM) %>% round(3)
+gilmour_r_and_h2_date_14_16 <- rbind(gilmour_parents_paired_14_16_date0_All,
+                                     gilmour_parents_paired_14_16_date1_NN, 
+                                     gilmour_parents_paired_14_16_date1_NH, 
+                                     gilmour_parents_paired_14_16_date1_HN, 
+                                     gilmour_parents_paired_14_16_date1_HH,
+                                     gilmour_parents_paired_14_16_date4_dAll,
+                                     gilmour_parents_paired_14_16_date5_sAll,
+                                     gilmour_parents_paired_14_16_date2_dF, 
+                                     gilmour_parents_paired_14_16_date2_dM, 
+                                     gilmour_parents_paired_14_16_date3_sF, 
+                                     gilmour_parents_paired_14_16_date3_sM) %>%
+                                round(3)
+
 colnames(gilmour_r_and_h2_date_14_16) <- c("Correlation (r)", "Heritability (h^2)")
-gilmour_r_and_h2_date_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+gilmour_r_and_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
 (gilmour_r_and_h2_date_14_16 <- gilmour_r_and_h2_date_14_16[,c(3,1,2)])
 ```
 
 ### Slope
 
-If we use the parents' phenotypic variance as a measure of VP, we can estimate h^2 by solving for:
-trait_value_offspring = Cov_parent_offspring / Var_parent x trait_value_parent + c. The slope of the line is mathematically equivalent to h^2.
+If we use the parents' phenotypic variance as a measure of VP, we can estimate h\^2 by solving for: trait_value_offspring = Cov_parent_offspring / Var_parent x trait_value_parent + c. The slope of the line is mathematically equivalent to h\^2.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# overall
+gilmour_h2_date_14_16_all_slope <- lm(DOY.off ~ DOY.par, data = gilmour_triads_date_14_16, na.action = na.omit)
+gilmour_h2_date_14_16_all_slope_tbl <- tidy(gilmour_h2_date_14_16_all_slope)
+
 # by cross
-gilmour_h2_date_14_16_all_tbl <- tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date_14_16))
-gilmour_h2_date_14_16_NN_tbl <- tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date_14_16 %>% filter(Cross == "NN")))
-gilmour_h2_date_14_16_NH_tbl <- tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date_14_16 %>% filter(Cross == "NH")))
-gilmour_h2_date_14_16_HN_tbl <- tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date_14_16 %>% filter(Cross == "HN")))
-gilmour_h2_date_14_16_HH_tbl <- tidy(lm(DOY.off ~ DOY.par, data = gilmour_triads_date_14_16 %>% filter(Cross == "HH")))
+gilmour_h2_date_14_16_NN_slope <- lm(DOY.off ~ DOY.par, data = gilmour_triads_date_14_16 %>% filter(Cross == "NN"), na.action = na.omit)
+gilmour_h2_date_14_16_NN_slope_tbl <- tidy(gilmour_h2_date_14_16_NN_slope)
+
+gilmour_h2_date_14_16_NH_slope <- lm(DOY.off ~ DOY.par, data = gilmour_triads_date_14_16 %>% filter(Cross == "NH"), na.action = na.omit)
+gilmour_h2_date_14_16_NH_slope_tbl <- tidy(gilmour_h2_date_14_16_NH_slope)
+
+gilmour_h2_date_14_16_HN_slope <- lm(DOY.off ~ DOY.par, data = gilmour_triads_date_14_16 %>% filter(Cross == "HN"), na.action = na.omit)
+gilmour_h2_date_14_16_HN_slope_tbl <- tidy(gilmour_h2_date_14_16_HN_slope)
+
+gilmour_h2_date_14_16_HH_slope <- lm(DOY.off ~ DOY.par, data = gilmour_triads_date_14_16 %>% filter(Cross == "HH"), na.action = na.omit)
+gilmour_h2_date_14_16_HH_slope_tbl <- tidy(gilmour_h2_date_14_16_HH_slope)
+
+# all offspring
+gilmour_h2_date_14_16_dam_slope <- lm(DOY.off ~ DOY.dam, data = gilmour_triads_date_14_16, na.action = na.omit)
+gilmour_h2_date_14_16_dam_slope_tbl <- tidy(gilmour_h2_date_14_16_dam_slope)
+
+gilmour_h2_date_14_16_sire_slope <- lm(DOY.off ~ DOY.sire, data = gilmour_triads_date_14_16, na.action = na.omit)
+gilmour_h2_date_14_16_sire_slope_tbl <- tidy(gilmour_h2_date_14_16_sire_slope)
 
 # by sex
-gilmour_h2_date_14_16_dam_tbl <- tidy(lm(DOY.off ~ DOY.dam, data = gilmour_triads_date_14_16))
-gilmour_h2_date_14_16_sire_tbl <- tidy(lm(DOY.off ~ DOY.sire, data = gilmour_triads_date_14_16))
-gilmour_h2_date_14_16_dF_tbl <- tidy(lm(DOY.off ~ DOY.dam, data = gilmour_triads_date_14_16 %>% filter(Sex.off == "F")))
-gilmour_h2_date_14_16_dM_tbl <- tidy(lm(DOY.off ~ DOY.dam, data = gilmour_triads_date_14_16 %>% filter(Sex.off == "M")))
-gilmour_h2_date_14_16_sF_tbl <- tidy(lm(DOY.off ~ DOY.sire, data = gilmour_triads_date_14_16 %>% filter(Sex.off == "F")))
-gilmour_h2_date_14_16_sM_tbl <- tidy(lm(DOY.off ~ DOY.sire, data = gilmour_triads_date_14_16 %>% filter(Sex.off == "M")))
+gilmour_h2_date_14_16_dF_slope <- lm(DOY.off ~ DOY.dam, data = gilmour_triads_date_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+gilmour_h2_date_14_16_dF_slope_tbl <- tidy(gilmour_h2_date_14_16_dF_slope)
 
-gilmour_slope_as_h2_date_14_16 <- rbind(gilmour_h2_date_14_16_all_tbl[2,2], gilmour_h2_date_14_16_NN_tbl[2,2], gilmour_h2_date_14_16_NH_tbl[2,2], gilmour_h2_date_14_16_HN_tbl[2,2], gilmour_h2_date_14_16_HH_tbl[2,2], gilmour_h2_date_14_16_dam_tbl[2,2], gilmour_h2_date_14_16_sire_tbl[2,2], gilmour_h2_date_14_16_dF_tbl[2,2], gilmour_h2_date_14_16_dM_tbl[2,2], gilmour_h2_date_14_16_sF_tbl[2,2], gilmour_h2_date_14_16_sM_tbl[2,2]) %>% round(3)
-colnames(gilmour_slope_as_h2_date_14_16) <- c("Heritability (h^2)")
+gilmour_h2_date_14_16_dM_slope <- lm(DOY.off ~ DOY.dam, data = gilmour_triads_date_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+gilmour_h2_date_14_16_dM_slope_tbl <- tidy(gilmour_h2_date_14_16_dM_slope)
+
+gilmour_h2_date_14_16_sF_slope <- lm(DOY.off ~ DOY.sire, data = gilmour_triads_date_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+gilmour_h2_date_14_16_sF_slope_tbl <- tidy(gilmour_h2_date_14_16_sF_slope)
+
+gilmour_h2_date_14_16_sM_slope <- lm(DOY.off ~ DOY.sire, data = gilmour_triads_date_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+gilmour_h2_date_14_16_sM_slope_tbl <- tidy(gilmour_h2_date_14_16_sM_slope)
+
+# make df
+gilmour_slope_as_h2_date_14_16 <- as.data.frame(cbind((rbind(gilmour_h2_date_14_16_all_slope_tbl[2,2], 
+                                                      gilmour_h2_date_14_16_NN_slope_tbl[2,2], 
+                                                      gilmour_h2_date_14_16_NH_slope_tbl[2,2], 
+                                                      gilmour_h2_date_14_16_HN_slope_tbl[2,2], 
+                                                      gilmour_h2_date_14_16_HH_slope_tbl[2,2], 
+                                                      gilmour_h2_date_14_16_dam_slope_tbl[2,2], 
+                                                      gilmour_h2_date_14_16_sire_slope_tbl[2,2], 
+                                                      gilmour_h2_date_14_16_dF_slope_tbl[2,2], 
+                                                      gilmour_h2_date_14_16_dM_slope_tbl[2,2], 
+                                                      gilmour_h2_date_14_16_sF_slope_tbl[2,2], 
+                                                      gilmour_h2_date_14_16_sM_slope_tbl[2,2]) %>% 
+                                                  round(3)),
+                                                  (rbind(gilmour_h2_date_14_16_all_slope_tbl[2,3], 
+                                                      gilmour_h2_date_14_16_NN_slope_tbl[2,3], 
+                                                      gilmour_h2_date_14_16_NH_slope_tbl[2,3], 
+                                                      gilmour_h2_date_14_16_HN_slope_tbl[2,3], 
+                                                      gilmour_h2_date_14_16_HH_slope_tbl[2,3], 
+                                                      gilmour_h2_date_14_16_dam_slope_tbl[2,3], 
+                                                      gilmour_h2_date_14_16_sire_slope_tbl[2,3], 
+                                                      gilmour_h2_date_14_16_dF_slope_tbl[2,3], 
+                                                      gilmour_h2_date_14_16_dM_slope_tbl[2,3], 
+                                                      gilmour_h2_date_14_16_sF_slope_tbl[2,3], 
+                                                      gilmour_h2_date_14_16_sM_slope_tbl[2,3]) %>% 
+                                                  round(3)),
+                                                  (rbind(gilmour_h2_date_14_16_all_slope_tbl[2,5], 
+                                                      gilmour_h2_date_14_16_NN_slope_tbl[2,5], 
+                                                      gilmour_h2_date_14_16_NH_slope_tbl[2,5], 
+                                                      gilmour_h2_date_14_16_HN_slope_tbl[2,5], 
+                                                      gilmour_h2_date_14_16_HH_slope_tbl[2,5], 
+                                                      gilmour_h2_date_14_16_dam_slope_tbl[2,5], 
+                                                      gilmour_h2_date_14_16_sire_slope_tbl[2,5], 
+                                                      gilmour_h2_date_14_16_dF_slope_tbl[2,5], 
+                                                      gilmour_h2_date_14_16_dM_slope_tbl[2,5], 
+                                                      gilmour_h2_date_14_16_sF_slope_tbl[2,5], 
+                                                      gilmour_h2_date_14_16_sM_slope_tbl[2,5]) %>% 
+                                                  round(3))))
+
+colnames(gilmour_slope_as_h2_date_14_16) <- c("Heritability (h^2)", "+/- SE", "P")
 gilmour_slope_as_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
-(gilmour_slope_as_h2_date_14_16 <- gilmour_slope_as_h2_date_14_16[,c(2,1)])
+
+(gilmour_slope_as_h2_date_14_16 <- gilmour_slope_as_h2_date_14_16[,c(4,1,2,3)])
 ```
 
-### Animal model
+### ~~~~~~~~~~~~~~~~~~~Animal model
 
-Narrow-sense heritabilities (h^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h^2 = VA/VP) per Evans et al. (2019) [https://link.springer.com/article/10.1007/s10592-019-01174-4]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
+Narrow-sense heritabilities (h\^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h\^2 = VA/VP) per Evans et al. (2019) [<https://link.springer.com/article/10.1007/s10592-019-01174-4>]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
 
 ```{r}
-gilmour_h2_date_14_16_dam_sire <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = gilmour_triads_date_14_16, na.action = na.omit)
-(summary(gilmour_h2_date_14_16_dam_sire))
-plot(gilmour_h2_date_14_16_dam_sire)
-hist(resid(gilmour_h2_date_14_16_dam_sire))
 
-gilmour_h2_date_14_16_NN <- gilmour_triads_date_14_16 %>% filter(Cross == "NN")
-gilmour_h2_date_14_16_dam_sire_NN <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = gilmour_h2_date_14_16_NN, na.action = na.omit)
-(summary(gilmour_h2_date_14_16_dam_sire_NN))
 
-gilmour_h2_date_14_16_NH <- gilmour_triads_date_14_16 %>% filter(Cross == "NH")
-gilmour_h2_date_14_16_dam_sire_NH <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = gilmour_h2_date_14_16_NH, na.action = na.omit)
-(summary(gilmour_h2_date_14_16_dam_sire_NH))
-
-gilmour_h2_date_14_16_HN <- gilmour_triads_date_14_16 %>% filter(Cross == "HN")
-gilmour_h2_date_14_16_dam_sire_HN <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = gilmour_h2_date_14_16_HN, na.action = na.omit)
-(summary(gilmour_h2_date_14_16_dam_sire_HN))
-
-gilmour_h2_date_14_16_HH <- gilmour_triads_date_14_16 %>% filter(Cross == "HH")
-gilmour_h2_date_14_16_dam_sire_HH <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = gilmour_h2_date_14_16_HH, na.action = na.omit)
-(summary(gilmour_h2_date_14_16_dam_sire_HH))
-
-gilmour_h2_date_14_16_F <- gilmour_triads_date_14_16 %>% filter(Sex.off == "F")
-gilmour_h2_date_14_16_dam_sire_F <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = gilmour_h2_date_14_16_F, na.action = na.omit)
-(summary(gilmour_h2_date_14_16_dam_sire_F))
-
-gilmour_h2_date_14_16_M <- gilmour_triads_date_14_16 %>% filter(Sex.off == "M")
-gilmour_h2_date_14_16_dam_sire_M <- lmer(DOY.off ~ (1|DOY.sire)+(1|DOY.dam), data = gilmour_h2_date_14_16_M, na.action = na.omit)
-(summary(gilmour_h2_date_14_16_dam_sire_M))
-
-gilmour_h2_date_14_16_all <- (3.985 + 1.571) / (3.985 + 1.571 + 17.646)
-gilmour_h2_date_14_16_NN <- (6.3645 + 0.7492) / (6.3645 + 0.7492 + 21.3311)
-gilmour_h2_date_14_16_NH <- (0.4543 + 5.8177) / (0.4543 + 5.8177 + 14.0447)
-gilmour_h2_date_14_16_HN <- (15.212 + 3.167) / (15.212 + 3.167 + 12.954)
-gilmour_h2_date_14_16_HH <- (5.556 + 1.187) / (5.556 + 1.187 + 19.191)
-gilmour_h2_date_14_16_dam_F <- 5.063 / (5.063 + 0.00 + 19.949)
-gilmour_h2_date_14_16_sire_F <- 0.00 / (5.063 + 0.00 + 19.949)
-gilmour_h2_date_14_16_dam_M <- 0.5972 / (0.5972 + 6.2724 + 15.6431)
-gilmour_h2_date_14_16_sire_M <- 6.2724 / (0.5972 + 6.2724 + 15.6431)
-
-gilmour_am_for_h2_date_14_16 <- as.data.frame(c(gilmour_h2_date_14_16_all, gilmour_h2_date_14_16_NN, gilmour_h2_date_14_16_NH, gilmour_h2_date_14_16_HN, gilmour_h2_date_14_16_HH, gilmour_h2_date_14_16_dam_F, gilmour_h2_date_14_16_dam_M, gilmour_h2_date_14_16_sire_F, gilmour_h2_date_14_16_sire_M)) %>% round(3)
-colnames(gilmour_am_for_h2_date_14_16) <- c("Heritability (h^2)")
-gilmour_am_for_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
-(gilmour_am_for_h2_date_14_16 <- gilmour_am_for_h2_date_14_16[,c(2,1)])
 ```
-
-### *Results*
-
-```{r}
-gilmour_r_and_h2_date_14_16 <- gilmour_r_and_h2_date_14_16[,c(1,3)]
-
-gilmour_h2_date_14_16 <- merge(gilmour_r_and_h2_date_14_16, gilmour_slope_as_h2_date_14_16,  by="Category") %>% 
-    merge(gilmour_am_for_h2_date_14_16, by="Category") %>% 
-    rename(gilmour_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
-(gilmour_h2_date_14_16 <- gilmour_h2_date_14_16[c(6,5,4,3,1,2,7,8),])
-```
-
-There is good evidence of heritability of sample date as a proxy for return time, although cross data is confounded by missing origin info in 2018.
-
-
-## Sample Location
-
-**Note:** Correlation between parent-offspring sample location and narrow-sense heritability of sample location *not yet available* for parental years beyond 2014. GIS-based stream distance mapping is *in progress* by Chase Jalbert.
 
 ```{r}
 
 ```
 
-### Scatterplots
+### ~~~~~~~~~~~~~~~~~~~*Summary*
 
 ```{r}
-
+# gilmour_r_and_h2_date_14_16 <- gilmour_r_and_h2_date_14_16[,c(1,3)]
+# 
+# gilmour_h2_date_14_16 <- merge(gilmour_r_and_h2_date_14_16, gilmour_slope_as_h2_date_14_16,  by="Category") %>% 
+#     merge(gilmour_am_for_h2_date_14_16, by="Category") %>% 
+#     rename(Gilmour_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
+# (gilmour_h2_date_14_16 <- gilmour_h2_date_14_16[c(8,7,6,5,4,1,9,2,3,10,11),])
 ```
 
-### Correlation
-
-Location is reported as distance from stream mouth. 
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-
-```
-
-### Slope
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-
-```
-
-### Animal model
-
-```{r}
-
-```
-
-### *Results*
-
-Stream location/distance data not yet available for all sample sets.
-
+Better evidence for heritability of sample date as a proxy for return time, especially between female parents and offspring. There's some inconsistency among estimation methods, however.
 
 ## Reproductive success
 
@@ -624,13 +733,28 @@ gilmour_triads_rs_14_16 <- triads_rs()
 ### Scatterplots
 
 ```{r}
-h2_rs_graph <- function(indata_h2_rs_graph = gilmour_triads_rs_14_16, title = "Gilmour_14_16\n\nHeritability of RS by Cross") {
+# overall
+h2_rs_graph <- function(indata_h2_rs_graph = gilmour_triads_rs_14_16, title = "Gilmour_14_16\n\nRegression of RS") {
+  indata_h2_rs_graph %>% 
+  ggplot(aes(x = rs.par, y = n.off)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title) +
+  xlab("Mid-parent RS") +
+  ylab("Offspring RS") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+# by cross
+h2_rs_graph_cross <- function(indata_h2_rs_graph = gilmour_triads_rs_14_16, title = "Gilmour_14_16\n\nHeritability of RS by Cross") {
   indata_h2_rs_graph %>% 
   ggplot(aes(x = rs.par, y = n.off, colour = Cross)) +
   geom_abline(slope = 1) +
   geom_jitter(size = 2) +
   geom_smooth(method = "lm") +
-  labs(title = title, colour = "Parent: Origin") +
+  labs(title = title, colour = "Cross") +
   xlab("Mid-parent RS") +
   ylab("Offspring RS") +
   theme_bw() +
@@ -638,6 +762,40 @@ h2_rs_graph <- function(indata_h2_rs_graph = gilmour_triads_rs_14_16, title = "G
 }
 
 h2_rs_graph()
+h2_rs_graph_cross()
+
+# by sex
+gilmour_triads_rs_14_16 %>% 
+  mutate(sex.dam = case_when(Sex.dam == "F" ~ "Dam")) %>% 
+  mutate(sex.off = case_when(Sex.off == "F" ~ "Female",
+                             Sex.off == "M" ~ "Male")) %>% 
+  group_by(sex.off) %>%
+  ggplot(aes(x = rs.par, y = n.off, colour = Origin.dam)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(sex.off ~ sex.dam) +
+  labs(title = "Gilmour_14_16\n\nRegression of RS: Female Parent by Offspring Sex",  colour = "Parent Origin") +
+  xlab("Parent RS") +
+  ylab("Offspring RS") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+
+gilmour_triads_rs_14_16 %>% 
+  mutate(sex.sire = case_when(Sex.sire == "M" ~ "Sire")) %>% 
+  mutate(sex.off = case_when(Sex.off == "F" ~ "Female",
+                             Sex.off == "M" ~ "Male")) %>% 
+  group_by(sex.off) %>%
+  ggplot(aes(x = rs.par, y = n.off, colour = Origin.sire)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(sex.off ~ sex.sire) +
+  labs(title = "Gilmour_14_16\n\nRegression of RS: Male Parent by Offspring Sex",  colour = "Parent Origin") +
+  xlab("Parent RS") +
+  ylab("Offspring RS") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
 ```
 
 ### Correlation
@@ -652,9 +810,25 @@ parents_paired_rs <- function(indata_triads_rs = gilmour_triads_rs_14_16) {
                              Sex.off == "M" ~ "Male")) 
 }
 
+# overall
+(gilmour_parents_paired_14_16_rs0 <- parents_paired_rs() %>% 
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+
+# by cross
 (gilmour_parents_paired_14_16_rs1 <- parents_paired_rs() %>% 
   group_by(Cross) %>%
   summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+
+# all offspring
+(gilmour_parents_paired_14_16_rs4 <- parents_paired_rs() %>% 
+  group_by(sex.dam) %>%
+  summarise(correlation = round(cor(n.off, n.dam), 3), r2 = round(cor(n.off, n.dam)^2, 3)))
+
+(gilmour_parents_paired_14_16_rs5 <- parents_paired_rs() %>% 
+  group_by(sex.sire) %>%
+  summarise(correlation = round(cor(n.off, n.sire), 3), r2 = round(cor(n.off, n.sire)^2, 3)))
+
+# by sex
 (gilmour_parents_paired_14_16_rs2 <- parents_paired_rs() %>% 
   group_by(sex.dam, sex.off) %>%
   summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
@@ -662,102 +836,185 @@ parents_paired_rs <- function(indata_triads_rs = gilmour_triads_rs_14_16) {
   group_by(sex.sire, sex.off) %>%
   summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
 
+gilmour_parents_paired_14_16_rs0_All <- as.data.frame(c(gilmour_parents_paired_14_16_rs0[1,1], gilmour_parents_paired_14_16_rs0[1,2]*2))
 gilmour_parents_paired_14_16_rs1_NN <- as.data.frame(c(gilmour_parents_paired_14_16_rs1[4,2], gilmour_parents_paired_14_16_rs1[4,3]*2))
 gilmour_parents_paired_14_16_rs1_NH <- as.data.frame(c(gilmour_parents_paired_14_16_rs1[3,2], gilmour_parents_paired_14_16_rs1[3,3]*2))
 gilmour_parents_paired_14_16_rs1_HN <- as.data.frame(c(gilmour_parents_paired_14_16_rs1[2,2], gilmour_parents_paired_14_16_rs1[2,3]*2))
 gilmour_parents_paired_14_16_rs1_HH <- as.data.frame(c(gilmour_parents_paired_14_16_rs1[1,2], gilmour_parents_paired_14_16_rs1[1,3]*2))
+gilmour_parents_paired_14_16_rs4_dAll <- as.data.frame(c(gilmour_parents_paired_14_16_rs4[1,2], gilmour_parents_paired_14_16_rs4[1,3]*2))
+gilmour_parents_paired_14_16_rs5_sAll <- as.data.frame(c(gilmour_parents_paired_14_16_rs5[1,2], gilmour_parents_paired_14_16_rs5[1,3]*2))
 gilmour_parents_paired_14_16_rs2_dF <- as.data.frame(c(gilmour_parents_paired_14_16_rs2[1,3], gilmour_parents_paired_14_16_rs2[1,4]*2))
 gilmour_parents_paired_14_16_rs2_dM <- as.data.frame(c(gilmour_parents_paired_14_16_rs2[2,3], gilmour_parents_paired_14_16_rs2[2,4]*2))
 gilmour_parents_paired_14_16_rs3_sF <- as.data.frame(c(gilmour_parents_paired_14_16_rs3[1,3], gilmour_parents_paired_14_16_rs3[1,4]*2))
 gilmour_parents_paired_14_16_rs3_sM <- as.data.frame(c(gilmour_parents_paired_14_16_rs3[2,3], gilmour_parents_paired_14_16_rs3[2,4]*2))
 
-gilmour_r_and_h2_rs_14_16 <- rbind(gilmour_parents_paired_14_16_rs1_NN, gilmour_parents_paired_14_16_rs1_NH, gilmour_parents_paired_14_16_rs1_HN, gilmour_parents_paired_14_16_rs1_HH, gilmour_parents_paired_14_16_rs2_dF, gilmour_parents_paired_14_16_rs2_dM, gilmour_parents_paired_14_16_rs3_sF, gilmour_parents_paired_14_16_rs3_sM) %>% round(3)
+gilmour_r_and_h2_rs_14_16 <- rbind(gilmour_parents_paired_14_16_rs0_All,
+                                     gilmour_parents_paired_14_16_rs1_NN, 
+                                     gilmour_parents_paired_14_16_rs1_NH, 
+                                     gilmour_parents_paired_14_16_rs1_HN, 
+                                     gilmour_parents_paired_14_16_rs1_HH,
+                                     gilmour_parents_paired_14_16_rs4_dAll,
+                                     gilmour_parents_paired_14_16_rs5_sAll,
+                                     gilmour_parents_paired_14_16_rs2_dF, 
+                                     gilmour_parents_paired_14_16_rs2_dM, 
+                                     gilmour_parents_paired_14_16_rs3_sF, 
+                                     gilmour_parents_paired_14_16_rs3_sM) %>%
+                                round(3)
+
 colnames(gilmour_r_and_h2_rs_14_16) <- c("Correlation (r)", "Heritability (h^2)")
-gilmour_r_and_h2_rs_14_16$Category <- c("NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+gilmour_r_and_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
 (gilmour_r_and_h2_rs_14_16 <- gilmour_r_and_h2_rs_14_16[,c(3,1,2)])
 ```
 
 ### Slope
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# overall
+gilmour_h2_rs_14_16_all_slope <- lm(n.off ~ rs.par, data = gilmour_triads_rs_14_16, na.action = na.omit)
+gilmour_h2_rs_14_16_all_slope_tbl <- tidy(gilmour_h2_rs_14_16_all_slope)
+
 # by cross
-gilmour_h2_rs_14_16_all_tbl <- tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs_14_16))
-gilmour_h2_rs_14_16_NN_tbl <- tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs_14_16 %>% filter(Cross == "NN")))
-gilmour_h2_rs_14_16_NH_tbl <- tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs_14_16 %>% filter(Cross == "NH")))
-gilmour_h2_rs_14_16_HN_tbl <- tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs_14_16 %>% filter(Cross == "HN")))
-gilmour_h2_rs_14_16_HH_tbl <- tidy(lm(n.off ~ rs.par, data = gilmour_triads_rs_14_16 %>% filter(Cross == "HH")))
+gilmour_h2_rs_14_16_NN_slope <- lm(n.off ~ rs.par, data = gilmour_triads_rs_14_16 %>% filter(Cross == "NN"), na.action = na.omit)
+gilmour_h2_rs_14_16_NN_slope_tbl <- tidy(gilmour_h2_rs_14_16_NN_slope)
+
+gilmour_h2_rs_14_16_NH_slope <- lm(n.off ~ rs.par, data = gilmour_triads_rs_14_16 %>% filter(Cross == "NH"), na.action = na.omit)
+gilmour_h2_rs_14_16_NH_slope_tbl <- tidy(gilmour_h2_rs_14_16_NH_slope)
+
+gilmour_h2_rs_14_16_HN_slope <- lm(n.off ~ rs.par, data = gilmour_triads_rs_14_16 %>% filter(Cross == "HN"), na.action = na.omit)
+gilmour_h2_rs_14_16_HN_slope_tbl <- tidy(gilmour_h2_rs_14_16_HN_slope)
+
+gilmour_h2_rs_14_16_HH_slope <- lm(n.off ~ rs.par, data = gilmour_triads_rs_14_16 %>% filter(Cross == "HH"), na.action = na.omit)
+gilmour_h2_rs_14_16_HH_slope_tbl <- tidy(gilmour_h2_rs_14_16_HH_slope)
+
+# all offspring
+gilmour_h2_rs_14_16_dam_slope <- lm(n.off ~ n.dam, data = gilmour_triads_rs_14_16, na.action = na.omit)
+gilmour_h2_rs_14_16_dam_slope_tbl <- tidy(gilmour_h2_rs_14_16_dam_slope)
+
+gilmour_h2_rs_14_16_sire_slope <- lm(n.off ~ n.sire, data = gilmour_triads_rs_14_16, na.action = na.omit)
+gilmour_h2_rs_14_16_sire_slope_tbl <- tidy(gilmour_h2_rs_14_16_sire_slope)
 
 # by sex
-gilmour_h2_rs_14_16_dam_tbl <- tidy(lm(n.off ~ n.dam, data = gilmour_triads_rs_14_16))
-gilmour_h2_rs_14_16_sire_tbl <- tidy(lm(n.off ~ n.sire, data = gilmour_triads_rs_14_16))
-gilmour_h2_rs_14_16_dF_tbl <- tidy(lm(n.off ~ n.dam, data = gilmour_triads_rs_14_16 %>% filter(Sex.off == "F")))
-gilmour_h2_rs_14_16_sM_tbl <- tidy(lm(n.off ~ n.sire, data = gilmour_triads_rs_14_16 %>% filter(Sex.off == "M")))
-gilmour_h2_rs_14_16_dM_tbl <- tidy(lm(n.off ~ n.dam, data = gilmour_triads_rs_14_16 %>% filter(Sex.off == "M")))
-gilmour_h2_rs_14_16_sF_tbl <- tidy(lm(n.off ~ n.sire, data = gilmour_triads_rs_14_16 %>% filter(Sex.off == "F")))
+gilmour_h2_rs_14_16_dF_slope <- lm(n.off ~ n.dam, data = gilmour_triads_rs_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+gilmour_h2_rs_14_16_dF_slope_tbl <- tidy(gilmour_h2_rs_14_16_dF_slope)
 
-gilmour_slope_as_h2_rs_14_16 <- rbind(gilmour_h2_rs_14_16_all_tbl[2,2], gilmour_h2_rs_14_16_NN_tbl[2,2], gilmour_h2_rs_14_16_NH_tbl[2,2], gilmour_h2_rs_14_16_HN_tbl[2,2], gilmour_h2_rs_14_16_HH_tbl[2,2], gilmour_h2_rs_14_16_dam_tbl[2,2], gilmour_h2_rs_14_16_sire_tbl[2,2], gilmour_h2_rs_14_16_dF_tbl[2,2], gilmour_h2_rs_14_16_dM_tbl[2,2], gilmour_h2_rs_14_16_sF_tbl[2,2], gilmour_h2_rs_14_16_sM_tbl[2,2]) %>% round(3)
-colnames(gilmour_slope_as_h2_rs_14_16) <- c("Heritability (h^2)")
+gilmour_h2_rs_14_16_dM_slope <- lm(n.off ~ n.dam, data = gilmour_triads_rs_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+gilmour_h2_rs_14_16_dM_slope_tbl <- tidy(gilmour_h2_rs_14_16_dM_slope)
+
+gilmour_h2_rs_14_16_sF_slope <- lm(n.off ~ n.sire, data = gilmour_triads_rs_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+gilmour_h2_rs_14_16_sF_slope_tbl <- tidy(gilmour_h2_rs_14_16_sF_slope)
+
+gilmour_h2_rs_14_16_sM_slope <- lm(n.off ~ n.sire, data = gilmour_triads_rs_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+gilmour_h2_rs_14_16_sM_slope_tbl <- tidy(gilmour_h2_rs_14_16_sM_slope)
+
+# make df
+gilmour_slope_as_h2_rs_14_16 <- as.data.frame(cbind((rbind(gilmour_h2_rs_14_16_all_slope_tbl[2,2], 
+                                                      gilmour_h2_rs_14_16_NN_slope_tbl[2,2], 
+                                                      gilmour_h2_rs_14_16_NH_slope_tbl[2,2], 
+                                                      gilmour_h2_rs_14_16_HN_slope_tbl[2,2], 
+                                                      gilmour_h2_rs_14_16_HH_slope_tbl[2,2], 
+                                                      gilmour_h2_rs_14_16_dam_slope_tbl[2,2], 
+                                                      gilmour_h2_rs_14_16_sire_slope_tbl[2,2], 
+                                                      gilmour_h2_rs_14_16_dF_slope_tbl[2,2], 
+                                                      gilmour_h2_rs_14_16_dM_slope_tbl[2,2], 
+                                                      gilmour_h2_rs_14_16_sF_slope_tbl[2,2], 
+                                                      gilmour_h2_rs_14_16_sM_slope_tbl[2,2]) %>% 
+                                                  round(3)),
+                                                  (rbind(gilmour_h2_rs_14_16_all_slope_tbl[2,3], 
+                                                      gilmour_h2_rs_14_16_NN_slope_tbl[2,3], 
+                                                      gilmour_h2_rs_14_16_NH_slope_tbl[2,3], 
+                                                      gilmour_h2_rs_14_16_HN_slope_tbl[2,3], 
+                                                      gilmour_h2_rs_14_16_HH_slope_tbl[2,3], 
+                                                      gilmour_h2_rs_14_16_dam_slope_tbl[2,3], 
+                                                      gilmour_h2_rs_14_16_sire_slope_tbl[2,3], 
+                                                      gilmour_h2_rs_14_16_dF_slope_tbl[2,3], 
+                                                      gilmour_h2_rs_14_16_dM_slope_tbl[2,3], 
+                                                      gilmour_h2_rs_14_16_sF_slope_tbl[2,3], 
+                                                      gilmour_h2_rs_14_16_sM_slope_tbl[2,3]) %>% 
+                                                  round(3)),
+                                                  (rbind(gilmour_h2_rs_14_16_all_slope_tbl[2,5], 
+                                                      gilmour_h2_rs_14_16_NN_slope_tbl[2,5], 
+                                                      gilmour_h2_rs_14_16_NH_slope_tbl[2,5], 
+                                                      gilmour_h2_rs_14_16_HN_slope_tbl[2,5], 
+                                                      gilmour_h2_rs_14_16_HH_slope_tbl[2,5], 
+                                                      gilmour_h2_rs_14_16_dam_slope_tbl[2,5], 
+                                                      gilmour_h2_rs_14_16_sire_slope_tbl[2,5], 
+                                                      gilmour_h2_rs_14_16_dF_slope_tbl[2,5], 
+                                                      gilmour_h2_rs_14_16_dM_slope_tbl[2,5], 
+                                                      gilmour_h2_rs_14_16_sF_slope_tbl[2,5], 
+                                                      gilmour_h2_rs_14_16_sM_slope_tbl[2,5]) %>% 
+                                                  round(3))))
+
+colnames(gilmour_slope_as_h2_rs_14_16) <- c("Heritability (h^2)", "+/- SE", "P")
 gilmour_slope_as_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
-(gilmour_slope_as_h2_rs_14_16 <- gilmour_slope_as_h2_rs_14_16[,c(2,1)])
+
+(gilmour_slope_as_h2_rs_14_16 <- gilmour_slope_as_h2_rs_14_16[,c(4,1,2,3)])
+```
+
+### ~~~~~~~~~~~~~~~~~~~Animal model
+
+Narrow-sense heritabilities (h\^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h\^2 = VA/VP) per Evans et al. (2019) [<https://link.springer.com/article/10.1007/s10592-019-01174-4>]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+HH: 0.000 as placeholder; could not be calculated ("Error in asMethod(object) : not a positive definite matrix")
+
+### ~~~~~~~~~~~~~~~~~~~*Summary*
+
+```{r}
+# gilmour_r_and_h2_rs_14_16 <- gilmour_r_and_h2_rs_14_16[,c(1,3)]
+# 
+# gilmour_h2_rs_14_16 <- merge(gilmour_r_and_h2_rs_14_16, gilmour_slope_as_h2_rs_14_16,  by="Category") %>% 
+#     merge(gilmour_am_for_h2_rs_14_16, by="Category") %>% 
+#     rename(Gilmour_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
+# (gilmour_h2_rs_14_16 <- gilmour_h2_rs_14_16[c(8,7,6,5,4,1,9,2,3,10,11),])
+```
+
+Nothing to see here.
+
+## ##################################
+## IN PREP -- Sample Location: riverdist DNE
+
+**Note:** Correlation between parent-offspring sample location and narrow-sense heritability of sample location *not yet available* for parental years beyond 2014. GIS-based stream distance mapping is *in progress* by Chase Jalbert.
+
+```{r}
+
+```
+
+### Scatterplots
+
+```{r}
+
+```
+
+### Correlation
+
+Location is reported as distance from stream mouth.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+```
+
+### Slope
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
 ```
 
 ### Animal model
 
 ```{r}
-gilmour_h2_rs_14_16_dam_sire <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = gilmour_triads_rs_14_16, na.action = na.omit)
-(summary(gilmour_h2_rs_14_16_dam_sire))
-plot(gilmour_h2_rs_14_16_dam_sire)
-hist(resid(gilmour_h2_rs_14_16_dam_sire))
 
-gilmour_h2_rs_14_16_NN <- gilmour_triads_rs_14_16 %>% filter(Cross == "NN")
-gilmour_h2_rs_14_16_dam_sire_NN <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = gilmour_h2_rs_14_16_NN, na.action = na.omit)
-(summary(gilmour_h2_rs_14_16_dam_sire_NN))
-
-gilmour_h2_rs_14_16_NH <- gilmour_triads_rs_14_16 %>% filter(Cross == "NH")
-gilmour_h2_rs_14_16_dam_sire_NH <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = gilmour_h2_rs_14_16_NH, na.action = na.omit)
-(summary(gilmour_h2_rs_14_16_dam_sire_NH))
-
-gilmour_h2_rs_14_16_HN <- gilmour_triads_rs_14_16 %>% filter(Cross == "HN")
-gilmour_h2_rs_14_16_dam_sire_HN <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = gilmour_h2_rs_14_16_HN, na.action = na.omit)
-(summary(gilmour_h2_rs_14_16_dam_sire_HN))
-
-gilmour_h2_rs_14_16_HH <- gilmour_triads_rs_14_16 %>% filter(Cross == "HH")
-gilmour_h2_rs_14_16_dam_sire_HH <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = gilmour_h2_rs_14_16_HH, na.action = na.omit)
-(summary(gilmour_h2_rs_14_16_dam_sire_HH))
-
-gilmour_h2_rs_14_16_F <- gilmour_triads_rs_14_16 %>% filter(Sex.off == "F")
-gilmour_h2_rs_14_16_dam_sire_F <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = gilmour_h2_rs_14_16_F, na.action = na.omit)
-(summary(gilmour_h2_rs_14_16_dam_sire_F))
-
-gilmour_h2_rs_14_16_M <- gilmour_triads_rs_14_16 %>% filter(Sex.off == "M")
-gilmour_h2_rs_14_16_dam_sire_M <- lmer(n.off ~ (1|n.sire)+(1|n.dam), data = gilmour_h2_rs_14_16_M, na.action = na.omit)
-(summary(gilmour_h2_rs_14_16_dam_sire_M))
-
-gilmour_h2_rs_14_16_all <- 0.005904 / (0.005904 + 0.00 + 0.806979)
-gilmour_h2_rs_14_16_NN <- 0.00 / (0.00 + 0.00 + 0.2564)
-gilmour_h2_rs_14_16_NH <- 0.08873 / (0.00 + 0.08873 + 0.83867)
-gilmour_h2_rs_14_16_HN <- 0.02971 / (0.02971 + 0.00 + 1.32096)
-gilmour_h2_rs_14_16_HH <- (0.2591) / (0.2591 + 0.00 + 0.6904)
-gilmour_h2_rs_14_16_dam_F <- 0.00 / (0.00 + 0.00 + 0.1211)
-gilmour_h2_rs_14_16_sire_F <- 0.05681 / (0.05681 + 0.00 + 0.85955)
-gilmour_h2_rs_14_16_dam_M <- 0.00 / (0.00 + 0.00 + 0.7266)
-gilmour_h2_rs_14_16_sire_M <- 0.00 / (0.00 + 0.00 + 0.7266)
-
-gilmour_am_for_h2_rs_14_16 <- as.data.frame(c(gilmour_h2_rs_14_16_all, gilmour_h2_rs_14_16_NN, gilmour_h2_rs_14_16_NH, gilmour_h2_rs_14_16_HN, gilmour_h2_rs_14_16_HH, gilmour_h2_rs_14_16_dam_F, gilmour_h2_rs_14_16_dam_M, gilmour_h2_rs_14_16_sire_F, gilmour_h2_rs_14_16_sire_M)) %>% round(3)
-colnames(gilmour_am_for_h2_rs_14_16) <- c("Heritability (h^2)")
-gilmour_am_for_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
-(gilmour_am_for_h2_rs_14_16 <- gilmour_am_for_h2_rs_14_16[,c(2,1)])
 ```
 
 ### *Results*
 
 ```{r}
-gilmour_r_and_h2_rs_14_16 <- gilmour_r_and_h2_rs_14_16[,c(1,3)]
 
-gilmour_h2_rs_14_16 <- merge(gilmour_r_and_h2_rs_14_16, gilmour_slope_as_h2_rs_14_16,  by="Category") %>% 
-    merge(gilmour_am_for_h2_rs_14_16, by="Category") %>% 
-    rename(gilmour_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
-(gilmour_h2_rs_14_16 <- gilmour_h2_rs_14_16[c(6,5,4,3,1,2,7,8),])
 ```
-
-Nothing to see here. I wouldn't bank on the HH result being real; it's probably an artifact of small sample size due to a lack of origin data for 2016.
