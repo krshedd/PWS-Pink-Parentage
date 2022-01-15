@@ -414,27 +414,199 @@ gilmour_slope_as_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH"
 
 Narrow-sense heritabilities (h\^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h\^2 = VA/VP) per Evans et al. (2019) [<https://link.springer.com/article/10.1007/s10592-019-01174-4>]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
 
+Overall
 ```{r}
+# code courtesy Jeff Hard
+# gremlin LME REML approach (https://github.com/matthewwolak/gremlin)
+# basic model: Trait.off ~ bv.Trait + Sex.off + Origin.dam + Origin.sire
 
-```
+# load data and pedigree files
+dat.1 <- as.data.frame(gilmour_triads_length_14_16) %>% 
+  mutate(animal = Offspring)
+dat.1$lg <- as.numeric(dat.1$Length.off)
+dat.1$day <- as.numeric(dat.1$DOY.off)
+dat.1$sex <- as.factor(dat.1$Sex.off)
+dat.1$origin.sire <- as.factor(dat.1$Origin.sire)
+dat.1$origin.dam <- as.factor(dat.1$Origin.dam)
+# str(dat.1)
+# headTail(dat.1)
 
-```{r}
+ped.1.1 <- dat.1 %>% 
+  select(Offspring, Parent_ID.sire, Parent_ID.dam) %>% 
+  rename(animal = Offspring) %>% 
+  rename(dam = Parent_ID.dam) %>% 
+  rename(sire = Parent_ID.sire)
+ped.1.2 <- ped.1.1 %>% 
+  select(sire, dam) %>% 
+  stack() %>% 
+  select(values) %>% 
+  distinct() %>% 
+  rename(animal = values) %>% 
+  mutate(sire = NA) %>% 
+  mutate(dam = NA)
+ped.1 <- rbind(ped.1.2, ped.1.1)
+# str(ped.1)
+# headTail(ped.1)
 
-```
+# gremlin
+# construct inverse of the numerator relatedness matrix
+Ainv <- makeAinv(ped.1[, 1:3])$Ainv
+model0.1 <- gremlin(lg ~ sex + origin.sire + origin.dam - 1,
+                   random = ~ animal,
+                   data = dat.1,
+                   ginverse = list(animal = Ainv),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1)
 
-
-### ~~~~~~~~~~~~~~~~~~~*Summary*
-
-```{r}
-# gilmour_r_and_h2_length_14_16 <- gilmour_r_and_h2_length_14_16[,c(1,3)]
+# # compare the model to a linear model with no random effects
+# model0.11 <- update(model0.1, random = ~ -1)
+# summary(model0.11)
 # 
-# gilmour_h2_length_14_16 <- merge(gilmour_r_and_h2_length_14_16, gilmour_slope_as_h2_length_14_16,  by="Category") %>% 
-#     merge(gilmour_am_for_h2_length_14_16, by="Category") %>% 
-#     rename(Gilmour_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
-# (gilmour_h2_length_14_16 <- gilmour_h2_length_14_16[c(8,7,6,5,4,1,9,2,3,10,11),])
+# # do analysis of variance between the two models
+# anova(model0.11, model0.1)
+
+# Calculate the genetic variance component for lg
+deltaSE(Vg ~ V1, model0.1)
+
+# Calculate the sum of the variance components
+deltaSE(Vsum ~ V1 + V2, model0.1)
+# nobs(model0.1)
+
+# # Calculate standard deviations (with standard errors) from variances
+# ## Uses a `list` as the first (`calc`) argument
+# ### All 3 below: different formats to calculate the same values
+# deltaSE(list(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), model0.1) # formulas
+# nobs(model0.1)
+# deltaSE(list(SD1 ~ sqrt(G.animal), SDresid ~ sqrt(ResVar1)), model0.1)
+# deltaSE(list("sqrt(V1)", "sqrt(V2)"), model0.1)
 ```
 
-Some evidence for heritability of body size, but it is sporadic and not overly consistent among methods.
+By cross
+```{r}
+dat.1_NN <- dat.1 %>% filter(Cross == "NN")
+ped.1_NN.1 <- dat.1_NN %>% 
+  select(Offspring, Parent_ID.sire, Parent_ID.dam) %>% 
+  rename(animal = Offspring) %>% 
+  rename(dam = Parent_ID.dam) %>% 
+  rename(sire = Parent_ID.sire)
+ped.1_NN.2 <- ped.1_NN.1 %>% 
+  select(sire, dam) %>% 
+  stack() %>% 
+  select(values) %>% 
+  distinct() %>% 
+  rename(animal = values) %>% 
+  mutate(sire = NA) %>% 
+  mutate(dam = NA)
+ped.1_NN <- rbind(ped.1_NN.2, ped.1_NN.1)
+
+dat.1_NH <- dat.1 %>% filter(Cross == "NH")  
+ped.1_NH.1 <- dat.1_NH %>% 
+  select(Offspring, Parent_ID.sire, Parent_ID.dam) %>% 
+  rename(animal = Offspring) %>% 
+  rename(dam = Parent_ID.dam) %>% 
+  rename(sire = Parent_ID.sire)
+ped.1_NH.2 <- ped.1_NH.1 %>% 
+  select(sire, dam) %>% 
+  stack() %>% 
+  select(values) %>% 
+  distinct() %>% 
+  rename(animal = values) %>% 
+  mutate(sire = NA) %>% 
+  mutate(dam = NA)
+ped.1_NH <- rbind(ped.1_NH.2, ped.1_NH.1)
+
+dat.1_HN <- dat.1 %>% filter(Cross == "HN")  
+ped.1_HN.1 <- dat.1_HN %>% 
+  select(Offspring, Parent_ID.sire, Parent_ID.dam) %>% 
+  rename(animal = Offspring) %>% 
+  rename(dam = Parent_ID.dam) %>% 
+  rename(sire = Parent_ID.sire)
+ped.1_HN.2 <- ped.1_HN.1 %>% 
+  select(sire, dam) %>% 
+  stack() %>% 
+  select(values) %>% 
+  distinct() %>% 
+  rename(animal = values) %>% 
+  mutate(sire = NA) %>% 
+  mutate(dam = NA)
+ped.1_HN <- rbind(ped.1_HN.2, ped.1_HN.1)
+
+dat.1_HH <- dat.1 %>% filter(Cross == "HH")  
+ped.1_HH.1 <- dat.1_HH %>% 
+  select(Offspring, Parent_ID.sire, Parent_ID.dam) %>% 
+  rename(animal = Offspring) %>% 
+  rename(dam = Parent_ID.dam) %>% 
+  rename(sire = Parent_ID.sire)
+ped.1_HH.2 <- ped.1_HH.1 %>% 
+  select(sire, dam) %>% 
+  stack() %>% 
+  select(values) %>% 
+  distinct() %>% 
+  rename(animal = values) %>% 
+  mutate(sire = NA) %>% 
+  mutate(dam = NA)
+ped.1_HH <- rbind(ped.1_HH.2, ped.1_HH.1)
+
+Ainv_NN <- makeAinv(ped.1_NN[, 1:3])$Ainv
+model0.1_NN <- gremlin(lg ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_NN,
+                   ginverse = list(animal = Ainv_NN),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1_NN)
+deltaSE(Vg ~ V1, model0.1_NN)
+deltaSE(Vsum ~ V1 + V2, model0.1_NN)
+
+Ainv_NH <- makeAinv(ped.1_NH[, 1:3])$Ainv
+model0.1_NH <- gremlin(lg ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_NH,
+                   ginverse = list(animal = Ainv_NH),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1_NH)
+deltaSE(Vg ~ V1, model0.1_NH)
+deltaSE(Vsum ~ V1 + V2, model0.1_NH)
+
+Ainv_HN <- makeAinv(ped.1_HN[, 1:3])$Ainv
+model0.1_HN <- gremlin(lg ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_HN,
+                   ginverse = list(animal = Ainv_HN),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1_HN)
+deltaSE(Vg ~ V1, model0.1_HN)
+deltaSE(Vsum ~ V1 + V2, model0.1_HN)
+
+Ainv_HH <- makeAinv(ped.1_HH[, 1:3])$Ainv
+model0.1_HH <- gremlin(lg ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_HH,
+                   ginverse = list(animal = Ainv_HH),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1_HH)
+deltaSE(Vg ~ V1, model0.1_HH)
+deltaSE(Vsum ~ V1 + V2, model0.1_HH)
+```
+
+By sex
+```{r}
+
+```
 
 ## Sample Date
 
@@ -673,27 +845,98 @@ gilmour_slope_as_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", 
 
 Narrow-sense heritabilities (h\^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h\^2 = VA/VP) per Evans et al. (2019) [<https://link.springer.com/article/10.1007/s10592-019-01174-4>]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
 
+Overall
 ```{r}
+# code courtesy Jeff Hard
+# gremlin LME REML approach (https://github.com/matthewwolak/gremlin)
+# basic model: Trait.off ~ bv.Trait + Sex.off + Origin.dam + Origin.sire
 
+model0.2 <- gremlin(day ~ sex + origin.sire + origin.dam - 1,
+                    random = ~ animal,
+                    data = dat.1,
+                    ginverse = list(animal = Ainv),
+                    Gstart = matrix(0.2), Rstart = matrix(0.4),
+                    maxit = 20,
+                    v = 2, vit = 1,
+                    algit = "AI")
+summary(model0.2)
 
+#  compare the model to a linear model with no random effects
+# model0.21 <- update(model0.2, random = ~ -1)
+# summary(model0.21)
+#
+# # do analysis of variance between the two models
+# anova(model0.21, model0.2)
+
+# Calculate the genetic variance component for DOY
+deltaSE(Vg ~ V1, model0.2)
+
+# Calculate the sum of the variance components
+deltaSE(Vsum ~ V1 + V2, model0.2)
+
+# # Calculate standard deviations (with standard errors) from variances
+# ## Uses a `list` as the first (`calc`) argument
+# ### All 3 below: different formats to calculate the same values
+# deltaSE(list(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), model0.2)
+# deltaSE(list(SD1 ~ sqrt(G.animal), SDresid ~ sqrt(ResVar1)), model0.2)
+# deltaSE(list("sqrt(V1)", "sqrt(V2)"), model0.2)
 ```
 
+By cross
+```{r}
+model0.2_NN <- gremlin(day ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_NN,
+                   ginverse = list(animal = Ainv_NN),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.2_NN)
+deltaSE(Vg ~ V1, model0.2_NN)
+deltaSE(Vsum ~ V1 + V2, model0.2_NN)
+
+model0.2_NH <- gremlin(day ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_NH,
+                   ginverse = list(animal = Ainv_NH),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.2_NH)
+deltaSE(Vg ~ V1, model0.2_NH)
+deltaSE(Vsum ~ V1 + V2, model0.2_NH)
+
+model0.2_HN <- gremlin(day ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_HN,
+                   ginverse = list(animal = Ainv_HN),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.2_HN)
+deltaSE(Vg ~ V1, model0.2_HN)
+deltaSE(Vsum ~ V1 + V2, model0.2_HN)
+
+model0.2_HH <- gremlin(day ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_HH,
+                   ginverse = list(animal = Ainv_HH),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.2_HH)
+deltaSE(Vg ~ V1, model0.2_HH)
+deltaSE(Vsum ~ V1 + V2, model0.2_HH)
+```
+
+By sex
 ```{r}
 
 ```
-
-### ~~~~~~~~~~~~~~~~~~~*Summary*
-
-```{r}
-# gilmour_r_and_h2_date_14_16 <- gilmour_r_and_h2_date_14_16[,c(1,3)]
-# 
-# gilmour_h2_date_14_16 <- merge(gilmour_r_and_h2_date_14_16, gilmour_slope_as_h2_date_14_16,  by="Category") %>% 
-#     merge(gilmour_am_for_h2_date_14_16, by="Category") %>% 
-#     rename(Gilmour_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
-# (gilmour_h2_date_14_16 <- gilmour_h2_date_14_16[c(8,7,6,5,4,1,9,2,3,10,11),])
-```
-
-Better evidence for heritability of sample date as a proxy for return time, especially between female parents and offspring. There's some inconsistency among estimation methods, however.
 
 ## Reproductive success
 
@@ -955,28 +1198,114 @@ gilmour_slope_as_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "D
 
 Narrow-sense heritabilities (h\^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h\^2 = VA/VP) per Evans et al. (2019) [<https://link.springer.com/article/10.1007/s10592-019-01174-4>]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
 
+Overall
+```{r}
+# code courtesy Jeff Hard
+# gremlin LME REML approach (https://github.com/matthewwolak/gremlin)
+# basic model: Trait.off ~ bv.Trait + Sex.off + Origin.dam + Origin.sire
+
+# load data and pedigree files
+dat.3 <- as.data.frame(gilmour_triads_rs_14_16) %>% 
+  mutate(animal = Offspring)
+dat.3$lg <- as.numeric(dat.3$Length.off)
+dat.3$day <- as.numeric(dat.3$DOY.off)
+dat.3$sex <- as.factor(dat.3$Sex.off)
+dat.3$origin.sire <- as.factor(dat.3$Origin.sire)
+dat.3$origin.dam <- as.factor(dat.3$Origin.dam)
+# str(dat.3)
+# headTail(dat.3)
+
+model0.3 <- gremlin(n.off ~ sex + origin.sire + origin.dam - 1,
+                    random = ~ animal,
+                    data = dat.3,
+                    ginverse = list(animal = Ainv),
+                    Gstart = matrix(0.2), Rstart = matrix(0.4),
+                    maxit = 20,
+                    v = 2, vit = 1,
+                    algit = "AI")
+summary(model0.3)
+
+#  compare the model to a linear model with no random effects
+# model0.31 <- update(model0.3, random = ~ -1)
+# summary(model0.31)
+#
+# # do analysis of variance between the two models
+# anova(model0.31, model0.3)
+
+# Calculate the genetic variance component for DOY
+deltaSE(Vg ~ V1, model0.3)
+
+# Calculate the sum of the variance components
+deltaSE(Vsum ~ V1 + V2, model0.3)
+
+# # Calculate standard deviations (with standard errors) from variances
+# ## Uses a `list` as the first (`calc`) argument
+# ### All 3 below: different formats to calculate the same values
+# deltaSE(list(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), model0.3)
+# deltaSE(list(SD1 ~ sqrt(G.animal), SDresid ~ sqrt(ResVar1)), model0.3)
+# deltaSE(list("sqrt(V1)", "sqrt(V2)"), model0.3)
+```
+
+By cross
+```{r}
+dat.3_NN <- dat.3 %>% filter(Cross == "NN")
+dat.3_NH <- dat.3 %>% filter(Cross == "NH")
+dat.3_HN <- dat.3 %>% filter(Cross == "HN")
+dat.3_HH <- dat.3 %>% filter(Cross == "HH")
+
+model0.3_NN <- gremlin(n.off ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.3_NN,
+                   ginverse = list(animal = Ainv_NN),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.3_NN)
+deltaSE(Vg ~ V1, model0.3_NN)
+deltaSE(Vsum ~ V1 + V2, model0.3_NN)
+
+model0.3_NH <- gremlin(n.off ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.3_NH,
+                   ginverse = list(animal = Ainv_NH),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.3_NH)
+deltaSE(Vg ~ V1, model0.3_NH)
+deltaSE(Vsum ~ V1 + V2, model0.3_NH)
+
+model0.3_HN <- gremlin(n.off ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.3_HN,
+                   ginverse = list(animal = Ainv_HN),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.3_HN)
+deltaSE(Vg ~ V1, model0.3_HN)
+deltaSE(Vsum ~ V1 + V2, model0.3_HN)
+
+model0.3_HH <- gremlin(n.off ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.3_HH,
+                   ginverse = list(animal = Ainv_HH),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.3_HH)
+deltaSE(Vg ~ V1, model0.3_HH)
+deltaSE(Vsum ~ V1 + V2, model0.3_HH)
+```
+
+By sex
 ```{r}
 
 ```
-
-```{r}
-
-```
-
-HH: 0.000 as placeholder; could not be calculated ("Error in asMethod(object) : not a positive definite matrix")
-
-### ~~~~~~~~~~~~~~~~~~~*Summary*
-
-```{r}
-# gilmour_r_and_h2_rs_14_16 <- gilmour_r_and_h2_rs_14_16[,c(1,3)]
-# 
-# gilmour_h2_rs_14_16 <- merge(gilmour_r_and_h2_rs_14_16, gilmour_slope_as_h2_rs_14_16,  by="Category") %>% 
-#     merge(gilmour_am_for_h2_rs_14_16, by="Category") %>% 
-#     rename(Gilmour_14_16 = Category, "h^2.correlation" = "Heritability (h^2).x", "h^2.slope" = "Heritability (h^2).y", "h^2.variance" = "Heritability (h^2)")
-# (gilmour_h2_rs_14_16 <- gilmour_h2_rs_14_16[c(8,7,6,5,4,1,9,2,3,10,11),])
-```
-
-Nothing to see here.
 
 ## ##################################
 ## IN PREP -- Sample Location: riverdist DNE
