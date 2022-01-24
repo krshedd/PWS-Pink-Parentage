@@ -1,7 +1,7 @@
 ---
 title: "Heritability of body length, sample date, location, and RS according to Cross Type and Parental/Offspring Sex for Stockdale 2014-2016"
 author: "Kristen Gruenthal"
-date: "13 January 2022"
+date: "17 January 2022"
 output:
   html_notebook:
     theme: united
@@ -248,6 +248,27 @@ h2_length_graph_sex <- function(indata_parents_paired_length_graph = stock_paren
 h2_length_graph()
 h2_length_graph_cross()
 h2_length_graph_sex()
+
+
+# by offspring sex
+stock_parents_paired_14_16 %>% 
+  rename(length.par = "Length Mm.par", 
+         length.off = "Length Mm.off") %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Dam",
+                             SEX.par == "M" ~ "Sire")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Female",
+                             SEX.off == "M" ~ "Male")) %>% 
+  group_by(sex.off) %>%
+  ggplot(aes(x = length.par, y = length.off, colour = origin.par)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(~sex.off) +
+  labs(title = "Stockdale_14_16\n\nRegression of Body Length by Sex",  colour = "Parent Origin") +
+  xlab("Parent Length (mm)") +
+  ylab("Offspring Length (mm)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
 ```
 
 ### Correlation
@@ -290,6 +311,11 @@ stock_parents_paired_14_16_length2 <- parents_paired_length() %>%
 stock_parents_paired_14_16_length3 <- parents_paired_length() %>% 
   group_by(sex.sire, sex.off) %>%
   summarise(correlation = round(cor(Length.off, Length.sire), 3), r2 = round(cor(Length.off, Length.sire)^2, 3))
+
+# by offspring sex
+(stock_parents_paired_14_16_length4 <- parents_paired_length() %>% 
+  group_by(sex.off) %>%
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
 
 # make dfs
 stock_parents_paired_14_16_length0_All <- as.data.frame(c(stock_parents_paired_14_16_length0[1,1], stock_parents_paired_14_16_length0[1,2]*2))
@@ -365,6 +391,13 @@ stock_h2_length_14_16_sF_slope_tbl <- tidy(stock_h2_length_14_16_sF_slope)
 stock_h2_length_14_16_sM_slope <- lm(Length.off ~ Length.sire, data = stock_triads_length_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
 stock_h2_length_14_16_sM_slope_tbl <- tidy(stock_h2_length_14_16_sM_slope)
 
+# by offspring sex
+stock_h2_length_14_16_F_slope <- lm(Length.off ~ Length.par, data = stock_triads_length_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+(stock_h2_length_14_16_F_slope_tbl <- tidy(stock_h2_length_14_16_F_slope))
+
+stock_h2_length_14_16_M_slope <- lm(Length.off ~ Length.par, data = stock_triads_length_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+(stock_h2_length_14_16_M_slope_tbl <- tidy(stock_h2_length_14_16_M_slope))
+
 # make df
 stock_slope_as_h2_length_14_16 <- as.data.frame(cbind((rbind(stock_h2_length_14_16_all_slope_tbl[2,2], 
                                                       stock_h2_length_14_16_NN_slope_tbl[2,2], 
@@ -409,7 +442,7 @@ stock_slope_as_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", 
 (stock_slope_as_h2_length_14_16 <- stock_slope_as_h2_length_14_16[,c(4,1,2,3)])
 ```
 
-### ~~~~~~~~~~~~~~~~~~~Animal model
+### Animal model
 
 Narrow-sense heritabilities (h\^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h\^2 = VA/VP) per Evans et al. (2019) [<https://link.springer.com/article/10.1007/s10592-019-01174-4>]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
 
@@ -591,9 +624,67 @@ deltaSE(Vg ~ V1, model0.1_HH)
 deltaSE(Vsum ~ V1 + V2, model0.1_HH)
 ```
 
-By sex
+By offspring sex
 ```{r}
+# set up pedigree files
+dat.1_F <- dat.1 %>% filter(Sex.off == "F")
+ped.1_F.1 <- dat.1_F %>% 
+  select(Offspring, Parent_ID.sire, Parent_ID.dam) %>% 
+  rename(animal = Offspring) %>% 
+  rename(dam = Parent_ID.dam) %>% 
+  rename(sire = Parent_ID.sire)
+ped.1_F.2 <- ped.1_F.1 %>% 
+  select(sire, dam) %>% 
+  stack() %>% 
+  select(values) %>% 
+  distinct() %>% 
+  rename(animal = values) %>% 
+  mutate(sire = NA) %>% 
+  mutate(dam = NA)
+ped.1_F <- rbind(ped.1_F.2, ped.1_F.1)
 
+dat.1_M <- dat.1 %>% filter(Sex.off == "M")  
+ped.1_M.1 <- dat.1_M %>% 
+  select(Offspring, Parent_ID.sire, Parent_ID.dam) %>% 
+  rename(animal = Offspring) %>% 
+  rename(dam = Parent_ID.dam) %>% 
+  rename(sire = Parent_ID.sire)
+ped.1_M.2 <- ped.1_M.1 %>% 
+  select(sire, dam) %>% 
+  stack() %>% 
+  select(values) %>% 
+  distinct() %>% 
+  rename(animal = values) %>% 
+  mutate(sire = NA) %>% 
+  mutate(dam = NA)
+ped.1_M <- rbind(ped.1_M.2, ped.1_M.1)
+
+# run models
+Ainv_F <- makeAinv(ped.1_F[, 1:3])$Ainv
+model0.1_F <- gremlin(lg ~ origin.sire + origin.dam - 1,
+                   random = ~ animal,
+                   data = dat.1_F,
+                   ginverse = list(animal = Ainv_F),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1_F)
+deltaSE(Vg ~ V1, model0.1_F)
+deltaSE(Vsum ~ V1 + V2, model0.1_F)
+
+Ainv_M <- makeAinv(ped.1_M[, 1:3])$Ainv
+model0.1_M <- gremlin(lg ~ origin.sire + origin.dam - 1,
+                   random = ~ animal,
+                   data = dat.1_M,
+                   ginverse = list(animal = Ainv_M),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1_M)
+deltaSE(Vg ~ V1, model0.1_M)
+deltaSE(Vsum ~ V1 + V2, model0.1_M)
 ```
 
 ## Sample Date
@@ -668,6 +759,26 @@ h2_date_graph_sex <- function(indata_parents_paired_date_graph = stock_parents_p
 h2_date_graph()
 h2_date_graph_cross()
 h2_date_graph_sex()
+
+# by offspring sex
+stock_parents_paired_14_16 %>% 
+  rename(DOY.par = "DOY.par", 
+         DOY.off = "DOY.off") %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Dam",
+                             SEX.par == "M" ~ "Sire")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Female",
+                             SEX.off == "M" ~ "Male")) %>% 
+  group_by(sex.off) %>%
+  ggplot(aes(x = DOY.par, y = DOY.off, colour = origin.par)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(~sex.off) +
+  labs(title = "Stockdale_14_16\n\nRegression of Sample Date by Sex",  colour = "Parent Origin") +
+  xlab("Parent DOY") +
+  ylab("Offspring DOY") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
 ```
 
 ### Correlation
@@ -710,6 +821,11 @@ parents_paired_date <- function(indata_triads_date = stock_triads_date_14_16) {
 (stock_parents_paired_14_16_date3 <- parents_paired_date() %>% 
   group_by(sex.sire, sex.off) %>%
   summarise(correlation = round(cor(DOY.off, DOY.sire), 3), r2 = round(cor(DOY.off, DOY.sire)^2, 3)))
+
+# by offspring sex
+(stock_parents_paired_14_16_date4 <- parents_paired_date() %>% 
+  group_by(sex.off) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
 
 # make dfs
 stock_parents_paired_14_16_date0_All <- as.data.frame(c(stock_parents_paired_14_16_date0[1,1], stock_parents_paired_14_16_date0[1,2]*2))
@@ -785,6 +901,13 @@ stock_h2_date_14_16_sF_slope_tbl <- tidy(stock_h2_date_14_16_sF_slope)
 stock_h2_date_14_16_sM_slope <- lm(DOY.off ~ DOY.sire, data = stock_triads_date_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
 stock_h2_date_14_16_sM_slope_tbl <- tidy(stock_h2_date_14_16_sM_slope)
 
+# by offspring sex
+stock_h2_date_14_16_F_slope <- lm(DOY.off ~ DOY.par, data = stock_triads_date_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+(stock_h2_date_14_16_F_slope_tbl <- tidy(stock_h2_date_14_16_F_slope))
+
+stock_h2_date_14_16_M_slope <- lm(DOY.off ~ DOY.par, data = stock_triads_date_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+(stock_h2_date_14_16_M_slope_tbl <- tidy(stock_h2_date_14_16_M_slope))
+
 # make df
 stock_slope_as_h2_date_14_16 <- as.data.frame(cbind((rbind(stock_h2_date_14_16_all_slope_tbl[2,2], 
                                                       stock_h2_date_14_16_NN_slope_tbl[2,2], 
@@ -829,7 +952,7 @@ stock_slope_as_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "D
 (stock_slope_as_h2_date_14_16 <- stock_slope_as_h2_date_14_16[,c(4,1,2,3)])
 ```
 
-### ~~~~~~~~~~~~~~~~~~~Animal model
+### Animal model
 
 Narrow-sense heritabilities (h\^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h\^2 = VA/VP) per Evans et al. (2019) [<https://link.springer.com/article/10.1007/s10592-019-01174-4>]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
 
@@ -923,7 +1046,29 @@ deltaSE(Vsum ~ V1 + V2, model0.2_HH)
 
 By sex
 ```{r}
+model0.2_F <- gremlin(day ~ origin.sire + origin.dam - 1,
+                   random = ~ animal,
+                   data = dat.1_F,
+                   ginverse = list(animal = Ainv_F),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.2_F)
+deltaSE(Vg ~ V1, model0.2_F)
+deltaSE(Vsum ~ V1 + V2, model0.2_F)
 
+model0.2_M <- gremlin(day ~ origin.sire + origin.dam - 1,
+                   random = ~ animal,
+                   data = dat.1_M,
+                   ginverse = list(animal = Ainv_M),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.2_M)
+deltaSE(Vg ~ V1, model0.2_M)
+deltaSE(Vsum ~ V1 + V2, model0.2_M)
 ```
 
 ## Reproductive success
@@ -979,7 +1124,7 @@ h2_rs_graph <- function(indata_h2_rs_graph = stock_triads_rs_14_16, title = "Sto
 }
 
 # by cross
-h2_rs_graph_cross <- function(indata_h2_rs_graph = stock_triads_rs_14_16, title = "Stockdale_14_16\n\nHeritability of RS by Cross") {
+h2_rs_graph_cross <- function(indata_h2_rs_graph = stock_triads_rs_14_16, title = "Stockdale_14_16\n\nRegression of RS by Cross") {
   indata_h2_rs_graph %>% 
   ggplot(aes(x = rs.par, y = n.off, colour = Cross)) +
   geom_abline(slope = 1) +
@@ -1027,6 +1172,22 @@ stock_triads_rs_14_16 %>%
   ylab("Offspring RS") +
   theme_bw() +
   theme(text = element_text(size = 20))
+
+# by offspring sex
+stock_triads_rs_14_16 %>% 
+  mutate(sex.off = case_when(Sex.off == "F" ~ "Female",
+                             Sex.off == "M" ~ "Male")) %>% 
+  group_by(sex.off) %>%
+  ggplot(aes(x = rs.par, y = n.off)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(~sex.off) +
+  labs(title = "Stockdale_14_16\n\nRegression of RS by Offspring Sex") +
+  xlab("Parent RS") +
+  ylab("Offspring RS") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
 ```
 
 ### Correlation
@@ -1065,6 +1226,11 @@ parents_paired_rs <- function(indata_triads_rs = stock_triads_rs_14_16) {
   summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
 (stock_parents_paired_14_16_rs3 <- parents_paired_rs() %>% 
   group_by(sex.sire, sex.off) %>%
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+
+# by offspring sex
+(stock_parents_paired_14_16_rs6 <- parents_paired_rs() %>% 
+  group_by(sex.off) %>%
   summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
 
 stock_parents_paired_14_16_rs0_All <- as.data.frame(c(stock_parents_paired_14_16_rs0[1,1], stock_parents_paired_14_16_rs0[1,2]*2))
@@ -1137,6 +1303,13 @@ stock_h2_rs_14_16_sF_slope_tbl <- tidy(stock_h2_rs_14_16_sF_slope)
 
 stock_h2_rs_14_16_sM_slope <- lm(n.off ~ n.sire, data = stock_triads_rs_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
 stock_h2_rs_14_16_sM_slope_tbl <- tidy(stock_h2_rs_14_16_sM_slope)
+
+# by offspring sex
+stock_h2_rs_14_16_F_slope <- lm(n.off ~ rs.par, data = stock_triads_rs_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+(stock_h2_rs_14_16_F_slope_tbl <- tidy(stock_h2_rs_14_16_F_slope))
+
+stock_h2_rs_14_16_M_slope <- lm(n.off ~ rs.par, data = stock_triads_rs_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+(stock_h2_rs_14_16_M_slope_tbl <- tidy(stock_h2_rs_14_16_M_slope))
 
 # make df
 stock_slope_as_h2_rs_14_16 <- as.data.frame(cbind((rbind(stock_h2_rs_14_16_all_slope_tbl[2,2], 
@@ -1275,28 +1448,53 @@ summary(model0.3_HN)
 deltaSE(Vg ~ V1, model0.3_HN)
 deltaSE(Vsum ~ V1 + V2, model0.3_HN)
 
-model0.3_HH <- gremlin(n.off ~ sex - 1,
-                   random = ~ animal,
-                   data = dat.3_HH,
-                   ginverse = list(animal = Ainv_HH),
-                   Gstart = matrix(0.2), Rstart = matrix(0.4),
-                   maxit = 20,
-                   v = 2, vit = 1,
-                   algit = "AI")
-summary(model0.3_HH)
-deltaSE(Vg ~ V1, model0.3_HH)
-deltaSE(Vsum ~ V1 + V2, model0.3_HH)
+# model0.3_HH <- gremlin(n.off ~ sex - 1,
+#                    random = ~ animal,
+#                    data = dat.3_HH,
+#                    ginverse = list(animal = Ainv_HH),
+#                    Gstart = matrix(0.2), Rstart = matrix(0.4),
+#                    maxit = 20,
+#                    v = 2, vit = 1,
+#                    algit = "AI")
+# summary(model0.3_HH)
+# deltaSE(Vg ~ V1, model0.3_HH)
+# deltaSE(Vsum ~ V1 + V2, model0.3_HH)
 ```
 
 By sex
 ```{r}
+dat.3_F <- dat.3 %>% filter(Sex.off == "F")
+dat.3_M <- dat.3 %>% filter(Sex.off == "M")
 
+# model0.3_F <- gremlin(n.off ~ origin.sire + origin.dam - 1,
+#                    random = ~ animal,
+#                    data = dat.3_F,
+#                    ginverse = list(animal = Ainv_F),
+#                    Gstart = matrix(0.2), Rstart = matrix(0.4),
+#                    maxit = 20,
+#                    v = 2, vit = 1,
+#                    algit = "AI")
+# summary(model0.3_F)
+# deltaSE(Vg ~ V1, model0.3_F)
+# deltaSE(Vsum ~ V1 + V2, model0.3_F)
+
+model0.3_M <- gremlin(n.off ~ origin.sire + origin.dam - 1,
+                   random = ~ animal,
+                   data = dat.3_M,
+                   ginverse = list(animal = Ainv_M),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.3_M)
+deltaSE(Vg ~ V1, model0.3_M)
+deltaSE(Vsum ~ V1 + V2, model0.3_M)
 ```
 
 ## ##################################
-## IN PREP -- Sample Location: riverdist DNE
+## IN PREP -- Sample Location
 
-**Note:** Correlation between parent-offspring sample location and narrow-sense heritability of sample location *not yet available* for parental years beyond 2014. GIS-based stream distance mapping is *in progress* by Chase Jalbert.
+**Note:** Correlation between parent-offspring sample location and narrow-sense heritability of sample location *not yet available* for any years beyond 2014. GIS-based stream distance mapping is *in progress* by Chase Jalbert.
 
 ```{r}
 
