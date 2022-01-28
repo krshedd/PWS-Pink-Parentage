@@ -283,13 +283,24 @@ ProjectSillys_Origin_SampleSizes[, "Duplicate"] <-  ProjectSillys_Origin_SampleS
 We know from the QC work that the **GTscore** genotyping pipeline can sometimes result in individuals with an overabundance of heterozygous calls (perhaps from contamination). We want to remove individuals with untrustworthy genotypes. To explore the utility of a *heterozygosity filter*, we should first plot a histogram of heterozygosity per individual to see what the problem looks like. From there we can set a threshold or range of acceptable heterozygosities.
 
 Calculate heterozygosity
+
+**NOTE** the *old* way was overly simplistic (divide by 298 loci) and ignored no-calls (i.e. score = "0")
 ```{r heterozygosity_calculations}
 # genotype.counts <- apply(PHOGAN13.gcl$scores, MARGIN=1, table) # provides counts of each genotype/individual
 
-# Calculate heterozygosity by individual :-) 
-PSTOCK17n_ind_het <- apply(PSTOCK17n.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/298} ) 
-PSTOCK17h_ind_het <- apply(PSTOCK17h.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/298} ) 
-PSTOCK19_ind_het <- apply(PSTOCK19.gcl$scores, 1, function(ind) {sum(ind[ ,"Dose1"] != ind[ ,"Dose2"])/298} )
+# Calculate heterozygosity by individual :-)
+PSTOCK17n_ind_het <-
+  apply(PSTOCK17n.gcl$scores, 1, function(ind) {
+    sum(ind[, "Dose1"] != ind[, "Dose2"]) / sum(ind[, "Dose1"] != "0")
+  })
+PSTOCK17h_ind_het <-
+  apply(PSTOCK17h.gcl$scores, 1, function(ind) {
+    sum(ind[, "Dose1"] != ind[, "Dose2"]) / sum(ind[, "Dose1"] != "0")
+  })
+PSTOCK19_ind_het <-
+  apply(PSTOCK19.gcl$scores, 1, function(ind) {
+    sum(ind[, "Dose1"] != ind[, "Dose2"]) / sum(ind[, "Dose1"] != "0")
+  })
 
 # Convert to tibbles
 tibble_PSTOCK17n <- tibble(silly=PSTOCK17n.gcl$attributes$SILLY_CODE, sillysource=PSTOCK17n.gcl$attributes$SillySource, het=PSTOCK17n_ind_het)
