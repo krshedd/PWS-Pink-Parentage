@@ -6790,7 +6790,7 @@ write_csv(dup_check_results_23_pass_with_wells, "dup_check_results_23_pass_with_
 
 Bind duplicate check results from all DWPs
 ```{r}
-dup_check_results_DWP_23_all <- bind_rows(
+dup_check_results_23_all <- bind_rows(
 dup_check_results_DWP_14395,
 dup_check_results_DWP_14449,
 dup_check_results_DWP_14448,
@@ -6848,6 +6848,8 @@ dup_check_results_DWP_14463,
 dup_check_results_DWP_16130,
 dup_check_results_DWP_16164,
 dup_check_results_DWP_16132)
+
+write_csv(dup_check_results_23_all, "dup_check_results_23_all.csv")
 ```
 
 Filter for hearts that have multiple otos matching at > 0.60 duplicate rate
@@ -6855,7 +6857,7 @@ Filter for hearts that have multiple otos matching at > 0.60 duplicate rate
 ```{r}
 (
   hearts_with_multiple_matchy_otos <-
-    dup_check_results_DWP_23_all %>%
+    dup_check_results_23_all %>%
     filter(duplicate_rate > 0.7) %>%
     count(heart_fish_id) %>%
     filter(n > 1) %>%
@@ -6866,7 +6868,7 @@ Filter for hearts that have multiple otos matching at > 0.60 duplicate rate
 Plot otolith genotyping success vs. duplicate rate for these multiple matchers
 ```{r fig.width=10, fig.height=20}
 # facet by heart ID
-dup_check_results_DWP_23_all %>% 
+dup_check_results_23_all %>% 
   filter(heart_fish_id %in% hearts_with_multiple_matchy_otos) %>% 
   mutate(oto_geno_success = 1 - (missing_loci_otolith / 298)) %>% 
   ggplot(aes(x = duplicate_rate, y = oto_geno_success)) +
