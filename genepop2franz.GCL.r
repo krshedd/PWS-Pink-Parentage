@@ -220,7 +220,7 @@ genepop2franz.GCL=function(Genepop, OceanAK, Year, Stream, output_dir){
   )
   
   # export the object combining OceanAK data and franz_id, for pairing FRANz output back to original data.
-  write_csv(OCEANAK_FRANZ, path = paste0(output_dir, "/Franz/",
+  write_csv(OCEANAK_FRANZ, file = paste0(output_dir, "/Franz/",
                                          gsub(".*[/]([^.]+)[.].*", "\\1", 
                                               Genepop),
                                          "_OceanAK_paired_",
