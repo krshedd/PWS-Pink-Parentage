@@ -2,7 +2,7 @@
 title: "All Streams 2014/2016 Genotype QA + FRANz Input with 298 Markers"
 subtitle: "Re-do with `develop` branch GCL-R-Scripts"
 author: "Kyle Shedd"
-date: "1 February 2022"
+date: "2 February 2022"
 output:
   html_notebook:
     theme: united
@@ -44,22 +44,21 @@ Create a pedigree for all fitness streams for 2014/2016.
 
 # Introduction
 
-This is a quick exploratory analysis of the all 2014/2016 genotype data (Hogan, Stockdale, Gilmour, Paddy, and Erb. Here we will:
+This is a quick exploratory analysis of the 2014/2016 genotype data from all five fitness streams (Hogan, Stockdale, Gilmour, Paddy, and Erb). Here we will:
 
   * Read in *LocusControl*
   * Read in all project genotypes
   * Read in paired field/otolith data from [OceanAK](http://www.oceanak.adfg.alaska.gov/)
   * Join genetic data with paired data from OceanAK
-    + Will need to create data key for join (DWP barcode + "_" + DWP position number)
-  * Determine *FailureRate*
-  * Perform QA on project gentoypes
+    + Will need to create data key for join (SillySource, Silly_FishID)
+  * Perform QA on project genotypes (original SILLY_CODE)
     + Removing fish missing >= 20% of genotypes
-    + Remove within-collection duplicates
-    + Use a heterozygosity filter to remove individuals with bogus (contaminated) genotype calls
+    + Remove within-collection duplicates at 95% (both)
+    + Use a heterozygosity filter to remove individuals with bogus (contaminated) genotype calls 1.5 IQR
   * Save final, post-QA genotypes with paired data
   * Export genotypes as a *Genepop* file to feed in to *genepop2franz.GCL.r*
 
-**NOTE** this script operates off of the `v1.12.0-static` branch of *GCL-R-Scripts*
+**NOTE** this script operates off of the `develop` branch of *GCL-R-Scripts*
 
 # Genotypes
 
@@ -139,13 +138,16 @@ Whoops, forgot that we have some new columns associated with the GOD event, gonn
 tibble(OG = og_names, new = names(oceanak)[seq(length(og_names))])
 ```
 
-Rename, drop GOD, save
+Rename, drop GOD columns, save (will need this later to create FRANz input file)
 ```{r oceanak_rename}
 names(oceanak)[seq(length(og_names))] <- og_names # rename columns
 
-oceanak <- oceanak %>% select(-contains("TARGET"), -contains("DETERMINATION"), -contains("ARRAY"))
+oceanak <-
+  oceanak %>% select(-contains("TARGET"),
+                     -contains("DETERMINATION"),
+                     -contains("ARRAY"))
 
-# write_csv(oceanak, "../../OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv") # output renamed OceanAK data
+write_csv(oceanak, "../../OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv") # output renamed OceanAK data
 ```
 
 ## Visualize and subset
@@ -191,11 +193,28 @@ sapply(sillyvec, function(silly) {
 
 Fabulous, all in there. That is the huge upside of working with the data warehouse that Tim and Eric put together.
 
+How about the other way around? Which samples from these streams/years have NOT been genotyped?
+```{r}
+lapply(objects(pattern = "\\.gcl"), get) %>%
+  bind_rows() %>%
+  select(SillySource) %>%
+  anti_join(
+    x = all_streams_14_16_oceanak,
+    y = .,
+    by = c("silly_source" = "SillySource")
+  ) %>%
+  count(`Location Code`, `Sample Year`, `Otolith Mark Present`) %>%
+  pivot_wider(names_from = `Otolith Mark Present`,
+              values_from = n,
+              values_fill =  0)
+```
+
+**Note** that we did not genotype all hatchery-origin samples available in 2014 from Stockdale or Hogan. This decision was made at the time due to the unbalanced hatchery/natural sample sizes and the strict samples sizes budgeted for our external grants (NPRB and S/K). Otherwise, there are a smattering of samples that got passed over, likely due to NA origin reads at the time that later got 2nd read.
+
 Remove `oceanak` for memory
 ```{r}
 rm(oceanak)
 ```
-
 
 ## Join attributes table
 
@@ -206,7 +225,7 @@ invisible(sapply(sillyvec, function(silly) {
   
   my_new.gcl <- my.gcl %>%
     dplyr::left_join(
-      dplyr::select(
+      dplyr::select(  # just grab what we need from OceanAK data, not everything!
         .data = all_streams_14_16_oceanak,
         silly_source,
         `Location Code`,
@@ -240,13 +259,13 @@ Remove `all_streams_14_16_oceanak` for memory
 rm(all_streams_14_16_oceanak)
 ```
 
-## Split by otolith-origin
+## Remove fish based on otolith data
 
 First, we need to verify that we only have hatchery and natural-origin fish for the parental year (2014), and remove any known hatchery-origin fish from the offspring year (2016). Normally we'd just keep natural-origin fish from the offspring year (2016), but so many of these samples were involved in the GOD event, the have NA.
 
 ### 2014 - Parents
 
-Just drop NAs, we only want to keep known natural- and hatchery-origin fish
+Just drop NAs from parent generation, we only want to keep known natural- and hatchery-origin fish
 ```{r}
 invisible(sapply(grep(pattern = "14", x = sillyvec, value = TRUE), function(silly) {
   my.gcl = get(paste0(silly, ".gcl"))
@@ -261,46 +280,14 @@ invisible(sapply(grep(pattern = "14", x = sillyvec, value = TRUE), function(sill
 }))
 ```
 
-
-Split into hatchery vs. natural, NAs are dropped automagically
-```{r}
-# invisible(sapply(grep(pattern = "14", x = sillyvec, value = TRUE), function(silly) {
-#   my.gcl = get(paste0(silly, ".gcl"))
-#   
-#   # assign natural
-#   assign(
-#     x = paste0(silly, "n.gcl"),
-#     value = filter(my.gcl, `Otolith Mark Present` == "NO"),
-#     pos = 1
-#   )
-#   
-#   # assign hatchery
-#   assign(
-#     x = paste0(silly, "h.gcl"),
-#     value = filter(my.gcl, `Otolith Mark Present` == "YES"),
-#     pos = 1
-#   )
-#   
-# }))
-```
-
-Remove original 2014 .gcls for memory
-```{r}
-# rm(PERB14.gcl,
-#    PGILMOUR14.gcl,
-#    PHOGAN14.gcl,
-#    PPADDY14.gcl,
-#    PSTOCK14.gcl)
-```
-
 ### 2016 - Offspring
 
-Just drop known hatchery-origin fish, but keep NAs (so many NAs due to GOD event)
+Just drop known hatchery-origin fish from offspring generation, but keep NAs (so many NAs due to GOD event)
 ```{r}
 invisible(sapply(grep(pattern = "16", x = sillyvec, value = TRUE), function(silly) {
   my.gcl = get(paste0(silly, ".gcl"))
   
-  # drop hatchery, keep natural and NA
+  # keep natural and NA to drop hatchery, don't != "YES"
   assign(
     x = paste0(silly, ".gcl"),
     value = filter(my.gcl, `Otolith Mark Present` == "NO" | is.na(`Otolith Mark Present`)),
@@ -310,15 +297,7 @@ invisible(sapply(grep(pattern = "16", x = sillyvec, value = TRUE), function(sill
 }))
 ```
 
-Create new *sillyvec*
-```{r}
-# (sillyvec_parentage <-
-#    paste0(rep(
-#      c("PHOGAN", "PSTOCK", "PGILMOUR", "PPADDY", "PERB"), each = 3
-#    ), rep(c("14n", "14h", "16"), times = 5)))
-# 
-# save_objects(objects = "sillyvec_parentage", path = "../../Objects/All_Streams_14_16_develop/")
-```
+### Verify removed fish
 
 Verify that we did as intended, check sillys for otolith read counts
 ```{r}
@@ -335,13 +314,13 @@ sapply(sillyvec, function(silly) {  # sillyvec_parentage
               values_fill =  0)
 ```
 
-Save
+Save, even though we didn't split sillys
 ```{r}
-# if(!dir.exists("../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin")) {
-#   dir.create("../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin")
-# }
-# 
-# save_sillys(sillyvec = sillyvec_parentage, path = "../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin")
+if(!dir.exists("../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin")) {
+  dir.create("../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin")
+}
+
+save_sillys(sillyvec = sillyvec, path = "../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin")
 ```
 
 # QA
@@ -377,6 +356,8 @@ save_objects(objects = "miss_loci",
 )
 ```
 
+Of the 4,033 individuals removed, almost half were from PSTOCK16!
+
 ## Filter duplicates
 
 Remove duplicate individuals within the same collection. Typically, we specify *duplicates* as a pair of individuals that share >=95% of genotypes. Once a pair of *duplicates* is identified, we keep the individual with the most genotypes and remove the other(s).
@@ -385,7 +366,7 @@ Identify duplicates
 ```{r qa_duplicate}
 duplicate_check_95 <-
   CheckDupWithinSilly.GCL(
-    sillyvec = sillyvec,  # sillyvec_parentage
+    sillyvec = sillyvec,
     loci = loci298,
     quantile = NULL,
     minproportion = 0.95,
@@ -408,82 +389,102 @@ RemoveDups.GCL(dupcheck = duplicate_check_95, remove_both = TRUE)
 )
 ```
 
-
-
-
-
-
-
-Need to figure out heterozygosity
-```{r}
-my.gcl <- PHOGAN14.gcl
-
-dose1 <- my.gcl %>%
-  dplyr::select(SillySource, dplyr::all_of(loci)) %>%
-  tidyr::pivot_longer(
-    cols = -SillySource,
-    names_to = "locus",
-    values_to = "dose1",
-    values_drop_na = TRUE
-  )
-
-dose2 <- my.gcl %>% 
-  dplyr::select(SillySource, dplyr::all_of(paste0(loci, ".1"))) %>% 
-  dplyr::rename_at(vars(paste0(loci, ".1")), ~ loci) %>%
-  tidyr::pivot_longer(
-    cols = -SillySource,
-    names_to = "locus",
-    values_to = "dose2",
-    values_drop_na = TRUE
-  )
-
-my.gcl_tall <- bind_cols(dose1, select(dose2, dose2))
-
-my.gcl_tall %>% 
-  group_by(SillySource) %>% 
-  summarise(het = sum(dose1 != dose2) / length(dose1))
-```
-
-
-
-
-
-
-
-
 ## Filter for heterozygosity
 
 We know from the QC work that the **GTscore** genotyping pipeline can sometimes result in individuals with an overabundance of heterozygous calls (perhaps from contamination). We want to remove individuals with untrustworthy genotypes. To explore the utility of a *heterozygosity filter*, we should first plot a histogram of heterozygosity per individual to see what the problem looks like. From there we can set a threshold or range of acceptable heterozygosities.
 
+Create individual heterozygosity function
+
+**NOTE** this funciton assumes that you are using original sillys (relies on SillySource), not split by origin
+```{r}
+individual_heterozygosity <- function(sillyvec, loci = LocusControl$locusnames, ncores = 4) {
+  
+  start.time <- Sys.time() 
+  
+  if(!all(loci %in% LocusControl$locusnames)){
+    
+    stop(paste0("'", setdiff(loci, LocusControl$locusnames), "' from argument 'loci' not found in 'LocusControl' object!!!"))
+    
+  }
+  
+  if(!require("pacman")) install.packages("pacman"); library(pacman); pacman::p_load(tidyverse, doParallel, parallel, foreach)  # Install packages, if not in library and then load them
+  
+  if(ncores > parallel::detectCores()) {
+    
+    stop("'ncores' is greater than the number of cores available on machine\nUse 'detectCores()' to determine the number of cores on your machine")
+    
+  }
+  
+  all.gcl <- sapply(sillyvec, function(silly) {get(paste0(silly, ".gcl"), pos = 1)}, simplify = FALSE)
+  
+  cl <- parallel::makePSOCKcluster(ncores)
+  
+  doParallel::registerDoParallel(cl, cores = ncores)
+  
+  # Start parallel loop
+  het <- foreach::foreach(silly = sillyvec, .packages = c("tidyverse")) %dopar% {
+    
+    my.gcl <- all.gcl[[silly]]
+    
+    dose1 <- my.gcl %>%
+      dplyr::select(SillySource, dplyr::all_of(loci)) %>%
+      tidyr::pivot_longer(
+        cols = -SillySource,
+        names_to = "locus",
+        values_to = "dose1",
+        values_drop_na = TRUE  # this drops any no-calls, which are NAs
+      )
+    
+    dose2 <- my.gcl %>%
+      dplyr::select(SillySource, dplyr::all_of(paste0(loci, ".1"))) %>%
+      dplyr::rename_at(vars(paste0(loci, ".1")), ~ loci) %>%
+      tidyr::pivot_longer(
+        cols = -SillySource,
+        names_to = "locus",
+        values_to = "dose2",
+        values_drop_na = TRUE  # this drops any no-calls, which are NAs
+      )
+    
+    if(all.equal(dose1$SillySource, dose2$SillySource) & all.equal(dose1$locus, dose2$locus)) {
+      
+      my.gcl_tall <- dplyr::bind_cols(dose1, select(dose2, dose2))  # faster
+      
+    } else {
+      
+      my.gcl_tall <- dplyr::left_join(x = dose1, y = dose2, by = c("SillySource", "locus"))  # safer
+      
+    }
+    
+    my.gcl_tall %>%
+      dplyr::group_by(SillySource) %>%
+      dplyr::summarise(het = sum(dose1 != dose2) / length(dose1))
+    
+  } %>%
+    dplyr::bind_rows()
+  
+  parallel::stopCluster(cl)  # end parallel loop
+  
+  output <- het %>%
+    tidyr::separate(
+      col = SillySource,
+      into = c("silly", "fish_id"),
+      sep = "_",
+      remove = FALSE
+    ) %>% 
+    dplyr::mutate(fish_id = as.numeric(fish_id)) %>% 
+    dplyr::arrange(silly, fish_id)
+  
+  print(Sys.time() - start.time)
+  
+  return(output)
+}
+```
+
 Calculate heterozygosity
 
-**NOTE** the *old* way was overly simplistic and ignored no-calls (i.e. score = "0")
 ```{r heterozygosity_calculations}
 (
-  het_tibble <- sapply(ProjectSillys_Origin, function(mysilly) {
-    my.gcl <- get(paste0(mysilly, ".gcl"))
-    
-    ind_het <-
-      apply(my.gcl$scores, 1, function(ind) {
-        sum(ind[, "Dose1"] != ind[, "Dose2"]) / sum(ind[, "Dose1"] != "0")
-      })
-    
-    ind_het_old <-
-      apply(my.gcl$scores, 1, function(ind) {
-        sum(ind[, "Dose1"] != ind[, "Dose2"]) / 298
-      })
-    
-    tibble(
-      silly = mysilly,
-      og_silly = my.gcl$attributes$SILLY_CODE,
-      fish_id = as.character(my.gcl$attributes$FK_FISH_ID),
-      sillysource = my.gcl$attributes$SillySource,
-      het = ind_het,
-      old_het = ind_het_old
-    )
-  }, simplify = FALSE) %>%
-    dplyr::bind_rows() %>% 
-    mutate(lineage = "even")
+  het_tibble <- individual_heterozygosity(sillyvec = sillyvec, loci = loci298, ncores = 4)
 )
 
 save_objects(objects = "het_tibble", path = "../../Objects/All_Streams_14_16_develop/")
@@ -493,40 +494,33 @@ save_objects(objects = "het_tibble", path = "../../Objects/All_Streams_14_16_dev
 
 Plot heterozygosities by lineage with *tidyverse* for ease of use/visualization. Cutoffs (red vertical lines) are based on the +/- 1.5 IQR method that it is well known and well documented in literature.
 
-#### Compare method
+#### Overall
 
 Compare distribution of heterozygosities calculated by the *new* method vs. the *old*, naive method
 **NOTE** no need to incorporate lineage here, since all collections here are even-year
 ```{r}
 # NOTE: Original plotting by silly removed and +/- 1.5 IQR heterozygosity cutoff instilled -- After discussions among Chris, Tyler, Dan, and Kyle, they decided it would be more appropriate to examine heterozygosity by lineage (even and/or odd) instead of year. It was also agreed that the +/- 3SD cutoff (Anderson et al. 2010) was not restrictive enough as the distribution has a long right-sided tail and the upper bound for the cutoff should be closer to the main distribution. A hybrid right-side mirror approach based on the +/- 3SD was also suggested by Chris and discarded in favor of the +/- 1.5 IQR.
 
-het_method_means <- het_tibble %>%
-  pivot_longer(names_to = "het_method",
-               values_to = "het_ind",
-               cols = contains("het")) %>%
-  group_by(het_method) %>%
+het_cutoffs <- het_tibble %>% 
   summarise(
-    het_mean = mean(het_ind),
-    het_1.5IQR_low = quantile(het_ind, probs = 0.25) - 1.5 * diff(quantile(het_ind, probs = c(0.25, 0.75))),
-    het_1.5IQR_high = quantile(het_ind, probs = 0.75) + 1.5 * diff(quantile(het_ind, probs = c(0.25, 0.75)))
+    het_mean = mean(het),
+    het_1.5IQR_low = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))),
+    het_1.5IQR_high = quantile(het, probs = 0.75) + 1.5 * diff(quantile(het, probs = c(0.25, 0.75)))
   ) %>% 
   mutate(lineage = "even")
 
 het_tibble %>%
-  tidyr::pivot_longer(names_to = "het_method",
-                      values_to = "het_ind",
-                      cols = contains("het")) %>%
-  ggplot2::ggplot(aes(x = het_ind)) +
+  ggplot2::ggplot(aes(x = het)) +
   ggplot2::geom_histogram(binwidth = 1 / length(loci)) +
-  ggplot2::facet_grid(rows = vars(het_method)) +
-  ggplot2::geom_vline(data = het_method_means, aes(xintercept = het_mean, colour = "mean")) +
-  ggplot2::geom_vline(data = het_method_means, aes(xintercept = het_1.5IQR_low, colour = "IQR")) +
-  ggplot2::geom_vline(data = het_method_means, aes(xintercept = het_1.5IQR_high, colour = "IQR")) +
+  ggplot2::facet_grid(rows = vars(lineage)) +
+  ggplot2::geom_vline(data = het_cutoffs, aes(xintercept = het_mean, colour = "mean")) +
+  ggplot2::geom_vline(data = het_cutoffs, aes(xintercept = het_1.5IQR_low, colour = "IQR")) +
+  ggplot2::geom_vline(data = het_cutoffs, aes(xintercept = het_1.5IQR_high, colour = "IQR")) +
   ggplot2::scale_color_manual(name = "statistics", values = c(mean = "blue", IQR = "red")) +
   ggplot2::xlim(0, 1) +
   ggplot2::xlab("Individual Heterozygosity") +
   ggplot2::ylab("Frequency") +
-  ggplot2::ggtitle("Individual Heterozygosity By Method") +
+  ggplot2::ggtitle("Individual Heterozygosity by Collection") +
   ggplot2::theme_bw() 
 ```
 
@@ -545,24 +539,15 @@ See how the *new* method would apply across original sillys
 het_tibble %>%
   ggplot2::ggplot(aes(x = het)) +
   ggplot2::geom_histogram(binwidth = 1 / length(loci)) +
-  ggplot2::facet_grid(rows = vars(og_silly), scales = "free_y") +
-  ggplot2::geom_vline(
-    data = filter(het_method_means, het_method == "het"),
-    aes(xintercept = het_mean, colour = "mean")
-    ) +
-  ggplot2::geom_vline(
-    data = filter(het_method_means, het_method == "het"),
-    aes(xintercept = het_1.5IQR_low, colour = "IQR")
-  ) +
-  ggplot2::geom_vline(
-    data = filter(het_method_means, het_method == "het"),
-    aes(xintercept = het_1.5IQR_high, colour = "IQR")
-  ) +
+  ggplot2::facet_grid(rows = vars(silly), scales = "free_y") +
+  ggplot2::geom_vline(data = het_cutoffs, aes(xintercept = het_mean, colour = "mean")) +
+  ggplot2::geom_vline(data = het_cutoffs, aes(xintercept = het_1.5IQR_low, colour = "IQR")) +
+  ggplot2::geom_vline(data = het_cutoffs, aes(xintercept = het_1.5IQR_high, colour = "IQR")) +
   ggplot2::scale_color_manual(name = "statistics", values = c(mean = "blue", IQR = "red")) +
   ggplot2::xlim(0, 1) +
   ggplot2::xlab("Individual Heterozygosity") +
   ggplot2::ylab("Frequency") +
-  ggplot2::ggtitle("Individual Heterozygosity By Method") +
+  ggplot2::ggtitle("Individual Heterozygosity by Collection") +
   ggplot2::theme_bw(base_size = 12) 
 ```
 
@@ -571,52 +556,54 @@ het_tibble %>%
 Count the number of fish to remove from each silly
 ```{r table_het_cutoff}
 # Calculate 1.5 IQR
-het_method_means
+het_cutoffs
 
 # Get list of fish to remove
 het_tibble %>%
-  dplyr::left_join(filter(het_method_means, het_method == "het"), by = "lineage") %>%
+  dplyr::mutate(lineage = "even") %>% 
+  dplyr::left_join(het_cutoffs, by = "lineage") %>%
   dplyr::filter(het < het_1.5IQR_low | het > het_1.5IQR_high) %>%
-  dplyr::count(og_silly)
+  dplyr::count(silly)
 ```
 
 Filter for fish to remove and save
 ```{r remove_het_cutoff}
 (
-  removed_hets <- het_tibble %>%
-    dplyr::left_join(filter(het_method_means, het_method == "het"), by = "lineage") %>%
+  hets_removed <- het_tibble %>%
+    dplyr::mutate(lineage = "even") %>%
+    dplyr::left_join(het_cutoffs, by = "lineage") %>%
     dplyr::filter(het < het_1.5IQR_low | het > het_1.5IQR_high)
 )
 
-save_objects("removed_hets", "../../Objects/All_Streams_14_16_develop/")
+save_objects("hets_removed", "../../Objects/All_Streams_14_16_develop/")
 ```
 
-Remove these fish. Rather than convert *SillySource* to *FK_FISH_ID* (**note**: the values for *FK_FISH_ID* got reassigned after pooling) before removal, I retained the silly codes and fish_ids.
+Remove these fish
+**NOTE** `silly` and `fish_id` come from `SillySource`, this only works if you are using the original sillys (i.e. you haven't split them by origin or something).
 ```{r}
-sapply(unique(removed_hets$silly), function(mysilly) {
+sapply(unique(hets_removed$silly), function(mysilly) {
   
-  het_ids <- filter(removed_hets, silly == mysilly) %>% pull(fish_id)
+  het_ids <- filter(hets_removed, silly == mysilly) %>% pull(fish_id)
   
   RemoveIDs.GCL(silly = mysilly, IDs = het_ids)
 })
 
-ProjectSillys_Origin_SampleSizes[, "Heterozygosity"] <-
-  ProjectSillys_Origin_SampleSizes[, "Genotyped"] - 
-  ProjectSillys_Origin_SampleSizes[, "Missing"] - 
-  ProjectSillys_Origin_SampleSizes[, "Duplicate"] - 
-  sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
+(
+  sample_size_qa <- sample_size_qa %>%
+    mutate(
+      heterozygosity = genotyped - missing - duplicate - silly_n.GCL(sillyvec = sillyvec) %>% pull(n)
+    )
+)
 ```
 
 ## Final dataset
 
 Count how many fish we retained
 ```{r qa_final}
-ProjectSillys_Origin_SampleSizes[, "Final"] <-
-  sapply(paste0(ProjectSillys_Origin, ".gcl"), function(x) get(x)$n)
+(sample_size_qa <- sample_size_qa %>%
+   mutate(final =  silly_n.GCL(sillyvec = sillyvec) %>% pull(n)))
 
-ProjectSillys_Origin_SampleSizes
-
-save_objects("ProjectSillys_Origin_SampleSizes", path = "../../Objects/All_Streams_14_16_develop/")
+save_objects("sample_size_qa", path = "../../Objects/All_Streams_14_16_develop/")
 ```
 
 Save the post-QA genotypes
@@ -625,20 +612,23 @@ if(!dir.exists("../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin_PostQA"
   dir.create("../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin_PostQA")
 }
 
-save_sillys(ProjectSillys_Origin, "../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin_PostQA/")
+save_sillys(sillyvec, "../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin_PostQA/")
 ```
 
 # Export genepop file
 
 Now that we have final post QA/QC genotypes, we want to save our work by exporting the genotypes as a **Genepeop** file using `gcl2Genepop.GCL`, with individuals named by *SillySource*.
 ```{r genepop}
-if(!dir.exists("../../Genepop/All_Streams_14_16_develop")) {dir.create("../../Genepop/All_Streams_14_16_develop")}
+if(!dir.exists("../../Genepop/All_Streams_14_16_develop")) {
+  dir.create("../../Genepop/All_Streams_14_16_develop")
+}
 
-gcl2Genepop.GCL(sillyvec = ProjectSillys_Origin, 
-                loci = loci, 
-                path = "../../Genepop/All_Streams_14_16_develop/All_Streams_14_16_postQA.gen", 
+gcl2Genepop.GCL(sillyvec = sillyvec, 
+                loci = loci298, 
+                path = "../../Genepop/All_Streams_14_16_develop/All_Streams_14_16_develop_postQA.gen", 
                 VialNums = TRUE, 
-                usat = FALSE)
+                usat = FALSE,
+                ncores = 4)
 ```
 
 # Convert genepop to FRANz format
@@ -648,7 +638,7 @@ The **Genepop** file is fed into Chase's *genepop2franz.GCL.r* script to create 
 # detach(package:reshape2, unload = TRUE)
 source("../genepop2franz.GCL.r")
 genepop2franz.GCL(
-  Genepop = "../../Genepop/All_Streams_14_16_develop/All_Streams_14_16_postQA.gen",
+  Genepop = "../../Genepop/All_Streams_14_16_develop/All_Streams_14_16_develop_postQA.gen",
   OceanAK = "../../OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv",
   Year = c(2014, 2016),
   Stream = c("HOGAN", "STOCK", "GILMOUR", "PADDY", "ERB"),
@@ -660,7 +650,7 @@ genepop2franz.GCL(
 
 Final sample size
 ```{r}
-sum(ProjectSillys_Origin_SampleSizes[, "Final"])
+sum(sample_size_qa$final)
 ```
 
 End
