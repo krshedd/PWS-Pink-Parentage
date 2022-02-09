@@ -1,20 +1,26 @@
 ---
 title: "PWS hydraulic distance"
-output: html_notebook
+author: "Chase Jalbert & Kyle Shedd"
+date: "February 8, 2022"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
 editor_options: 
   chunk_output_type: inline
 ---
 
-# Introduction:    
+# Introduction: 
+
 The notebook calculates the river distance of each fish, from the river mouth. It relies on a river network shapefile and 'riverdist' R package. Riverdist was created by ADFG biologist Matt Tyers for tracking fish movements through a river network. More details and vignette can be found here:        
-https://cran.r-project.org/web/packages/riverdist/vignettes/riverdist_vignette.html#Importing%20a%20river%20network
+https://cran.r-project.org/web/packages/riverdist/vignettes/riverdist_vignette.html#Importing%20a%20river%20network  
 
 The river network shapefiles are generally taken from the National Hydrography Database (NHD), however, in somce cases the polylines are not accurate or do not exist. Rivers not appearing in the NHD were delineated, in ArcMap, by simply creating polylines through the fish waypoints (We'll assume these datapoints represent fish in the stream...) and verified using satellite imagery. The shapefiles for Stockdale Creek and Gilmore Creek were modified from the NHD. Paddy Creek, Erb Creek, and Hogan Creek, were maually delineated.    
 
-High tide marks were prodvided by the crew and Pete Rand. The final distance upstream will be calculated as 1) positive if above high-tide, and 2) negative if below the high-tide mark.    
-The tidal marks are snapped to the streamlines using arcmap and exported as coordinates.     
+High tide marks were prodvided by the crew and Pete Rand. The final distance upstream will be calculated as 1) positive if above high-tide, and 2) negative if below the high-tide mark. The tidal marks are snapped to the streamlines using arcmap and exported as coordinates.     
 
 # Setup script
+
 ```{r setup}
 while(!require(pacman)){ install.packages("pacman") }
   p_load(riverdist, rgdal, sp, tidyverse)  # use pacman to load or install + load necessary packages
@@ -28,22 +34,24 @@ Options for stream are limited to:
     gilmour
     stockdale
 
+**NOTE** you will need to run this notebook multiple times, once for each stream 😉
+
 ```{r inputs}
-stream = "hogan" # Enter stream name here
+stream = "erb" # Enter stream name here
 
 # CSV containing fish data, specifically, Lat/Longs
-stream_data = "../Stream Specimens/StreamSpecimens_PWS_2013-2018_CSVReport.csv"
+stream_data = "../Stream Specimens/StreamSpecimens_PWS_2013-2020_CSVReport.csv"
 
 # CSV containing high tide points for each stream
-tide_data = "../GIS/pws_intertidal_marks/tide_points.csv"
+tide_data = "../GIS/pws_intertidal_marks/tide_points_decimal_degreesonly.csv"
 
 # Where do you want output to go?
-output_path <- paste0("../GIS/R/",stream,"/",stream,"_distances.csv")
+output_path <- paste0("../GIS/R/all_streams/", stream, "_distances.csv")
 ```
 
 # Setting map projection
-CAUTION - don't change this unless you want a different projection (and know what you're doing).
-See this [link](https://mgimond.github.io/Spatial/coordinate-systems-in-r.html) for learning about coordinate systems in R and the definitions below.  Breifly:    
+
+**CAUTION** - don't change this unless you want a different projection (and know what you're doing). See this [link](https://mgimond.github.io/Spatial/coordinate-systems-in-r.html) for learning about coordinate systems in R and the definitions below.  Breifly:    
     
     +lat_0     Latitude of origin
     +lat_1     Latitude of first standard parallel
@@ -56,19 +64,23 @@ AKalbers <- "+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154
     +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
 ```
 
-
 Shapefile location for stream
+
+**NOTE** for whatever reason, `line2network` would not read files off of the V: drive, so I placed them on my Desktop and it worked just fine (Kyle).
+
+Original location of files is: "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\GIS\R\all_streams\shapefiles", which themselves came from their stream-specific folders (no modifications were made).
 ```{r prep}
 # The shapefile (*.shp) of river network
-shapefile_path = normalizePath(paste0("../GIS/R/",stream,"/"))
+shapefile_path = normalizePath(path = "~/../Desktop/Local_PWS_pinks/GIS/all_streams/shapefiles/")  #  normalizePath(paste0("../GIS/R/",stream,"/"))
 shapefile_name = paste0(stream, "_stream_clean")
 ```
 
 # Begin Script
 
 First, get the shapefiles and gps points ready for 'riverdist', then perform basic QC and visualization steps.    
-    Note: Assumptions will be made!
-    
+
+Note: Assumptions will be made!
+
     GPS points do not line up with streams so are snapped to the nearest (straight-line) stream segment
     Sometimes, points in the intertidal extend past stream network, so are snapped to the stream mouth (i.e., no negative distances)
 
@@ -84,24 +96,22 @@ plot(x= rivernetwork)
 
 NOTE - Run this chunk in console as the notebook lags 1 graph behind, making it difficult to answer questions...    
     
+    Cleanup steps taken for <i>HOGAN CREEK</i>:
+    
+    Insert verticies to increase snapping precision : y
+    Minimum distance to use:  1 [this is in map units shown under the "load_files" chunk]
+    Identify segment number of river mouth:  1
+    Identify vertex number of river mouth:  683
+    Accept mouth assignment: y
+    Remove additional segments:  n
+    Build segment routes:  y
+    
     Cleanup steps taken for <i>STOCKDALE CREEK</i>:
     
     Insert verticies to increase snapping precision : y
     Minimum distance to use:  1 [this is in map units shown under the "load_files" chunk]
     Identify segment number of river mouth:  2
     Identify vertex number of river mouth:  1122
-    Accept mouth assignment: y
-    Remove additional segments:  n
-    Build segment routes:  y
-    
-    
-    Cleanup steps taken for <i>PADDY CREEK</i>:
-    
-    Dissolve: y ( Riverdist recommended but I'm not sure why - it didn't actually make changes ["simplified segments to 5 of 5"])
-    Insert verticies to increase snapping precision : y
-    Minimum distance to use:  1 [this is in map units shown under the "load_files" chunk]
-    Identify segment number of river mouth:  4
-    Identify vertex number of river mouth:  166
     Accept mouth assignment: y
     Remove additional segments:  n
     Build segment routes:  y
@@ -117,7 +127,27 @@ NOTE - Run this chunk in console as the notebook lags 1 graph behind, making it 
     Remove additional segments:  n
     Build segment routes:  y
     
+    Cleanup steps taken for <i>PADDY CREEK</i>:
     
+    Dissolve: y ( Riverdist recommended but I'm not sure why - it didn't actually make changes ["simplified segments to 5 of 5"])
+    Insert verticies to increase snapping precision : y
+    Minimum distance to use:  1 [this is in map units shown under the "load_files" chunk]
+    Identify segment number of river mouth:  4
+    Identify vertex number of river mouth:  166
+    Accept mouth assignment: y
+    Remove additional segments:  n
+    Build segment routes:  y
+    
+    Cleanup steps taken for <i>ERB CREEK</i>:
+    
+    Insert verticies to increase snapping precision : y
+    Minimum distance to use:  1 [this is in map units shown under the "load_files" chunk]
+    Identify segment number of river mouth:  1
+    Identify vertex number of river mouth:  897 (doesn't show in plot, guess and check based off of cumuldist 888)
+    Accept mouth assignment: y
+    Remove additional segments:  n
+    Build segment routes:  y
+
 ```{r CleanNetwork}
 # run in console if you want / need visual guides
 rivercleaned <- riverdist::cleanup(rivernetwork)
@@ -127,7 +157,7 @@ rivercleaned <- riverdist::cleanup(rivernetwork)
 topologydots(rivers = rivercleaned)
 ```
 
-Import the raw data from finsight and check for common errors, including missing Lat/Long (i.e., 0s) and instances where Longitude is missing the negative. Note that missing negatives could be a sign of larger data issues. it's probably best to toss it into ArcMap or equivalent and verify the locations prior to performing the blanket mutate below. 
+Import the raw field data with GPS locations from *finsight* (i.e. StreamSpecimens) and check for common errors, including missing Lat/Long (i.e., 0s) and instances where Longitude is missing the negative. Note that missing negatives could be a sign of larger data issues. it's probably best to toss it into ArcMap or equivalent and verify the locations prior to performing the blanket mutate below. 
 
 ```{r import_data}
 # Import the entire dataset and filter for selected stream
@@ -183,7 +213,6 @@ head(tide_locs)
 ```
 
 Once the coordinates are in the correct format, the fish can be snapped to the stream network. The tide marks have already been snapped in ArcMap, but can be done in the same manner as the fish, if necessary.
-
 ```{r CalculateSnapDistance}
 # Snap xy-coords to the nearest streamline. 
 fish_locs_snapped <- xy2segvert(x = fish_locs$x, y = fish_locs$y, rivers = rivercleaned)
@@ -216,7 +245,6 @@ head(tide_locs_snapped)
 ```
 
 View the fish waypoints on the stream network and compare snapped (blue) to raw (red) locations:
-
 ```{r RawVsSnapped}
 # Plot the streamlines, adding 100m buffer in ea direction so we can see all datapoints
 plot(x = rivercleaned,
@@ -238,13 +266,17 @@ legend("topright", legend=c("raw", "snapped"),
        box.lty=0)
 ```
 
-Zoom in to get a look at the snapped high-tide marks
+    Hogan - there are a few locations way down in the intertidal, okay to snap to mouth.
+    Stockdale - there is one location that is way to the north, okay to snap to mouth.
+    Gilmour - there is one location that is way to the north, okay to snap to mouth.
+    Paddy - there is one location way down in the intertidal, okay to snap to mouth.
+    Erb - there are several off-chanel locations, but just going to snap to stream.
 
+Zoom in to get a look at the snapped high-tide marks
 ```{r intertidal_pts}
 plot( x = rivercleaned)
 points(tide_locs$x, tide_locs$y, pch=16, col="red")
 ```
-
 
 Calculate the distance of every fish and tide mark to the river mouth.
 ```{r CalculateDistance}
@@ -271,9 +303,6 @@ tide_df <- tide_locs_snapped %>%
 head(tide_df)
 ```
 
-
-
-
 Plot of distance data by Lat/Long - These should be a continuous color scale
 ```{r QC_fishpts}
 # Need to add xy coords to the fish_df for QC
@@ -284,6 +313,8 @@ joined <- left_join(x = fish_df, y = fish_locs)
 # Plot of rivernetwork which should be a continuous scale going upstream (points further from mouth are lighter colors)
 ggplot(joined, aes(x = x, y= y, color = mouthdist)) + 
   geom_point() +
+  coord_equal() +
+  theme_bw() +
   ggtitle("Riverdist calculations")
 ```
 
@@ -292,8 +323,6 @@ ggplot(joined, aes(x = x, y= y, color = mouthdist)) +
 Now that distance to high-tide and distance to each fish have been calculated, we can calculate the distance above high-tide mark. Distances below the tide mark will be negative and distances above  positive. Note that distances below tidal marks will still have positive river distances (distance from mouth), because the mouth does not equal high-tide mark. Generally, the 'mouth' is poorly defined for these streams. Further, since river polylines were extended or manually created to accomodate fish GPS points, the distance above/below high-tide point may be a more informative measure.  
 
 In some cases, there are two high-tide marks, one for each channel or tributary. Distances have to be manually assigned based on which tide mark is applicable to each fish.    
-
-
 ```{r upstream_tidal}
 tide_df$tidedist # view dataframe - are there multiple points?
 
@@ -336,23 +365,18 @@ final_df <- fish_df %>%
 final_df
 ```
 
-
-
-
-
+Plot a histogram of location assignments relative to tide line.
 ```{r tidal_plot}
 sum(final_df$dist2tide > 1) / nrow(final_df) # portion of waypoints are above the intertidal area
-
 
 ggplot(final_df, aes(x = dist2tide)) +
   geom_histogram() +
   geom_vline(xintercept = 0) +
+  theme_bw() +
   ggtitle(label = "Distance of GPS waypoint from intertidal mark (m)")
 ```
 
-
 # Export Data
-
 
 If all looks good, write a csv containing:    
     
@@ -364,10 +388,102 @@ If all looks good, write a csv containing:
     Vertex wpt was snapped to
     Snapping distance (how far wpt was from stream)
     Intertidal or not (dist2tide = negative/positive)
-    
-
 
 ```{r exportCSV}
 # Output csv
-write_csv(x = final_df, path = output_path)
+write_csv(x = final_df, file = output_path)
 ```
+
+# Confirm
+
+Confirm that all of these samples exist in *OceanAK*
+```{r}
+(oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv"))
+```
+
+Verify that samples from *StreamSpecimens* are in *OceanAK* data wharehouse.
+```{r}
+samples <- oceanak %>% 
+  unite(col = "Sample", c(`DNA Tray Code`, `DNA Tray Well Code`), sep = "_", remove = FALSE) %>% 
+  pull(Sample)
+
+table(final_df$Sample %in% samples)
+```
+
+    Hogan, looks like there are 27 samples that do not exist in *OceanAK*
+    FALSE  TRUE 
+       27 77079 
+    
+    Stockdale, looks like all samples exist in *OceanAK*
+     TRUE 
+    45682
+    
+    Gilmour, looks like there are 20 samples that do not exist in *OceanAK*
+    FALSE  TRUE 
+       20 23224
+    
+    Paddy, looks like there are 102 samples that do not exist in *OceanAK*
+    FALSE  TRUE 
+      102 32093 
+    
+    Erb, looks like there are 2 samples that do not exist in *OceanAK*
+    FALSE  TRUE 
+        2 55067
+
+# All Streams
+
+Read in all StreamSpecimens data, bind all `*_distances.csv` streams together, save.
+```{r}
+stream_data <- read_csv(file = stream_data)
+
+distance_files <- list.files(path = "../GIS/R/all_streams/", pattern = ".csv", full.names = TRUE, recursive = FALSE)
+
+distance_data <- sapply(distance_files, read_csv, simplify = FALSE) %>% 
+  bind_rows()
+```
+
+Verify no duplicates in our data key (DWP_position)
+```{r}
+table(table(distance_data$Sample))
+```
+Drop derived data from `stream_data` (we get otolith data and length information from *OceanAK* data warehouse, it is more up to date).
+```{r}
+(
+  stream_data_simple <- stream_data %>%
+    select(
+      ADFGStreamCode,
+      StreamName,
+      SampleTrayId,
+      SampleCell,
+      SpawningState,
+      PreSpawn,
+      PartialSpawner,
+      PreyedUpon
+    ) %>%
+    unite(
+      col = "Sample",
+      c(SampleTrayId, SampleCell),
+      sep = "_",
+      remove = TRUE
+    )
+)
+```
+
+Join `distance_data` to `stream_data`.
+```{r}
+(
+  stream_specimens_riverdist <- stream_data_simple %>%
+    left_join(distance_data, by = "Sample") %>% 
+    dplyr::rename(riverdist_seg = seg,
+                  riverdist_vert = vert,
+                  riverdist_snapdist = snapdist) %>% 
+    select(Sample, everything())
+)
+```
+
+Save all of the PWS Pink Salmon data from *StreamSpecimens* and `riverdist`.
+```{r}
+write_csv(x = stream_specimens_riverdist, file = "../GIS/R/all_streams/stream_specimens_riverdist_all_streams_2013_2020.csv")
+```
+
+End
