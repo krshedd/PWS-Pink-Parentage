@@ -1,0 +1,603 @@
+---
+title: "Genotype Status for PWS Pink Salmon Fitness Study"
+subtitle: "Which Samples Have NOT Been Genotyped?"
+author: "Kyle Shedd"
+date: "9 February 2022"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(DT)
+library(abind)
+bbind <- function(...) { abind(..., along = 3) }
+
+.username = readLines("~/../R/usr_pw.txt", n = 1)
+.password = readLines("~/../R/usr_pw.txt" , n = 2)[[2]]
+source("~/../R/Functions.GCL.R")  # develop branch!!!
+```
+
+# Objective
+
+Create a pedigree for all fitness streams for 2014/2016.
+
+# Introduction
+
+This is a quick exploratory analysis of the 2014/2016 genotype data from all five fitness streams (Hogan, Stockdale, Gilmour, Paddy, and Erb). Here we will:
+
+  * Read in paired field/otolith data from [OceanAK](http://www.oceanak.adfg.alaska.gov/)
+  * Read in *LocusControl*
+  * Read in all project genotypes
+  * Join genetic data with paired data from OceanAK
+    + Will need to create data key for join (SillySource, Silly_FishID)
+  * Determine which streams/years/origin have not been genotyped
+
+**NOTE** this script operates off of the `develop` branch of *GCL-R-Scripts*
+
+# OceanAK
+
+## Read and format
+
+Read in paired field and otolith data from *OceanAK* and join that data to the attributes table of each silly object
+```{r read_oceanak, message=FALSE}
+(
+  oceanak <-
+    readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv") %>%
+    tidyr::unite(
+      col = "silly_source",
+      c("Silly Code", "Fish ID"),
+      sep = "_",
+      remove = FALSE
+    )
+)  # read in renamed OceanAK data; recommend recent data pull prior to running
+```
+
+## Visualize and subset
+
+How many samples per stream/year?
+```{r}
+oceanak %>%
+  dplyr::count(`Sample Year`, `Location Code`) %>%
+  tidyr::pivot_wider(names_from = `Sample Year`,
+                     values_from = n,
+                     values_fill =  0)
+```
+
+# Genotypes
+
+Create *LocusControl* and read in genotypes by *silly*
+
+First grab the unique `Silly Code` values from `oceanak` and `loci298`
+```{r sillyvec}
+(sillyvec <- sort(unique(oceanak$`Silly Code`)))  # derived from oceanak
+
+loci298 <- dget("../Objects/loci298.txt")  # saved list of loci
+```
+
+## LocusControl
+
+Create `LocusControl` but only for 1 locus, just need to know what got genotyped or not, not saving anything
+```{r LocusControl}
+CreateLocusControl.GCL(locusnames = loci298[1],
+                       username = .username,
+                       password = .password)
+
+loci <- LocusControl$locusnames
+```
+
+## Genotypes
+
+Read in genotypes
+```{r}
+LOKI2R.GCL(sillyvec = sillyvec,
+           username = .username,
+           password = .password)
+```
+
+Not planning to save anything, since we are just looking
+
+# What has not been genotyped?
+
+## Tidy things up
+
+Verify that all genotypes are in OceanAK data
+```{r}
+all.gcl <- lapply(objects(pattern = "\\.gcl"), get) %>%
+  dplyr::bind_rows()
+
+all(all.gcl$SillySource %in% oceanak$silly_source)
+
+table(all.gcl$SillySource %in% oceanak$silly_source)
+```
+
+Fabulous, all in there. That is the huge upside of working with the data warehouse that Tim and Eric put together.
+
+Subset for samples that we **HAVE** genotyped using `inner_join` of `oceanak` and `.gcl` objects.
+```{r}
+(
+  genotyped <- all.gcl %>%
+    dplyr::select(SillySource) %>%
+    dplyr::inner_join(
+      x = oceanak,
+      y = .,
+      by = c("silly_source" = "SillySource")
+    )
+)
+```
+
+Subset for samples that we have **NOT** genotyped using `anti_join` of `oceanak` and `.gcl` objects.
+```{r}
+(
+  not_genotyped <- all.gcl %>%
+    dplyr::select(SillySource) %>%
+    dplyr::anti_join(
+      x = oceanak,
+      y = .,
+      by = c("silly_source" = "SillySource")
+    )
+)
+```
+
+Make a tidy dataset showing what **has** and **has not** been genotyped.
+Bind together genotyped and non-genotyped samples, rename, and reformat to new standard
+```{r}
+(
+  oceanak_geno <- dplyr::bind_rows(
+    genotyped %>%
+      dplyr::mutate(genotyped = TRUE)
+    ,
+    not_genotyped %>%
+      dplyr::mutate(genotyped = FALSE)
+  ) %>%
+    dplyr::select(
+      `Silly Code`,
+      `Fish ID`,
+      `DNA Tray Code`,
+      `DNA Tray Well Code`,
+      `Location Code`,
+      `Sample Year`,
+      `Sample Date`,
+      Sex,
+      `Length Mm`,
+      `Otolith Mark Present`,
+      `Otolith Mark ID`,
+      `Otolith Mark Status Code`,
+      genotyped
+    ) %>%
+    dplyr::rename(
+      silly = "Silly Code",
+      fish_id = "Fish ID",
+      dna_tray_code = "DNA Tray Code",
+      dna_tray_well_code = "DNA Tray Well Code",
+      year = "Sample Year",
+      length = "Length Mm",
+      otolith_mark_present = "Otolith Mark Present",
+      otolith_mark_id = "Otolith Mark ID",
+      otolith_mark_status_code = "Otolith Mark Status Code"
+    ) %>%
+    dplyr::mutate(
+      stream = stringr::str_remove(string = `Location Code`, pattern = " Creek"),
+      date = lubridate::ymd(`Sample Date`),
+      DOY = lubridate::yday(date),
+      # day of year
+      sex = dplyr::case_when(Sex == "M" ~ "Male",
+                             Sex == "F" ~ "Female"),
+      origin = dplyr::case_when(
+        otolith_mark_present == "NO" ~ "Natural",
+        otolith_mark_present == "YES" ~ "Hatchery"
+      ),
+      # add origin variable
+      otolith_read = dplyr::case_when(
+        !is.na(otolith_mark_status_code) ~ TRUE,
+        is.na(otolith_mark_status_code) ~ FALSE
+      )
+    ) %>%
+    dplyr::mutate(origin = base::factor(origin, c(
+      "Natural", "Hatchery"
+    ))) %>%  # make factor to ensure hatchery != red
+    tidyr::unite(
+      col = "sample",
+      c("dna_tray_code", "dna_tray_well_code"),
+      sep = "_",
+      remove = FALSE
+    ) %>%
+    dplyr::select(
+      genotyped,
+      stream,
+      year,
+      origin,
+      sex,
+      date,
+      DOY,
+      length,
+      otolith_mark_present,
+      otolith_mark_id,
+      otolith_mark_status_code,
+      otolith_read,
+      silly,
+      fish_id,
+      sample,
+      dna_tray_code,
+      dna_tray_well_code
+    )
+)
+```
+
+**NOTE** my naive attempt to create a boolean (TRUE/FALSE) `otolith_read` does **NOT** appear to be working as intended. Long story short, GOD screwed it all up. Since we have DWPs with *GOD-affected* otoliths being removed, but then the *unaffected* otoliths remaining in the DWPs and subsequently being logged and read by Cordova or MTAL, those empty wells get coded as `3N66` - missing. There is no way to tell which 3N66 otoliths are *true missing* vs. *GOD-affected*, so that sucks. Also, I have no earthly idea what `n` means (probably `null`) or how those otoliths got coded as such. Please, please, please, treat `otolith_read` with a dumptruck of salt.
+
+## Table samples by genotyped vs. not
+
+### Genotyped
+
+Make a table of what we **HAVE** genotyped
+```{r}
+oceanak_geno %>%
+  dplyr::filter(genotyped == TRUE) %>%
+  dplyr::count(stream, year, otolith_mark_present) %>%
+  tidyr::pivot_wider(names_from = otolith_mark_present,
+                     values_from = n,
+                     values_fill =  0)
+```
+
+### Not Genotyped
+
+How about the other way around? What have we **NOT** genotyped?
+```{r}
+oceanak_geno %>%
+  dplyr::filter(genotyped == FALSE) %>%
+  dplyr::count(stream, year, otolith_mark_present) %>%
+  tidyr::pivot_wider(names_from = otolith_mark_present,
+                     values_from = n,
+                     values_fill =  0)
+```
+
+## Plot samples by genotyped vs. not
+
+```{r fig.width = 12}
+oceanak_geno %>%
+  ggplot2::ggplot(aes(x = DOY, fill = genotyped)) +
+  ggplot2::geom_bar(colour = "black") +  # group = interaction(DOY, origin))
+  ggplot2::scale_x_continuous(breaks = seq(180, 320, by = 5),
+                              labels = format(x = (
+                                as.Date("2013-12-31") + seq(180, 320, by = 5)
+                              ), "%b %d")) +
+  ggplot2::facet_grid(year ~ stream) +
+  ggplot2::geom_hline(yintercept = 0, colour = "black") +
+  ggplot2::ylab("Number of Samples") +
+  ggplot2::xlab("") +
+  ggplot2::labs(title = "AHRP Samples Collected by Day - Genotype Status", fill = "Genotyped") +
+  ggplot2::theme_bw() +
+  ggplot2::theme(text = element_text(size = 15),
+                 axis.text.x = element_text(angle = 90)) +
+  ggplot2::scale_fill_manual(values = c("grey20", "grey80"))
+```
+
+## Entire collections not genotyped
+
+  * **PERB13** - previously decided to deep 6 2013 samples due to low offspring assignment rates in Stockdale/Hogan and non-representative sampling throughout the season
+  * **PERB15** - previously decided that there were more parents than necessary, subsampled post-GOD
+  * **PERB17** - previously decided to wait for post-GOD to filter out new hatchery strays
+  * **PERB20** - previously waiting on otolith reads, but we have them now!
+  * **PPADDY13** - previously decided to deep 6 2013 samples due to low offspring assignment rates in Stockdale/Hogan and non-representative sampling throughout the season
+  * **PPADDY15** - previously decided that there were more parents than necessary, subsampled post-GOD
+  * **PPADDY17** - previously decided to wait for post-GOD to filter out new hatchery strays
+  * **PPADDY20** - previously waiting on otolith reads, but we have them now!
+
+## Collections partially genotyped
+
+### Hatchery strays excluded in final year (lineage)
+
+  * **PGILMOUR19** - last year for odd-lineage, excluded hatchery strays
+  * **PHOGAN18** - last year for even-lineage, excluded hatchery strays
+  * **PHOGAN19** - last year for odd-lineage, excluded hatchery strays
+  * **PSTOCK19** - last year for odd-lineage, excluded hatchery strays
+
+### Revisit?
+
+  * **PHOGAN14** - previously decided that we didn't need more hatchery-origin parents, already have 500-ish, there are **1,820** remaining, but they could help with F2 analyses
+  * **PHOGAN17** - previously extracted all natural-origin available(offspring of 2015) + 1K hatchery-origin parents, looks like there are more natural-origin now because at the time, only every other DWP got otolith read (there were so many, so they skipped every other one at the time), there are 3,145 non-genotyped natural-origin fish and 10,193 non-genotyped hatchery-origin fish
+  * **PSTOCK14** - previously decided that we didn't need more hatchery-origin parents, already have have 500-ish, there are **557** remaning
+
+# Samples we should genotype
+
+## 2014 Stockdale and Hogan
+
+Extract these left-over 2014 hatchery-origin parents to aid in finding more offspring in 2016 for subsequent F2 analyses in 2018. Unfortunately this will involve going back through previously cherry picked DPWs.
+```{r}
+oceanak_geno %>%
+  dplyr::filter(genotyped == FALSE,
+                stream %in% c("Stockdale", "Hogan"),
+                year == 2014,
+                origin == "Hatchery"
+  )
+```
+
+## 2020 Paddy and Erb
+
+Extract these natural-origin offspring now that we have all of the otolith reads back. This is the final year of even-lineage analyses, so no need to grab hatchery-origin or `NA` otolith fish.
+```{r}
+oceanak_geno %>%
+  dplyr::filter(genotyped == FALSE,
+                stream %in% c("Paddy", "Erb"),
+                year == 2020,
+                origin == "Natural")
+```
+
+Verify that all of the `NA` otolith fish have been read
+
+**WAIT** on this until Tim Frawley confirms what these different codes mean...we want to make sure we have "all the reads" before we go picking samples to extract.
+```{r}
+oceanak_geno %>%
+  dplyr::filter(genotyped == FALSE,
+                stream %in% c("Paddy", "Erb"),
+                year == 2020,
+                is.na(origin)) %>%
+  dplyr::count(stream, otolith_mark_status_code) %>%
+  tidyr::pivot_wider(names_from = stream, values_from = n)
+```
+
+Hrmm, I should follow up on `3N66` - missing (could be *true missing* or *GOD-affected*) and `n` - null (dunno how an otolith gets this code)
+
+## 2017 Hogan
+
+At the time this collection was originally extracted, we only had otolith reads from every-other DWP, so we grabbed all of the natural-origin fish and 1K hatchery-origin fish. Now that all of the DWPs have been read, I propose that we genotype all fish from that 2nd round of otolith reads (i.e. all the "new" natural-origin fish + all the "new" hatchery-origin fish). This will get us more natural-origin fish as offspring for the 2015/2017 F~1~ analyses and 2015/2017/2019 F~2~ analyses, and also give us a lot more hatchery-origin parents for the 2017/2019 F~1~ analyses. I do not think it is worth going back to genotype all of the non-1K hatchery-origin fish that were originally passed over.
+```{r}
+hogan_2017_DWPs_to_genotype <- oceanak_geno %>%
+  dplyr::filter(stream == "Hogan",
+                year == 2017) %>% 
+  dplyr::group_by(dna_tray_code) %>% 
+  dplyr::summarise(genotyped = sum(genotyped)) %>% 
+  dplyr::filter(genotyped == 0) %>% 
+  dplyr::pull(dna_tray_code)
+
+oceanak_geno %>% 
+  dplyr::filter(dna_tray_code %in% hogan_2017_DWPs_to_genotype)
+```
+
+## 2015 Paddy and Erb
+
+Extract all, despite GOD. Originally we were going to wait until GOD is done, but it’s gonna take too long. These will be parents for the odd-lineage 2015/2017 F~1~ analyses. Ideally we could filter out `NA` origin fish, if they have been otolith read, but this is likely fairly few samples.
+```{r}
+oceanak_geno %>%
+  dplyr::filter(genotyped == FALSE,
+                stream %in% c("Paddy", "Erb"),
+                year == 2015)
+```
+
+## 2017 Paddy and Erb
+
+Extract all natural-origin and `NA` origin, despite GOD. Originally we were going to wait until GOD is done, but it’s gonna take too long. These will be offspring for the odd-lineage 2015/2017 F~1~ analyses. Ideally we could filter out `NA` origin fish, if they have been otolith read, but this is likely fairly few samples.
+```{r}
+oceanak_geno %>%
+  dplyr::filter(genotyped == FALSE,
+                stream %in% c("Paddy", "Erb"),
+                year == 2017,
+                is.na(origin) | origin == "Natural")
+```
+
+# Summary of genotype status 2/9/22
+
+We have genotyped 133,369 fish.
+
+There are 102,269 fish that have not been genotyped. Some should be, some (mainly hatchery-origin strays in the final offspring year) do not need to be genotyped.
+
+# Magnitude of GOD
+
+How many samples do **not** have otolith reads per stream/year (based on `NA` for `origin`, will include otoliths that were unreadable/lost)?
+```{r}
+oceanak_geno %>%
+  dplyr::filter(is.na(origin)) %>% 
+  dplyr::count(year, stream) %>%
+  tidyr::pivot_wider(names_from = year,
+                     values_from = n,
+                     values_fill =  0)
+```
+
+How many samples do **not** have otolith reads per stream/year (based on `NA` for `otolith_mark_status_code`)?
+```{r}
+oceanak_geno %>%
+  dplyr::filter(otolith_read == FALSE) %>% 
+  dplyr::count(year, stream) %>%
+  tidyr::pivot_wider(names_from = year,
+                     values_from = n,
+                     values_fill =  0) %>% 
+  dplyr::arrange(stream)
+```
+
+Why are there so few for Gilmour?
+```{r}
+oceanak_geno %>% 
+  dplyr::filter(stream == "Gilmour",
+                is.na(origin)) %>% 
+  dplyr::count(year, otolith_mark_status_code) %>% 
+  tidyr::pivot_wider(names_from = year, values_from = n)
+```
+
+Okay, this is a global issue, need to check with Tim to see what these mean...(update, see above, unresolved, but I don't think we'll be able to figure out which otoliths have truly not been read and which are *GOD-affected*)
+```{r rows.print = 22}
+oceanak_geno %>% 
+  dplyr::filter(is.na(otolith_mark_present)) %>% 
+  dplyr::count(otolith_mark_status_code) %>% 
+  dplyr::arrange(dplyr::desc(n))
+```
+
+Okay, something is not right. I have no idea what "n" is, but I think 3N66 is "missing"? Evidently my attempt to get a TRUE/FALSE for `otolith_read` based on whether `otolith_mark_status_code` = `NA` is not the way to go about this...
+
+## Plot samples by stream/year/origin
+
+```{r fig.width = 12}
+oceanak_geno %>%
+  ggplot2::ggplot(aes(x = DOY, fill = origin)) +
+  ggplot2::geom_bar(colour = "black") +  # group = interaction(DOY, origin))
+  ggplot2::scale_x_continuous(breaks = seq(180, 320, by = 5),
+                              labels = format(x = (
+                                as.Date("2013-12-31") + seq(180, 320, by = 5)
+                              ), "%b %d")) +
+  ggplot2::facet_grid(year ~ stream) +
+  ggplot2::geom_hline(yintercept = 0, colour = "black") +
+  ggplot2::ylab("Number of Samples") +
+  ggplot2::xlab("") +
+  ggplot2::labs(title = "AHRP Samples Collected by Day - Otolith Status", fill = "Origin") +
+  ggplot2::theme_bw() +
+  ggplot2::theme(text = element_text(size = 15),
+                 axis.text.x = element_text(angle = 90))
+```
+
+### Erb
+
+Which samples were affected by GOD (`NA` origin)?
+
+**NOTE** `NA` for origin could be due to a number of non-GOD issues (overground, true missing, etc.), this is just a coarse estimate.
+```{r fig.width = 12}
+oceanak_geno %>%
+  dplyr::filter(stream == "Erb",
+                year %in% 2015:2018) %>% 
+  ggplot2::ggplot(aes(x = DOY, fill = origin)) +
+  ggplot2::geom_bar(colour = "black") +  # group = interaction(DOY, origin))
+  ggplot2::scale_x_continuous(breaks = seq(180, 320, by = 5),
+                              labels = format(x = (
+                                as.Date("2013-12-31") + seq(180, 320, by = 5)
+                              ), "%b %d")) +
+  ggplot2::facet_grid(year ~ stream) +
+  ggplot2::geom_hline(yintercept = 0, colour = "black") +
+  ggplot2::ylab("Number of Samples") +
+  ggplot2::xlab("") +
+  ggplot2::labs(title = "Erb Samples Collected by Day - Otolith Status", fill = "Origin") +
+  ggplot2::theme_bw() +
+  ggplot2::theme(text = element_text(size = 15),
+                 axis.text.x = element_text(angle = 90))
+```
+
+Compare density plot of otoliths that have been read vs. those that haven't (i.e. GOD). If no difference in distributions, then GOD has not biased our field collections.
+```{r fig.width = 12}
+oceanak_geno %>%
+  dplyr::filter(stream == "Erb",
+                year %in% 2015:2018) %>%
+  dplyr::mutate(otolith_read = dplyr::case_when(is.na(origin) ~ FALSE, TRUE ~ TRUE)) %>%
+  ggplot2::ggplot(aes(x = DOY, fill = otolith_read)) +
+  ggplot2::geom_density(alpha = 0.5) +
+  ggplot2::scale_x_continuous(breaks = seq(180, 320, by = 5),
+                              labels = format(x = (
+                                as.Date("2013-12-31") + seq(180, 320, by = 5)
+                              ), "%b %d")) +
+  ggplot2::facet_grid(year ~ stream) +
+  ggplot2::geom_hline(yintercept = 0, colour = "black") +
+  ggplot2::ylab("Number of Samples") +
+  ggplot2::xlab("") +
+  ggplot2::labs(title = "Erb Samples Collected by Day - Otolith Status", fill = "Otolith Read") +
+  ggplot2::theme_bw() +
+  ggplot2::theme(text = element_text(size = 15),
+                 axis.text.x = element_text(angle = 90)) +
+  ggplot2::scale_fill_manual(values = c("grey20", "grey80"))
+```
+
+### Paddy
+
+Which samples were affected by GOD (`NA` origin)?
+
+**NOTE** `NA` for origin could be due to a number of non-GOD issues (overground, true missing, etc.), this is just a coarse estimate.
+```{r fig.width = 12}
+oceanak_geno %>%
+  dplyr::filter(stream == "Paddy",
+                year %in% 2015:2018) %>% 
+  ggplot2::ggplot(aes(x = DOY, fill = origin)) +
+  ggplot2::geom_bar(colour = "black") +  # group = interaction(DOY, origin))
+  ggplot2::scale_x_continuous(breaks = seq(180, 320, by = 5),
+                              labels = format(x = (
+                                as.Date("2013-12-31") + seq(180, 320, by = 5)
+                              ), "%b %d")) +
+  ggplot2::facet_grid(year ~ stream) +
+  ggplot2::geom_hline(yintercept = 0, colour = "black") +
+  ggplot2::ylab("Number of Samples") +
+  ggplot2::xlab("") +
+  ggplot2::labs(title = "Paddy Samples Collected by Day - Otolith Status", fill = "Origin") +
+  ggplot2::theme_bw() +
+  ggplot2::theme(text = element_text(size = 15),
+                 axis.text.x = element_text(angle = 90))
+```
+
+Compare density plot of otoliths that have been read vs. those that haven't (i.e. GOD). If no difference in distributions, then GOD has not biased our field collections.
+```{r fig.width = 12}
+oceanak_geno %>%
+  dplyr::filter(stream == "Paddy",
+                year %in% 2015:2018) %>%
+  dplyr::mutate(otolith_read = dplyr::case_when(is.na(origin) ~ FALSE, TRUE ~ TRUE)) %>%
+  ggplot2::ggplot(aes(x = DOY, fill = otolith_read)) +
+  ggplot2::geom_density(alpha = 0.5) +
+  ggplot2::scale_x_continuous(breaks = seq(180, 320, by = 5),
+                              labels = format(x = (
+                                as.Date("2013-12-31") + seq(180, 320, by = 5)
+                              ), "%b %d")) +
+  ggplot2::facet_grid(year ~ stream) +
+  ggplot2::geom_hline(yintercept = 0, colour = "black") +
+  ggplot2::ylab("Number of Samples") +
+  ggplot2::xlab("") +
+  ggplot2::labs(title = "Paddy Samples Collected by Day - Otolith Status", fill = "Otolith Read") +
+  ggplot2::theme_bw() +
+  ggplot2::theme(text = element_text(size = 15),
+                 axis.text.x = element_text(angle = 90)) +
+  ggplot2::scale_fill_manual(values = c("grey20", "grey80"))
+```
+
+### Gilmour
+
+Which samples were affected by GOD (`NA` origin)?
+
+**NOTE** `NA` for origin could be due to a number of non-GOD issues (overground, true missing, etc.), this is just a coarse estimate.
+```{r fig.width = 12}
+oceanak_geno %>%
+  dplyr::filter(stream == "Gilmour",
+                year %in% 2015:2018) %>% 
+  ggplot2::ggplot(aes(x = DOY, fill = origin)) +
+  ggplot2::geom_bar(colour = "black") +  # group = interaction(DOY, origin))
+  ggplot2::scale_x_continuous(breaks = seq(180, 320, by = 5),
+                              labels = format(x = (
+                                as.Date("2013-12-31") + seq(180, 320, by = 5)
+                              ), "%b %d")) +
+  ggplot2::facet_grid(year ~ stream) +
+  ggplot2::geom_hline(yintercept = 0, colour = "black") +
+  ggplot2::ylab("Number of Samples") +
+  ggplot2::xlab("") +
+  ggplot2::labs(title = "Gilmour Samples Collected by Day - Otolith Status", fill = "Origin") +
+  ggplot2::theme_bw() +
+  ggplot2::theme(text = element_text(size = 15),
+                 axis.text.x = element_text(angle = 90))
+```
+
+Compare density plot of otoliths that have been read vs. those that haven't (i.e. GOD). If no difference in distributions, then GOD has not biased our field collections.
+```{r fig.width = 12}
+oceanak_geno %>%
+  dplyr::filter(stream == "Gilmour",
+                year %in% 2015:2018) %>%
+  dplyr::mutate(otolith_read = dplyr::case_when(is.na(origin) ~ FALSE, TRUE ~ TRUE)) %>%
+  ggplot2::ggplot(aes(x = DOY, fill = otolith_read)) +
+  ggplot2::geom_density(alpha = 0.5) +
+  ggplot2::scale_x_continuous(breaks = seq(180, 320, by = 5),
+                              labels = format(x = (
+                                as.Date("2013-12-31") + seq(180, 320, by = 5)
+                              ), "%b %d")) +
+  ggplot2::facet_grid(year ~ stream) +
+  ggplot2::geom_hline(yintercept = 0, colour = "black") +
+  ggplot2::ylab("Number of Samples") +
+  ggplot2::xlab("") +
+  ggplot2::labs(title = "Gilmour Samples Collected by Day - Otolith Status", fill = "Otolith Read") +
+  ggplot2::theme_bw() +
+  ggplot2::theme(text = element_text(size = 15),
+                 axis.text.x = element_text(angle = 90)) +
+  ggplot2::scale_fill_manual(values = c("grey20", "grey80"))
+```
+
+# Summary of GOD
+
+While the total proportion of samples affected by GOD in a given stream/year varies quite a bit (e.g. hardly anything for Paddy 2015 vs. significant loss for all Gilmour), the loss of samples to GOD was non-random, and appears to bias the density distribution of sampling date relative to what was collected in the field (and is assumed to be representative).
+
+End
