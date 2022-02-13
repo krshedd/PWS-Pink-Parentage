@@ -1,6 +1,6 @@
 .Rproj.user
 .Rhistory
-.RData
+*.RData
 .Ruserdata
 *.csv
 Hogan_Figures.nb.html
