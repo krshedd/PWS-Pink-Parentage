@@ -110,15 +110,17 @@ dev.off()
 
 # RRS to Date
 
+## Dyad
+
 Read in the data
 ```{r read_rrs_to_date}
-(rrs_to_date <- readr::read_csv(file = "rrs_to_date.csv"))
+(rrs_to_date_dyad <- readr::read_csv(file = "rrs_to_date_dyad.csv"))
 ```
 
-## Bar plot
+### Bar plot
 
 ```{r fig.height=7.5, fig.width=6.5}
-rrs_to_date %>% 
+rrs_to_date_dyad %>% 
   dplyr::mutate(year = as.character(year)) %>% 
   ggplot2::ggplot(aes(x = year, y = rrs, ymin = lower_ci, ymax = upper_ci, fill = sex)) +
   ggplot2::geom_col(position = position_dodge(), colour = "black") +
@@ -131,6 +133,56 @@ rrs_to_date %>%
   ggplot2::theme_bw(base_size = 16) +
   ggplot2::theme(legend.position = c(0.8, 0.8), legend.background = element_rect(colour = "black"))
 
-ggplot2::ggsave(filename = "RRS_to_date.png", width = 6.5, height = 7.5, units = "in")
+ggplot2::ggsave(filename = "RRS_to_date_dyad.png", width = 6.5, height = 7.5, units = "in")
 ```
+
+## Triad
+
+Read in the data
+```{r read_rrs_to_date_triad}
+(rrs_to_date_triad <- readr::read_csv(file = "rrs_to_date_triad.csv"))
+```
+
+### Bar plot
+
+Get default `ggplot2` colors
+```{r}
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+```
+
+### Bar plot
+
+```{r fig.height=7.5, fig.width=6.5}
+rrs_to_date_triad %>% 
+  dplyr::mutate(year = as.character(year)) %>% 
+  ggplot2::ggplot(aes(x = year, y = rrs, ymin = lower_ci, ymax = upper_ci, fill = cross)) +
+  ggplot2::geom_col(position = position_dodge(), colour = "black") +
+  ggplot2::geom_errorbar(position = position_dodge(width = 0.9), width = 0.5, size = 0.75) +
+  ggplot2::geom_hline(yintercept = 0) +
+  ggplot2::geom_hline(yintercept = 1, linetype = 2, size = 1) +
+  ggplot2::scale_fill_manual(values = gg_color_hue(n = 4)[4:2]) +
+  ggplot2::facet_grid(stream ~ lineage, scales = "free_x") +
+  ggplot2::labs(x = "Run Year", y = "RRS (95% CI)", fill = "Cross Type") +
+  ggplot2::theme_bw(base_size = 16)
+  # ggplot2::theme(legend.position = c(0.8, 0.8), legend.background = element_rect(colour = "black"))
+
+ggplot2::ggsave(filename = "RRS_to_date_triad.png", width = 6.5, height = 7.5, units = "in")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
