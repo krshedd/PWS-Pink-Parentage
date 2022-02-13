@@ -1,12 +1,13 @@
-name,type,lat,long,color
-Hogan,Hogan,60.19668,-147.75696,red
-Stockdale,Fitness Stream,60.31813,-147.20182,orange
-Erb,Fitness Stream,60.37696,-148.15139,orange
-Paddy,Fitness Stream,60.39903,-148.10238,orange
-Gilmour,Fitness Stream,60.25355,-147.24503,orange
-AFK,Hatchery,60.050317,-148.0644,green
-WHN,Hatchery,60.792705,-148.086247,green
-Cannery Creek,Hatchery,61.01784,-147.508735,green
-VFDA,Hatchery,61.09732,-146.32586,green
-Cordova,City,60.52433,-145.75212,blue
-Whittier,City,60.77319,-148.68479,blue
+name,type,legend,lat,long
+Hogan,Fitness Stream,Fitness,60.19668,-147.75696
+Stockdale,Fitness Stream,Fitness,60.31813,-147.20182
+Erb,Fitness Stream,Fitness,60.37696,-148.15139
+Paddy,Fitness Stream,Fitness,60.39903,-148.10238
+Gilmour,Fitness Stream,Fitness,60.25355,-147.24503
+AFK,Hatchery,PWSAC,60.050317,-148.0644
+WN,Hatchery,PWSAC,60.792705,-148.086247
+CC,Hatchery,PWSAC,61.01784,-147.508735
+SG,Hatchery,VFDA,61.09732,-146.32586
+Cordova,City,City,60.52433,-145.75212
+Whittier,City,City,60.77319,-148.68479
+Valdez,City,City,61.13381,-146.34703

@@ -1,0 +1,136 @@
+---
+title: "Board of Fisheries Hatchery Committee Meeting 2022"
+author: "Kyle Shedd"
+date: "13 February 2022"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+library(coin)
+library(MASS)
+library(scales)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+library(colorspace)
+library(ggmap)
+library(maps)
+library(mapdata)
+library(PBSmapping)
+library(grid)
+library(ggsn)
+library(tidyverse)
+
+knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
+```
+
+# Map
+
+```{r read_map_data}
+(pws_map <- readr::read_csv(file = "../map_data.csv"))
+```
+
+## ggplot + PBSmapping
+
+Try PBSmapping, clunky, but great basemap for AK coastlines. Got the idea from Ben Williams GitHub [link](https://ben-williams.github.io/updated_ggplot_figures.html). Still used the idea from the previous link on Quantitative Palaeoecology
+
+```{r pbs_mapping}
+x_lim <- range(pws_map$long) + c(-0.1, 0.1)
+y_lim <- range(pws_map$lat) + c(-0.2, 0.2)
+
+data("nepacLLhigh")
+ak <- nepacLLhigh %>% 
+  dplyr::select(group = PID, POS = POS,long = X, lat = Y)
+
+maptheme <- theme(
+  panel.grid = element_blank(),
+  panel.border = element_rect(fill = NA, colour = "black"),
+  panel.background = element_blank()
+)
+
+# PWS map
+pws_map <- ggplot() + 
+  geom_polygon(data = ak, aes(long, lat, group = group), fill = "grey90", color = "black", lwd = 0.3) +
+  geom_point(data = pws_map, aes(x = long, y = lat, fill = legend, shape = legend, size = legend), stroke = 1.5) +  # shape = 21, colour = "black",
+  scale_shape_manual(values = c(24, 21, 22, 22)) +
+  scale_size_manual(values = c(3.5, 5, 5, 5)) +
+  geom_label(data = filter(pws_map, type == "Hatchery"), aes(long, lat, label = name), hjust = 0, nudge_x = 0.1) +
+  geom_label(data = filter(pws_map, type == "City"), aes(long, lat, label = name), hjust = 0.5, vjust = 0, nudge_y = 0.05) +
+  geom_label(data = filter(pws_map, name == "Hogan"), aes(long, lat, label = name), hjust = 0, nudge_x = 0.1, nudge_y = -0.05) +
+  geom_label(data = filter(pws_map, name == "Stockdale"), aes(long, lat, label = name), hjust = 0, nudge_x = 0.1, nudge_y = 0.02) +
+  geom_label(data = filter(pws_map, name == "Gilmour"), aes(long, lat, label = name), hjust = 0, nudge_x = 0.1, nudge_y = -0.02) +
+  geom_label(data = filter(pws_map, name == "Paddy"), aes(long, lat, label = name), hjust = 1, nudge_x = -0.1, nudge_y = 0.04) +
+  geom_label(data = filter(pws_map, name == "Erb"), aes(long, lat, label = name), hjust = 1, nudge_x = -0.1, nudge_y = -0.04) +
+  geom_segment(aes(x = -148.7, xend = -148.7, y = 59.85, yend = 60.02), lineend = "butt", linejoin = "round", size = 2, arrow = arrow(length = unit(0.2, "inches"))) +
+  annotate("text", label = "Prince\nWilliam\nSound", x = -147, y = 60.6, size = 5, colour = "black") +
+  theme(panel.background = element_rect(fill = 'white')) +
+  scale_y_continuous(breaks = c(60.0, 60.5, 61.0)) +
+  xlab(expression(paste(Longitude^o, ~'W'))) +
+  ylab(expression(paste(Latitude^o, ~'N'))) +
+  labs(fill = "Legend", shape = "Legend", size = "Legend") +
+  coord_map(xlim = x_lim, ylim = y_lim) +
+  maptheme
+
+# north2(pws_map, symbol = 12, 0.18, 0.20)  # couldn't get this to work with the inset
+
+# Inset map
+ak_map <- ggplot() + 
+  geom_polygon(data = ak, aes(long, lat, group = group), fill = "grey90", color = "black", lwd = 0.3) +
+  borders("world", xlim = c(-170, -130, ylim = c(20, 50)), lwd = 1) +
+  geom_rect(data = data.frame(), aes(xmin = x_lim[1], xmax = x_lim[2], ymin = y_lim[1], ymax = y_lim[2]), colour = "red", fill = NA, lwd = 1) +
+  annotate("text", label = "Alaska", x = -150.5, y = 63.5, size = 5, colour = "black") +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()) +
+  coord_map(xlim = c(-170, -130), ylim = c(53, 65))
+
+grid.newpage()
+vp_b <- viewport(width = 1, height = 1, x = 0.5, y = 0.5)  # the larger map
+vp_a <- viewport(width = 0.23, height = 0.35, x = 0.585, y = 0.32)  # the inset in lower left
+print(pws_map, vp = vp_b)
+print(ak_map + maptheme, vp = vp_a)
+```
+
+Save
+```{r save_png}
+png(filename = "PWS_stream_map.png", width = 6.5, height = 6.5, units = "in", res = 300)
+grid.newpage()
+vp_b <- viewport(width = 1, height = 1, x = 0.5, y = 0.5)  # the larger map
+vp_a <- viewport(width = 0.23, height = 0.40, x = 0.7, y = 0.26)  # the inset in lower left; x = 0.585, y = 0.32
+print(pws_map, vp = vp_b)
+print(ak_map + maptheme, vp = vp_a)
+dev.off()
+```
+
+# RRS to Date
+
+Read in the data
+```{r read_rrs_to_date}
+(rrs_to_date <- readr::read_csv(file = "rrs_to_date.csv"))
+```
+
+## Bar plot
+
+```{r fig.height=7.5, fig.width=6.5}
+rrs_to_date %>% 
+  dplyr::mutate(year = as.character(year)) %>% 
+  ggplot2::ggplot(aes(x = year, y = rrs, ymin = lower_ci, ymax = upper_ci, fill = sex)) +
+  ggplot2::geom_col(position = position_dodge(), colour = "black") +
+  ggplot2::geom_errorbar(position = position_dodge(width = 0.9), width = 0.5, size = 0.75) +
+  ggplot2::geom_hline(yintercept = 0) +
+  ggplot2::geom_hline(yintercept = 1, linetype = 2, size = 1) +
+  ggplot2::scale_fill_manual(values = c("orange", "skyblue")) +
+  ggplot2::facet_grid(stream ~ lineage, scales = "free_x") +
+  ggplot2::labs(x = "Run Year", y = "RRS (95% CI)", fill = "Sex") +
+  ggplot2::theme_bw(base_size = 16) +
+  ggplot2::theme(legend.position = c(0.8, 0.8), legend.background = element_rect(colour = "black"))
+
+ggplot2::ggsave(filename = "RRS_to_date.png", width = 6.5, height = 7.5, units = "in")
+```
+
