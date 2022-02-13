@@ -50,7 +50,7 @@ Filter for parents that came from known crosses in 2014
 ```{r}
 stock_paired_16_18_filter_parents %>% 
   right_join(stock_parents_paired_14_16_cross, by = c("franz_id" = "Offspring")) %>% 
-  select(cross, n) %>% 
+  dplyr::select(cross, n) %>% 
   rename(n_off = n) %>% 
   group_by(cross) %>% 
   summarise(n_par = length(cross), n_off = sum(n_off))
@@ -71,6 +71,15 @@ gilmour_parents_paired_14_16_cross %>%
   count(cross)
 ```
 
+How many unique cross matings?
+```{r}
+gilmour_parents_paired_14_16_cross %>% 
+  dplyr::select(`Parent 1`, `Parent 2`, cross) %>% 
+  distinct() %>% 
+  count(cross)
+```
+
+
 ## 16/18 Parentage Data
 
 Get parent-centric 2016/2018 parentage data
@@ -82,7 +91,7 @@ Filter for parents that came from known crosses in 2014
 ```{r}
 gilmour_paired_16_18_filter_parents %>% 
   right_join(gilmour_parents_paired_14_16_cross, by = c("franz_id" = "Offspring")) %>% 
-  select(cross, n) %>% 
+  dplyr::select(cross, n) %>% 
   rename(n_off = n) %>% 
   group_by(cross) %>% 
   summarise(n_par = length(cross), n_off = sum(n_off))
