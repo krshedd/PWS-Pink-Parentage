@@ -163,7 +163,7 @@ rrs_to_date_triad %>%
   ggplot2::geom_errorbar(position = position_dodge(width = 0.9), width = 0.5, size = 0.75) +
   ggplot2::geom_hline(yintercept = 0) +
   ggplot2::geom_hline(yintercept = 1, linetype = 2, size = 1) +
-  ggplot2::scale_fill_manual(values = gg_color_hue(n = 4)[4:2]) +
+  ggplot2::scale_fill_manual(values = gg_color_hue(n = 4)[4:1]) +
   ggplot2::facet_grid(stream ~ lineage, scales = "free_x") +
   ggplot2::labs(x = "Run Year", y = "RRS (95% CI)", fill = "Cross Type") +
   ggplot2::theme_bw(base_size = 16)
