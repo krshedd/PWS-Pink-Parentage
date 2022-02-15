@@ -1,0 +1,1537 @@
+---
+title: "Heritability of body length, sample date, location, and RS according to Cross Type and Parental/Offspring Sex for Erb 2014-2016"
+author: "Kristen Gruenthal"
+date: "1 February 2022"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+# **INTRODUCTION**
+
+The purpose of these analyses are to more fully explore the parent-pair offspring trio/triad data (i.e. cross data) for Erb Creek 2014-2016 in terms of spatiotemporal patterning and generate preliminary estimates of narrow-sense heritability using regression slope analysis.
+
+```{r setup, include=FALSE}
+rm(list=ls())
+
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+library(gridExtra)
+library(MuMIn)
+library(GGally)
+library(gganimate)
+library(broom)
+library(tidyr)
+library(purrr)
+library(gremlin)
+library(nadiv)
+library(psych)
+library(Matrix)
+
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.width = 10)
+```
+
+# **WHO**
+
+Who are the two-parents, both dam and sire, for each cross type offspring and where were they sampled?
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# erb_riverdist_14_16 <- read_csv("../../GIS/R/Erb/erb_distances.csv") %>% 
+#   mutate(Intertidal = case_when(dist2tide > 0 ~ "Upstream",
+#                                 dist2tide <= 0 ~ "Intertidal")) %>% 
+#   rename(Distance = mouthdist, Segment = seg)
+
+erb_parents_paired_14_16_cross <- read_csv("../Erb/erb_parents_paired_14_16_cross.csv")
+
+# # organize by sire and dam, join riverdist data
+# parents_paired_cross_riverdist_spacetime <- function(indata_spacetime = erb_parents_paired_14_16_cross, indata_riverdist = erb_riverdist_14_16) {
+#   indata_spacetime %>% 
+#   count(cross, `Fish ID`, `Fish ID.par1`, `Sample Date`, `Sample Date.par1`, SEX, SEX.par1, `DNA Tray Code`, `DNA Tray Code.par1`, `DNA Tray Well Code`, `DNA Tray Well Code.par1`, origin.par1, origin, `Length Mm.par1`, `Length Mm`) %>% 
+#   rename(`Fish ID.par2` = `Fish ID`, 
+#          `Sample Date.par2` = `Sample Date`,
+#          SEX.par2 = SEX,
+#          `DNA Tray Code.par2` = `DNA Tray Code`,
+#          `DNA Tray Well Code.par2` = `DNA Tray Well Code`,
+#          origin.par2 = origin,
+#          `Length Mm.par2` = `Length Mm`) %>% 
+#   unite(Sample.par1, c("DNA Tray Code.par1", "DNA Tray Well Code.par1"), sep = "_", remove = TRUE) %>% 
+#   unite(Sample.par2, c("DNA Tray Code.par2", "DNA Tray Well Code.par2"), sep = "_", remove = TRUE) %>% 
+#   left_join(indata_riverdist, by = c("Sample.par1" = "Sample")) %>% 
+#   left_join(indata_riverdist, by = c("Sample.par2" = "Sample"), suffix = c(".par1", ".par2")) %>% 
+#   mutate(fish_id.sire = case_when(SEX.par1 == "M" ~ `Fish ID.par1`,
+#                                   TRUE ~ `Fish ID.par2`)) %>% 
+#   mutate(fish_id.dam = case_when(SEX.par1 == "F" ~ `Fish ID.par1`,
+#                                   TRUE ~ `Fish ID.par2`)) %>% 
+#   mutate(sample_date.sire = case_when(SEX.par1 == "M" ~ `Sample Date.par1`,
+#                                   TRUE ~ `Sample Date.par2`)) %>% 
+#   mutate(sample_date.dam = case_when(SEX.par1 == "F" ~ `Sample Date.par1`,
+#                                   TRUE ~ `Sample Date.par2`)) %>% 
+#   mutate(sex.sire = case_when(SEX.par1 == "M" ~ SEX.par1,
+#                                   TRUE ~ SEX.par2)) %>% 
+#   mutate(sex.dam = case_when(SEX.par1 == "F" ~ SEX.par1,
+#                                   TRUE ~ SEX.par2)) %>%
+#   mutate(origin.sire = case_when(SEX.par1 == "M" ~ origin.par1,
+#                                   TRUE ~ origin.par2)) %>% 
+#   mutate(origin.dam = case_when(SEX.par1 == "F" ~ origin.par1,
+#                                   TRUE ~ origin.par2)) %>%
+#   mutate(distance.sire = case_when(SEX.par1 == "M" ~ Distance.par1,
+#                                   TRUE ~ Distance.par2)) %>% 
+#   mutate(distance.dam = case_when(SEX.par1 == "F" ~ Distance.par1,
+#                                   TRUE ~ Distance.par2)) %>%
+#   mutate(intertidal.sire = case_when(SEX.par1 == "M" ~ Intertidal.par1,
+#                                   TRUE ~ Intertidal.par2)) %>% 
+#   mutate(intertidal.dam = case_when(SEX.par1 == "F" ~ Intertidal.par1,
+#                                   TRUE ~ Intertidal.par2)) %>%
+#   mutate(length.sire = case_when(SEX.par1 == "M" ~ `Length Mm.par1`,
+#                                   TRUE ~ `Length Mm.par2`)) %>% 
+#   mutate(length.dam = case_when(SEX.par1 == "F" ~ `Length Mm.par1`,
+#                                   TRUE ~ `Length Mm.par2`)) %>%
+#   select(cross, n, ends_with(".sire"), ends_with(".dam"))
+# }
+# 
+# (erb_parents_paired_14_16_cross_riverdist_spacetime <- parents_paired_cross_riverdist_spacetime())
+```
+
+## Offspring, dam, and sire relationships - dyads and triads
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# dyad relationships - one row per offspring
+erb_parents_paired_14_16 <- read_csv("../Erb/erb_parents_paired_14_16_v2.csv") %>% 
+  mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery"))) %>% 
+  filter(`Length Mm.par` > 300)
+
+# Read in paired data
+erb_postQA_OceanAK_paired_14_16 <- read_csv("../Franz/Erb_14_16_postQA_OceanAK_paired_2014_2016_ERB.csv")
+
+OceanAK_paired <- function(indata_OceanAK_paired = erb_postQA_OceanAK_paired_14_16) {
+   indata_OceanAK_paired %>% 
+   select(franz_id, starts_with("Sample"), SILLY, `Fish ID`, starts_with("DNA"), SEX, `Length Mm`, `Otolith Mark Present`, `Otolith Mark ID`) %>% 
+   rename(sample_id = "Sample ID", 
+          Year = "Sample Year", 
+          silly = "SILLY", 
+          fish_id = "Fish ID", 
+          dna_tray = "DNA Tray Code", 
+          dna_well = "DNA Tray Well Code",
+          Sex = "SEX",
+          Length = "Length Mm") %>% 
+   mutate(Origin = case_when(`Otolith Mark Present` == "YES" ~ "Hatchery",
+                             `Otolith Mark Present` == "NO" ~ "Natural")) %>% 
+   mutate(Origin = factor(x = Origin, levels = c("Natural", "Hatchery")))
+}         
+
+erb_OceanAK_paired_14_16 <- OceanAK_paired()
+
+# Get offspring, dam, sire relationships and join
+ods_relationships <- function(indata_ods = erb_parents_paired_14_16) {
+  offspring_sire <- indata_ods %>% 
+    filter(SEX.par == "M") %>% 
+    select(Offspring, Parent_ID)
+
+  offspring_dam <- indata_ods %>% 
+    filter(SEX.par == "F") %>% 
+    select(Offspring, Parent_ID)
+
+  offspring_dam_sire <- offspring_dam %>% 
+    full_join(offspring_sire, by = "Offspring", suffix = c(".dam", ".sire"))
+}
+
+erb_offspring_dam_sire_14_16 <- ods_relationships()
+
+# Join back paired data to offspring, dam, and sire
+parents_paired_dam_sire <- function(indata_ods2 = erb_offspring_dam_sire_14_16, indata_OceanAK_paired2 = erb_OceanAK_paired_14_16) {
+  indata_ods2 %>% 
+  left_join(indata_OceanAK_paired2, by = c("Offspring" = "franz_id")) %>% 
+  left_join(indata_OceanAK_paired2, by = c("Parent_ID.dam" = "franz_id"), suffix = c(".off", "")) %>% 
+  left_join(indata_OceanAK_paired2, by = c("Parent_ID.sire" = "franz_id"), suffix = c(".dam", ".sire")) %>% 
+  mutate(DOY.off = yday(`Sample Date.off`),
+         DOY.dam = yday(`Sample Date.dam`),
+         DOY.sire = yday(`Sample Date.sire`))
+}
+
+(erb_parents_paired_14_16_dam_sire <- parents_paired_dam_sire())
+```
+
+## Triads - used for remaining analyses
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+triads <- function(indata_triads = erb_parents_paired_14_16_dam_sire) {
+  indata_triads %>% 
+  filter(!is.na(Parent_ID.dam) & !is.na(Parent_ID.sire)) 
+}
+
+(erb_triads_14_16 <- triads())
+```
+
+# **HERITABILITY**
+
+For traits associated with fitness in natural populations, heritability is typically 0.1--0.2 (Wray and Visscher 2008 [<https://www.nature.com/scitable/topicpage/estimating-trait-heritability-46889/>] per Visscher et al. 2008).
+
+## Body Length
+
+```{r}
+# mid-parent trait values and cross info
+triads_length <- function(indata_triads_length = erb_triads_14_16) {
+  indata_triads_length %>%
+  mutate(Length.par = (Length.dam + Length.sire) / 2) %>% 
+  mutate(Cross = case_when(Origin.dam == "Natural" & Origin.sire == "Natural" ~ "NN",
+                           Origin.dam == "Natural" & Origin.sire == "Hatchery" ~ "NH",
+                           Origin.dam == "Hatchery" & Origin.sire == "Natural" ~ "HN",
+                           Origin.dam == "Hatchery" & Origin.sire == "Hatchery" ~ "HH"))
+}
+
+erb_triads_length_14_16 <- triads_length()
+
+write_csv(erb_triads_length_14_16, "erb_triads_length_14_16.csv")
+```
+
+### Scatterplots
+
+```{r}
+# overall
+h2_length_graph <- function(indata_h2_length_graph = erb_triads_length_14_16, title = "Erb_14_16\n\nRegression of Body Length") {
+  indata_h2_length_graph %>% 
+  ggplot(aes(x = Length.par, y = Length.off)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title) +
+  xlab("Mid-parent Length (mm)") +
+  ylab("Offspring Length (mm)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+# by cross
+h2_length_graph_cross <- function(indata_h2_length_graph_cross = erb_triads_length_14_16, title = "Erb_14_16\n\nRegression of Body Length by Cross") {
+  indata_h2_length_graph_cross %>% 
+  ggplot(aes(x = Length.par, y = Length.off, colour = Cross)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title, colour = "Cross") +
+  xlab("Mid-parent Length (mm)") +
+  ylab("Offspring Length (mm)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+# by sex
+h2_length_graph_sex <- function(indata_parents_paired_length_graph = erb_parents_paired_14_16, title = "Erb_14_16\n\nRegression of Body Length by Sex") {
+  indata_parents_paired_length_graph %>% 
+  rename(length.par = "Length Mm.par", 
+         length.off = "Length Mm.off") %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Dam",
+                             SEX.par == "M" ~ "Sire")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Female",
+                             SEX.off == "M" ~ "Male")) %>% 
+  group_by(sex.par, sex.off) %>%
+  ggplot(aes(x = length.par, y = length.off, colour = origin.par)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(sex.off ~ sex.par) +
+  labs(title = title,  colour = "Parent Origin") +
+  xlab("Parent Length (mm)") +
+  ylab("Offspring Length (mm)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+h2_length_graph()
+h2_length_graph_cross()
+h2_length_graph_sex()
+
+
+# by offspring sex
+erb_parents_paired_14_16 %>% 
+  rename(length.par = "Length Mm.par", 
+         length.off = "Length Mm.off") %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Dam",
+                             SEX.par == "M" ~ "Sire")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Female",
+                             SEX.off == "M" ~ "Male")) %>% 
+  group_by(sex.off) %>%
+  ggplot(aes(x = length.par, y = length.off, colour = origin.par)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(~sex.off) +
+  labs(title = "Erb_14_16\n\nRegression of Body Length by Sex",  colour = "Parent Origin") +
+  xlab("Parent Length (mm)") +
+  ylab("Offspring Length (mm)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
+
+### Correlation
+
+We estimate narrow-sense heritability here, as well as for location and sample date, from r = √(½)h\^2.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+parents_paired_length <- function(indata_triads_length = erb_triads_length_14_16) {
+  indata_triads_length %>% 
+  drop_na(Length.par, Length.off) %>% 
+  mutate(sex.dam = case_when(Sex.dam == "F" ~ "Female")) %>%
+  mutate(sex.sire = case_when(Sex.sire == "M" ~ "Male")) %>%
+  mutate(sex.off = case_when(Sex.off == "F" ~ "Female",
+                             Sex.off == "M" ~ "Male")) 
+}
+
+# overall
+erb_parents_paired_14_16_length0 <- parents_paired_length() %>% 
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
+
+# by cross
+erb_parents_paired_14_16_length1 <- parents_paired_length() %>% 
+  group_by(Cross) %>%
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3))
+
+# all offspring
+erb_parents_paired_14_16_length4 <- parents_paired_length() %>% 
+  group_by(sex.dam) %>%
+  summarise(correlation = round(cor(Length.off, Length.dam), 3), r2 = round(cor(Length.off, Length.dam)^2, 3))
+
+erb_parents_paired_14_16_length5 <- parents_paired_length() %>% 
+  group_by(sex.sire) %>%
+  summarise(correlation = round(cor(Length.off, Length.sire), 3), r2 = round(cor(Length.off, Length.sire)^2, 3))
+
+# by sex
+erb_parents_paired_14_16_length2 <- parents_paired_length() %>% 
+  group_by(sex.dam, sex.off) %>%
+  summarise(correlation = round(cor(Length.off, Length.dam), 3), r2 = round(cor(Length.off, Length.dam)^2, 3))
+
+erb_parents_paired_14_16_length3 <- parents_paired_length() %>% 
+  group_by(sex.sire, sex.off) %>%
+  summarise(correlation = round(cor(Length.off, Length.sire), 3), r2 = round(cor(Length.off, Length.sire)^2, 3))
+
+# by offspring sex
+(erb_parents_paired_14_16_length4 <- parents_paired_length() %>% 
+  group_by(sex.off) %>%
+  summarise(correlation = round(cor(Length.off, Length.par), 3), r2 = round(cor(Length.off, Length.par)^2, 3)))
+
+# make dfs
+erb_parents_paired_14_16_length0_All <- as.data.frame(c(erb_parents_paired_14_16_length0[1,1], erb_parents_paired_14_16_length0[1,2]*2))
+erb_parents_paired_14_16_length1_NN <- as.data.frame(c(erb_parents_paired_14_16_length1[4,2], erb_parents_paired_14_16_length1[4,3]*2))
+erb_parents_paired_14_16_length1_NH <- as.data.frame(c(erb_parents_paired_14_16_length1[3,2], erb_parents_paired_14_16_length1[3,3]*2))
+erb_parents_paired_14_16_length1_HN <- as.data.frame(c(erb_parents_paired_14_16_length1[2,2], erb_parents_paired_14_16_length1[2,3]*2))
+erb_parents_paired_14_16_length1_HH <- as.data.frame(c(erb_parents_paired_14_16_length1[1,2], erb_parents_paired_14_16_length1[1,3]*2))
+erb_parents_paired_14_16_length4_dAll <- as.data.frame(c(erb_parents_paired_14_16_length4[1,2], erb_parents_paired_14_16_length4[1,3]*2))
+erb_parents_paired_14_16_length5_sAll <- as.data.frame(c(erb_parents_paired_14_16_length5[1,2], erb_parents_paired_14_16_length5[1,3]*2))
+erb_parents_paired_14_16_length2_dF <- as.data.frame(c(erb_parents_paired_14_16_length2[1,3], erb_parents_paired_14_16_length2[1,4]*2))
+erb_parents_paired_14_16_length2_dM <- as.data.frame(c(erb_parents_paired_14_16_length2[2,3], erb_parents_paired_14_16_length2[2,4]*2))
+erb_parents_paired_14_16_length3_sF <- as.data.frame(c(erb_parents_paired_14_16_length3[1,3], erb_parents_paired_14_16_length3[1,4]*2))
+erb_parents_paired_14_16_length3_sM <- as.data.frame(c(erb_parents_paired_14_16_length3[2,3], erb_parents_paired_14_16_length3[2,4]*2))
+
+erb_r_and_h2_length_14_16 <- rbind(erb_parents_paired_14_16_length0_All,
+                                     erb_parents_paired_14_16_length1_NN, 
+                                     erb_parents_paired_14_16_length1_NH, 
+                                     erb_parents_paired_14_16_length1_HN, 
+                                     erb_parents_paired_14_16_length1_HH,
+                                     erb_parents_paired_14_16_length4_dAll,
+                                     erb_parents_paired_14_16_length5_sAll,
+                                     erb_parents_paired_14_16_length2_dF, 
+                                     erb_parents_paired_14_16_length2_dM, 
+                                     erb_parents_paired_14_16_length3_sF, 
+                                     erb_parents_paired_14_16_length3_sM) %>%
+                                round(3)
+
+colnames(erb_r_and_h2_length_14_16) <- c("Correlation (r)", "Heritability (h^2)")
+erb_r_and_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
+(erb_r_and_h2_length_14_16 <- erb_r_and_h2_length_14_16[,c(3,1,2)])
+```
+
+### Slope
+
+If we use the parents' phenotypic variance as a measure of VP, we can estimate h\^2 by solving for: trait_value_offspring = Cov_parent_offspring / Var_parent x trait_value_parent + c. The slope of the line (number under "estimate" for "Length.\*" in the tibbles below) is mathematically equivalent to h\^2.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# overall
+erb_h2_length_14_16_all_slope <- lm(Length.off ~ Length.par, data = erb_triads_length_14_16, na.action = na.omit)
+erb_h2_length_14_16_all_slope_tbl <- tidy(erb_h2_length_14_16_all_slope)
+
+# by cross
+erb_h2_length_14_16_NN_slope <- lm(Length.off ~ Length.par, data = erb_triads_length_14_16 %>% filter(Cross == "NN"), na.action = na.omit)
+erb_h2_length_14_16_NN_slope_tbl <- tidy(erb_h2_length_14_16_NN_slope)
+
+erb_h2_length_14_16_NH_slope <- lm(Length.off ~ Length.par, data = erb_triads_length_14_16 %>% filter(Cross == "NH"), na.action = na.omit)
+erb_h2_length_14_16_NH_slope_tbl <- tidy(erb_h2_length_14_16_NH_slope)
+
+erb_h2_length_14_16_HN_slope <- lm(Length.off ~ Length.par, data = erb_triads_length_14_16 %>% filter(Cross == "HN"), na.action = na.omit)
+erb_h2_length_14_16_HN_slope_tbl <- tidy(erb_h2_length_14_16_HN_slope)
+
+erb_h2_length_14_16_HH_slope <- lm(Length.off ~ Length.par, data = erb_triads_length_14_16 %>% filter(Cross == "HH"), na.action = na.omit)
+erb_h2_length_14_16_HH_slope_tbl <- tidy(erb_h2_length_14_16_HH_slope)
+
+# all offspring
+erb_h2_length_14_16_dam_slope <- lm(Length.off ~ Length.dam, data = erb_triads_length_14_16, na.action = na.omit)
+erb_h2_length_14_16_dam_slope_tbl <- tidy(erb_h2_length_14_16_dam_slope)
+
+erb_h2_length_14_16_sire_slope <- lm(Length.off ~ Length.sire, data = erb_triads_length_14_16, na.action = na.omit)
+erb_h2_length_14_16_sire_slope_tbl <- tidy(erb_h2_length_14_16_sire_slope)
+
+# by sex
+erb_h2_length_14_16_dF_slope <- lm(Length.off ~ Length.dam, data = erb_triads_length_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+erb_h2_length_14_16_dF_slope_tbl <- tidy(erb_h2_length_14_16_dF_slope)
+
+erb_h2_length_14_16_dM_slope <- lm(Length.off ~ Length.dam, data = erb_triads_length_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+erb_h2_length_14_16_dM_slope_tbl <- tidy(erb_h2_length_14_16_dM_slope)
+
+erb_h2_length_14_16_sF_slope <- lm(Length.off ~ Length.sire, data = erb_triads_length_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+erb_h2_length_14_16_sF_slope_tbl <- tidy(erb_h2_length_14_16_sF_slope)
+
+erb_h2_length_14_16_sM_slope <- lm(Length.off ~ Length.sire, data = erb_triads_length_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+erb_h2_length_14_16_sM_slope_tbl <- tidy(erb_h2_length_14_16_sM_slope)
+
+# by offspring sex
+erb_h2_length_14_16_F_slope <- lm(Length.off ~ Length.par, data = erb_triads_length_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+(erb_h2_length_14_16_F_slope_tbl <- tidy(erb_h2_length_14_16_F_slope))
+
+erb_h2_length_14_16_M_slope <- lm(Length.off ~ Length.par, data = erb_triads_length_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+(erb_h2_length_14_16_M_slope_tbl <- tidy(erb_h2_length_14_16_M_slope))
+
+# make df
+erb_slope_as_h2_length_14_16 <- as.data.frame(cbind((rbind(erb_h2_length_14_16_all_slope_tbl[2,2], 
+                                                      erb_h2_length_14_16_NN_slope_tbl[2,2], 
+                                                      erb_h2_length_14_16_NH_slope_tbl[2,2], 
+                                                      erb_h2_length_14_16_HN_slope_tbl[2,2], 
+                                                      erb_h2_length_14_16_HH_slope_tbl[2,2], 
+                                                      erb_h2_length_14_16_dam_slope_tbl[2,2], 
+                                                      erb_h2_length_14_16_sire_slope_tbl[2,2], 
+                                                      erb_h2_length_14_16_dF_slope_tbl[2,2], 
+                                                      erb_h2_length_14_16_dM_slope_tbl[2,2], 
+                                                      erb_h2_length_14_16_sF_slope_tbl[2,2], 
+                                                      erb_h2_length_14_16_sM_slope_tbl[2,2]) %>% 
+                                                  round(3)),
+                                                  (rbind(erb_h2_length_14_16_all_slope_tbl[2,3], 
+                                                      erb_h2_length_14_16_NN_slope_tbl[2,3], 
+                                                      erb_h2_length_14_16_NH_slope_tbl[2,3], 
+                                                      erb_h2_length_14_16_HN_slope_tbl[2,3], 
+                                                      erb_h2_length_14_16_HH_slope_tbl[2,3], 
+                                                      erb_h2_length_14_16_dam_slope_tbl[2,3], 
+                                                      erb_h2_length_14_16_sire_slope_tbl[2,3], 
+                                                      erb_h2_length_14_16_dF_slope_tbl[2,3], 
+                                                      erb_h2_length_14_16_dM_slope_tbl[2,3], 
+                                                      erb_h2_length_14_16_sF_slope_tbl[2,3], 
+                                                      erb_h2_length_14_16_sM_slope_tbl[2,3]) %>% 
+                                                  round(3)),
+                                                  (rbind(erb_h2_length_14_16_all_slope_tbl[2,5], 
+                                                      erb_h2_length_14_16_NN_slope_tbl[2,5], 
+                                                      erb_h2_length_14_16_NH_slope_tbl[2,5], 
+                                                      erb_h2_length_14_16_HN_slope_tbl[2,5], 
+                                                      erb_h2_length_14_16_HH_slope_tbl[2,5], 
+                                                      erb_h2_length_14_16_dam_slope_tbl[2,5], 
+                                                      erb_h2_length_14_16_sire_slope_tbl[2,5], 
+                                                      erb_h2_length_14_16_dF_slope_tbl[2,5], 
+                                                      erb_h2_length_14_16_dM_slope_tbl[2,5], 
+                                                      erb_h2_length_14_16_sF_slope_tbl[2,5], 
+                                                      erb_h2_length_14_16_sM_slope_tbl[2,5]) %>% 
+                                                  round(3))))
+
+colnames(erb_slope_as_h2_length_14_16) <- c("Heritability (h^2)", "+/- SE", "P")
+erb_slope_as_h2_length_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
+(erb_slope_as_h2_length_14_16 <- erb_slope_as_h2_length_14_16[,c(4,1,2,3)])
+```
+
+### Animal model
+
+Narrow-sense heritabilities (h\^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h\^2 = VA/VP) per Evans et al. (2019) [<https://link.springer.com/article/10.1007/s10592-019-01174-4>]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
+
+Overall
+```{r}
+# code courtesy Jeff Hard
+# gremlin LME REML approach (https://github.com/matthewwolak/gremlin)
+# basic model: Trait.off ~ bv.Trait + Sex.off + Origin.dam + Origin.sire
+
+# load data and pedigree files
+dat.1 <- as.data.frame(erb_triads_length_14_16) %>% 
+  mutate(animal = Offspring)
+dat.1$lg <- as.numeric(dat.1$Length.off)
+dat.1$day <- as.numeric(dat.1$DOY.off)
+dat.1$sex <- as.factor(dat.1$Sex.off)
+dat.1$origin.sire <- as.factor(dat.1$Origin.sire)
+dat.1$origin.dam <- as.factor(dat.1$Origin.dam)
+# str(dat.1)
+# headTail(dat.1)
+
+ped.1 <- as.data.frame(read.csv(file = "erb_triads_14_16_JH_ped.csv"))
+# str(ped.1)
+# headTail(ped.1)
+
+# gremlin
+# construct inverse of the numerator relatedness matrix
+Ainv <- makeAinv(ped.1[, 1:3])$Ainv
+model0.1 <- gremlin(lg ~ sex + origin.sire + origin.dam - 1,
+                   random = ~ animal,
+                   data = dat.1,
+                   ginverse = list(animal = Ainv),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1)
+
+# # compare the model to a linear model with no random effects
+# model0.11 <- update(model0.1, random = ~ -1)
+# summary(model0.11)
+# 
+# # do analysis of variance between the two models
+# anova(model0.11, model0.1)
+
+# Calculate the genetic variance component for lg
+deltaSE(Vg ~ V1, model0.1)
+
+# Calculate the sum of the variance components
+deltaSE(Vsum ~ V1 + V2, model0.1)
+# nobs(model0.1)
+
+# # Calculate standard deviations (with standard errors) from variances
+# ## Uses a `list` as the first (`calc`) argument
+# ### All 3 below: different formats to calculate the same values
+# deltaSE(list(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), model0.1) # formulas
+# nobs(model0.1)
+# deltaSE(list(SD1 ~ sqrt(G.animal), SDresid ~ sqrt(ResVar1)), model0.1)
+# deltaSE(list("sqrt(V1)", "sqrt(V2)"), model0.1)
+```
+
+By cross
+```{r}
+# set up pedigree files
+dat.1_NN <- dat.1 %>% filter(Cross == "NN")
+ped.1_NN.1 <- dat.1_NN %>% 
+  select(Offspring, Parent_ID.sire, Parent_ID.dam) %>% 
+  rename(animal = Offspring) %>% 
+  rename(dam = Parent_ID.dam) %>% 
+  rename(sire = Parent_ID.sire)
+ped.1_NN.2 <- ped.1_NN.1 %>% 
+  select(sire, dam) %>% 
+  stack() %>% 
+  select(values) %>% 
+  distinct() %>% 
+  rename(animal = values) %>% 
+  mutate(sire = NA) %>% 
+  mutate(dam = NA)
+ped.1_NN <- rbind(ped.1_NN.2, ped.1_NN.1)
+
+dat.1_NH <- dat.1 %>% filter(Cross == "NH")  
+ped.1_NH.1 <- dat.1_NH %>% 
+  select(Offspring, Parent_ID.sire, Parent_ID.dam) %>% 
+  rename(animal = Offspring) %>% 
+  rename(dam = Parent_ID.dam) %>% 
+  rename(sire = Parent_ID.sire)
+ped.1_NH.2 <- ped.1_NH.1 %>% 
+  select(sire, dam) %>% 
+  stack() %>% 
+  select(values) %>% 
+  distinct() %>% 
+  rename(animal = values) %>% 
+  mutate(sire = NA) %>% 
+  mutate(dam = NA)
+ped.1_NH <- rbind(ped.1_NH.2, ped.1_NH.1)
+
+dat.1_HN <- dat.1 %>% filter(Cross == "HN")  
+ped.1_HN.1 <- dat.1_HN %>% 
+  select(Offspring, Parent_ID.sire, Parent_ID.dam) %>% 
+  rename(animal = Offspring) %>% 
+  rename(dam = Parent_ID.dam) %>% 
+  rename(sire = Parent_ID.sire)
+ped.1_HN.2 <- ped.1_HN.1 %>% 
+  select(sire, dam) %>% 
+  stack() %>% 
+  select(values) %>% 
+  distinct() %>% 
+  rename(animal = values) %>% 
+  mutate(sire = NA) %>% 
+  mutate(dam = NA)
+ped.1_HN <- rbind(ped.1_HN.2, ped.1_HN.1)
+
+dat.1_HH <- dat.1 %>% filter(Cross == "HH")  
+ped.1_HH.1 <- dat.1_HH %>% 
+  select(Offspring, Parent_ID.sire, Parent_ID.dam) %>% 
+  rename(animal = Offspring) %>% 
+  rename(dam = Parent_ID.dam) %>% 
+  rename(sire = Parent_ID.sire)
+ped.1_HH.2 <- ped.1_HH.1 %>% 
+  select(sire, dam) %>% 
+  stack() %>% 
+  select(values) %>% 
+  distinct() %>% 
+  rename(animal = values) %>% 
+  mutate(sire = NA) %>% 
+  mutate(dam = NA)
+ped.1_HH <- rbind(ped.1_HH.2, ped.1_HH.1)
+
+# run models
+Ainv_NN <- makeAinv(ped.1_NN[, 1:3])$Ainv
+model0.1_NN <- gremlin(lg ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_NN,
+                   ginverse = list(animal = Ainv_NN),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1_NN)
+deltaSE(Vg ~ V1, model0.1_NN)
+deltaSE(Vsum ~ V1 + V2, model0.1_NN)
+
+Ainv_NH <- makeAinv(ped.1_NH[, 1:3])$Ainv
+model0.1_NH <- gremlin(lg ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_NH,
+                   ginverse = list(animal = Ainv_NH),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1_NH)
+deltaSE(Vg ~ V1, model0.1_NH)
+deltaSE(Vsum ~ V1 + V2, model0.1_NH)
+
+Ainv_HN <- makeAinv(ped.1_HN[, 1:3])$Ainv
+model0.1_HN <- gremlin(lg ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_HN,
+                   ginverse = list(animal = Ainv_HN),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1_HN)
+deltaSE(Vg ~ V1, model0.1_HN)
+deltaSE(Vsum ~ V1 + V2, model0.1_HN)
+
+Ainv_HH <- makeAinv(ped.1_HH[, 1:3])$Ainv
+model0.1_HH <- gremlin(lg ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_HH,
+                   ginverse = list(animal = Ainv_HH),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1_HH)
+deltaSE(Vg ~ V1, model0.1_HH)
+deltaSE(Vsum ~ V1 + V2, model0.1_HH)
+```
+
+By offspring sex
+```{r}
+# set up pedigree files
+dat.1_F <- dat.1 %>% filter(Sex.off == "F")
+ped.1_F.1 <- dat.1_F %>% 
+  select(Offspring, Parent_ID.sire, Parent_ID.dam) %>% 
+  rename(animal = Offspring) %>% 
+  rename(dam = Parent_ID.dam) %>% 
+  rename(sire = Parent_ID.sire)
+ped.1_F.2 <- ped.1_F.1 %>% 
+  select(sire, dam) %>% 
+  stack() %>% 
+  select(values) %>% 
+  distinct() %>% 
+  rename(animal = values) %>% 
+  mutate(sire = NA) %>% 
+  mutate(dam = NA)
+ped.1_F <- rbind(ped.1_F.2, ped.1_F.1)
+
+dat.1_M <- dat.1 %>% filter(Sex.off == "M")  
+ped.1_M.1 <- dat.1_M %>% 
+  select(Offspring, Parent_ID.sire, Parent_ID.dam) %>% 
+  rename(animal = Offspring) %>% 
+  rename(dam = Parent_ID.dam) %>% 
+  rename(sire = Parent_ID.sire)
+ped.1_M.2 <- ped.1_M.1 %>% 
+  select(sire, dam) %>% 
+  stack() %>% 
+  select(values) %>% 
+  distinct() %>% 
+  rename(animal = values) %>% 
+  mutate(sire = NA) %>% 
+  mutate(dam = NA)
+ped.1_M <- rbind(ped.1_M.2, ped.1_M.1)
+
+# run models
+Ainv_F <- makeAinv(ped.1_F[, 1:3])$Ainv
+model0.1_F <- gremlin(lg ~ origin.sire + origin.dam - 1,
+                   random = ~ animal,
+                   data = dat.1_F,
+                   ginverse = list(animal = Ainv_F),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1_F)
+deltaSE(Vg ~ V1, model0.1_F)
+deltaSE(Vsum ~ V1 + V2, model0.1_F)
+
+Ainv_M <- makeAinv(ped.1_M[, 1:3])$Ainv
+model0.1_M <- gremlin(lg ~ origin.sire + origin.dam - 1,
+                   random = ~ animal,
+                   data = dat.1_M,
+                   ginverse = list(animal = Ainv_M),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.1_M)
+deltaSE(Vg ~ V1, model0.1_M)
+deltaSE(Vsum ~ V1 + V2, model0.1_M)
+```
+
+## Sample Date
+
+```{r}
+# mid-parent trait values and cross info
+triads_date <- function(indata_triads_date = erb_triads_14_16) {
+  indata_triads_date %>%
+  mutate(DOY.par = (DOY.dam + DOY.sire) / 2) %>% 
+  mutate(Cross = case_when(Origin.dam == "Natural" & Origin.sire == "Natural" ~ "NN",
+                           Origin.dam == "Natural" & Origin.sire == "Hatchery" ~ "NH",
+                           Origin.dam == "Hatchery" & Origin.sire == "Natural" ~ "HN",
+                           Origin.dam == "Hatchery" & Origin.sire == "Hatchery" ~ "HH"))
+}
+
+erb_triads_date_14_16 <- triads_date()
+```
+
+### Scatterplots
+
+NOTE: indata erb_parents_paired_14_16.csv for sex-based graphs does not contain DOY for either offspring or parents for whatever reason
+
+```{r}
+# overall
+h2_date_graph <- function(indata_h2_date_graph = erb_triads_date_14_16, title = "Erb_14_16\n\nRegression of Sample Date") {
+  indata_h2_date_graph %>% 
+  ggplot(aes(x = DOY.par, y = DOY.off)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title) +
+  xlab("Mid-parent DOY") +
+  ylab("Offspring DOY") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+# by cross
+h2_date_graph_cross <- function(indata_h2_date_graph = erb_triads_date_14_16, title = "Erb_14_16\n\nRegression of Sample Date by Cross") {
+  indata_h2_date_graph %>% 
+  ggplot(aes(x = DOY.par, y = DOY.off, colour = Cross)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title, colour = "Cross") +
+  xlab("Mid-parent DOY") +
+  ylab("Offspring DOY") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+# by sex
+erb_parents_paired_14_16_DOY <- erb_parents_paired_14_16 %>% 
+  mutate(date2.off = mdy(`Sample Date.off`)) %>%
+  mutate(date2.par = mdy(`Sample Date.par`)) %>% # check data format
+  mutate(DOY2.off = yday(date2.off)) %>% 
+  mutate(DOY2.par = yday(date2.par))
+
+h2_date_graph_sex <- function(indata_parents_paired_date_graph = erb_parents_paired_14_16_DOY, title = "Erb_14_16\n\nRegression of Sample Date by Sex") {
+  indata_parents_paired_date_graph %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Dam",
+                             SEX.par == "M" ~ "Sire")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Female",
+                             SEX.off == "M" ~ "Male")) %>% 
+  group_by(sex.par, sex.off) %>%
+  ggplot(aes(x = DOY2.par, y = DOY2.off, colour = origin.par)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(sex.off ~ sex.par) +
+  labs(title = title,  colour = "Parent Origin") +
+  xlab("Parent DOY") +
+  ylab("Offspring DOY") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+h2_date_graph()
+h2_date_graph_cross()
+h2_date_graph_sex()
+
+# by offspring sex
+erb_parents_paired_14_16_DOY %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Dam",
+                             SEX.par == "M" ~ "Sire")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Female",
+                             SEX.off == "M" ~ "Male")) %>% 
+  group_by(sex.off) %>%
+  ggplot(aes(x = DOY2.par, y = DOY2.off, colour = origin.par)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(~sex.off) +
+  labs(title = "Erb_14_16\n\nRegression of Sample Date by Sex",  colour = "Parent Origin") +
+  xlab("Parent DOY") +
+  ylab("Offspring DOY") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
+
+### Correlation
+
+We estimate narrow-sense heritability here, as well as for location and sample date, from r = √(½)h\^2.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+parents_paired_date <- function(indata_triads_date = erb_triads_date_14_16) {
+  indata_triads_date %>% 
+  drop_na(DOY.par, DOY.off) %>% 
+  mutate(sex.dam = case_when(Sex.dam == "F" ~ "Female")) %>%
+  mutate(sex.sire = case_when(Sex.sire == "M" ~ "Male")) %>%
+  mutate(sex.off = case_when(Sex.off == "F" ~ "Female",
+                             Sex.off == "M" ~ "Male")) 
+}
+
+# overall
+(erb_parents_paired_14_16_date0 <- parents_paired_date() %>% 
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+
+# by cross
+(erb_parents_paired_14_16_date1 <- parents_paired_date() %>% 
+  group_by(Cross) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+
+# all offspring
+(erb_parents_paired_14_16_date4 <- parents_paired_date() %>% 
+  group_by(sex.dam) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.dam), 3), r2 = round(cor(DOY.off, DOY.dam)^2, 3)))
+
+(erb_parents_paired_14_16_date5 <- parents_paired_date() %>% 
+  group_by(sex.sire) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.sire), 3), r2 = round(cor(DOY.off, DOY.sire)^2, 3)))
+
+# by sex
+(erb_parents_paired_14_16_date2 <- parents_paired_date() %>% 
+  group_by(sex.dam, sex.off) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.dam), 3), r2 = round(cor(DOY.off, DOY.dam)^2, 3)))
+
+(erb_parents_paired_14_16_date3 <- parents_paired_date() %>% 
+  group_by(sex.sire, sex.off) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.sire), 3), r2 = round(cor(DOY.off, DOY.sire)^2, 3)))
+
+# by offspring sex
+(erb_parents_paired_14_16_date4 <- parents_paired_date() %>% 
+  group_by(sex.off) %>%
+  summarise(correlation = round(cor(DOY.off, DOY.par), 3), r2 = round(cor(DOY.off, DOY.par)^2, 3)))
+
+# make dfs
+erb_parents_paired_14_16_date0_All <- as.data.frame(c(erb_parents_paired_14_16_date0[1,1], erb_parents_paired_14_16_date0[1,2]*2))
+erb_parents_paired_14_16_date1_NN <- as.data.frame(c(erb_parents_paired_14_16_date1[4,2], erb_parents_paired_14_16_date1[4,3]*2))
+erb_parents_paired_14_16_date1_NH <- as.data.frame(c(erb_parents_paired_14_16_date1[3,2], erb_parents_paired_14_16_date1[3,3]*2))
+erb_parents_paired_14_16_date1_HN <- as.data.frame(c(erb_parents_paired_14_16_date1[2,2], erb_parents_paired_14_16_date1[2,3]*2))
+erb_parents_paired_14_16_date1_HH <- as.data.frame(c(erb_parents_paired_14_16_date1[1,2], erb_parents_paired_14_16_date1[1,3]*2))
+erb_parents_paired_14_16_date4_dAll <- as.data.frame(c(erb_parents_paired_14_16_date4[1,2], erb_parents_paired_14_16_date4[1,3]*2))
+erb_parents_paired_14_16_date5_sAll <- as.data.frame(c(erb_parents_paired_14_16_date5[1,2], erb_parents_paired_14_16_date5[1,3]*2))
+erb_parents_paired_14_16_date2_dF <- as.data.frame(c(erb_parents_paired_14_16_date2[1,3], erb_parents_paired_14_16_date2[1,4]*2))
+erb_parents_paired_14_16_date2_dM <- as.data.frame(c(erb_parents_paired_14_16_date2[2,3], erb_parents_paired_14_16_date2[2,4]*2))
+erb_parents_paired_14_16_date3_sF <- as.data.frame(c(erb_parents_paired_14_16_date3[1,3], erb_parents_paired_14_16_date3[1,4]*2))
+erb_parents_paired_14_16_date3_sM <- as.data.frame(c(erb_parents_paired_14_16_date3[2,3], erb_parents_paired_14_16_date3[2,4]*2))
+
+erb_r_and_h2_date_14_16 <- rbind(erb_parents_paired_14_16_date0_All,
+                                     erb_parents_paired_14_16_date1_NN, 
+                                     erb_parents_paired_14_16_date1_NH, 
+                                     erb_parents_paired_14_16_date1_HN, 
+                                     erb_parents_paired_14_16_date1_HH,
+                                     erb_parents_paired_14_16_date4_dAll,
+                                     erb_parents_paired_14_16_date5_sAll,
+                                     erb_parents_paired_14_16_date2_dF, 
+                                     erb_parents_paired_14_16_date2_dM, 
+                                     erb_parents_paired_14_16_date3_sF, 
+                                     erb_parents_paired_14_16_date3_sM) %>%
+                                round(3)
+
+colnames(erb_r_and_h2_date_14_16) <- c("Correlation (r)", "Heritability (h^2)")
+erb_r_and_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
+(erb_r_and_h2_date_14_16 <- erb_r_and_h2_date_14_16[,c(3,1,2)])
+```
+
+### Slope
+
+If we use the parents' phenotypic variance as a measure of VP, we can estimate h\^2 by solving for: trait_value_offspring = Cov_parent_offspring / Var_parent x trait_value_parent + c. The slope of the line is mathematically equivalent to h\^2.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# overall
+erb_h2_date_14_16_all_slope <- lm(DOY.off ~ DOY.par, data = erb_triads_date_14_16, na.action = na.omit)
+erb_h2_date_14_16_all_slope_tbl <- tidy(erb_h2_date_14_16_all_slope)
+
+# by cross
+erb_h2_date_14_16_NN_slope <- lm(DOY.off ~ DOY.par, data = erb_triads_date_14_16 %>% filter(Cross == "NN"), na.action = na.omit)
+erb_h2_date_14_16_NN_slope_tbl <- tidy(erb_h2_date_14_16_NN_slope)
+
+erb_h2_date_14_16_NH_slope <- lm(DOY.off ~ DOY.par, data = erb_triads_date_14_16 %>% filter(Cross == "NH"), na.action = na.omit)
+erb_h2_date_14_16_NH_slope_tbl <- tidy(erb_h2_date_14_16_NH_slope)
+
+erb_h2_date_14_16_HN_slope <- lm(DOY.off ~ DOY.par, data = erb_triads_date_14_16 %>% filter(Cross == "HN"), na.action = na.omit)
+erb_h2_date_14_16_HN_slope_tbl <- tidy(erb_h2_date_14_16_HN_slope)
+
+erb_h2_date_14_16_HH_slope <- lm(DOY.off ~ DOY.par, data = erb_triads_date_14_16 %>% filter(Cross == "HH"), na.action = na.omit)
+erb_h2_date_14_16_HH_slope_tbl <- tidy(erb_h2_date_14_16_HH_slope)
+
+# all offspring
+erb_h2_date_14_16_dam_slope <- lm(DOY.off ~ DOY.dam, data = erb_triads_date_14_16, na.action = na.omit)
+erb_h2_date_14_16_dam_slope_tbl <- tidy(erb_h2_date_14_16_dam_slope)
+
+erb_h2_date_14_16_sire_slope <- lm(DOY.off ~ DOY.sire, data = erb_triads_date_14_16, na.action = na.omit)
+erb_h2_date_14_16_sire_slope_tbl <- tidy(erb_h2_date_14_16_sire_slope)
+
+# by sex
+erb_h2_date_14_16_dF_slope <- lm(DOY.off ~ DOY.dam, data = erb_triads_date_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+erb_h2_date_14_16_dF_slope_tbl <- tidy(erb_h2_date_14_16_dF_slope)
+
+erb_h2_date_14_16_dM_slope <- lm(DOY.off ~ DOY.dam, data = erb_triads_date_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+erb_h2_date_14_16_dM_slope_tbl <- tidy(erb_h2_date_14_16_dM_slope)
+
+erb_h2_date_14_16_sF_slope <- lm(DOY.off ~ DOY.sire, data = erb_triads_date_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+erb_h2_date_14_16_sF_slope_tbl <- tidy(erb_h2_date_14_16_sF_slope)
+
+erb_h2_date_14_16_sM_slope <- lm(DOY.off ~ DOY.sire, data = erb_triads_date_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+erb_h2_date_14_16_sM_slope_tbl <- tidy(erb_h2_date_14_16_sM_slope)
+
+# by offspring sex
+erb_h2_date_14_16_F_slope <- lm(DOY.off ~ DOY.par, data = erb_triads_date_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+(erb_h2_date_14_16_F_slope_tbl <- tidy(erb_h2_date_14_16_F_slope))
+
+erb_h2_date_14_16_M_slope <- lm(DOY.off ~ DOY.par, data = erb_triads_date_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+(erb_h2_date_14_16_M_slope_tbl <- tidy(erb_h2_date_14_16_M_slope))
+
+# make df
+erb_slope_as_h2_date_14_16 <- as.data.frame(cbind((rbind(erb_h2_date_14_16_all_slope_tbl[2,2], 
+                                                      erb_h2_date_14_16_NN_slope_tbl[2,2], 
+                                                      erb_h2_date_14_16_NH_slope_tbl[2,2], 
+                                                      erb_h2_date_14_16_HN_slope_tbl[2,2], 
+                                                      erb_h2_date_14_16_HH_slope_tbl[2,2], 
+                                                      erb_h2_date_14_16_dam_slope_tbl[2,2], 
+                                                      erb_h2_date_14_16_sire_slope_tbl[2,2], 
+                                                      erb_h2_date_14_16_dF_slope_tbl[2,2], 
+                                                      erb_h2_date_14_16_dM_slope_tbl[2,2], 
+                                                      erb_h2_date_14_16_sF_slope_tbl[2,2], 
+                                                      erb_h2_date_14_16_sM_slope_tbl[2,2]) %>% 
+                                                  round(3)),
+                                                  (rbind(erb_h2_date_14_16_all_slope_tbl[2,3], 
+                                                      erb_h2_date_14_16_NN_slope_tbl[2,3], 
+                                                      erb_h2_date_14_16_NH_slope_tbl[2,3], 
+                                                      erb_h2_date_14_16_HN_slope_tbl[2,3], 
+                                                      erb_h2_date_14_16_HH_slope_tbl[2,3], 
+                                                      erb_h2_date_14_16_dam_slope_tbl[2,3], 
+                                                      erb_h2_date_14_16_sire_slope_tbl[2,3], 
+                                                      erb_h2_date_14_16_dF_slope_tbl[2,3], 
+                                                      erb_h2_date_14_16_dM_slope_tbl[2,3], 
+                                                      erb_h2_date_14_16_sF_slope_tbl[2,3], 
+                                                      erb_h2_date_14_16_sM_slope_tbl[2,3]) %>% 
+                                                  round(3)),
+                                                  (rbind(erb_h2_date_14_16_all_slope_tbl[2,5], 
+                                                      erb_h2_date_14_16_NN_slope_tbl[2,5], 
+                                                      erb_h2_date_14_16_NH_slope_tbl[2,5], 
+                                                      erb_h2_date_14_16_HN_slope_tbl[2,5], 
+                                                      erb_h2_date_14_16_HH_slope_tbl[2,5], 
+                                                      erb_h2_date_14_16_dam_slope_tbl[2,5], 
+                                                      erb_h2_date_14_16_sire_slope_tbl[2,5], 
+                                                      erb_h2_date_14_16_dF_slope_tbl[2,5], 
+                                                      erb_h2_date_14_16_dM_slope_tbl[2,5], 
+                                                      erb_h2_date_14_16_sF_slope_tbl[2,5], 
+                                                      erb_h2_date_14_16_sM_slope_tbl[2,5]) %>% 
+                                                  round(3))))
+
+colnames(erb_slope_as_h2_date_14_16) <- c("Heritability (h^2)", "+/- SE", "P")
+erb_slope_as_h2_date_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
+(erb_slope_as_h2_date_14_16 <- erb_slope_as_h2_date_14_16[,c(4,1,2,3)])
+```
+
+### Animal model
+
+Narrow-sense heritabilities (h\^2) of were estimated from the proportion of the total phenotypic variance explained by the additive genetic variance component (h\^2 = VA/VP) per Evans et al. (2019) [<https://link.springer.com/article/10.1007/s10592-019-01174-4>]. Maternal (M) versus paternal (S) effects were estimated as the proportion of total phenotypic variance explained by each parental variance component (M = VM/VP; S = VS/VP).
+
+Overall
+```{r}
+# code courtesy Jeff Hard
+# gremlin LME REML approach (https://github.com/matthewwolak/gremlin)
+# basic model: Trait.off ~ bv.Trait + Sex.off + Origin.dam + Origin.sire
+
+model0.2 <- gremlin(day ~ sex + origin.sire + origin.dam - 1,
+                    random = ~ animal,
+                    data = dat.1,
+                    ginverse = list(animal = Ainv),
+                    Gstart = matrix(0.2), Rstart = matrix(0.4),
+                    maxit = 20,
+                    v = 2, vit = 1,
+                    algit = "AI")
+summary(model0.2)
+
+#  compare the model to a linear model with no random effects
+# model0.21 <- update(model0.2, random = ~ -1)
+# summary(model0.21)
+#
+# # do analysis of variance between the two models
+# anova(model0.21, model0.2)
+
+# Calculate the genetic variance component for DOY
+deltaSE(Vg ~ V1, model0.2)
+
+# Calculate the sum of the variance components
+deltaSE(Vsum ~ V1 + V2, model0.2)
+
+# # Calculate standard deviations (with standard errors) from variances
+# ## Uses a `list` as the first (`calc`) argument
+# ### All 3 below: different formats to calculate the same values
+# deltaSE(list(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), model0.2)
+# deltaSE(list(SD1 ~ sqrt(G.animal), SDresid ~ sqrt(ResVar1)), model0.2)
+# deltaSE(list("sqrt(V1)", "sqrt(V2)"), model0.2)
+```
+
+By cross
+```{r}
+model0.2_NN <- gremlin(day ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_NN,
+                   ginverse = list(animal = Ainv_NN),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.2_NN)
+deltaSE(Vg ~ V1, model0.2_NN)
+deltaSE(Vsum ~ V1 + V2, model0.2_NN)
+
+model0.2_NH <- gremlin(day ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_NH,
+                   ginverse = list(animal = Ainv_NH),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.2_NH)
+deltaSE(Vg ~ V1, model0.2_NH)
+deltaSE(Vsum ~ V1 + V2, model0.2_NH)
+
+# model0.2_HN <- gremlin(day ~ sex - 1,
+#                    random = ~ animal,
+#                    data = dat.1_HN,
+#                    ginverse = list(animal = Ainv_HN),
+#                    Gstart = matrix(0.2), Rstart = matrix(0.4),
+#                    maxit = 20,
+#                    v = 2, vit = 1,
+#                    algit = "AI")
+# summary(model0.2_HN)
+# deltaSE(Vg ~ V1, model0.2_HN)
+# deltaSE(Vsum ~ V1 + V2, model0.2_HN)
+
+model0.2_HH <- gremlin(day ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.1_HH,
+                   ginverse = list(animal = Ainv_HH),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.2_HH)
+deltaSE(Vg ~ V1, model0.2_HH)
+deltaSE(Vsum ~ V1 + V2, model0.2_HH)
+```
+
+By sex
+```{r}
+model0.2_F <- gremlin(day ~ origin.sire + origin.dam - 1,
+                   random = ~ animal,
+                   data = dat.1_F,
+                   ginverse = list(animal = Ainv_F),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.2_F)
+deltaSE(Vg ~ V1, model0.2_F)
+deltaSE(Vsum ~ V1 + V2, model0.2_F)
+
+model0.2_M <- gremlin(day ~ origin.sire + origin.dam - 1,
+                   random = ~ animal,
+                   data = dat.1_M,
+                   ginverse = list(animal = Ainv_M),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.2_M)
+deltaSE(Vg ~ V1, model0.2_M)
+deltaSE(Vsum ~ V1 + V2, model0.2_M)
+```
+
+## Reproductive success - 16/18 DNE for Erb
+
+```{r}
+# Read in data
+erb_paired_14_16_filter_parents_n <- read_csv("../Erb/erb_paired_14_16_filter_parents.csv") %>% 
+  select(franz_id, n) %>% 
+  rename(n_14 = n)
+erb_paired_16_18_filter_parents_n <- read_csv("../Erb/erb_paired_16_18_filter_parents.csv") %>% 
+  select(franz_id, n) %>% 
+  rename(n.off = n)
+
+# join by n (i.e. individual RS)
+triads_n <- function(indata_triads = erb_triads_14_16, indata_paired_filter_parents_n = erb_paired_14_16_filter_parents_n, indata_paired_filter_offspring_n = erb_paired_16_18_filter_parents_n) {
+  inner_join(indata_triads, indata_paired_filter_parents_n, by = c("Parent_ID.dam" = "franz_id")) %>% 
+  rename(n.dam = n_14) %>% 
+  inner_join(indata_paired_filter_parents_n, by = c("Parent_ID.sire" = "franz_id")) %>% 
+  rename(n.sire = n_14) %>% 
+  inner_join(indata_paired_filter_offspring_n, by = c("Offspring" = "franz_id"))
+}
+
+erb_triads_n_14_16 <- triads_n()
+
+# mid-parent trait values and cross info
+triads_rs <- function(indata_triads_rs = erb_triads_n_14_16) {
+  indata_triads_rs %>%
+  mutate(rs.par = (n.dam + n.sire) / 2) %>% 
+  mutate(Cross = case_when(Origin.dam == "Natural" & Origin.sire == "Natural" ~ "NN",
+                           Origin.dam == "Natural" & Origin.sire == "Hatchery" ~ "NH",
+                           Origin.dam == "Hatchery" & Origin.sire == "Natural" ~ "HN",
+                           Origin.dam == "Hatchery" & Origin.sire == "Hatchery" ~ "HH"))
+}
+
+erb_triads_rs_14_16 <- triads_rs()
+```
+
+### Scatterplots
+
+```{r}
+# overall
+h2_rs_graph <- function(indata_h2_rs_graph = erb_triads_rs_14_16, title = "Erb_14_16\n\nRegression of RS") {
+  indata_h2_rs_graph %>% 
+  ggplot(aes(x = rs.par, y = n.off)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title) +
+  xlab("Mid-parent RS") +
+  ylab("Offspring RS") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+# by cross
+h2_rs_graph_cross <- function(indata_h2_rs_graph = erb_triads_rs_14_16, title = "Erb_14_16\n\nRegression of RS by Cross") {
+  indata_h2_rs_graph %>% 
+  ggplot(aes(x = rs.par, y = n.off, colour = Cross)) +
+  geom_abline(slope = 1) +
+  geom_jitter(size = 2) +
+  geom_smooth(method = "lm") +
+  labs(title = title, colour = "Cross") +
+  xlab("Mid-parent RS") +
+  ylab("Offspring RS") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+}
+
+h2_rs_graph()
+h2_rs_graph_cross()
+
+# by sex
+erb_triads_rs_14_16 %>% 
+  mutate(sex.dam = case_when(Sex.dam == "F" ~ "Dam")) %>% 
+  mutate(sex.off = case_when(Sex.off == "F" ~ "Female",
+                             Sex.off == "M" ~ "Male")) %>% 
+  group_by(sex.off) %>%
+  ggplot(aes(x = rs.par, y = n.off, colour = Origin.dam)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(sex.off ~ sex.dam) +
+  labs(title = "Erb_14_16\n\nRegression of RS:  Offspring Sex by Female Parent",  colour = "Parent Origin") +
+  xlab("Parent RS") +
+  ylab("Offspring RS") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+
+erb_triads_rs_14_16 %>% 
+  mutate(sex.sire = case_when(Sex.sire == "M" ~ "Sire")) %>%
+  mutate(sex.off = case_when(Sex.off == "F" ~ "Female",
+                             Sex.off == "M" ~ "Male")) %>% 
+  group_by(sex.off) %>%
+  ggplot(aes(x = rs.par, y = n.off, colour = Origin.sire)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(sex.off ~ sex.sire) +
+  labs(title = "Erb_14_16\n\nRegression of RS: Offspring Sex by Male Parent",  colour = "Parent Origin") +
+  xlab("Parent RS") +
+  ylab("Offspring RS") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+
+# by offspring sex
+erb_triads_rs_14_16 %>% 
+  mutate(sex.off = case_when(Sex.off == "F" ~ "Female",
+                             Sex.off == "M" ~ "Male")) %>% 
+  group_by(sex.off) %>%
+  ggplot(aes(x = rs.par, y = n.off)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(~sex.off) +
+  labs(title = "Erb_14_16\n\nRegression of RS by Offspring Sex") +
+  xlab("Parent RS") +
+  ylab("Offspring RS") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
+
+### Correlation
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+parents_paired_rs <- function(indata_triads_rs = erb_triads_rs_14_16) {
+  indata_triads_rs %>% 
+  drop_na(rs.par, n.off) %>% 
+  mutate(sex.dam = case_when(Sex.dam == "F" ~ "Female")) %>%
+  mutate(sex.sire = case_when(Sex.sire == "M" ~ "Male")) %>%
+  mutate(sex.off = case_when(Sex.off == "F" ~ "Female",
+                             Sex.off == "M" ~ "Male")) 
+}
+
+# overall
+(erb_parents_paired_14_16_rs0 <- parents_paired_rs() %>% 
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+
+# by cross
+(erb_parents_paired_14_16_rs1 <- parents_paired_rs() %>% 
+  group_by(Cross) %>%
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+
+# all offspring
+(erb_parents_paired_14_16_rs4 <- parents_paired_rs() %>% 
+  group_by(sex.dam) %>%
+  summarise(correlation = round(cor(n.off, n.dam), 3), r2 = round(cor(n.off, n.dam)^2, 3)))
+
+(erb_parents_paired_14_16_rs5 <- parents_paired_rs() %>% 
+  group_by(sex.sire) %>%
+  summarise(correlation = round(cor(n.off, n.sire), 3), r2 = round(cor(n.off, n.sire)^2, 3)))
+
+# by sex
+(erb_parents_paired_14_16_rs2 <- parents_paired_rs() %>% 
+  group_by(sex.dam, sex.off) %>%
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+(erb_parents_paired_14_16_rs3 <- parents_paired_rs() %>% 
+  group_by(sex.sire, sex.off) %>%
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+
+# by offspring sex
+(erb_parents_paired_14_16_rs6 <- parents_paired_rs() %>% 
+  group_by(sex.off) %>%
+  summarise(correlation = round(cor(n.off, rs.par), 3), r2 = round(cor(n.off, rs.par)^2, 3)))
+
+erb_parents_paired_14_16_rs0_All <- as.data.frame(c(erb_parents_paired_14_16_rs0[1,1], erb_parents_paired_14_16_rs0[1,2]*2))
+erb_parents_paired_14_16_rs1_NN <- as.data.frame(c(erb_parents_paired_14_16_rs1[4,2], erb_parents_paired_14_16_rs1[4,3]*2))
+erb_parents_paired_14_16_rs1_NH <- as.data.frame(c(erb_parents_paired_14_16_rs1[3,2], erb_parents_paired_14_16_rs1[3,3]*2))
+erb_parents_paired_14_16_rs1_HN <- as.data.frame(c(erb_parents_paired_14_16_rs1[2,2], erb_parents_paired_14_16_rs1[2,3]*2))
+erb_parents_paired_14_16_rs1_HH <- as.data.frame(c(erb_parents_paired_14_16_rs1[1,2], erb_parents_paired_14_16_rs1[1,3]*2))
+erb_parents_paired_14_16_rs4_dAll <- as.data.frame(c(erb_parents_paired_14_16_rs4[1,2], erb_parents_paired_14_16_rs4[1,3]*2))
+erb_parents_paired_14_16_rs5_sAll <- as.data.frame(c(erb_parents_paired_14_16_rs5[1,2], erb_parents_paired_14_16_rs5[1,3]*2))
+erb_parents_paired_14_16_rs2_dF <- as.data.frame(c(erb_parents_paired_14_16_rs2[1,3], erb_parents_paired_14_16_rs2[1,4]*2))
+erb_parents_paired_14_16_rs2_dM <- as.data.frame(c(erb_parents_paired_14_16_rs2[2,3], erb_parents_paired_14_16_rs2[2,4]*2))
+erb_parents_paired_14_16_rs3_sF <- as.data.frame(c(erb_parents_paired_14_16_rs3[1,3], erb_parents_paired_14_16_rs3[1,4]*2))
+erb_parents_paired_14_16_rs3_sM <- as.data.frame(c(erb_parents_paired_14_16_rs3[2,3], erb_parents_paired_14_16_rs3[2,4]*2))
+
+erb_r_and_h2_rs_14_16 <- rbind(erb_parents_paired_14_16_rs0_All,
+                                     erb_parents_paired_14_16_rs1_NN, 
+                                     erb_parents_paired_14_16_rs1_NH, 
+                                     erb_parents_paired_14_16_rs1_HN, 
+                                     erb_parents_paired_14_16_rs1_HH,
+                                     erb_parents_paired_14_16_rs4_dAll,
+                                     erb_parents_paired_14_16_rs5_sAll,
+                                     erb_parents_paired_14_16_rs2_dF, 
+                                     erb_parents_paired_14_16_rs2_dM, 
+                                     erb_parents_paired_14_16_rs3_sF, 
+                                     erb_parents_paired_14_16_rs3_sM) %>%
+                                round(3)
+
+colnames(erb_r_and_h2_rs_14_16) <- c("Correlation (r)", "Heritability (h^2)")
+erb_r_and_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
+(erb_r_and_h2_rs_14_16 <- erb_r_and_h2_rs_14_16[,c(3,1,2)])
+```
+
+### Slope
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# overall
+erb_h2_rs_14_16_all_slope <- lm(n.off ~ rs.par, data = erb_triads_rs_14_16, na.action = na.omit)
+erb_h2_rs_14_16_all_slope_tbl <- tidy(erb_h2_rs_14_16_all_slope)
+
+# by cross
+erb_h2_rs_14_16_NN_slope <- lm(n.off ~ rs.par, data = erb_triads_rs_14_16 %>% filter(Cross == "NN"), na.action = na.omit)
+erb_h2_rs_14_16_NN_slope_tbl <- tidy(erb_h2_rs_14_16_NN_slope)
+
+erb_h2_rs_14_16_NH_slope <- lm(n.off ~ rs.par, data = erb_triads_rs_14_16 %>% filter(Cross == "NH"), na.action = na.omit)
+erb_h2_rs_14_16_NH_slope_tbl <- tidy(erb_h2_rs_14_16_NH_slope)
+
+erb_h2_rs_14_16_HN_slope <- lm(n.off ~ rs.par, data = erb_triads_rs_14_16 %>% filter(Cross == "HN"), na.action = na.omit)
+erb_h2_rs_14_16_HN_slope_tbl <- tidy(erb_h2_rs_14_16_HN_slope)
+
+erb_h2_rs_14_16_HH_slope <- lm(n.off ~ rs.par, data = erb_triads_rs_14_16 %>% filter(Cross == "HH"), na.action = na.omit)
+erb_h2_rs_14_16_HH_slope_tbl <- tidy(erb_h2_rs_14_16_HH_slope)
+
+# all offspring
+erb_h2_rs_14_16_dam_slope <- lm(n.off ~ n.dam, data = erb_triads_rs_14_16, na.action = na.omit)
+erb_h2_rs_14_16_dam_slope_tbl <- tidy(erb_h2_rs_14_16_dam_slope)
+
+erb_h2_rs_14_16_sire_slope <- lm(n.off ~ n.sire, data = erb_triads_rs_14_16, na.action = na.omit)
+erb_h2_rs_14_16_sire_slope_tbl <- tidy(erb_h2_rs_14_16_sire_slope)
+
+# by sex
+erb_h2_rs_14_16_dF_slope <- lm(n.off ~ n.dam, data = erb_triads_rs_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+erb_h2_rs_14_16_dF_slope_tbl <- tidy(erb_h2_rs_14_16_dF_slope)
+
+erb_h2_rs_14_16_dM_slope <- lm(n.off ~ n.dam, data = erb_triads_rs_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+erb_h2_rs_14_16_dM_slope_tbl <- tidy(erb_h2_rs_14_16_dM_slope)
+
+erb_h2_rs_14_16_sF_slope <- lm(n.off ~ n.sire, data = erb_triads_rs_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+erb_h2_rs_14_16_sF_slope_tbl <- tidy(erb_h2_rs_14_16_sF_slope)
+
+erb_h2_rs_14_16_sM_slope <- lm(n.off ~ n.sire, data = erb_triads_rs_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+erb_h2_rs_14_16_sM_slope_tbl <- tidy(erb_h2_rs_14_16_sM_slope)
+
+# by offspring sex
+erb_h2_rs_14_16_F_slope <- lm(n.off ~ rs.par, data = erb_triads_rs_14_16 %>% filter(Sex.off == "F"), na.action = na.omit)
+(erb_h2_rs_14_16_F_slope_tbl <- tidy(erb_h2_rs_14_16_F_slope))
+
+erb_h2_rs_14_16_M_slope <- lm(n.off ~ rs.par, data = erb_triads_rs_14_16 %>% filter(Sex.off == "M"), na.action = na.omit)
+(erb_h2_rs_14_16_M_slope_tbl <- tidy(erb_h2_rs_14_16_M_slope))
+
+# make df
+erb_slope_as_h2_rs_14_16 <- as.data.frame(cbind((rbind(erb_h2_rs_14_16_all_slope_tbl[2,2], 
+                                                      erb_h2_rs_14_16_NN_slope_tbl[2,2], 
+                                                      erb_h2_rs_14_16_NH_slope_tbl[2,2], 
+                                                      erb_h2_rs_14_16_HN_slope_tbl[2,2], 
+                                                      erb_h2_rs_14_16_HH_slope_tbl[2,2], 
+                                                      erb_h2_rs_14_16_dam_slope_tbl[2,2], 
+                                                      erb_h2_rs_14_16_sire_slope_tbl[2,2], 
+                                                      erb_h2_rs_14_16_dF_slope_tbl[2,2], 
+                                                      erb_h2_rs_14_16_dM_slope_tbl[2,2], 
+                                                      erb_h2_rs_14_16_sF_slope_tbl[2,2], 
+                                                      erb_h2_rs_14_16_sM_slope_tbl[2,2]) %>% 
+                                                  round(3)),
+                                                  (rbind(erb_h2_rs_14_16_all_slope_tbl[2,3], 
+                                                      erb_h2_rs_14_16_NN_slope_tbl[2,3], 
+                                                      erb_h2_rs_14_16_NH_slope_tbl[2,3], 
+                                                      erb_h2_rs_14_16_HN_slope_tbl[2,3], 
+                                                      erb_h2_rs_14_16_HH_slope_tbl[2,3], 
+                                                      erb_h2_rs_14_16_dam_slope_tbl[2,3], 
+                                                      erb_h2_rs_14_16_sire_slope_tbl[2,3], 
+                                                      erb_h2_rs_14_16_dF_slope_tbl[2,3], 
+                                                      erb_h2_rs_14_16_dM_slope_tbl[2,3], 
+                                                      erb_h2_rs_14_16_sF_slope_tbl[2,3], 
+                                                      erb_h2_rs_14_16_sM_slope_tbl[2,3]) %>% 
+                                                  round(3)),
+                                                  (rbind(erb_h2_rs_14_16_all_slope_tbl[2,5], 
+                                                      erb_h2_rs_14_16_NN_slope_tbl[2,5], 
+                                                      erb_h2_rs_14_16_NH_slope_tbl[2,5], 
+                                                      erb_h2_rs_14_16_HN_slope_tbl[2,5], 
+                                                      erb_h2_rs_14_16_HH_slope_tbl[2,5], 
+                                                      erb_h2_rs_14_16_dam_slope_tbl[2,5], 
+                                                      erb_h2_rs_14_16_sire_slope_tbl[2,5], 
+                                                      erb_h2_rs_14_16_dF_slope_tbl[2,5], 
+                                                      erb_h2_rs_14_16_dM_slope_tbl[2,5], 
+                                                      erb_h2_rs_14_16_sF_slope_tbl[2,5], 
+                                                      erb_h2_rs_14_16_sM_slope_tbl[2,5]) %>% 
+                                                  round(3))))
+
+colnames(erb_slope_as_h2_rs_14_16) <- c("Heritability (h^2)", "+/- SE", "P")
+erb_slope_as_h2_rs_14_16$Category <- c("Overall", "NN", "NH", "HN", "HH", "Dam/All offspring", "Sire/All offspring", "Dam/Female offspring", "Dam/Male offspring", "Sire/Female offspring", "Sire/Male offspring")
+
+(erb_slope_as_h2_rs_14_16 <- erb_slope_as_h2_rs_14_16[,c(4,1,2,3)])
+```
+
+### ~~~~~~~~~~~~~~~~~~~Animal model
+
+Overall
+```{r}
+# code courtesy Jeff Hard
+# gremlin LME REML approach (https://github.com/matthewwolak/gremlin)
+# basic model: Trait.off ~ bv.Trait + Sex.off + Origin.dam + Origin.sire
+
+# load data and pedigree files
+dat.3 <- as.data.frame(erb_triads_rs_14_16) %>% 
+  mutate(animal = Offspring)
+dat.3$lg <- as.numeric(dat.3$Length.off)
+dat.3$day <- as.numeric(dat.3$DOY.off)
+dat.3$sex <- as.factor(dat.3$Sex.off)
+dat.3$origin.sire <- as.factor(dat.3$Origin.sire)
+dat.3$origin.dam <- as.factor(dat.3$Origin.dam)
+# str(dat.3)
+# headTail(dat.3)
+
+model0.3 <- gremlin(n.off ~ sex + origin.sire + origin.dam - 1,
+                    random = ~ animal,
+                    data = dat.3,
+                    ginverse = list(animal = Ainv),
+                    Gstart = matrix(0.2), Rstart = matrix(0.4),
+                    maxit = 20,
+                    v = 2, vit = 1,
+                    algit = "AI")
+summary(model0.3)
+
+#  compare the model to a linear model with no random effects
+# model0.31 <- update(model0.3, random = ~ -1)
+# summary(model0.31)
+#
+# # do analysis of variance between the two models
+# anova(model0.31, model0.3)
+
+# Calculate the genetic variance component for DOY
+deltaSE(Vg ~ V1, model0.3)
+
+# Calculate the sum of the variance components
+deltaSE(Vsum ~ V1 + V2, model0.3)
+
+# # Calculate standard deviations (with standard errors) from variances
+# ## Uses a `list` as the first (`calc`) argument
+# ### All 3 below: different formats to calculate the same values
+# deltaSE(list(SD1 ~ sqrt(V1), SDresid ~ sqrt(V2)), model0.3)
+# deltaSE(list(SD1 ~ sqrt(G.animal), SDresid ~ sqrt(ResVar1)), model0.3)
+# deltaSE(list("sqrt(V1)", "sqrt(V2)"), model0.3)
+```
+
+By cross
+```{r}
+dat.3_NN <- dat.3 %>% filter(Cross == "NN")
+dat.3_NH <- dat.3 %>% filter(Cross == "NH")
+dat.3_HN <- dat.3 %>% filter(Cross == "HN")
+dat.3_HH <- dat.3 %>% filter(Cross == "HH")
+
+model0.3_NN <- gremlin(n.off ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.3_NN,
+                   ginverse = list(animal = Ainv_NN),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.3_NN)
+deltaSE(Vg ~ V1, model0.3_NN)
+deltaSE(Vsum ~ V1 + V2, model0.3_NN)
+
+model0.3_NH <- gremlin(n.off ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.3_NH,
+                   ginverse = list(animal = Ainv_NH),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.3_NH)
+deltaSE(Vg ~ V1, model0.3_NH)
+deltaSE(Vsum ~ V1 + V2, model0.3_NH)
+
+model0.3_HN <- gremlin(n.off ~ sex - 1,
+                   random = ~ animal,
+                   data = dat.3_HN,
+                   ginverse = list(animal = Ainv_HN),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.3_HN)
+deltaSE(Vg ~ V1, model0.3_HN)
+deltaSE(Vsum ~ V1 + V2, model0.3_HN)
+
+# model0.3_HH <- gremlin(n.off ~ sex - 1,
+#                    random = ~ animal,
+#                    data = dat.3_HH,
+#                    ginverse = list(animal = Ainv_HH),
+#                    Gstart = matrix(0.2), Rstart = matrix(0.4),
+#                    maxit = 20,
+#                    v = 2, vit = 1,
+#                    algit = "AI")
+# summary(model0.3_HH)
+# deltaSE(Vg ~ V1, model0.3_HH)
+# deltaSE(Vsum ~ V1 + V2, model0.3_HH)
+```
+
+By sex
+```{r}
+dat.3_F <- dat.3 %>% filter(Sex.off == "F")
+dat.3_M <- dat.3 %>% filter(Sex.off == "M")
+
+# model0.3_F <- gremlin(n.off ~ origin.sire + origin.dam - 1,
+#                    random = ~ animal,
+#                    data = dat.3_F,
+#                    ginverse = list(animal = Ainv_F),
+#                    Gstart = matrix(0.2), Rstart = matrix(0.4),
+#                    maxit = 20,
+#                    v = 2, vit = 1,
+#                    algit = "AI")
+# summary(model0.3_F)
+# deltaSE(Vg ~ V1, model0.3_F)
+# deltaSE(Vsum ~ V1 + V2, model0.3_F)
+
+model0.3_M <- gremlin(n.off ~ origin.sire + origin.dam - 1,
+                   random = ~ animal,
+                   data = dat.3_M,
+                   ginverse = list(animal = Ainv_M),
+                   Gstart = matrix(0.2), Rstart = matrix(0.4),
+                   maxit = 20,
+                   v = 2, vit = 1,
+                   algit = "AI")
+summary(model0.3_M)
+deltaSE(Vg ~ V1, model0.3_M)
+deltaSE(Vsum ~ V1 + V2, model0.3_M)
+```
+
+## ##################################
+## IN PREP -- Sample Location
+
+**Note:** Correlation between parent-offspring sample location and narrow-sense heritability of sample location *not yet available* for any years beyond 2014. GIS-based stream distance mapping is *in progress* by Chase Jalbert.
+
+```{r}
+
+```
+
+### Scatterplots
+
+```{r}
+
+```
+
+### Correlation
+
+Location is reported as distance from stream mouth.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+```
+
+### Slope
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+```
+
+### Animal model
+
+```{r}
+
+```
+
+### *Results*
+
+```{r}
+
+```
