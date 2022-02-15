@@ -30,6 +30,126 @@ library(tidyverse)
 knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
 ```
 
+# All Samples by Sample Date
+
+```{r}
+(oceanak <- readr::read_csv(file = "~/../Desktop/Local_PWS_pinks/OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv"))
+```
+
+Rename to fit *new* conventions ;)
+```{r}
+(
+  oceanak <- oceanak %>%
+    dplyr::select(
+      `Silly Code`,
+      `Fish ID`,
+      `DNA Tray Code`,
+      `DNA Tray Well Code`,
+      `Location Code`,
+      `Sample Year`,
+      `Sample Date`,
+      Sex,
+      `Length Mm`,
+      `Otolith Mark Present`,
+      `Otolith Mark ID`
+    ) %>%
+    dplyr::rename(
+      silly = "Silly Code",
+      fish_id = "Fish ID",
+      dna_tray_code = "DNA Tray Code",
+      dna_tray_well_code = "DNA Tray Well Code",
+      year = "Sample Year",
+      length = "Length Mm",
+      otolith_mark_present = "Otolith Mark Present",
+      otolith_mark_id = "Otolith Mark ID"
+    ) %>%
+    dplyr::mutate(
+      stream = stringr::str_remove(string = `Location Code`, pattern = " Creek"),
+      date = lubridate::ymd(`Sample Date`),
+      DOY = lubridate::yday(date),
+      # day of year
+      sex = dplyr::case_when(Sex == "M" ~ "Male",
+                             Sex == "F" ~ "Female"),
+      origin = dplyr::case_when(
+        otolith_mark_present == "NO" ~ "Natural",
+        otolith_mark_present == "YES" ~ "Hatchery"
+      ),
+      # add origin variable
+      franz_id = base::paste0(
+        stringr::str_sub(
+          string = silly,
+          start = 1,
+          end = 2
+        ),
+        stringr::str_sub(
+          string = silly,
+          start = -2,
+          end = -1
+        ),
+        "_",
+        stringr::str_pad(
+          string = fish_id,
+          width = 5,
+          side = "left",
+          pad = "0"
+        )
+      ) # create franz_id
+    ) %>%
+    dplyr::mutate(origin = base::factor(origin, c(
+      "Natural", "Hatchery"
+    ))) %>%  # make factor to ensure hatchery != red
+    tidyr::unite(
+      col = "sample",
+      c("dna_tray_code", "dna_tray_well_code"),
+      sep = "_",
+      remove = FALSE
+    ) %>%
+    dplyr::select(
+      franz_id,
+      stream,
+      year,
+      origin,
+      sex,
+      date,
+      DOY,
+      length,
+      otolith_mark_present,
+      otolith_mark_id,
+      silly,
+      fish_id,
+      sample,
+      dna_tray_code,
+      dna_tray_well_code
+    )
+)
+```
+
+```{r fig.height=6.5, fig.width=10}
+oceanak %>%
+  ggplot2::ggplot(aes(x = DOY, fill = origin)) +
+  ggplot2::geom_histogram(binwidth = 1) +
+  ggplot2::scale_x_continuous(
+    limits = c(210, 270),
+    breaks = seq(213, 269, by = 14),
+    labels = format(x = (
+      as.Date("2012-12-31") + seq(213, 269, by = 14)
+    ), "%b %d")
+  ) +
+  ggplot2::facet_grid(year ~ stream) +
+  ggplot2::labs(x = "Number of Samples",
+                y = "Date",
+                fill = "Origin") +
+  ggplot2::theme_bw(base_size = 12) +
+  ggplot2::theme(axis.text.x = element_text(
+    angle = 90,
+    hjust = 1,
+    vjust = 0.5
+  ))
+
+ggplot2::ggsave(plot = last_plot(), filename = "pink_samples_collected.png", width = 10, height = 6.5, units = "in")
+```
+
+
 # Map
 
 ```{r read_map_data}
@@ -172,10 +292,248 @@ rrs_to_date_triad %>%
 ggplot2::ggsave(filename = "RRS_to_date_triad.png", width = 6.5, height = 7.5, units = "in")
 ```
 
+# Offspring Sample Date - Density Plot
+
+## Even
+
+### 2014/2016
+
+```{r}
+(
+  all_streams_parents_paired_14_16 <-
+    readr::read_csv(file = "../Stockdale_Hogan_Gilmour_Paddy_Erb/all_streams_parents_paired_14_16.csv")
+)
+```
+
+Create a density plot of offspring sample date by parent-origin, faceted by offspring sample stream and offspring sex.
+```{r fig.height=7.5}
+all_streams_parents_paired_14_16 %>% 
+  dplyr::mutate(origin_par = base::factor(x = origin_par, levels = c("Natural", "Hatchery"))) %>% 
+  ggplot2::ggplot(aes(x = date_off, fill = origin_par)) +
+  ggplot2::geom_density(alpha = 0.5) +
+  ggplot2::facet_grid(stream_off ~ sex_off, scales = "free_y") +
+  ggplot2::labs(title = "Density Plot of Offspring (2016) Sample Date by Parent Origin",
+                fill = "Parent: Origin",
+                x = "Offspring Sample Date",
+                y = "Density") +
+  ggplot2::theme_bw() 
+  # ggplot2::theme(panel.grid.minor = element_blank()) +
+  # ggplot2::scale_fill_manual(values = cbPalette2)
+
+ggplot2::ggsave(filename = "offspring_date_density_2014_2016.png", width = 6.5, height = 7.5, units = "in")
+```
+
+### 2016/2018
+
+Only showing data from Stockdale and Hogan so far due to GOD affecting the Paddy, Erb, and Gilmour results
+```{r}
+(
+  stockdale_parents_paired_16_18 <-
+    readr::read_csv(file = "../Stockdale/stock_parents_paired_16_18.csv") %>% 
+    dplyr::select(-`Sample Date.off`, -`Sample Date.par`)
+)
+
+(
+  hogan_parents_paired_16_18 <-
+    readr::read_csv(file = "../Hogan/hogan_parents_paired_16_18.csv") %>% 
+    dplyr::mutate(date.off = `Sample Date.off`) %>% 
+    dplyr::select(-`Sample Date.off`, -`Sample Date.par`)
+)
+```
+
+Join, rename to fit *new* conventions ;)
+```{r}
+stockdale_hogan_parents_paired_16_18 <-
+  dplyr::bind_rows(stockdale_parents_paired_16_18, hogan_parents_paired_16_18) %>%
+  dplyr::rename(origin_par = origin.par,
+                date_off = date.off,
+                sex_off = SEX.off) %>%
+  dplyr::mutate(
+    stream_off = dplyr::case_when(
+      base::grepl(pattern = "STOCK", x = SILLY.off) ~ "Stockdale",
+      base::grepl(pattern = "HOGAN", x = SILLY.off) ~ "Hogan"
+    ),
+    sex_off = dplyr::case_when(sex_off == "F" ~ "Female",
+                               sex_off == "M" ~ "Male")
+  )
+```
+
+Create a density plot of offspring sample date by parent-origin, faceted by offspring sample stream and offspring sex.
+```{r fig.height=7.5}
+stockdale_hogan_parents_paired_16_18 %>% 
+  dplyr::filter(!is.na(sex_off)) %>% 
+  dplyr::mutate(origin_par = base::factor(x = origin_par, levels = c("Natural", "Hatchery"))) %>% 
+  ggplot2::ggplot(aes(x = date_off, fill = origin_par)) +
+  ggplot2::geom_density(alpha = 0.5) +
+  ggplot2::facet_grid(stream_off ~ sex_off, scales = "free_y") +
+  ggplot2::labs(title = "Density Plot of Offspring (2018) Sample Date by Parent Origin",
+                fill = "Parent: Origin",
+                x = "Offspring Sample Date",
+                y = "Density") +
+  ggplot2::theme_bw() 
+  # ggplot2::theme(panel.grid.minor = element_blank()) +
+  # ggplot2::scale_fill_manual(values = cbPalette2)
+
+ggplot2::ggsave(filename = "offspring_date_density_2016_2018.png", width = 6.5, height = 7.5, units = "in")
+```
+
+## Odd
+
+### 2013/2015
+
+Only have data from Stockdale and Hogan so far due to GOD
+```{r}
+(
+  stockdale_parents_paired_13_15 <-
+    readr::read_csv(file = "../Stockdale/stock_parents_paired_13_15.csv")
+)
+
+(
+  hogan_parents_paired_13_15 <-
+    readr::read_csv(file = "../Hogan/hogan_parents_paired_13_15.csv")
+)
+```
+
+Join, rename to fit *new* conventions ;)
+```{r}
+stockdale_hogan_parents_paired_13_15 <-
+  dplyr::bind_rows(stockdale_parents_paired_13_15, hogan_parents_paired_13_15) %>%
+  dplyr::rename(origin_par = origin.par,
+                date_off = date.off,
+                sex_off = SEX.off) %>%
+  dplyr::mutate(
+    stream_off = dplyr::case_when(
+      base::grepl(pattern = "STOCK", x = SILLY.off) ~ "Stockdale",
+      base::grepl(pattern = "HOGAN", x = SILLY.off) ~ "Hogan"
+    ),
+    sex_off = dplyr::case_when(sex_off == "F" ~ "Female",
+                               sex_off == "M" ~ "Male")
+  )
+```
 
 
+Create a density plot of offspring sample date by parent-origin, faceted by offspring sample stream and offspring sex.
+```{r fig.height=7.5}
+stockdale_hogan_parents_paired_13_15 %>% 
+  dplyr::mutate(origin_par = base::factor(x = origin_par, levels = c("Natural", "Hatchery"))) %>% 
+  ggplot2::ggplot(aes(x = date_off, fill = origin_par)) +
+  ggplot2::geom_density(alpha = 0.5) +
+  ggplot2::facet_grid(stream_off ~ sex_off, scales = "free_y") +
+  ggplot2::labs(title = "Density Plot of Offspring (2015) Sample Date by Parent Origin",
+                fill = "Parent: Origin",
+                x = "Offspring Sample Date",
+                y = "Density") +
+  ggplot2::theme_bw() 
+  # ggplot2::theme(panel.grid.minor = element_blank()) +
+  # ggplot2::scale_fill_manual(values = cbPalette2)
+
+ggplot2::ggsave(filename = "offspring_date_density_2013_2015.png", width = 6.5, height = 7.5, units = "in")
+```
+
+### 2015/2017
+
+Only have data from Stockdale and Hogan so far due to GOD
+```{r}
+(
+  stockdale_parents_paired_15_17 <-
+    readr::read_csv(file = "../Stockdale/stock_parents_paired_15_17.csv")
+)
+
+(
+  hogan_parents_paired_15_17 <-
+    readr::read_csv(file = "../Hogan/hogan_parents_paired_15_17.csv")
+)
+```
+
+Join, rename to fit *new* conventions ;)
+```{r}
+stockdale_hogan_parents_paired_15_17 <-
+  dplyr::bind_rows(stockdale_parents_paired_15_17, hogan_parents_paired_15_17) %>%
+  dplyr::rename(origin_par = origin.par,
+                date_off = date.off,
+                sex_off = SEX.off) %>%
+  dplyr::mutate(
+    stream_off = dplyr::case_when(
+      base::grepl(pattern = "STOCK", x = SILLY.off) ~ "Stockdale",
+      base::grepl(pattern = "HOGAN", x = SILLY.off) ~ "Hogan"
+    ),
+    sex_off = dplyr::case_when(sex_off == "F" ~ "Female",
+                               sex_off == "M" ~ "Male")
+  )
+```
 
 
+Create a density plot of offspring sample date by parent-origin, faceted by offspring sample stream and offspring sex.
+```{r fig.height=7.5}
+stockdale_hogan_parents_paired_15_17 %>% 
+  dplyr::mutate(origin_par = base::factor(x = origin_par, levels = c("Natural", "Hatchery"))) %>% 
+  ggplot2::ggplot(aes(x = date_off, fill = origin_par)) +
+  ggplot2::geom_density(alpha = 0.5) +
+  ggplot2::facet_grid(stream_off ~ sex_off, scales = "free_y") +
+  ggplot2::labs(title = "Density Plot of Offspring (2017) Sample Date by Parent Origin",
+                fill = "Parent: Origin",
+                x = "Offspring Sample Date",
+                y = "Density") +
+  ggplot2::theme_bw() 
+  # ggplot2::theme(panel.grid.minor = element_blank()) +
+  # ggplot2::scale_fill_manual(values = cbPalette2)
+
+ggplot2::ggsave(filename = "offspring_date_density_2015_2017.png", width = 6.5, height = 7.5, units = "in")
+```
+
+### 2017/2019
+
+Only have data from Stockdale and Hogan so far due to GOD
+```{r}
+(
+  stockdale_parents_paired_17_19 <-
+    readr::read_csv(file = "../Stockdale/stock_parents_paired_17_19.csv") %>% 
+    dplyr::select(-`Sample Date.off`, -`Sample Date.par`)
+)
+
+(
+  hogan_parents_paired_17_19 <-
+    readr::read_csv(file = "../Hogan/hogan_parents_paired_17_19.csv") %>% 
+    dplyr::mutate(date.off = `Sample Date.off`) %>% 
+    dplyr::select(-`Sample Date.off`, -`Sample Date.par`)
+)
+```
+
+Join, rename to fit *new* conventions ;)
+```{r}
+stockdale_hogan_parents_paired_17_19 <-
+  dplyr::bind_rows(stockdale_parents_paired_17_19, hogan_parents_paired_17_19) %>%
+  dplyr::rename(origin_par = origin.par,
+                date_off = date.off,
+                sex_off = SEX.off) %>%
+  dplyr::mutate(
+    stream_off = dplyr::case_when(
+      base::grepl(pattern = "STOCK", x = SILLY.off) ~ "Stockdale",
+      base::grepl(pattern = "HOGAN", x = SILLY.off) ~ "Hogan"
+    ),
+    sex_off = dplyr::case_when(sex_off == "F" ~ "Female",
+                               sex_off == "M" ~ "Male")
+  )
+```
+
+
+Create a density plot of offspring sample date by parent-origin, faceted by offspring sample stream and offspring sex.
+```{r fig.height=7.5}
+stockdale_hogan_parents_paired_17_19 %>% 
+  dplyr::mutate(origin_par = base::factor(x = origin_par, levels = c("Natural", "Hatchery"))) %>% 
+  ggplot2::ggplot(aes(x = date_off, fill = origin_par)) +
+  ggplot2::geom_density(alpha = 0.5) +
+  ggplot2::facet_grid(stream_off ~ sex_off, scales = "free_y") +
+  ggplot2::labs(title = "Density Plot of Offspring (2019) Sample Date by Parent Origin",
+                fill = "Parent: Origin",
+                x = "Offspring Sample Date",
+                y = "Density") +
+  ggplot2::theme_bw() 
+  # ggplot2::theme(panel.grid.minor = element_blank()) +
+  # ggplot2::scale_fill_manual(values = cbPalette2)
+
+ggplot2::ggsave(filename = "offspring_date_density_2017_2019.png", width = 6.5, height = 7.5, units = "in")
+```
 
 
 
