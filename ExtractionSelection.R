@@ -1198,7 +1198,7 @@ extraction_eP012 %>%
   count(`Silly Code`, `Tissue Type`)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### eP013: Create extraction list for Otolith DNA Experiment ####
+#### test: Create extraction list for Otolith DNA Experiment ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Need an extraction list for paired right-side otolith and heart tissues from known PSTOCK17 samples
 # This is the test to see if we can succesfully genotype otoltih DNA
@@ -1230,3 +1230,166 @@ inner_join(tissue_mod, inventory_mod) %>%
   write_csv(path = "~/../Desktop/Local_PWS_pinks/Extraction/eP013_Extraction_List_200407.csv")
 
 save.image("~/../Desktop/Local_PWS_pinks/Extraction/eP013_Extraction_List_200407.csv")
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP013: Create extraction list for Stockdale + Hogan 2014 Hatchery Parent Left-overs ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# February 15, 2022
+# Go back and extract all remaining hatchery-origin fish from Stockdale and Hogan 2014 to improve F1 and F2
+# This will be a pain in the butt for the lab, as these were already cherry-picked
+
+require(tidyverse)
+
+oceanak <-
+  readr::read_csv(file = "~/../Desktop/Local_PWS_pinks/OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv")  # Kyle at home
+
+## Modify for extraction list prep
+oceanak <- oceanak %>%
+  tidyr::replace_na(list(
+    `Well Has More Than One Sample` = 0,
+    `Is Missing Paired Data Exists` = 0
+  )) %>%
+  dplyr::mutate(`DNA Tray Code` = str_pad(
+    string = `DNA Tray Code`,
+    width = 10,
+    pad = "0",
+    side = "left"
+  )) %>%
+  dplyr::mutate(`DNA Tray Well Code` = str_pad(
+    string = `DNA Tray Well Code`,
+    width = 2,
+    pad = "0",
+    side = "left"
+  )) %>%
+  dplyr::mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>%
+  tidyr::unite(
+    col = "SillySource",
+    c("Silly Code", "Fish ID"),
+    sep = "_",
+    remove = FALSE
+  ) %>%
+  dplyr::filter(`Well Has More Than One Sample` != 1) %>%  # filter out double tissues
+  dplyr::filter(`Is Missing Paired Data Exists` != 1) %>%  # filter out missing tissues
+  dplyr::filter(Sex %in% c("M", "F"))
+
+# Need to figure out what we've already genotyped
+PHOGAN14.gcl <- dget("~/../Desktop/Local_PWS_pinks/Genotypes/Hogan_13_14_15_16/298/PHOGAN14.txt")
+PSTOCK14.gcl <- dget("~/../Desktop/Local_PWS_pinks/Genotypes/Stockdale_14_16r/PSTOCK14.txt")
+
+# Confirm that samples sizes match with "Genotype_Status.nb.html"
+PHOGAN14.gcl$n; PSTOCK14.gcl$n  # 751; 948; checks out!
+
+#### Filter for Hogan and Stockdale 2014 Hatchery-origin Samples ####
+Hogan_Stockdale_hatchery_2014 <- oceanak %>%
+  dplyr::filter(
+    `Sample Year` == 2014,
+    `Location Code` %in% c("Hogan Creek", "Stockdale Creek"),
+    `Otolith Mark Present` == "YES"
+  )
+
+# Remove previously genotyped fish
+Hogan_Stockdale_hatchery_2014 <- Hogan_Stockdale_hatchery_2014 %>% 
+  anti_join(PHOGAN14.gcl$attributes, by = "SillySource") %>%  # remove 512 hatchery-origin fish
+  anti_join(PSTOCK14.gcl$attributes, by = "SillySource")  # remove 512 hatchery-origin fish
+
+# Comparing this set of fish, 2,363, to "Genotype_Status.nb.html" of 2,377
+# Differences are likely to due either unknown sex or marked, missing sample in LOKI
+
+#### Combine tibbles ####
+
+extraction_eP013 <- bind_rows(Hogan_Stockdale_hatchery_2014) %>%
+  dplyr::select(`Silly Code`,
+                `Fish ID`,
+                `DNA Tray Code`,
+                `DNA Tray Well Code`,
+                `Tissue Type`) %>%
+  dplyr::arrange(`Silly Code`, `Fish ID`)
+
+readr::write_csv(x = extraction_eP013, file = "~/../Desktop/Local_PWS_pinks/Extraction/eP013_Extraction_List_220215.csv")
+
+save.image("~/../Desktop/Local_PWS_pinks/Extraction/eP013_Extraction_List_220215.RData")
+
+extraction_eP013 %>%
+  dplyr::count(`Silly Code`, `Tissue Type`)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP014: Create extraction list for Paddy + Erb 2020 Offspring ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# February 14, 2022
+# Extract all natural-origin Paddy/Erb 2020 as offspring
+
+require(tidyverse)
+
+oceanak <-
+  readr::read_csv(file = "~/../Desktop/Local_PWS_pinks/OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv")  # Kyle at home
+
+## Modify for extraction list prep
+oceanak <- oceanak %>%
+  tidyr::replace_na(list(
+    `Well Has More Than One Sample` = 0,
+    `Is Missing Paired Data Exists` = 0
+  )) %>%
+  dplyr::mutate(`DNA Tray Code` = str_pad(
+    string = `DNA Tray Code`,
+    width = 10,
+    pad = "0",
+    side = "left"
+  )) %>%
+  dplyr::mutate(`DNA Tray Well Code` = str_pad(
+    string = `DNA Tray Well Code`,
+    width = 2,
+    pad = "0",
+    side = "left"
+  )) %>%
+  dplyr::mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>%
+  tidyr::unite(
+    col = "SillySource",
+    c("Silly Code", "Fish ID"),
+    sep = "_",
+    remove = FALSE
+  ) %>%
+  dplyr::filter(`Well Has More Than One Sample` != 1) %>%  # filter out double tissues
+  dplyr::filter(`Is Missing Paired Data Exists` != 1) %>%  # filter out missing tissues
+  dplyr::filter(Sex %in% c("M", "F"))
+
+## How many samples we got?
+# oceanak %>%
+#   dplyr::count(`Location Code`, `Sample Year`) %>%
+#   dplyr::spread(`Sample Year`, n, fill = 0)
+
+## How about what we want to extract
+oceanak %>%
+  dplyr::filter(
+    `Sample Year` == 2020,
+    `Location Code` %in% c("Paddy Creek", "Erb Creek"),
+    `Otolith Mark Present` == "NO"
+  ) %>%
+  dplyr::count(`Sample Year`, `Otolith Mark Present`, `Location Code`)
+
+# Just go ahead and extract all 2019 Gilmour natural-origin
+
+#### Filter for Paddy and Erb 2020 Natural-origin Samples ####
+Paddy_Erb_natural_2020 <- oceanak %>%
+  dplyr::filter(
+    `Sample Year` == 2020,
+    `Location Code` %in% c("Paddy Creek", "Erb Creek"),
+    `Otolith Mark Present` == "NO"
+  )
+
+#### Combine tibbles ####
+
+extraction_eP014 <- bind_rows(Paddy_Erb_natural_2020) %>%
+  dplyr::select(`Silly Code`,
+                `Fish ID`,
+                `DNA Tray Code`,
+                `DNA Tray Well Code`,
+                `Tissue Type`) %>%
+  dplyr::arrange(`Silly Code`, `Fish ID`)
+
+readr::write_csv(x = extraction_eP014, file = "~/../Desktop/Local_PWS_pinks/Extraction/eP014_Extraction_List_220214.csv")
+
+save.image("~/../Desktop/Local_PWS_pinks/Extraction/eP014_Extraction_List_220214.RData")
+
+extraction_eP014 %>%
+  dplyr::count(`Silly Code`, `Tissue Type`)
