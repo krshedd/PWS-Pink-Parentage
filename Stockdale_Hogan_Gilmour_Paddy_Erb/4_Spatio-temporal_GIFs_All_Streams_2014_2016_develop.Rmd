@@ -1,0 +1,503 @@
+---
+title: "All Streams 2014/2016 Sample Location x Date Gifs"
+subtitle: "Hogan + Stockdale + Gilmour + Paddy + Erb"
+author: "Kyle Shedd"
+date: "15 February 2022"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+library(gganimate)
+
+knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
+```
+
+# Load Parent Data
+```{r}
+(
+  all_streams_paired_14_16_filter_parents <-
+    readr::read_csv("all_streams_paired_14_16_filter_parents.csv") %>%
+    dplyr::mutate(origin = factor(
+      x = origin, levels = c("Natural", "Hatchery")
+    ))
+)
+```
+
+# Explore Parent Data
+
+## Reproductive Success: spatio-temporal GIF
+
+While we've previously shown figures relating RS to individual variables (e.g. Sample Date, Length of parents, etc.), we have now incorporated the spatial data (Sample Location of parents) and can now explore spatio-temporal trends in RS.  
+
+Here we'll create an animation that walks through each sample date to show that fishes sample location (latitude and longitude) with the color of the point indicating the fish's origin (hatchery vs. natural), the shape the fish's sex (male/female), and the size of the point indicating how many offspring were assigned to it (reproductive success). This will show us two important things:  
+
+  1) where high reproductive success occurred in space and time
+  2) the degree of spatio-temporal overlap between hatchery- and natural-origin pink salmon
+
+### Stockdale
+
+*Note*, in this plot, Stockdale flows from bottom right to the mouth on the top left.
+```{r}
+sample_dates <- all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Stockdale") %>%
+  dplyr::distinct(date) %>%
+  dplyr::arrange(date) %>% 
+  dplyr::pull(date)
+
+my.animation <- all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Stockdale") %>%
+  dplyr::mutate(grpI = as.numeric(factor(date))) %>%
+  ggplot2::ggplot(
+    aes(
+      x = longitude,
+      y = latitude,
+      colour = origin,
+      shape = sex,
+      size = n,
+      alpha = 0.05,
+      group = seq_along(date)
+    )
+  ) +
+  ggplot2::coord_equal() +
+  ggplot2::geom_jitter() +
+  ggplot2::theme_bw() +
+  ggplot2::guides(
+    alpha = "none",
+    colour = guide_legend(order = 1),
+    shape = guide_legend(order = 2),
+    size = guide_legend(order = 3)
+  ) +
+  ggplot2::labs(
+    size = "RS",
+    colour = "Parent: Origin",
+    shape = "Parent: Sex",
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  # theme(text = element_text(size = 20)) +
+  gganimate::transition_reveal(grpI) +
+  ggplot2::ggtitle("Date: {sample_dates[floor(frame_along)]}")
+```
+
+Save
+```{r}
+gganimate::anim_save(
+  filename = "Stockdale spatial RS over time.gif",
+  animation = gganimate::animate(
+    plot = my.animation,
+    height = 1200,
+    width = 2400,
+    res = 300
+  )
+)
+```
+
+All year plot
+```{r}
+all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Stockdale") %>%
+  ggplot2::ggplot(
+    aes(
+      x = longitude,
+      y = latitude,
+      colour = origin,
+      shape = sex,
+      size = n,
+      alpha = 0.05
+    )
+  ) +
+  ggplot2::coord_equal() +
+  ggplot2::geom_jitter() +
+  ggplot2::theme_bw() +
+  ggplot2::guides(
+    alpha = "none",
+    colour = guide_legend(order = 1),
+    shape = guide_legend(order = 2),
+    size = guide_legend(order = 3)
+  ) +
+  ggplot2::labs(
+    size = "RS",
+    colour = "Parent: Origin",
+    shape = "Parent: Sex",
+    x = "Longitude",
+    y = "Latitude"
+  )
+```
+
+### Gilmour
+
+*Note*, in this plot, Gilmour flows from right to the mouth on the left
+```{r}
+sample_dates <- all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Gilmour") %>%
+  dplyr::distinct(date) %>%
+  dplyr::arrange(date) %>% 
+  dplyr::pull(date)
+
+my.animation <- all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Gilmour") %>%
+  dplyr::mutate(grpI = as.numeric(factor(date))) %>%
+  ggplot2::ggplot(
+    aes(
+      x = longitude,
+      y = latitude,
+      colour = origin,
+      shape = sex,
+      size = n,
+      alpha = 0.05,
+      group = seq_along(date)
+    )
+  ) +
+  ggplot2::coord_equal() +
+  ggplot2::geom_jitter() +
+  ggplot2::theme_bw() +
+  ggplot2::guides(
+    alpha = "none",
+    colour = guide_legend(order = 1),
+    shape = guide_legend(order = 2),
+    size = guide_legend(order = 3)
+  ) +
+  ggplot2::labs(
+    size = "RS",
+    colour = "Parent: Origin",
+    shape = "Parent: Sex",
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  # theme(text = element_text(size = 20)) +
+  gganimate::transition_reveal(grpI) +
+  ggplot2::ggtitle("Date: {sample_dates[floor(frame_along)]}")
+```
+
+Save
+```{r}
+gganimate::anim_save(
+  filename = "Gilmour spatial RS over time.gif",
+  animation = gganimate::animate(
+    plot = my.animation,
+    height = 1200,
+    width = 2400,
+    res = 300
+  )
+)
+```
+
+All year plot
+```{r}
+all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Gilmour") %>%
+  ggplot2::ggplot(
+    aes(
+      x = longitude,
+      y = latitude,
+      colour = origin,
+      shape = sex,
+      size = n,
+      alpha = 0.05
+    )
+  ) +
+  ggplot2::coord_equal() +
+  ggplot2::geom_jitter() +
+  ggplot2::theme_bw() +
+  ggplot2::guides(
+    alpha = "none",
+    colour = guide_legend(order = 1),
+    shape = guide_legend(order = 2),
+    size = guide_legend(order = 3)
+  ) +
+  ggplot2::labs(
+    size = "RS",
+    colour = "Parent: Origin",
+    shape = "Parent: Sex",
+    x = "Longitude",
+    y = "Latitude"
+  )
+```
+
+### Hogan
+
+*Note*, in this plot, Hogan flows from top right to the mouth on the bottom left
+```{r}
+sample_dates <- all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Hogan") %>%
+  dplyr::distinct(date) %>%
+  dplyr::arrange(date) %>% 
+  dplyr::pull(date)
+
+my.animation <- all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Hogan") %>%
+  dplyr::mutate(grpI = as.numeric(factor(date))) %>%
+  ggplot2::ggplot(
+    aes(
+      x = longitude,
+      y = latitude,
+      colour = origin,
+      shape = sex,
+      size = n,
+      alpha = 0.05,
+      group = seq_along(date)
+    )
+  ) +
+  ggplot2::coord_equal() +
+  ggplot2::geom_jitter() +
+  ggplot2::theme_bw() +
+  ggplot2::guides(
+    alpha = "none",
+    colour = guide_legend(order = 1),
+    shape = guide_legend(order = 2),
+    size = guide_legend(order = 3)
+  ) +
+  ggplot2::labs(
+    size = "RS",
+    colour = "Parent: Origin",
+    shape = "Parent: Sex",
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  # theme(text = element_text(size = 20)) +
+  gganimate::transition_reveal(grpI) +
+  ggplot2::ggtitle("Date: {sample_dates[floor(frame_along)]}")
+```
+
+Save
+```{r}
+gganimate::anim_save(
+  filename = "Hogan spatial RS over time.gif",
+  animation = gganimate::animate(
+    plot = my.animation,
+    height = 1200,
+    width = 2400,
+    res = 300
+  )
+)
+```
+
+All year plot
+```{r}
+all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Hogan") %>%
+  ggplot2::ggplot(
+    aes(
+      x = longitude,
+      y = latitude,
+      colour = origin,
+      shape = sex,
+      size = n,
+      alpha = 0.05
+    )
+  ) +
+  ggplot2::coord_equal() +
+  ggplot2::geom_jitter() +
+  ggplot2::theme_bw() +
+  ggplot2::guides(
+    alpha = "none",
+    colour = guide_legend(order = 1),
+    shape = guide_legend(order = 2),
+    size = guide_legend(order = 3)
+  ) +
+  ggplot2::labs(
+    size = "RS",
+    colour = "Parent: Origin",
+    shape = "Parent: Sex",
+    x = "Longitude",
+    y = "Latitude"
+  )
+```
+
+### Erb
+
+*Note*, in this plot, Erb flows from bottom left to the mouth on the top right
+```{r}
+sample_dates <- all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Erb") %>%
+  dplyr::distinct(date) %>%
+  dplyr::arrange(date) %>% 
+  dplyr::pull(date)
+
+my.animation <- all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Erb") %>%
+  dplyr::mutate(grpI = as.numeric(factor(date))) %>%
+  ggplot2::ggplot(
+    aes(
+      x = longitude,
+      y = latitude,
+      colour = origin,
+      shape = sex,
+      size = n,
+      alpha = 0.05,
+      group = seq_along(date)
+    )
+  ) +
+  ggplot2::coord_equal() +
+  ggplot2::geom_jitter() +
+  ggplot2::theme_bw() +
+  ggplot2::guides(
+    alpha = "none",
+    colour = guide_legend(order = 1),
+    shape = guide_legend(order = 2),
+    size = guide_legend(order = 3)
+  ) +
+  ggplot2::labs(
+    size = "RS",
+    colour = "Parent: Origin",
+    shape = "Parent: Sex",
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  # theme(text = element_text(size = 20)) +
+  gganimate::transition_reveal(grpI) +
+  ggplot2::ggtitle("Date: {sample_dates[floor(frame_along)]}")
+```
+
+Save
+```{r}
+gganimate::anim_save(
+  filename = "Erb spatial RS over time.gif",
+  animation = gganimate::animate(
+    plot = my.animation,
+    height = 1200,
+    width = 2400,
+    res = 300
+  )
+)
+```
+
+All year plot
+```{r}
+all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Erb") %>%
+  ggplot2::ggplot(
+    aes(
+      x = longitude,
+      y = latitude,
+      colour = origin,
+      shape = sex,
+      size = n,
+      alpha = 0.05
+    )
+  ) +
+  ggplot2::coord_equal() +
+  ggplot2::geom_jitter() +
+  ggplot2::theme_bw() +
+  ggplot2::guides(
+    alpha = "none",
+    colour = guide_legend(order = 1),
+    shape = guide_legend(order = 2),
+    size = guide_legend(order = 3)
+  ) +
+  ggplot2::labs(
+    size = "RS",
+    colour = "Parent: Origin",
+    shape = "Parent: Sex",
+    x = "Longitude",
+    y = "Latitude"
+  )
+```
+
+### Paddy
+
+*Note*, in this plot, Erb flows from top right to the mouth on the bottom left
+```{r}
+sample_dates <- all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Paddy") %>%
+  dplyr::distinct(date) %>%
+  dplyr::arrange(date) %>% 
+  dplyr::pull(date)
+
+my.animation <- all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Paddy") %>%
+  dplyr::mutate(grpI = as.numeric(factor(date))) %>%
+  ggplot2::ggplot(
+    aes(
+      x = longitude,
+      y = latitude,
+      colour = origin,
+      shape = sex,
+      size = n,
+      alpha = 0.05,
+      group = seq_along(date)
+    )
+  ) +
+  ggplot2::coord_equal() +
+  ggplot2::geom_jitter() +
+  ggplot2::theme_bw() +
+  ggplot2::guides(
+    alpha = "none",
+    colour = guide_legend(order = 1),
+    shape = guide_legend(order = 2),
+    size = guide_legend(order = 3)
+  ) +
+  ggplot2::labs(
+    size = "RS",
+    colour = "Parent: Origin",
+    shape = "Parent: Sex",
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  # theme(text = element_text(size = 20)) +
+  gganimate::transition_reveal(grpI) +
+  ggplot2::ggtitle("Date: {sample_dates[floor(frame_along)]}")
+```
+
+Save
+```{r}
+gganimate::anim_save(
+  filename = "Paddy spatial RS over time.gif",
+  animation = gganimate::animate(
+    plot = my.animation,
+    height = 1200,
+    width = 2400,
+    res = 300
+  )
+)
+```
+
+All year plot
+```{r}
+all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(stream == "Paddy") %>%
+  ggplot2::ggplot(
+    aes(
+      x = longitude,
+      y = latitude,
+      colour = origin,
+      shape = sex,
+      size = n,
+      alpha = 0.05
+    )
+  ) +
+  ggplot2::coord_equal() +
+  ggplot2::geom_jitter() +
+  ggplot2::theme_bw() +
+  ggplot2::guides(
+    alpha = "none",
+    colour = guide_legend(order = 1),
+    shape = guide_legend(order = 2),
+    size = guide_legend(order = 3)
+  ) +
+  ggplot2::labs(
+    size = "RS",
+    colour = "Parent: Origin",
+    shape = "Parent: Sex",
+    x = "Longitude",
+    y = "Latitude"
+  )
+```
+
+
+
+
+
