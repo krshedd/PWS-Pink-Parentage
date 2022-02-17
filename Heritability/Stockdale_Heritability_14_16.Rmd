@@ -1,7 +1,7 @@
 ---
 title: "Heritability of body length, sample date, location, and RS according to Cross Type and Parental/Offspring Sex for Stockdale 2014-2016"
 author: "Kristen Gruenthal"
-date: "17 January 2022"
+date: "14 February 2022"
 output:
   html_notebook:
     theme: united
@@ -44,15 +44,16 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.width = 10)
 Who are the two-parents, both dam and sire, for each cross type offspring and where were they sampled?
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-stock_riverdist_14_16 <- read_csv("../../GIS/R/stockdale/stockdale_distances.csv") %>% 
+stock_riverdist <- read_csv("../../GIS/R/all_streams/stockdale_distances.csv") %>% 
   mutate(Intertidal = case_when(dist2tide > 0 ~ "Upstream",
                                 dist2tide <= 0 ~ "Intertidal")) %>% 
   rename(Distance = mouthdist, Segment = seg)
 
 stock_parents_paired_14_16_cross <- read_csv("../Stockdale/stock_parents_paired_14_16_cross.csv")
+stock_parents_paired_16_18_cross <- read_csv("../Stockdale/stock_parents_paired_16_18_cross.csv")
 
 # organize by sire and dam, join riverdist data
-parents_paired_cross_riverdist_spacetime <- function(indata_spacetime = stock_parents_paired_14_16_cross, indata_riverdist = stock_riverdist_14_16) {
+parents_paired_cross_riverdist_spacetime <- function(indata_spacetime = stock_parents_paired_14_16_cross) {
   indata_spacetime %>% 
   count(cross, `Fish ID`, `Fish ID.par1`, `Sample Date`, `Sample Date.par1`, SEX, SEX.par1, `DNA Tray Code`, `DNA Tray Code.par1`, `DNA Tray Well Code`, `DNA Tray Well Code.par1`, origin.par1, origin, `Length Mm.par1`, `Length Mm`) %>% 
   rename(`Fish ID.par2` = `Fish ID`, 
@@ -64,8 +65,8 @@ parents_paired_cross_riverdist_spacetime <- function(indata_spacetime = stock_pa
          `Length Mm.par2` = `Length Mm`) %>% 
   unite(Sample.par1, c("DNA Tray Code.par1", "DNA Tray Well Code.par1"), sep = "_", remove = TRUE) %>% 
   unite(Sample.par2, c("DNA Tray Code.par2", "DNA Tray Well Code.par2"), sep = "_", remove = TRUE) %>% 
-  left_join(indata_riverdist, by = c("Sample.par1" = "Sample")) %>% 
-  left_join(indata_riverdist, by = c("Sample.par2" = "Sample"), suffix = c(".par1", ".par2")) %>% 
+  left_join(stock_riverdist, by = c("Sample.par1" = "Sample")) %>% 
+  left_join(stock_riverdist, by = c("Sample.par2" = "Sample"), suffix = c(".par1", ".par2")) %>% 
   mutate(fish_id.sire = case_when(SEX.par1 == "M" ~ `Fish ID.par1`,
                                   TRUE ~ `Fish ID.par2`)) %>% 
   mutate(fish_id.dam = case_when(SEX.par1 == "F" ~ `Fish ID.par1`,
@@ -97,7 +98,8 @@ parents_paired_cross_riverdist_spacetime <- function(indata_spacetime = stock_pa
   select(cross, n, ends_with(".sire"), ends_with(".dam"))
 }
 
-(stock_parents_paired_14_16_cross_riverdist_spacetime <- parents_paired_cross_riverdist_spacetime())
+(stock_parents_paired_16_18_cross_riverdist_spacetime <- parents_paired_cross_riverdist_spacetime())
+(stock_parents_paired_14_16_cross_riverdist_spacetime <- parents_paired_cross_riverdist_spacetime(stock_parents_paired_16_18_cross))
 ```
 
 ## Offspring, dam, and sire relationships - dyads and triads
@@ -1071,6 +1073,48 @@ deltaSE(Vg ~ V1, model0.2_M)
 deltaSE(Vsum ~ V1 + V2, model0.2_M)
 ```
 
+## ##################################
+## IN PREP -- Sample Location
+
+**Note:** Correlation between parent-offspring sample location and narrow-sense heritability of sample location *not yet available* for any years beyond 2014. GIS-based stream distance mapping is *in progress* by Chase Jalbert.
+
+```{r}
+
+```
+
+### Scatterplots
+
+```{r}
+
+```
+
+### Correlation
+
+Location is reported as distance from stream mouth.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+```
+
+### Slope
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+```
+
+### Animal model
+
+```{r}
+
+```
+
+### *Results*
+
+```{r}
+
+```
+
+## ##################################
 ## Reproductive success
 
 ```{r}
@@ -1489,45 +1533,4 @@ model0.3_M <- gremlin(n.off ~ origin.sire + origin.dam - 1,
 summary(model0.3_M)
 deltaSE(Vg ~ V1, model0.3_M)
 deltaSE(Vsum ~ V1 + V2, model0.3_M)
-```
-
-## ##################################
-## IN PREP -- Sample Location
-
-**Note:** Correlation between parent-offspring sample location and narrow-sense heritability of sample location *not yet available* for any years beyond 2014. GIS-based stream distance mapping is *in progress* by Chase Jalbert.
-
-```{r}
-
-```
-
-### Scatterplots
-
-```{r}
-
-```
-
-### Correlation
-
-Location is reported as distance from stream mouth.
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-
-```
-
-### Slope
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-
-```
-
-### Animal model
-
-```{r}
-
-```
-
-### *Results*
-
-```{r}
-
 ```
