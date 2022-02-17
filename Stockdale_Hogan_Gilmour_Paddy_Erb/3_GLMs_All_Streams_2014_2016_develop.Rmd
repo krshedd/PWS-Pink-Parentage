@@ -449,6 +449,59 @@ male_est %>%
   dplyr::mutate(dplyr::across(where(is.numeric), round, 2))
 ```
 
+Lol, the Paddy:intertidal variable ruins everything
+```{r}
+modelsummary::modelplot(models = glm_male_1)
+```
+
+```{r}
+modelsummary::modelplot(models = glm_male_3)
+```
+
+Transform coefficients out of log link function with exponent.
+```{r}
+(male_3_coeffs <- cbind(coef = coef(glm_male_3), confint(glm_male_3)))
+exp(male_3_coeffs)
+```
+
+Compare effect sizes for basic model using `modelplot`
+```{r}
+renamed_coeff <- c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale", "Date", "Length", "Upstream", "Hatchery")
+
+p_male_3 <- modelsummary::modelplot(models = glm_male_3)
+
+p_male_3$data %>% 
+  mutate(name = factor(x = renamed_coeff, levels = renamed_coeff)) %>% 
+  ggplot(aes(y = name, x = estimate, xmin = conf.low, xmax = conf.high)) +
+  geom_vline(xintercept = 0, size = 1) +
+  geom_errorbar(width = 0, size = 2) +
+  geom_point(shape = 21, colour = "black", fill = "grey50", size = 5) +
+  scale_x_continuous(breaks = pretty_breaks(), limits = c(-1, 1)) +
+  theme_bw(base_size = 20) +
+  labs(x = "Coefficient estiamtes with 95% CIs",
+       y = "",
+       title = "Male GLM Parameter Estimates")
+```
+
+
+```{r}
+p<-modelsummary::modelplot(mod,coef_rename=renamed,coef_omit='Interc')
+pdat<-data.frame(p$data)
+pdat<-pdat[rev(c(5,3,1,2,8,4,7,9,10)),]
+names<-pdat$term
+nnames<-length(names)
+y<-seq(nnames)
+xlab="Coefficient estimates with 95% CIs"
+plot(NA,NA,xlab=xlab,ylab="",xlim=c(-2.2,2.2),ylim=c(0,nnames),yaxt="n")
+abline(v=0,lwd=0.5)
+segments(pdat$conf.low,y,pdat$conf.high,y,lwd=1.2)
+points(pdat$estimate,y,pch=21,cex=1.2,bg="darkgray",lwd=0.5)
+axis(side=2,at=y,labels=pdat$term,las=2,cex.axis=0.8)
+dev.off()
+```
+
+
+
 ## Female
 
 ### Models
@@ -567,6 +620,15 @@ female_est_CIs <-
 female_est %>% 
   dplyr::mutate(dplyr::across(where(is.numeric), exp)) %>% 
   dplyr::mutate(dplyr::across(where(is.numeric), round, 2))
+```
+
+
+```{r}
+modelsummary::modelplot(models = glm_female_1)
+```
+
+```{r}
+modelsummary::modelplot(models = glm_female_3)
 ```
 
 End
