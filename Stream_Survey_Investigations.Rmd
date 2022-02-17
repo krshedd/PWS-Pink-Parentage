@@ -1,0 +1,156 @@
+---
+title: "Stream Surveys"
+subtitle: "Investigating Live/Dead Counts"
+author: "Kyle Shedd"
+date: "15 February 2022"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+library(gganimate)
+
+knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
+```
+
+# Background
+
+There are concerns that field crews quit sampling pre-maturely in 2017 and 2019. The contractor reports basically confess to quiting early in 2017 and hint that they might have in 2019. Here I look at the live count data to determine the magnitude of this issue.
+
+# Load Stream Survey Data
+
+All years
+```{r}
+(stream_surveys_2013_2020 <- readr::read_csv("~/../Desktop/Local_PWS_pinks/StreamSpecimens/stream_surveys_2013-2020.csv"))
+```
+
+## Function
+
+```{r}
+live_count_by_fitness_stream <-
+  function(indata = stream_surveys_2013_2020,
+           sample_year = 2013) {
+    
+    indata_filter_fitness <- indata %>%
+      dplyr::mutate(date = lubridate::mdy(SurveyDate)) %>%
+      dplyr::mutate(year = lubridate::year(date)) %>%
+      dplyr::filter(
+        CommonName == "Pink Salmon",!is.na(AliveCount),
+        year == sample_year,!is.na(DistanceMeters)
+      ) %>%
+      dplyr::filter(
+        base::grepl(pattern = "Erb", x = StreamName) |
+          base::grepl(pattern = "Paddy", x = StreamName) |
+          base::grepl(pattern = "Hogan", x = StreamName) |
+          base::grepl(pattern = "Gilmour", x = StreamName) |
+          base::grepl(pattern = "Stockdale", x = StreamName)
+      ) %>%
+      dplyr::select(year,
+                    date,
+                    StreamName,
+                    CommonName,
+                    AliveCount,
+                    DistanceMeters)
+    
+    date_min_xlim <- indata_filter_fitness %>%
+      dplyr::summarise(min(date)) %>%
+      dplyr::pull()
+    
+    date_max_xlim <- indata_filter_fitness %>% 
+      dplyr::summarise(max(date)) %>%
+      dplyr::pull()
+    
+    indata_filter_fitness %>%
+      ggplot2::ggplot(ggplot2::aes(x = date, y = AliveCount)) +
+      ggplot2::geom_hline(yintercept = 0) +
+      ggplot2::geom_line(colour = "pink2", lwd = 2) +
+      ggplot2::geom_point(data = . %>% group_by(StreamName) %>% filter(date == max(date))) +
+      ggplot2::geom_text(
+        data = . %>% group_by(StreamName) %>% filter(date == max(date)),
+        ggplot2::aes(label = AliveCount),
+        hjust = 0,
+        nudge_x = 1
+      ) +
+      ggplot2::labs(x = "Sample Date",
+                    y = "Live Count",
+                    title = sample_year) +
+      ggplot2::scale_x_date(limits = c(date_min_xlim, date_max_xlim + 10)) +
+      ggplot2::theme_bw() +
+      ggplot2::facet_wrap(ggplot2::vars(StreamName), scales = "free_y")
+  }
+```
+
+## 2013
+
+Plot live counts by stream
+**NOTE** this is naively ignoring the start/end locations of the surveys!!!
+```{r}
+live_count_by_fitness_stream(sample_year = 2013)
+```
+
+## 2014
+
+Plot live counts by stream
+**NOTE** this is naively ignoring the start/end locations of the surveys!!!
+```{r}
+live_count_by_fitness_stream(sample_year = 2014)
+```
+
+## 2015
+
+Plot live counts by stream
+**NOTE** this is naively ignoring the start/end locations of the surveys!!!
+```{r}
+live_count_by_fitness_stream(sample_year = 2015)
+```
+
+## 2016
+
+Plot live counts by stream
+**NOTE** this is naively ignoring the start/end locations of the surveys!!!
+```{r}
+live_count_by_fitness_stream(sample_year = 2016)
+```
+
+## 2017
+
+Plot live counts by stream
+**NOTE** this is naively ignoring the start/end locations of the surveys!!!
+```{r}
+live_count_by_fitness_stream(sample_year = 2017)
+```
+
+## 2018
+
+Plot live counts by stream
+**NOTE** this is naively ignoring the start/end locations of the surveys!!!
+```{r}
+live_count_by_fitness_stream(sample_year = 2018)
+```
+
+## 2019
+
+Plot live counts by stream
+**NOTE** this is naively ignoring the start/end locations of the surveys!!!
+```{r}
+live_count_by_fitness_stream(sample_year = 2019)
+```
+
+## 2020
+
+Plot live counts by stream
+**NOTE** this is naively ignoring the start/end locations of the surveys!!!
+```{r}
+live_count_by_fitness_stream(sample_year = 2020)
+```
+
+End...for now

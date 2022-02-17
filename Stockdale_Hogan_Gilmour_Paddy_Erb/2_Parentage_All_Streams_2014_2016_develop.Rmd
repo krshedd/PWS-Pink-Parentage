@@ -1295,10 +1295,10 @@ paired_14_16_filter_cross %>%
   ) +
   geom_abline(intercept = 0, slope = 1) +
   ggplot2::facet_grid(stream ~ ., scales = "free_y") +
-  ggplot2::labs(title = "Distribution of Crosses by Dam and Sire Sample Date",
+  ggplot2::labs(title = "Distribution of Crosses by Dam and Sire Sample Location",
                 fill = "Parent: Cross Type",
-                x = "Dam Sample Date",
-                y = "Sire Sample Date") +
+                x = "Dam Sample Location",
+                y = "Sire Sample Location") +
   ggplot2::theme_bw() +
   ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   # ggplot2::theme(panel.grid.minor = element_blank()) +

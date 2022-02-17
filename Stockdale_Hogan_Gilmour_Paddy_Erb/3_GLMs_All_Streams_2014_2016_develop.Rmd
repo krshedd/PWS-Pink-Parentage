@@ -1,0 +1,42 @@
+---
+title: "All Streams 2014/2016 GLMs"
+subtitle: "Hogan + Stockdale + Gilmour + Paddy + Erb"
+author: "Kyle Shedd"
+date: "15 February 2022"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+library(gganimate)
+
+knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
+```
+
+# Load Parent Data
+```{r}
+(
+  all_streams_paired_14_16_filter_parents <-
+    readr::read_csv("all_streams_paired_14_16_filter_parents.csv") %>%
+    dplyr::mutate(origin = factor(
+      x = origin, levels = c("Natural", "Hatchery")
+    ))
+)
+```
+
+
+
+
+3_GLMs_All_Streams_2014_2016_develop
