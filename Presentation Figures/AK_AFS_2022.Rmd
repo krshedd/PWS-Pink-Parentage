@@ -1,0 +1,608 @@
+---
+title: "AK AFS 2022"
+author: "Kyle Shedd"
+date: "17 February 2022"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+library(coin)
+library(MASS)
+library(scales)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+library(colorspace)
+library(ggmap)
+library(maps)
+library(mapdata)
+library(PBSmapping)
+library(grid)
+library(ggsn)
+library(tidyverse)
+
+knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
+load("../Stockdale_Hogan_Gilmour_Paddy_Erb/2_Parentage_All_Streams_2014_2016_develop_20220212.RData")
+```
+
+# RS Distributions
+
+## Erb 2014
+
+Blank
+```{r fig.height=6, fig.width=10}
+paired_14_16_filter_parents %>% 
+  dplyr::filter(stream == "Erb") %>% 
+  dplyr::count(stream, sex, origin, n, name = "n_par") %>% 
+  dplyr::group_by(stream, sex, origin) %>% 
+  dplyr::mutate(p = n_par / sum(n_par)) %>% 
+  ggplot2::ggplot(aes(x = n, y = p, fill = origin)) +
+  # ggplot2::geom_col(position = position_dodge2(preserve="single"), colour = "black") +
+  ggplot2::geom_blank() +
+  ggplot2::geom_hline(yintercept = 0, colour = "black") +
+  ggplot2::scale_y_continuous(breaks = scales::pretty_breaks(), limits = c(0, 0.65)) +
+  ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(), limits = c(-1, 28)) +
+  ggplot2::facet_grid(cols = ggplot2::vars(sex)) +
+  ggplot2::labs(fill = "Parent: Origin",
+                x = "Number of Offspring",
+                y = "Proportion of Parents") +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::theme(legend.position = c(0.85, 0.85), legend.background = element_rect(colour = "black"))
+
+ggplot2::ggsave(filename = "RS_distribution_erb_2014_blank.png", width = 10, height = 6.5, units = "in")
+```
+
+Hatchery-origin females
+```{r fig.height=6, fig.width=10}
+paired_14_16_filter_parents %>% 
+  dplyr::filter(stream == "Erb") %>% 
+  dplyr::count(stream, sex, origin, n, name = "n_par") %>% 
+  dplyr::group_by(stream, sex, origin) %>% 
+  dplyr::mutate(p = n_par / sum(n_par)) %>% 
+  dplyr::mutate(p = dplyr::case_when(sex == "Male" ~ 0,
+                                     origin == "Natural" & sex == "Female" ~ 0,
+                                     origin == "Hatchery" & sex == "Female" ~ p)) %>% 
+  ggplot2::ggplot(aes(x = n, y = p, fill = origin)) +
+  ggplot2::geom_col(position = position_dodge2(preserve="single"), colour = "black") +
+  # ggplot2::geom_blank() +
+  ggplot2::geom_hline(yintercept = 0, colour = "black") +
+  ggplot2::scale_y_continuous(breaks = scales::pretty_breaks(), limits = c(0, 0.65)) +
+  ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(), limits = c(-1, 28)) +
+  ggplot2::scale_fill_discrete(drop = FALSE) +
+  ggplot2::facet_grid(cols = ggplot2::vars(sex)) +
+  ggplot2::labs(fill = "Parent: Origin",
+                x = "Number of Offspring",
+                y = "Proportion of Parents") +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::theme(legend.position = c(0.85, 0.85), legend.background = element_rect(colour = "black"))
+
+ggplot2::ggsave(filename = "RS_distribution_erb_2014_hatchery_female.png", width = 10, height = 6.5, units = "in")
+```
+
+All females
+```{r fig.height=6, fig.width=10}
+paired_14_16_filter_parents %>% 
+  dplyr::filter(stream == "Erb") %>% 
+  dplyr::count(stream, sex, origin, n, name = "n_par") %>% 
+  dplyr::group_by(stream, sex, origin) %>% 
+  dplyr::mutate(p = n_par / sum(n_par)) %>% 
+  dplyr::mutate(p = dplyr::case_when(sex == "Male" ~ 0,
+                                     sex == "Female" ~ p)) %>% 
+  ggplot2::ggplot(aes(x = n, y = p, fill = origin)) +
+  ggplot2::geom_col(position = position_dodge2(preserve="single"), colour = "black") +
+  # ggplot2::geom_blank() +
+  ggplot2::geom_hline(yintercept = 0, colour = "black") +
+  ggplot2::scale_y_continuous(breaks = scales::pretty_breaks(), limits = c(0, 0.65)) +
+  ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(), limits = c(-1, 28)) +
+  ggplot2::scale_fill_discrete(drop = FALSE) +
+  ggplot2::facet_grid(cols = ggplot2::vars(sex)) +
+  ggplot2::labs(fill = "Parent: Origin",
+                x = "Number of Offspring",
+                y = "Proportion of Parents") +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::theme(legend.position = c(0.85, 0.85), legend.background = element_rect(colour = "black"))
+
+ggplot2::ggsave(filename = "RS_distribution_erb_2014_all_female.png", width = 10, height = 6.5, units = "in")
+```
+
+All~
+```{r fig.height=6, fig.width=10}
+paired_14_16_filter_parents %>% 
+  dplyr::filter(stream == "Erb") %>% 
+  dplyr::count(stream, sex, origin, n, name = "n_par") %>% 
+  dplyr::group_by(stream, sex, origin) %>% 
+  dplyr::mutate(p = n_par / sum(n_par)) %>% 
+  # dplyr::mutate(p = dplyr::case_when(sex == "Male" ~ 0,
+  #                                    sex == "Female" ~ p)) %>% 
+  ggplot2::ggplot(aes(x = n, y = p, fill = origin)) +
+  ggplot2::geom_col(position = position_dodge2(preserve="single"), colour = "black") +
+  # ggplot2::geom_blank() +
+  ggplot2::geom_hline(yintercept = 0, colour = "black") +
+  ggplot2::scale_y_continuous(breaks = scales::pretty_breaks(), limits = c(0, 0.65)) +
+  ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(), limits = c(-1, 28)) +
+  ggplot2::scale_fill_discrete(drop = FALSE) +
+  ggplot2::facet_grid(cols = ggplot2::vars(sex)) +
+  ggplot2::labs(fill = "Parent: Origin",
+                x = "Number of Offspring",
+                y = "Proportion of Parents") +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::theme(legend.position = c(0.85, 0.85), legend.background = element_rect(colour = "black"))
+
+ggplot2::ggsave(filename = "RS_distribution_erb_2014.png", width = 10, height = 6.5, units = "in")
+```
+
+## Density Plot
+
+```{r}
+paired_14_16_filter_parents %>% 
+  dplyr::filter(stream == "Erb") %>% 
+  ggplot2::ggplot(aes(x = n, fill = origin)) +
+  ggplot2::geom_density(alpha = 0.5, n = 25, adjust = 5) +
+  # ggplot2::geom_blank() +
+  ggplot2::scale_y_continuous(breaks = scales::pretty_breaks()) +
+  ggplot2::scale_x_continuous(breaks = scales::pretty_breaks()) +
+  ggplot2::facet_grid(cols = ggplot2::vars(sex)) +
+  ggplot2::labs(fill = "Parent: Origin",
+                x = "Number of Offspring",
+                y = "Proportion of Parents") +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::theme(legend.position = c(0.85, 0.85), legend.background = element_rect(colour = "black"))
+
+ggplot2::ggsave(filename = "RS_distribution_erb_2014_density.png", width = 10, height = 6.5, units = "in")
+```
+
+```{r fig.width=10, fig.height=6}
+paired_14_16_filter_parents %>% 
+  dplyr::mutate(stream = factor(
+    x = stream,
+    levels = c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale")
+  )) %>% 
+  ggplot2::ggplot(aes(x = n, fill = origin)) +
+  ggplot2::geom_density(alpha = 0.5, n = 25, adjust = 5) +
+  # ggplot2::geom_blank() +
+  ggplot2::scale_y_continuous(breaks = scales::pretty_breaks()) +
+  ggplot2::scale_x_continuous(breaks = scales::pretty_breaks()) +
+  ggplot2::facet_grid(cols = ggplot2::vars(stream), rows = ggplot2::vars(sex)) +
+  ggplot2::labs(fill = "Origin",
+                x = "Number of Offspring",
+                y = "Proportion of Parents") +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::theme(legend.position = c(0.475, 0.375), legend.background = element_rect(colour = "black"),
+                 legend.title = element_text(size = 16), legend.text = element_text(size = 12),
+                 legend.margin = margin(2, 2, 2, 2))
+
+ggplot2::ggsave(filename = "RS_distribution_all_streams_2014_density.png", width = 10, height = 6.5, units = "in")
+```
+
+# RRS to Date
+
+## Dyad
+
+Read in the data
+```{r read_rrs_to_date}
+(rrs_to_date_dyad <- readr::read_csv(file = "rrs_to_date_dyad.csv"))
+```
+
+```{r}
+rrs_to_date_dyad %>%
+  dplyr::mutate(stream = factor(
+    x = stream,
+    levels = c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale")
+  ),
+  year = as.character(year)) %>%
+  dplyr::filter(year == "2014") %>% 
+  summarise(min(rrs),
+            max(rrs))
+```
+
+
+### Bar plot
+
+```{r fig.height=6.5, fig.width=5}
+rrs_to_date_dyad %>%
+  dplyr::mutate(stream = factor(
+    x = stream,
+    levels = c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale")
+  ),
+  year = as.character(year)) %>%
+  dplyr::filter(year == "2014") %>%
+  ggplot2::ggplot(aes(
+    x = year,
+    y = rrs,
+    ymin = lower_ci,
+    ymax = upper_ci,
+    fill = sex
+  )) +
+  ggplot2::geom_col(position = position_dodge(), colour = "black") +
+  ggplot2::geom_errorbar(position = position_dodge(width = 0.9),
+                         width = 0.5,
+                         size = 0.75) +
+  ggplot2::geom_hline(yintercept = 0) +
+  ggplot2::geom_hline(yintercept = 1,
+                      linetype = 2,
+                      size = 1) +
+  ggplot2::scale_fill_manual(values = c("orange", "skyblue")) +
+  ggplot2::facet_grid(stream ~ lineage, scales = "free_x") +
+  ggplot2::labs(x = "Run Year", y = "RRS (95% CI)", fill = "Sex") +
+  ggplot2::theme_bw(base_size = 16)
+
+ggplot2::ggsave(filename = "RRS_to_date_dyad_2014.png", width = 5, height = 6.5, units = "in")
+```
+
+## Triad
+
+Read in the data
+```{r read_rrs_to_date_triad}
+(rrs_to_date_triad <- readr::read_csv(file = "rrs_to_date_triad.csv"))
+```
+
+### Bar plot
+
+Get default `ggplot2` colors
+```{r}
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+```
+
+### Bar plot
+
+```{r fig.height=6.5, fig.width=5}
+rrs_to_date_triad %>% 
+  dplyr::mutate(year = as.character(year)) %>% 
+  ggplot2::ggplot(aes(x = year, y = rrs, ymin = lower_ci, ymax = upper_ci, fill = cross)) +
+  ggplot2::geom_col(position = position_dodge(), colour = "black") +
+  ggplot2::geom_errorbar(position = position_dodge(width = 0.9), width = 0.5, size = 0.75) +
+  ggplot2::geom_hline(yintercept = 0) +
+  ggplot2::geom_hline(yintercept = 1, linetype = 2, size = 1) +
+  ggplot2::scale_fill_manual(values = gg_color_hue(n = 4)[4:1]) +
+  ggplot2::facet_grid(stream ~ lineage, scales = "free_x") +
+  ggplot2::labs(x = "Run Year", y = "RRS (95% CI)", fill = "Cross Type") +
+  ggplot2::theme_bw(base_size = 16)
+  # ggplot2::theme(legend.position = c(0.8, 0.8), legend.background = element_rect(colour = "black"))
+
+ggplot2::ggsave(filename = "RRS_to_date_triad_AK_AFS.png", width = 5, height = 6.5, units = "in")
+```
+
+# Covariate Density Distributions
+
+## Sample Date
+
+In depth look at run timing
+```{r fig.height=6, fig.width=10}
+paired_14_16_filter_parents %>%
+  dplyr::mutate(stream = factor(
+    x = stream,
+    levels = c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale")
+  )) %>% 
+  ggplot2::ggplot(ggplot2::aes(x = date, fill = origin)) +
+  ggplot2::geom_density(alpha = 0.5, adjust = 2) +
+  ggplot2::labs(x = "Parent Sample Date",
+                y = "Density",
+                fill = "Origin") +
+  ggplot2::facet_grid(rows = ggplot2::vars(sex), cols = ggplot2::vars(stream)) +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::theme(legend.position = c(0.475, 0.375), legend.background = element_rect(colour = "black"),
+                 legend.title = element_text(size = 16), legend.text = element_text(size = 12),
+                 legend.margin = margin(2, 2, 2, 2)) +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+
+ggplot2::ggsave(filename = "density_date_2014.png", width = 10, height = 6.5, units = "in")
+```
+
+## Body Length
+
+In depth look at body length
+```{r fig.height=6, fig.width=10}
+paired_14_16_filter_parents %>%
+  dplyr::mutate(stream = factor(
+    x = stream,
+    levels = c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale")
+  )) %>% 
+  ggplot2::ggplot(ggplot2::aes(x = length, fill = origin)) +
+  ggplot2::geom_density(alpha = 0.5, adjust = 2) +
+  ggplot2::labs(x = "Parent Body Length (mm)",
+                y = "Density",
+                fill = "Origin") +
+  ggplot2::facet_grid(rows = ggplot2::vars(sex), cols = ggplot2::vars(stream)) +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::theme(legend.position = c(0.475, 0.375), legend.background = element_rect(colour = "black"),
+                 legend.title = element_text(size = 16), legend.text = element_text(size = 12),
+                 legend.margin = margin(2, 2, 2, 2)) +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+
+ggplot2::ggsave(filename = "density_length_2014.png", width = 10, height = 6.5, units = "in")
+```
+
+## Intertidal
+
+In depth look at body length
+```{r fig.height=6, fig.width=10}
+paired_14_16_filter_parents %>%
+  dplyr::mutate(stream = factor(
+    x = stream,
+    levels = c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale")
+  )) %>% 
+  dplyr::filter(!is.na(intertidal)) %>% 
+  dplyr::count(stream, sex, origin, intertidal, name = "n_par") %>% 
+  dplyr::group_by(stream, sex, origin) %>% 
+  dplyr::mutate(p = n_par / sum(n_par)) %>% 
+  ggplot2::ggplot(ggplot2::aes(x = intertidal, y = p, fill = origin)) +
+  ggplot2::geom_col(alpha = 0.5, position = position_dodge2()) +
+  ggplot2::labs(x = "Parent Sample Location",
+                y = "Proportion of Parents",
+                fill = "Origin") +
+  ggplot2::facet_grid(rows = ggplot2::vars(sex), cols = ggplot2::vars(stream)) +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::theme(legend.position = c(0.56, 0.375), legend.background = element_rect(colour = "black"),
+                 legend.title = element_text(size = 16), legend.text = element_text(size = 12),
+                 legend.margin = margin(2, 2, 2, 2)) +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, vjust = 1))
+
+
+ggplot2::ggsave(filename = "density_intertidal_2014.png", width = 10, height = 6.5, units = "in")
+```
+
+# RS vs. Covariates
+
+## Sample Date
+
+```{r fig.width=10, fig.height=6}
+paired_14_16_filter_parents %>%
+  dplyr::mutate(stream = factor(
+    x = stream,
+    levels = c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale")
+  )) %>%
+  ggplot2::ggplot(aes(x = date, y = n, fill = origin)) +
+  ggplot2::geom_hline(yintercept = 0, color = "grey50") +
+  ggplot2::geom_jitter(
+    height = 0,
+    size = 4,
+    shape = 21,
+    color = "black",
+    alpha = 0.3
+  ) +
+  ggplot2::geom_smooth(
+    method =  "lm",
+    formula = 'y ~ x',
+    color = "black",
+    size = 1.5,
+    alpha = 0.9
+  ) +
+  ggplot2::facet_grid(sex ~ stream, scales = "free") +
+  ggplot2::labs(title = "",
+                fill = "Origin",
+                x = "Parent Sample Date",
+                y = "Reproductive Success") +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::theme(
+    legend.position = c(0.30, 0.355),
+    legend.background = element_rect(colour = "black"),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 12),
+    legend.margin = margin(2, 2, 2, 2)
+  ) +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggplot2::ggsave(filename = "RS_x_date_2014.png", width = 10, height = 6.5, units = "in")
+```
+
+## Body Length
+
+```{r fig.width=10, fig.height=6}
+paired_14_16_filter_parents %>%
+  dplyr::mutate(stream = factor(
+    x = stream,
+    levels = c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale")
+  )) %>%
+  dplyr::filter(length > 300) %>% 
+  ggplot2::ggplot(aes(x = length, y = n, fill = origin)) +
+  ggplot2::geom_hline(yintercept = 0, color = "grey50") +
+  ggplot2::geom_jitter(
+    height = 0,
+    size = 4,
+    shape = 21,
+    color = "black",
+    alpha = 0.3
+  ) +
+  ggplot2::geom_smooth(
+    method =  "lm",
+    formula = 'y ~ x',
+    color = "black",
+    size = 1.5,
+    alpha = 0.9
+  ) +
+  ggplot2::facet_grid(sex ~ stream, scales = "free_y") +
+  ggplot2::labs(title = "",
+                fill = "Origin",
+                x = "Parent Body Length (mm)",
+                y = "Reproductive Success") +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::theme(
+    legend.position = c(0.30, 0.355),
+    legend.background = element_rect(colour = "black"),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 12),
+    legend.margin = margin(2, 2, 2, 2)
+  ) +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggplot2::ggsave(filename = "RS_x_length_2014.png", width = 10, height = 6.5, units = "in")
+```
+
+## Intertidal
+
+```{r fig.width=10, fig.height=6}
+paired_14_16_filter_parents %>%
+  dplyr::mutate(stream = factor(
+    x = stream,
+    levels = c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale")
+  )) %>%
+  dplyr::filter(!is.na(intertidal)) %>% 
+  ggplot2::ggplot(aes(x = intertidal, y = n, fill = origin)) +
+  ggplot2::geom_hline(yintercept = 0, color = "grey50") +
+  ggplot2::geom_boxplot() +
+  ggplot2::facet_grid(sex ~ stream, scales = "free_y") +
+  ggplot2::labs(title = "",
+                fill = "Origin",
+                x = "Parent Sample Location",
+                y = "Reproductive Success") +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::theme(
+    legend.position = c(0.30, 0.35),
+    legend.background = element_rect(colour = "black"),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 12),
+    legend.margin = margin(2, 2, 2, 2)
+  ) +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggplot2::ggsave(filename = "RS_x_intertidal_2014.png", width = 10, height = 6.5, units = "in")
+```
+
+# GLM
+
+## Scale Covariates
+
+```{r}
+(
+  paired_14_16_filter_parents_scaled <-
+    paired_14_16_filter_parents %>%
+    dplyr::group_by(stream, sex) %>%
+    dplyr::mutate(
+      DOY_scaled = scale(x = DOY, center = TRUE, scale = TRUE),
+      length_scaled = scale(x = length, center = TRUE, scale = TRUE),
+      distance_mouth_scaled = scale(x = distance_mouth, center = TRUE, scale = TRUE),
+      n_relative = n / mean(n)
+    ) %>%
+    dplyr::ungroup() %>% 
+    dplyr::select(franz_id, n, n_relative, tidyselect::everything())
+)
+```
+
+## Male
+
+### Model
+
+Just doing a very simple model, no interactions
+```{r}
+male_scaled <- paired_14_16_filter_parents_scaled %>%
+  dplyr::filter(sex == "Male")
+
+glm_male <- MASS::glm.nb(
+  n ~ stream + DOY_scaled + length_scaled + intertidal + origin,
+  data = male_scaled,
+  link = log
+)
+
+summary(glm_male)
+```
+
+Compare effect sizes for basic model using `modelplot`
+```{r fig.height=6.5, fig.width=5}
+renamed_coeff <- c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale", "Date", "Length", "Upstream", "Hatchery")
+
+p_male <- modelsummary::modelplot(models = glm_male)
+
+p_male$data %>% 
+  mutate(name = factor(x = renamed_coeff, levels = renamed_coeff)) %>% 
+  ggplot(aes(y = name, x = estimate, xmin = conf.low, xmax = conf.high)) +
+  geom_vline(xintercept = 0, size = 1) +
+  geom_errorbar(width = 0, size = 2) +
+  geom_point(shape = 21, colour = "black", fill = "grey50", size = 5) +
+  scale_x_continuous(breaks = pretty_breaks(), limits = c(-1.25, 1.25)) +
+  theme_bw(base_size = 20) +
+  labs(x = "Coefficients with 95% CIs",
+       y = "",
+       title = "Male")
+
+ggplot2::ggsave(filename = "GLM_coef_male_2014.png", width = 5, height = 6.5, units = "in")
+```
+
+Transform coefficients out of log link function with exponent.
+```{r}
+(male_coeffs <- cbind(coef = coef(glm_male), confint(glm_male)))
+exp(male_coeffs)
+```
+
+## Female
+
+### Model
+
+Just doing a very simple model, no interactions
+```{r}
+female_scaled <- paired_14_16_filter_parents_scaled %>%
+  dplyr::filter(sex == "Female")
+
+glm_female <- MASS::glm.nb(
+  n ~ stream + DOY_scaled + length_scaled + intertidal + origin,
+  data = female_scaled,
+  link = log
+)
+
+summary(glm_female)
+```
+
+Compare effect sizes for basic model using `modelplot`
+```{r fig.height=6.5, fig.width=5}
+renamed_coeff <- c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale", "Date", "Length", "Upstream", "Hatchery")
+
+p_female <- modelsummary::modelplot(models = glm_female)
+
+p_female$data %>% 
+  mutate(name = factor(x = renamed_coeff, levels = renamed_coeff)) %>% 
+  ggplot(aes(y = name, x = estimate, xmin = conf.low, xmax = conf.high)) +
+  geom_vline(xintercept = 0, size = 1) +
+  geom_errorbar(width = 0, size = 2) +
+  geom_point(shape = 21, colour = "black", fill = "grey50", size = 5) +
+  scale_x_continuous(breaks = pretty_breaks(), limits = c(-1.25, 1.25)) +
+  theme_bw(base_size = 20) +
+  labs(x = "Coefficients with 95% CIs",
+       y = "",
+       title = "Female")
+
+ggplot2::ggsave(filename = "GLM_coef_female_2014.png", width = 5, height = 6.5, units = "in")
+```
+
+Transform coefficients out of log link function with exponent.
+```{r}
+(female_coeffs <- cbind(coef = coef(glm_female), confint(glm_female)))
+exp(female_coeffs)
+```
+
+## Single Plot
+
+```{r}
+glm_coeffs_male <- p_male$data %>% 
+  mutate(name = factor(x = renamed_coeff, levels = renamed_coeff),
+         sex = "Male")
+
+glm_coeffs_female <- p_female$data %>% 
+  mutate(name = factor(x = renamed_coeff, levels = renamed_coeff),
+         sex = "Female")
+
+bind_rows(glm_coeffs_male, glm_coeffs_female) %>% 
+  ggplot(aes(y = name, x = estimate, xmin = conf.low, xmax = conf.high)) +
+  geom_vline(xintercept = 0, size = 1) +
+  geom_errorbar(width = 0, size = 2) +
+  geom_point(shape = 21, colour = "black", fill = "grey50", size = 5) +
+  scale_x_continuous(breaks = pretty_breaks(), limits = c(-1.25, 1.25)) +
+  theme_bw(base_size = 20) +
+  labs(x = "Coefficients with 95% CIs",
+       y = "") +
+  facet_grid(cols = ggplot2::vars(sex))
+
+ggplot2::ggsave(filename = "GLM_coef_combined_2014.png", width = 10, height = 6.5, units = "in")
+```
+
+
+End
