@@ -51,7 +51,7 @@ paired_14_16_filter_parents %>%
   ggplot2::facet_grid(cols = ggplot2::vars(sex)) +
   ggplot2::labs(fill = "Parent: Origin",
                 x = "Number of Offspring",
-                y = "Proportion of Parents") +
+                y = "Proportion of Parents (RS)") +
   ggplot2::theme_bw(base_size = 20) +
   ggplot2::theme(legend.position = c(0.85, 0.85), legend.background = element_rect(colour = "black"))
 
@@ -149,7 +149,7 @@ paired_14_16_filter_parents %>%
   ggplot2::scale_x_continuous(breaks = scales::pretty_breaks()) +
   ggplot2::facet_grid(cols = ggplot2::vars(sex)) +
   ggplot2::labs(fill = "Parent: Origin",
-                x = "Number of Offspring",
+                x = "Number of Offspring (RS)",
                 y = "Proportion of Parents") +
   ggplot2::theme_bw(base_size = 20) +
   ggplot2::theme(legend.position = c(0.85, 0.85), legend.background = element_rect(colour = "black"))
@@ -170,7 +170,7 @@ paired_14_16_filter_parents %>%
   ggplot2::scale_x_continuous(breaks = scales::pretty_breaks()) +
   ggplot2::facet_grid(cols = ggplot2::vars(stream), rows = ggplot2::vars(sex)) +
   ggplot2::labs(fill = "Origin",
-                x = "Number of Offspring",
+                x = "Number of Offspring (RS)",
                 y = "Proportion of Parents") +
   ggplot2::theme_bw(base_size = 20) +
   ggplot2::theme(legend.position = c(0.475, 0.375), legend.background = element_rect(colour = "black"),
@@ -464,7 +464,7 @@ paired_14_16_filter_parents %>%
     legend.text = element_text(size = 12),
     legend.margin = margin(2, 2, 2, 2)
   ) +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5))
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, vjust = 1))
 
 ggplot2::ggsave(filename = "RS_x_intertidal_2014.png", width = 10, height = 6.5, units = "in")
 ```
@@ -560,7 +560,7 @@ p_female <- modelsummary::modelplot(models = glm_female)
 
 p_female$data %>% 
   mutate(name = factor(x = renamed_coeff, levels = renamed_coeff)) %>% 
-  ggplot(aes(y = name, x = estimate, xmin = conf.low, xmax = conf.high)) +
+  ggplot(aes(y = name, x = estimate, xmin = conf.low, xmax = conf.high, fill = sex)) +
   geom_vline(xintercept = 0, size = 1) +
   geom_errorbar(width = 0, size = 2) +
   geom_point(shape = 21, colour = "black", fill = "grey50", size = 5) +
@@ -582,26 +582,41 @@ exp(female_coeffs)
 ## Single Plot
 
 ```{r}
-glm_coeffs_male <- p_male$data %>% 
-  mutate(name = factor(x = renamed_coeff, levels = renamed_coeff),
-         sex = "Male")
+glm_coeffs_male <- p_male$data %>%
+  dplyr::mutate(name = factor(x = renamed_coeff, levels = renamed_coeff),
+                sex = "Male")
 
-glm_coeffs_female <- p_female$data %>% 
-  mutate(name = factor(x = renamed_coeff, levels = renamed_coeff),
-         sex = "Female")
+glm_coeffs_female <- p_female$data %>%
+  dplyr::mutate(name = factor(x = renamed_coeff, levels = renamed_coeff),
+                sex = "Female")
 
-bind_rows(glm_coeffs_male, glm_coeffs_female) %>% 
-  ggplot(aes(y = name, x = estimate, xmin = conf.low, xmax = conf.high)) +
-  geom_vline(xintercept = 0, size = 1) +
-  geom_errorbar(width = 0, size = 2) +
-  geom_point(shape = 21, colour = "black", fill = "grey50", size = 5) +
-  scale_x_continuous(breaks = pretty_breaks(), limits = c(-1.25, 1.25)) +
-  theme_bw(base_size = 20) +
-  labs(x = "Coefficients with 95% CIs",
-       y = "") +
-  facet_grid(cols = ggplot2::vars(sex))
+dplyr::bind_rows(glm_coeffs_male, glm_coeffs_female) %>%
+  ggplot2::ggplot(aes(
+    y = name,
+    x = estimate,
+    xmin = conf.low,
+    xmax = conf.high,
+    fill = sex
+  )) +
+  ggplot2::geom_vline(xintercept = 0, size = 1) +
+  ggplot2::geom_errorbar(width = 0, size = 2) +
+  ggplot2::geom_point(shape = 21,
+                      colour = "black",
+                      size = 5) +
+  ggplot2::scale_fill_manual(values = c("orange", "skyblue")) +
+  ggplot2::scale_x_continuous(breaks = pretty_breaks(), limits = c(-1.25, 1.25)) +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::labs(x = "Coefficients with 95% CIs",
+                y = "") +
+  ggplot2::facet_grid(cols = ggplot2::vars(sex)) +
+  ggplot2::guides(fill = "none")
 
-ggplot2::ggsave(filename = "GLM_coef_combined_2014.png", width = 10, height = 6.5, units = "in")
+ggplot2::ggsave(
+  filename = "GLM_coef_combined_2014.png",
+  width = 10,
+  height = 6.5,
+  units = "in"
+)
 ```
 
 
