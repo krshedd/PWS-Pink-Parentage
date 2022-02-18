@@ -197,8 +197,9 @@ rrs_to_date_dyad %>%
   ),
   year = as.character(year)) %>%
   dplyr::filter(year == "2014") %>% 
-  summarise(min(rrs),
-            max(rrs))
+  dplyr::group_by(sex) %>% 
+  dplyr::summarise(min(rrs),
+                   max(rrs))
 ```
 
 
