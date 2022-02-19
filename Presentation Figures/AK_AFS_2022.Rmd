@@ -442,6 +442,34 @@ ggplot2::ggsave(filename = "RS_x_length_2014.png", width = 10, height = 6.5, uni
 
 ## Intertidal
 
+Compare average RS
+```{r}
+paired_14_16_filter_parents %>%
+  dplyr::mutate(stream = factor(
+    x = stream,
+    levels = c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale")
+  )) %>%
+  dplyr::filter(!is.na(intertidal),
+                stream %in% c("Hogan", "Stockdale")) %>% 
+  dplyr::group_by(stream, origin, intertidal) %>% 
+  dplyr::summarise(avg_RS = mean(n)) %>% 
+  tidyr::pivot_wider(names_from = origin, values_from = avg_RS)
+```
+
+Sample size
+```{r}
+paired_14_16_filter_parents %>%
+  dplyr::mutate(stream = factor(
+    x = stream,
+    levels = c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale")
+  )) %>%
+  dplyr::filter(!is.na(intertidal),
+                stream %in% c("Hogan", "Stockdale")) %>% 
+  dplyr::count(stream, origin, intertidal, name = "n_par") %>% 
+  tidyr::pivot_wider(names_from = origin, values_from = n_par)
+```
+
+
 ```{r fig.width=10, fig.height=6}
 paired_14_16_filter_parents %>%
   dplyr::mutate(stream = factor(
