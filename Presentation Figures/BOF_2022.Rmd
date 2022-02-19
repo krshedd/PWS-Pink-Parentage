@@ -136,10 +136,10 @@ oceanak %>%
     ), "%b %d")
   ) +
   ggplot2::facet_grid(year ~ stream) +
-  ggplot2::labs(x = "Number of Samples",
-                y = "Date",
+  ggplot2::labs(x = "Date",
+                y = "Number of Samples",
                 fill = "Origin") +
-  ggplot2::theme_bw(base_size = 12) +
+  ggplot2::theme_bw(base_size = 18) +
   ggplot2::theme(axis.text.x = element_text(
     angle = 90,
     hjust = 1,
@@ -227,6 +227,84 @@ print(pws_map, vp = vp_b)
 print(ak_map + maptheme, vp = vp_a)
 dev.off()
 ```
+
+## Natural Straying
+
+```{r pbs_mapping_zoom}
+pws_map <- readr::read_csv(file = "../map_data.csv")
+
+pws_map_streams <- pws_map %>% 
+  dplyr::filter(type == "Fitness Stream")
+
+
+x_lim <- range(pws_map_streams$long) + c(-0.1, 0.1)
+y_lim <- range(pws_map_streams$lat) + c(-0.1, 0.1)
+
+data("nepacLLhigh")
+ak <- nepacLLhigh %>% 
+  dplyr::select(group = PID, POS = POS,long = X, lat = Y)
+
+maptheme <- theme(
+  panel.grid = element_blank(),
+  panel.border = element_rect(fill = NA, colour = "black"),
+  panel.background = element_blank()
+)
+
+# PWS map
+pws_map <- ggplot() + 
+  geom_polygon(data = ak, aes(long, lat, group = group), fill = "grey90", color = "black", lwd = 0.3) +
+  geom_point(data = pws_map, aes(x = long, y = lat, fill = legend, shape = legend, size = legend), stroke = 1.5) +  # shape = 21, colour = "black",
+  scale_shape_manual(values = c(24, 21, 22, 22)) +
+  scale_size_manual(values = c(3.5, 5, 5, 5)) +
+  geom_label(data = filter(pws_map, type == "Hatchery"), aes(long, lat, label = name), hjust = 0, nudge_x = 0.04) +
+  geom_label(data = filter(pws_map, type == "City"), aes(long, lat, label = name), hjust = 0.5, vjust = 0, nudge_y = 0.01) +
+  geom_label(data = filter(pws_map, name == "Hogan"), aes(long, lat, label = name), hjust = 0, nudge_x = 0.04, nudge_y = -0.01) +
+  geom_label(data = filter(pws_map, name == "Stockdale"), aes(long, lat, label = name), hjust = 0.5, nudge_x = 0.04, nudge_y = 0.03) +
+  geom_label(data = filter(pws_map, name == "Gilmour"), aes(long, lat, label = name), hjust = 0, nudge_x = 0.04, nudge_y = -0.01) +
+  geom_label(data = filter(pws_map, name == "Paddy"), aes(long, lat, label = name), hjust = 1, nudge_x = -0.04, nudge_y = 0.01) +
+  geom_label(data = filter(pws_map, name == "Erb"), aes(long, lat, label = name), hjust = 1, nudge_x = -0.04, nudge_y = -0.01) +
+  geom_segment(aes(x = -148.7, xend = -148.7, y = 59.85, yend = 60.02), lineend = "butt", linejoin = "round", size = 2, arrow = arrow(length = unit(0.2, "inches"))) +
+  annotate("text", label = "Prince\nWilliam\nSound", x = -147, y = 60.6, size = 5, colour = "black") +
+  theme(panel.background = element_rect(fill = 'white')) +
+  scale_y_continuous(breaks = c(60.0, 60.1, 60.2, 60.3, 60.4, 60.5)) +
+  xlab(expression(paste(Longitude^o, ~'W'))) +
+  ylab(expression(paste(Latitude^o, ~'N'))) +
+  labs(fill = "Legend", shape = "Legend", size = "Legend") +
+  theme(legend.position = "none") +
+  coord_map(xlim = x_lim, ylim = y_lim) +
+  maptheme
+
+# north2(pws_map, symbol = 12, 0.18, 0.20)  # couldn't get this to work with the inset
+
+# Inset map
+ak_map <- ggplot() + 
+  geom_polygon(data = ak, aes(long, lat, group = group), fill = "grey90", color = "black", lwd = 0.3) +
+  # borders("world", xlim = x_lim + c(-2, 2), ylim = y_lim + c(-3, 3), lwd = 1) +
+  geom_rect(data = data.frame(), aes(xmin = x_lim[1], xmax = x_lim[2], ymin = y_lim[1], ymax = y_lim[2]), colour = "red", fill = NA, lwd = 1) +
+  # annotate("text", label = "Alaska", x = -150.5, y = 63.5, size = 5, colour = "black") +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()) +
+  coord_map(xlim = x_lim + c(-1, 1.5), ylim = y_lim + c(-0.5, 0.75))
+
+grid.newpage()
+vp_b <- viewport(width = 1, height = 1, x = 0.5, y = 0.5)  # the larger map
+vp_a <- viewport(width = 0.23, height = 0.35, x = 0.585, y = 0.32)  # the inset in lower left
+print(pws_map, vp = vp_b)
+print(ak_map + maptheme, vp = vp_a)
+```
+
+Save
+```{r save_zoom_png}
+png(filename = "PWS_stream_map_zoom.png", width = 7.5, height = 4.5, units = "in", res = 300)
+grid.newpage()
+vp_b <- viewport(width = 1, height = 1, x = 0.5, y = 0.5)  # the larger map
+vp_a <- viewport(width = 0.2, height = 0.35, x = 0.802, y = 0.825)  # the inset in lower left; x = 0.585, y = 0.32
+print(pws_map, vp = vp_b)
+print(ak_map + maptheme, vp = vp_a)
+dev.off()
+```
+
 
 # RRS to Date
 
