@@ -49,6 +49,60 @@ The purpose of these analyses are to follow up on the previous notebook and full
 )
 ```
 
+# Load Stream Survey Data
+
+Read in live/dead count data
+```{r}
+(survey_data <- readr::read_csv(file = "~/../Desktop/Local_PWS_pinks/StreamSpecimens/stream_surveys_2013-2020.csv"))
+```
+
+Reformat
+```{r}
+(
+  survey_data <- survey_data %>%
+    dplyr::mutate(date = lubridate::mdy(SurveyDate)) %>%
+    dplyr::mutate(year = lubridate::year(date)) %>%
+    dplyr::filter(
+      CommonName == "Pink Salmon",
+      !is.na(AliveCount),
+      year == 2014,
+      !is.na(DistanceMeters)
+    ) %>%
+    dplyr::filter(
+      base::grepl(pattern = "Erb", x = StreamName) |
+        base::grepl(pattern = "Paddy", x = StreamName) |
+        base::grepl(pattern = "Hogan", x = StreamName) |
+        base::grepl(pattern = "Gilmour", x = StreamName) |
+        base::grepl(pattern = "Stockdale", x = StreamName)
+    ) %>%
+    dplyr::mutate(
+      stream = dplyr::case_when(
+        base::grepl(pattern = "Erb", x = StreamName) ~ "Erb",
+        base::grepl(pattern = "Paddy", x = StreamName) ~ "Paddy",
+        base::grepl(pattern = "Hogan", x = StreamName) ~ "Hogan",
+        base::grepl(pattern = "Gilmour", x = StreamName) ~ "Gilmour",
+        base::grepl(pattern = "Stockdale", x = StreamName) ~ "Stockdale"
+      )
+    ) %>%
+    dplyr::select(
+      year,
+      date,
+      stream,
+      StreamName,
+      CommonName,
+      AliveCount,
+      DeadCount,
+      DistanceMeters
+    )
+)
+```
+
+```{r}
+survey_data %>% 
+  dplyr::count(stream, StreamName)
+```
+
+
 # Explore Parent Data
 
 While we've previously shown figures relating RS to individual variables (e.g. Sample Date, Length of parents, etc.), we have now incorporated the spatial data (Sample Location of parents) and can now explore spatio-temporal trends in RS.  
@@ -246,7 +300,7 @@ all_streams_paired_14_16_filter_parents %>%
   ggplot2::labs(x = "Parent Sample Date",
                 y = "Density",
                 fill = "Parent: Origin") +
-  ggplot2::theme_bw() +
+  ggplot2::theme_bw(base_size = 16) +
   ggplot2::facet_grid(rows = ggplot2::vars(stream), cols = ggplot2::vars(sex))
 ```
 
@@ -266,7 +320,7 @@ all_streams_paired_14_16_filter_parents %>%
   ggplot2::labs(x = "Density",
                 y = "Parent Sample Location from Stream Mouth (m)",
                 fill = "Parent: Origin") +
-  ggplot2::theme_bw() +
+  ggplot2::theme_bw(base_size = 16) +
   ggplot2::facet_grid(rows = ggplot2::vars(stream), cols = ggplot2::vars(sex), scales = "free_y")
 ```
 
@@ -281,7 +335,7 @@ all_streams_paired_14_16_filter_parents %>%
                 distance_mouth > 500)
 ```
 
-Very few fish sampled way the heck up stream.
+Very few fish sampled way the heck up stream, all hatchery strays.
 
 What is our sample size by origin and sex for upstream?
 ```{r}
@@ -298,12 +352,13 @@ Ah, very few natural-origin fish present upstream...
 In depth look at body length
 ```{r fig.height=10}
 all_streams_paired_14_16_filter_parents %>%
+  dplyr::filter(length > 300) %>% 
   ggplot2::ggplot(ggplot2::aes(x = length, fill = origin)) +
   ggplot2::geom_density(alpha = 0.5) +
   ggplot2::labs(x = "Parent Body Length (mm)",
                 y = "Density",
                 fill = "Parent: Origin") +
-  ggplot2::theme_bw() +
+  ggplot2::theme_bw(base_size = 16) +
   ggplot2::facet_grid(rows = ggplot2::vars(stream), cols = ggplot2::vars(sex))
 ```
 
@@ -329,13 +384,44 @@ In general, hatchery-origin fish were larger than natural-origin fish across all
 )
 ```
 
+What is the sample size of parents for each of our categories?
+```{r}
+all_streams_paired_14_16_filter_parents_scaled %>% 
+  dplyr::count(stream, sex, origin, intertidal, name = "n_par") %>% 
+  dplyr::arrange(n_par)
+```
+
+Hrmmm, some of our category sample sizes are damn small...
+
 ## Male
+
+Subset data
+```{r}
+male_scaled <- all_streams_paired_14_16_filter_parents_scaled %>%
+  dplyr::filter(sex == "Male")
+
+male_scaled_complete <- male_scaled %>%
+  dplyr::select(franz_id, n, stream, DOY_scaled, length_scaled, intertidal, distance_mouth_scaled, origin) %>% 
+  tidyr::drop_na()
+```
+
+Compare sample sizes
+```{r}
+male_scaled %>% 
+  dplyr::count(stream, origin, intertidal, name = "n_par") %>% 
+  dplyr::arrange(n_par)
+
+male_scaled_complete %>% 
+  dplyr::count(stream, origin, intertidal, name = "n_par") %>% 
+  dplyr::arrange(n_par)
+```
+
+Need to think about how to deal with this very unbalanced design...
 
 ### Models
 
 ```{r}
-male_scaled <- all_streams_paired_14_16_filter_parents_scaled %>%
-  dplyr::filter(sex == "Male")
+options(na.action = "na.omit")
 
 glm_male_1 <-
   MASS::glm.nb(
@@ -364,6 +450,42 @@ glm_male_4 <-
     data = male_scaled,
     link = log
   )
+```
+
+##### Dredge
+
+Trying out `MuMIn::dredge`
+```{r}
+model_formula <-
+  stats::formula(
+    n ~ stream + DOY_scaled:stream + base::I(DOY_scaled ^ 2):stream + length_scaled:stream + base::I(length_scaled ^ 2):stream + intertidal:stream + origin
+  )
+
+fixed <- c("stream")
+
+model_full_male <-
+  MASS::glm.nb(formula = model_formula,
+               data = male_scaled_complete,
+               link = log)
+
+options(na.action = "na.fail")
+
+model_select_male <- MuMIn::dredge(global.model = model_full_male, fixed = fixed, trace = FALSE, rank = "AICc")
+
+options(na.action = "na.omit")  # reset
+```
+
+Let's see what we see!
+```{r}
+glimpse(model_select_male)
+```
+
+Same model as before despite dropping fish with `NA` values, no squared terms kept.
+
+I'd imagine that we could explain more deviance, but only if we started including origin in interaction terms...
+```{r}
+mod_male <- MuMIn::get.models(model_select_male, subset =  1)[[1]]
+base::summary(mod_male)
 ```
 
 ### Extract Akaike Weights {#male_glm}
@@ -426,6 +548,8 @@ male_glm_model_summary %>%
 summary(glm_male_1)
 ```
 
+### Extract Coefficients
+
 What are the coefficients and 95% CIs for each of the explanatory variables?
 
 **NOTE** need to drop "streamPaddy:intertidalUpstream"
@@ -449,13 +573,25 @@ male_est %>%
   dplyr::mutate(dplyr::across(where(is.numeric), round, 2))
 ```
 
-Lol, the Paddy:intertidal variable ruins everything
+### Model Plot
+
+Lol, the Paddy:intertidal variable ruins everything, drop it.
 ```{r}
-modelsummary::modelplot(models = glm_male_1)
+modelsummary::modelplot(
+  models = glm_male_1,
+  coef_omit = "streamPaddy:intertidalUpstream",
+  coef_rename = c("(Intercept)" = "streamErb")
+) +
+  ggplot2::geom_vline(xintercept = 0) +
+  ggplot2::theme_bw()
 ```
 
+Compare coefficients to basic model without stream-specific interactions
 ```{r}
-modelsummary::modelplot(models = glm_male_3)
+modelsummary::modelplot(models = glm_male_3,
+                        coef_rename = c("(Intercept)" = "streamErb")) +
+  ggplot2::geom_vline(xintercept = 0) +
+  ggplot2::theme_bw()
 ```
 
 Transform coefficients out of log link function with exponent.
@@ -465,7 +601,7 @@ exp(male_3_coeffs)
 ```
 
 Compare effect sizes for basic model using `modelplot`
-```{r}
+```{r fig.height=6.5, fig.width=6.5}
 renamed_coeff <- c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale", "Date", "Length", "Upstream", "Hatchery")
 
 p_male_3 <- modelsummary::modelplot(models = glm_male_3)
@@ -483,32 +619,35 @@ p_male_3$data %>%
        title = "Male GLM Parameter Estimates")
 ```
 
+## Female
 
+Subset data
 ```{r}
-p<-modelsummary::modelplot(mod,coef_rename=renamed,coef_omit='Interc')
-pdat<-data.frame(p$data)
-pdat<-pdat[rev(c(5,3,1,2,8,4,7,9,10)),]
-names<-pdat$term
-nnames<-length(names)
-y<-seq(nnames)
-xlab="Coefficient estimates with 95% CIs"
-plot(NA,NA,xlab=xlab,ylab="",xlim=c(-2.2,2.2),ylim=c(0,nnames),yaxt="n")
-abline(v=0,lwd=0.5)
-segments(pdat$conf.low,y,pdat$conf.high,y,lwd=1.2)
-points(pdat$estimate,y,pch=21,cex=1.2,bg="darkgray",lwd=0.5)
-axis(side=2,at=y,labels=pdat$term,las=2,cex.axis=0.8)
-dev.off()
+female_scaled <- all_streams_paired_14_16_filter_parents_scaled %>%
+  dplyr::filter(sex == "Female")
+
+female_scaled_complete <- female_scaled %>%
+  dplyr::select(franz_id, n, stream, DOY_scaled, length_scaled, intertidal, distance_mouth_scaled, origin) %>% 
+  tidyr::drop_na()
 ```
 
+Compare sample sizes
+```{r}
+female_scaled %>% 
+  dplyr::count(stream, origin, intertidal, name = "n_par") %>% 
+  dplyr::arrange(n_par)
 
+female_scaled_complete %>% 
+  dplyr::count(stream, origin, intertidal, name = "n_par") %>% 
+  dplyr::arrange(n_par)
+```
 
-## Female
+Better than the male dataset, but still issues with unbalanced sample sizes across categories.
 
 ### Models
 
 ```{r}
-female_scaled <- all_streams_paired_14_16_filter_parents_scaled %>%
-  dplyr::filter(sex == "Female")
+options(na.action = "na.omit")
 
 glm_female_1 <-
   MASS::glm.nb(
@@ -537,6 +676,42 @@ glm_female_4 <-
     data = female_scaled,
     link = log
   )
+```
+
+##### Dredge
+
+Trying out `MuMIn::dredge`
+```{r}
+model_formula <-
+  stats::formula(
+    n ~ stream + DOY_scaled:stream + base::I(DOY_scaled ^ 2):stream + length_scaled:stream + base::I(length_scaled ^ 2):stream + intertidal:stream + origin
+  )
+
+fixed <- c("stream")
+
+model_full_female <-
+  MASS::glm.nb(formula = model_formula,
+               data = female_scaled_complete,
+               link = log)
+
+options(na.action = "na.fail")
+
+model_select_female <- MuMIn::dredge(global.model = model_full_female, fixed = fixed, trace = FALSE, rank = "AICc")
+
+options(na.action = "na.omit")  # reset
+```
+
+Let's see what we see!
+```{r}
+glimpse(model_select_female)
+```
+
+**NOT** the same model as before!!! It seemed to like having a squared term for length.
+
+I'd imagine that we could explain more deviance, but only if we started including origin in interaction terms...
+```{r}
+mod_female <- MuMIn::get.models(model_select_female, subset =  1)[[1]]
+base::summary(mod_female)
 ```
 
 ### Extract Akaike Weights {#female_glm}
@@ -595,9 +770,12 @@ female_glm_model_summary %>%
 
 ### Top Model Summary
 
+Sticking with basic models here.
 ```{r}
 summary(glm_female_1)
 ```
+
+### Extract Coefficients
 
 What are the coefficients and 95% CIs for each of the explanatory variables?
 
@@ -622,13 +800,48 @@ female_est %>%
   dplyr::mutate(dplyr::across(where(is.numeric), round, 2))
 ```
 
+### Model Plot
 
 ```{r}
-modelsummary::modelplot(models = glm_female_1)
+modelsummary::modelplot(
+  models = glm_female_1,
+  coef_rename = c("(Intercept)" = "streamErb")
+) +
+  ggplot2::geom_vline(xintercept = 0) +
+  ggplot2::theme_bw()
 ```
 
+Compare coefficients to basic model without stream-specific interactions
 ```{r}
-modelsummary::modelplot(models = glm_female_3)
+modelsummary::modelplot(models = glm_female_3,
+                        coef_rename = c("(Intercept)" = "streamErb")) +
+  ggplot2::geom_vline(xintercept = 0) +
+  ggplot2::theme_bw()
+```
+
+Transform coefficients out of log link function with exponent.
+```{r}
+(female_3_coeffs <- cbind(coef = coef(glm_female_3), confint(glm_female_3)))
+exp(female_3_coeffs)
+```
+
+Compare effect sizes for basic model using `modelplot`
+```{r fig.height=6.5, fig.width=6.5}
+renamed_coeff <- c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale", "Date", "Length", "Upstream", "Hatchery")
+
+p_female_3 <- modelsummary::modelplot(models = glm_female_3)
+
+p_female_3$data %>% 
+  mutate(name = factor(x = renamed_coeff, levels = renamed_coeff)) %>% 
+  ggplot(aes(y = name, x = estimate, xmin = conf.low, xmax = conf.high)) +
+  geom_vline(xintercept = 0, size = 1) +
+  geom_errorbar(width = 0, size = 2) +
+  geom_point(shape = 21, colour = "black", fill = "grey50", size = 5) +
+  scale_x_continuous(breaks = pretty_breaks(), limits = c(-1.25, 1.25)) +
+  theme_bw(base_size = 20) +
+  labs(x = "Coefficient estiamtes with 95% CIs",
+       y = "",
+       title = "Female GLM Parameter Estimates")
 ```
 
 End
