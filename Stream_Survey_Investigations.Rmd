@@ -153,4 +153,84 @@ Plot live counts by stream
 live_count_by_fitness_stream(sample_year = 2020)
 ```
 
+# Explore Density vs. RS
+
+
+Read in live/dead count data
+```{r}
+(survey_data <- readr::read_csv(file = "~/../Desktop/Local_PWS_pinks/StreamSpecimens/stream_surveys_2013-2020.csv"))
+```
+
+Reformat
+```{r}
+(
+  survey_data <- survey_data %>%
+    dplyr::mutate(date = lubridate::mdy(SurveyDate)) %>%
+    dplyr::mutate(year = lubridate::year(date)) %>%
+    dplyr::filter(
+      CommonName == "Pink Salmon",
+      !is.na(AliveCount),
+      year == 2014,
+      !is.na(DistanceMeters)
+    ) %>%
+    dplyr::filter(
+      base::grepl(pattern = "Erb", x = StreamName) |
+        base::grepl(pattern = "Paddy", x = StreamName) |
+        base::grepl(pattern = "Hogan", x = StreamName) |
+        base::grepl(pattern = "Gilmour", x = StreamName) |
+        base::grepl(pattern = "Stockdale", x = StreamName)
+    ) %>%
+    dplyr::mutate(
+      stream = dplyr::case_when(
+        base::grepl(pattern = "Erb", x = StreamName) ~ "Erb",
+        base::grepl(pattern = "Paddy", x = StreamName) ~ "Paddy",
+        base::grepl(pattern = "Hogan", x = StreamName) ~ "Hogan",
+        base::grepl(pattern = "Gilmour", x = StreamName) ~ "Gilmour",
+        base::grepl(pattern = "Stockdale", x = StreamName) ~ "Stockdale"
+      )
+    ) %>%
+    dplyr::select(
+      year,
+      date,
+      stream,
+      StreamName,
+      CommonName,
+      AliveCount,
+      DeadCount,
+      DistanceMeters
+    )
+)
+```
+
+```{r}
+survey_data %>% 
+  dplyr::count(stream, StreamName)
+```
+
+## Erb 2014
+
+```{r}
+reduced_Erb <- all_streams_paired_14_16_filter_parents %>% 
+  dplyr::filter(stream == "Erb",
+                length > 300) %>% 
+  dplyr::mutate(success = dplyr::case_when(n > 0 ~ "Successful",
+                                           n == 0 ~ "Unsuccessful")) %>%
+  dplyr::select(stream, origin, n, success, sex, date, length, intertidal, distance_mouth) %>% 
+  tidyr::drop_na()
+
+
+reduced_Erb %>% 
+  dplyr::count(stream, date) %>% 
+  dplyr::left_join(survey_data, by = c("stream", "date"))
+```
+
+```{r}
+reduced_Erb %>% 
+  dplyr::left_join(survey_data, by = c("stream", "date")) %>% 
+  ggplot2::ggplot(ggplot2::aes(x = DeadCount, y = n, colour = origin)) +
+  ggplot2::geom_jitter(alpha = 0.5) +
+  ggplot2::geom_smooth(method = loess) +
+  ggplot2::theme_bw()
+```
+
 End...for now
