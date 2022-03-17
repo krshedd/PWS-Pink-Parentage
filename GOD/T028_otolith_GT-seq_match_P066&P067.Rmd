@@ -36,15 +36,11 @@ During shipment of otolith samples to the MTA in Juneau for reading, a significa
 
 DNA was extracted from left-side or unknown otolith tissues of unknown origin using conventional Machery-Nagel DNA extraction kits. Otoliths were placed in T1 buffer for an overnight soak in clear 96 shallow-well plates (SWP). Preamp at 14 cycles. Final elution volume was 75uL. All otoliths were transferred among plates with a jig. All liquid handling was done by robot.
 
-```{r}
-.username <- "kmgruenthal"
-.password <- ""
-```
-
 ## LocusControl
 
 ```{r}
-PGOD21 <- "PGOD21"
+.username <- "kmgruenthal"
+.password <- ""
 
 loci <- dget("../../Objects/loci298.txt") # saved list of loci
 
@@ -53,20 +49,20 @@ loci <- LocusControl$locusnames
 nalleles <- LocusControl$nalleles
 ploidy <- LocusControl$ploidy
 alleles <- LocusControl$alleles
-
-# change sillyvec as needed
-LOKI2R.GCL(sillyvec = PGOD21, username = .username, password = .password)
 ```
-# ###################HERE################
 
 ```{r}
-# read in attributes data from last round(s) and remove processed fish_ids
+# Otolith SILLY
+PGOD21 <- "PGOD21"
+LOKI2R.GCL(sillyvec = PGOD21, username = .username, password = .password)
+
+# read in attributes data from last round(s) and remove already processed fish_ids
 attributes_PGOD21_012522 <- read_csv("attributes_PGOD21_012522.csv")
-processed_PGOD21_fish_ids <- attributes_PGOD21_012522$FK_FISH_ID 
+processed_PGOD21_fish_ids <- attributes_PGOD21_012522$FK_FISH_ID
 RemoveIDs.GCL(silly = "PGOD21", IDs = processed_PGOD21_fish_ids)
 
 # create a csv from the otolith transfer spreadsheet from MTAL, read in the data, and create a concatenated tray and well column
-oto_xfer_data <- read_csv("otolith_transfer_012522.csv") # mod of MTAL final spreadsheet "otolith_transfer_96_template_LEFT_all trays_17Nov21.xlsx"
+oto_xfer_data <- read_csv("otolith_transfer_111721.csv") # csv mod of MTAL final "otolith_transfer_96_template_LEFT_all trays_17Nov21.xlsx"
 oto_xfer_data$DNA_TRAY_AND_WELL <- paste0(oto_xfer_data$`96_oto_tray_barcode`, "_", oto_xfer_data$`96_oto_tray_position`)
   
 # download csv of PGOD21 sample data from OceanAK and append with _PGOD21_DATE
@@ -76,7 +72,7 @@ oceanak_PGOD21 <- read_csv("GEN_SAMPLED_FISH_TISSUE_PGOD21_031022.csv")
 attributes_PGOD21 <- PGOD21.gcl$attributes %>%
   transform(DNA_TRAY_CODE = as.numeric(DNA_TRAY_CODE))
 
-write_csv(attributes_PGOD21, "attributes_PGOD21_031122.csv") # use SillySource from prior dates to remove already processed IDs from PGOD21.gcl
+write_csv(attributes_PGOD21, "attributes_PGOD21_031622.csv") # use SillySource from prior dates to remove already processed IDs from PGOD21.gcl
 
 attributes_PGOD21$DNA_TRAY_AND_WELL <- paste0(attributes_PGOD21$DNA_TRAY_CODE, "_", attributes_PGOD21$DNA_TRAY_WELL_CODE)
 attributes_and_xfer_PGOD21 <- left_join(attributes_PGOD21, oto_xfer_data, by = "DNA_TRAY_AND_WELL")
@@ -94,70 +90,62 @@ write_csv(oceanak_affected_DWPs, "oceanak_affected_DWPs.csv")
 # get SILLYs and fish IDs for affected DWPs
 DWP_sillys <- unique(oceanak_affected_DWPs$SILLY_CODE)
 
-DWP_fish_ids <- oceanak_affected_DWPs %>% 
-  dplyr::select(SILLY_CODE, FISH_ID) 
-
-PERB15_fish_ids <- DWP_fish_ids %>% 
+PERB15_fish_ids <- oceanak_affected_DWPs %>% 
   dplyr::filter(SILLY_CODE == "PERB15") %>% 
   pull(FISH_ID)
-PERB16_fish_ids <- DWP_fish_ids %>% 
+PERB16_fish_ids <- oceanak_affected_DWPs %>% 
   dplyr::filter(SILLY_CODE == "PERB16") %>% 
   pull(FISH_ID)
-PERB17_fish_ids <- DWP_fish_ids %>% 
+PERB17_fish_ids <- oceanak_affected_DWPs %>% 
   dplyr::filter(SILLY_CODE == "PERB17") %>% 
   pull(FISH_ID)
-PERB18_fish_ids <- DWP_fish_ids %>% 
+PERB18_fish_ids <- oceanak_affected_DWPs %>% 
   dplyr::filter(SILLY_CODE == "PERB18") %>% 
   pull(FISH_ID)
-PGILMOUR15_fish_ids <- DWP_fish_ids %>% 
+PGILMOUR15_fish_ids <- oceanak_affected_DWPs %>% 
   dplyr::filter(SILLY_CODE == "PGILMOUR15") %>% 
   pull(FISH_ID)
-PGILMOUR16_fish_ids <- DWP_fish_ids %>% 
+PGILMOUR16_fish_ids <- oceanak_affected_DWPs %>% 
   dplyr::filter(SILLY_CODE == "PGILMOUR16") %>% 
   pull(FISH_ID)
-PGILMOUR17_fish_ids <- DWP_fish_ids %>% 
+PGILMOUR17_fish_ids <- oceanak_affected_DWPs %>% 
   dplyr::filter(SILLY_CODE == "PGILMOUR17") %>% 
   pull(FISH_ID)
-PGILMOUR18_fish_ids <- DWP_fish_ids %>% 
+PGILMOUR18_fish_ids <- oceanak_affected_DWPs %>% 
   dplyr::filter(SILLY_CODE == "PGILMOUR18") %>% 
   pull(FISH_ID)
-PPADDY16_fish_ids <- DWP_fish_ids %>% 
+PPADDY16_fish_ids <- oceanak_affected_DWPs %>% 
   dplyr::filter(SILLY_CODE == "PPADDY16") %>% 
   pull(FISH_ID)
-PPADDY18_fish_ids <- DWP_fish_ids %>% 
+PPADDY18_fish_ids <- oceanak_affected_DWPs %>% 
   dplyr::filter(SILLY_CODE == "PPADDY18") %>% 
   pull(FISH_ID)
 
 # Project SILLYs by individuals in a SILLY per affected DWP
-# Comment out those that have empty fish_ids above and SILLYs whose hearts haven't been genotyped yet (e.g., PERB15 and PERB17)
-
-# ###########################
-# chunk_num <- 2
+# Comment out those that have empty fish_ids above and SILLYs whose hearts haven't been genotyped yet 
+## Empty: PERB18 and PGILMOUR18
+## No heart genotypes: PERB15 and PERB17
 
 # PERB15 <- "PERB15"
 # LOKI2R_ind.GCL(sillyvec = PERB15, fish_ids = PERB15_fish_ids, username = .username, password = .password)
 
-# PERB16 <- "PERB16"
+PERB16 <- "PERB16"
 # LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_fish_ids, username = .username, password = .password)
 
-# PERB16 <- "PERB16"
+# conventional gcl construction (above) did not work, must either split the fish ID list and recombine or construct the full PERB16.gcl and remove blacklisted individuals
+# chunk_num <- 2
 # PERB16_fish_ids_split <- split(PERB16_fish_ids, cut(seq_along(PERB16_fish_ids), chunk_num, labels = FALSE))
 # LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_fish_ids_split$`1`, username = .username, password = .password)
 # PERB16_1.gcl <- PERB16.gcl
 # LOKI2R_ind.GCL(sillyvec = PERB16, fish_ids = PERB16_fish_ids_split$`2`, username = .username, password = .password)
 # PERB16_2.gcl <- PERB16.gcl
 # rm(PERB16.gcl)
+# PoolCollections.GCL()
 
-
-
-PERB16 <- "PERB16"
 LOKI2R.GCL(sillyvec = PERB16, username = .username, password = .password)
-all_PERB16_fish_ids <- 
-
-unused_PERB16_fish_IDs <- 
+all_PERB16_fish_ids <- PERB16.gcl$attributes$FK_FISH_ID
+unused_PERB16_fish_ids <- all_PERB16_fish_ids[!(all_PERB16_fish_ids %in% PERB16_fish_ids)]
 RemoveIDs.GCL(silly = "PERB16", IDs = unused_PERB16_fish_ids)
-# ##############################
-
 
 # PERB17 <- "PERB17"
 # LOKI2R_ind.GCL(sillyvec = PERB17, fish_ids = PERB17_fish_ids, username = .username, password = .password)
@@ -182,9 +170,12 @@ LOKI2R_ind.GCL(sillyvec = PPADDY16, fish_ids = PPADDY16_fish_ids, username = .us
 
 # PPADDY18 <- "PPADDY18"
 # LOKI2R_ind.GCL(sillyvec = PPADDY18, fish_ids = PPADDY18_fish_ids, username = .username, password = .password)
+```
 
+```{r}
 rm(.username, .password)
 ```
+
 
 Create new directories and save objects
 
@@ -194,7 +185,7 @@ save_objects(objects = c("LocusControl", "loci", "PGOD21", "PERB16", "PGILMOUR15
 
 # need to add back in PERB16, if there's a way to recombine PERB16_1.gcl and PERB16_2.gcl into PERB16.gcl
 if(!dir.exists("../../Genotypes/GOD_21_Round3-4/")) {dir.create("../../Genotypes/GOD_21_Round3-4/")}
-save_sillys(sillyvec = c("PGOD21", "PGOD21", "PGILMOUR15", "PGILMOUR16", "PGILMOUR17", "PPADDY16"), path = "../../Genotypes/GOD_21_Round3-4/")
+save_sillys(sillyvec = c("PGOD21", "PERB16", "PGILMOUR15", "PGILMOUR16", "PGILMOUR17", "PPADDY16"), path = "../../Genotypes/GOD_21_Round3-4/")
 ```
 
 Load objects if revisiting
@@ -263,7 +254,7 @@ PGOD21.gcl$counts[, , 1] %>%
   arrange(desc(proportion_missing))
 ```
 
-There are 2,090 total otos in PGOD21 Rounds 3 and 4. We still need to keep as many critters as possible within reason. We're dealing with 298 loci, so we should have wiggle room, but we also have to remember that the info content of each locus is not the same. 
+There are 2,090 total otos in PGOD21 Rounds 3 and 4, some of which clearly failed. We still need to keep as many critters as possible, and we have 298 loci, so we have wiggle room for genotyping success rate. 
 
 Plot a histogram of proportion missing.
 ```{r}
@@ -278,7 +269,7 @@ PGOD21.gcl$counts[, , 1] %>%
   ggtitle("% Locus Failure Rate by Fish in PGOD21")
 ```
 
-This looks better than the last time, I think. We will retain the 15% cutoff from the last round, giving us a minimum of 45 loci that must be genotyped, and keep the internal duplicate rate check at 99%. 
+This looks better than the last time, I think. We will retain the 15% cutoff (85% retention) from the last round, giving us a minimum of 45 loci that must be genotyped, and keep the internal duplicate rate check at 99%. 
 
 ```{r}
 PGOD21_SampleSizes <- matrix(
@@ -338,7 +329,9 @@ PGOD21_SampleSizes
 
 We have 2,020 / 2,090 otoliths remaining. None failed the duplicate rate check.
 
-Not run this time, but... **NOTE** Similar to the normal AHRP samples, we'll want to remove **BOTH** duplicates, if they show up, since we won't know which one identifies back to the heart genotype. The function `RemoveDups.GCL` only removes 1 of the duplicates, we need to go in and manually remove the other.
+**NOTE** Similar to the normal AHRP samples, we'll want to remove **BOTH** duplicates, if they show up, since we won't know which one identifies back to the heart genotype. The function `RemoveDups.GCL` only removes 1 of the duplicates, we need to go in and manually remove the other.
+
+**NOTE 2:** Not run; no duplicates.
 
 ```{r}
 # (
@@ -386,7 +379,7 @@ Ho is >50% for some otoliths -> contamination.
 
 #### Genotyping success
 
-Let's look again at heterozygosity for what we got left.
+Heterozygosity for what we got left.
 
 ```{r}
 loci_intersect <- setdiff(loci, failed_loci_otoliths) # all 298 are there
@@ -421,7 +414,7 @@ Cool.
 For the other SILLYS we'll compare to, we'll leave the cutoff at 80% and perform the regular 95% duplicate rate check.
 
 ```{r}
-OGSillys <- c("PERB16", "PGILMOUR15", "PGILMOUR16", "PGILMOUR17", "PGILMOUR18", "PPADDY16")
+OGSillys <- c("PERB16", "PGILMOUR15", "PGILMOUR16", "PGILMOUR17", "PPADDY16")
 
 OGSillys_SampleSizes <- matrix(
     data = NA,
@@ -478,7 +471,7 @@ OGSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
 OGSillys_SampleSizes
 ```
 
-Losing a few more here as expected in terms of missingness, and there are three dupes in PGILMOUR16. This is what we'd filter in a normal project anyway.
+Losing more as expected due to missingness. One dupe in each of PERB16 and PGILMOUR15.
 
 ### Final dataset sample sizes
 
@@ -488,11 +481,10 @@ PERB16.gcl$n
 PGILMOUR15.gcl$n
 PGILMOUR16.gcl$n
 PGILMOUR17.gcl$n
-PGILMOUR18.gcl$n
 PPADDY16.gcl$n
 ```
 
-We have a handful o' possible fishy hearts to match back to. As a reminder, PGOD21 genotyped more SILLYs and DWPs than we have heart genotypes for, which comes into play when we do the DWP-by-DWP matching.
+As a reminder, PGOD21 genotyped more SILLYs and DWPs than we have heart genotypes for, which comes into play when we do the DWP-by-DWP matching.
 
 ## Duplicate rate check
 
@@ -501,13 +493,13 @@ We have a handful o' possible fishy hearts to match back to. As a reminder, PGOD
 # figure out the SILLYs associated with the DWPs and join
 PGOD21_DWPs <- attributes_and_xfer_PGOD21 %>% 
   dplyr::select(`48_DWP_tray_barcode`) 
-# write_csv(PGOD21_DWPs, "PGOD21_DWPs_042721.csv") 
-write_csv(PGOD21_DWPs, "PGOD21_DWPs_012622.csv")
+
+write_csv(PGOD21_DWPs, "PGOD21_DWPs_031622.csv") # change date
 # used this list plus SILLY_CODE and DNA_TRAY_CODE in oceanak_affected_DWPs.csv to do a vlookup in excel for the SILLY_CODE associated with the 48_DWP_tray_barcode - it's probably possible to do a vlookup type thing using join, but here we are...
  
 # copied SILLY_CODE column in PGOD21_DWPs.csv to OG_SILLY_CODE, trimmed all columns to correct length, saved as new csv, and uploaded
 # PGOD21_DWPs_and_SILLYs <- read_csv("PGOD21_DWPs_and_SILLYs_042721.csv") 
-PGOD21_DWPs_and_SILLYs <- read_csv("Copy of PGOD21_DWPs_and_SILLYs_012622.csv")
+PGOD21_DWPs_and_SILLYs <- read_csv("PGOD21_DWPs_and_SILLYs_trimmed_031622.csv")
 
 attributes_xfer_and_SILLY_PGOD21 <- attributes_and_xfer_PGOD21 
 attributes_xfer_and_SILLY_PGOD21$OG_SILLY_CODE <- PGOD21_DWPs_and_SILLYs$OG_SILLY_CODE
@@ -5668,518 +5660,6 @@ length(unique(dup_check_results_DWP_22701_pass$otolith_fish_id))
 
 ```{r}
 write.table(dup_check_results_DWP_22701_pass, "dup_check_results_pass.csv", append = TRUE)
-```
-
-#### ###############**PGILMOUR18**###############
-
-#### *1. PGILMOUR18_DWP_28929*
-
-```{r}
-# create *.gcl objects for comparison according to *._fish_ids
-PoolCollections.GCL(collections = "PGILMOUR18", loci = loci, IDs = list("PGILMOUR18" = as.character(PGILMOUR18_DWP_28929_fish_ids)), newname = "PGILMOUR18_DWP_28929")
-PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_28929_fish_ids)), newname = "PGOD21_DWP_28929")
-```
-
-```{r}
-# generate a tibble of all pairwise duplicate rates
-(dup_check_results_DWP_28929 <- DupCheckBetweenSillys_GOD.GCL(
-      GODSillys = "PGOD21_DWP_28929",
-      GODSillyIDs = list("PGOD21_DWP_28929" = rownames(PGOD21_DWP_28929.gcl$counts)),
-      HeartSillys = "PGILMOUR18_DWP_28929",
-      loci = loci,
-      threshold = 0.9))
-```
-
-```{r fig.width=10, fig.height=15}
-# select the row with the highest match rate
-(dup_check_results_DWP_28929_best_match <- dup_check_results_DWP_28929 %>% 
-  group_by(otolith_fish_id) %>% 
-  slice_max(duplicate_rate, n = 1))
-
-# facet by oto ID
-dup_check_results_DWP_28929 %>% 
-  ggplot(aes(x = duplicate_rate)) +
-  geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_28929_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(otolith_fish_id)) +
-  theme_bw()
-
-# facet by heart ID
-dup_check_results_DWP_28929 %>% 
-  ggplot(aes(x = duplicate_rate)) +
-  geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_28929_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(heart_fish_id)) +
-  theme_bw()
-```
-
-Investigate the relationship between duplicate rate and otolith genotyping success for each heart
-
-```{r fig.width=10, fig.height=15}
-# facet by heart ID
-dup_check_results_DWP_28929 %>% 
-  mutate(oto_geno_success = 1 - (missing_loci_otolith / 298)) %>% 
-  ggplot(aes(x = duplicate_rate, y = oto_geno_success)) +
-  geom_point() +
-  geom_vline(xintercept = 0.7, colour = "red") + 
-  scale_y_continuous(limits = c(0, 1)) +
-  # geom_text(data = dup_check_results_DWP_28929_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(heart_fish_id)) +
-  theme_bw()
-```
-
-##### Top pairwise duplicate rate comparisons
-
-```{r}
-dup_check_results_DWP_28929_1stbest <- dup_check_results_DWP_28929 %>% 
-  group_by(heart_fish_id) %>% 
-  dplyr::slice_max(duplicate_rate, n = 2) %>% 
-  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
-  slice_max(duplicate_rate, n = 1) %>% 
-  add_column(rank = 1:1) %>% 
-  ungroup()
-
-dup_check_results_DWP_28929_2ndbest <- dup_check_results_DWP_28929 %>% 
-  group_by(heart_fish_id) %>% 
-  dplyr::slice_max(duplicate_rate, n = 2) %>% 
-  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
-  slice_min(duplicate_rate, n = 1) %>% 
-  add_column(rank = 2:2) %>% 
-  ungroup()
-
-(dup_check_results_DWP_28929_top_2 <- rbind(dup_check_results_DWP_28929_1stbest, dup_check_results_DWP_28929_2ndbest))
-
-ggplot(data = dup_check_results_DWP_28929_top_2, aes(x = diff, y = duplicate_rate, color = rank)) +
-  geom_point() +
-  theme_bw()
-```
-
-Duplicate_rate >= 0.7 and diff >= 0.15
-
-```{r}
-# filtered results table
-(dup_check_results_DWP_28929_pass <- dup_check_results_DWP_28929_1stbest %>% 
-  filter(duplicate_rate >= 0.7) %>% 
-  filter(diff >= 0.15))
-
-# vector lengths
-nrow(dup_check_results_DWP_28929_pass)
-length(unique(dup_check_results_DWP_28929_pass$heart_fish_id))
-length(unique(dup_check_results_DWP_28929_pass$otolith_fish_id))
-```
-
-##### Status: OK
-
-```{r}
-write.table(dup_check_results_DWP_28929_pass, "dup_check_results_pass.csv", append = TRUE)
-```
-
-#### *2. PGILMOUR18_DWP_28864*
-
-```{r}
-# create *.gcl objects for comparison according to *._fish_ids
-PoolCollections.GCL(collections = "PGILMOUR18", loci = loci, IDs = list("PGILMOUR18" = as.character(PGILMOUR18_DWP_28864_fish_ids)), newname = "PGILMOUR18_DWP_28864")
-PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_28864_fish_ids)), newname = "PGOD21_DWP_28864")
-```
-
-```{r}
-# generate a tibble of all pairwise duplicate rates
-(dup_check_results_DWP_28864 <- DupCheckBetweenSillys_GOD.GCL(
-      GODSillys = "PGOD21_DWP_28864",
-      GODSillyIDs = list("PGOD21_DWP_28864" = rownames(PGOD21_DWP_28864.gcl$counts)),
-      HeartSillys = "PGILMOUR18_DWP_28864",
-      loci = loci,
-      threshold = 0.9))
-```
-
-```{r fig.width=10, fig.height=15}
-# select the row with the highest match rate
-(dup_check_results_DWP_28864_best_match <- dup_check_results_DWP_28864 %>% 
-  group_by(otolith_fish_id) %>% 
-  slice_max(duplicate_rate, n = 1))
-
-# facet by oto ID
-dup_check_results_DWP_28864 %>% 
-  ggplot(aes(x = duplicate_rate)) +
-  geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_28864_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(otolith_fish_id)) +
-  theme_bw()
-
-# facet by heart ID
-dup_check_results_DWP_28864 %>% 
-  ggplot(aes(x = duplicate_rate)) +
-  geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_28864_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(heart_fish_id)) +
-  theme_bw()
-```
-
-Investigate the relationship between duplicate rate and otolith genotyping success for each heart
-
-```{r fig.width=10, fig.height=15}
-# facet by heart ID
-dup_check_results_DWP_28864 %>% 
-  mutate(oto_geno_success = 1 - (missing_loci_otolith / 298)) %>% 
-  ggplot(aes(x = duplicate_rate, y = oto_geno_success)) +
-  geom_point() +
-  geom_vline(xintercept = 0.7, colour = "red") + 
-  scale_y_continuous(limits = c(0, 1)) +
-  # geom_text(data = dup_check_results_DWP_28864_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(heart_fish_id)) +
-  theme_bw()
-```
-
-##### Top pairwise duplicate rate comparisons
-
-```{r}
-dup_check_results_DWP_28864_1stbest <- dup_check_results_DWP_28864 %>% 
-  group_by(heart_fish_id) %>% 
-  dplyr::slice_max(duplicate_rate, n = 2) %>% 
-  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
-  slice_max(duplicate_rate, n = 1) %>% 
-  add_column(rank = 1:1) %>% 
-  ungroup()
-
-dup_check_results_DWP_28864_2ndbest <- dup_check_results_DWP_28864 %>% 
-  group_by(heart_fish_id) %>% 
-  dplyr::slice_max(duplicate_rate, n = 2) %>% 
-  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
-  slice_min(duplicate_rate, n = 1) %>% 
-  add_column(rank = 2:2) %>% 
-  ungroup()
-
-(dup_check_results_DWP_28864_top_2 <- rbind(dup_check_results_DWP_28864_1stbest, dup_check_results_DWP_28864_2ndbest))
-
-ggplot(data = dup_check_results_DWP_28864_top_2, aes(x = diff, y = duplicate_rate, color = rank)) +
-  geom_point() +
-  theme_bw()
-```
-
-Duplicate_rate >= 0.7 and diff >= 0.15
-
-```{r}
-# filtered results table
-(dup_check_results_DWP_28864_pass <- dup_check_results_DWP_28864_1stbest %>% 
-  filter(duplicate_rate >= 0.7) %>% 
-  filter(diff >= 0.15))
-
-# vector lengths
-nrow(dup_check_results_DWP_28864_pass)
-length(unique(dup_check_results_DWP_28864_pass$heart_fish_id))
-length(unique(dup_check_results_DWP_28864_pass$otolith_fish_id))
-```
-
-##### Status: OK
-
-```{r}
-write.table(dup_check_results_DWP_28864_pass, "dup_check_results_pass.csv", append = TRUE)
-```
-
-#### *3. PGILMOUR18_DWP_28829
-
-```{r}
-# create *.gcl objects for comparison according to *._fish_ids
-PoolCollections.GCL(collections = "PGILMOUR18", loci = loci, IDs = list("PGILMOUR18" = as.character(PGILMOUR18_DWP_28829_fish_ids)), newname = "PGILMOUR18_DWP_28829")
-PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_28829_fish_ids)), newname = "PGOD21_DWP_28829")
-```
-
-```{r}
-# generate a tibble of all pairwise duplicate rates
-(dup_check_results_DWP_28829 <- DupCheckBetweenSillys_GOD.GCL(
-      GODSillys = "PGOD21_DWP_28829",
-      GODSillyIDs = list("PGOD21_DWP_28829" = rownames(PGOD21_DWP_28829.gcl$counts)),
-      HeartSillys = "PGILMOUR18_DWP_28829",
-      loci = loci,
-      threshold = 0.9))
-```
-
-```{r fig.width=10, fig.height=15}
-# select the row with the highest match rate
-(dup_check_results_DWP_28829_best_match <- dup_check_results_DWP_28829 %>% 
-  group_by(otolith_fish_id) %>% 
-  slice_max(duplicate_rate, n = 1))
-
-# facet by oto ID
-dup_check_results_DWP_28829 %>% 
-  ggplot(aes(x = duplicate_rate)) +
-  geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_28829_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(otolith_fish_id)) +
-  theme_bw()
-
-# facet by heart ID
-dup_check_results_DWP_28829 %>% 
-  ggplot(aes(x = duplicate_rate)) +
-  geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_28829_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(heart_fish_id)) +
-  theme_bw()
-```
-
-Investigate the relationship between duplicate rate and otolith genotyping success for each heart
-
-```{r fig.width=10, fig.height=15}
-# facet by heart ID
-dup_check_results_DWP_28829 %>% 
-  mutate(oto_geno_success = 1 - (missing_loci_otolith / 298)) %>% 
-  ggplot(aes(x = duplicate_rate, y = oto_geno_success)) +
-  geom_point() +
-  geom_vline(xintercept = 0.7, colour = "red") + 
-  scale_y_continuous(limits = c(0, 1)) +
-  # geom_text(data = dup_check_results_DWP_28829_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(heart_fish_id)) +
-  theme_bw()
-```
-
-##### Top pairwise duplicate rate comparisons
-
-```{r}
-dup_check_results_DWP_28829_1stbest <- dup_check_results_DWP_28829 %>% 
-  group_by(heart_fish_id) %>% 
-  dplyr::slice_max(duplicate_rate, n = 2) %>% 
-  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
-  slice_max(duplicate_rate, n = 1) %>% 
-  add_column(rank = 1:1) %>% 
-  ungroup()
-
-dup_check_results_DWP_28829_2ndbest <- dup_check_results_DWP_28829 %>% 
-  group_by(heart_fish_id) %>% 
-  dplyr::slice_max(duplicate_rate, n = 2) %>% 
-  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
-  slice_min(duplicate_rate, n = 1) %>% 
-  add_column(rank = 2:2) %>% 
-  ungroup()
-
-(dup_check_results_DWP_28829_top_2 <- rbind(dup_check_results_DWP_28829_1stbest, dup_check_results_DWP_28829_2ndbest))
-
-ggplot(data = dup_check_results_DWP_28829_top_2, aes(x = diff, y = duplicate_rate, color = rank)) +
-  geom_point() +
-  theme_bw()
-```
-
-Duplicate_rate >= 0.7 and diff >= 0.2
-
-```{r}
-# filtered results table
-(dup_check_results_DWP_28829_pass <- dup_check_results_DWP_28829_1stbest %>% 
-  filter(duplicate_rate >= 0.7) %>% 
-  filter(diff >= 0.2))
-
-# vector lengths
-nrow(dup_check_results_DWP_28829_pass)
-length(unique(dup_check_results_DWP_28829_pass$heart_fish_id))
-length(unique(dup_check_results_DWP_28829_pass$otolith_fish_id))
-```
-
-##### Status: Changed cutoff; OK
-
-```{r}
-write.table(dup_check_results_DWP_28829_pass, "dup_check_results_pass.csv", append = TRUE)
-```
-
-#### *4. PGILMOUR18_DWP_28807*
-
-```{r}
-# create *.gcl objects for comparison according to *._fish_ids
-PoolCollections.GCL(collections = "PGILMOUR18", loci = loci, IDs = list("PGILMOUR18" = as.character(PGILMOUR18_DWP_28807_fish_ids)), newname = "PGILMOUR18_DWP_28807")
-PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_28807_fish_ids)), newname = "PGOD21_DWP_28807")
-```
-
-```{r}
-# generate a tibble of all pairwise duplicate rates
-(dup_check_results_DWP_28807 <- DupCheckBetweenSillys_GOD.GCL(
-      GODSillys = "PGOD21_DWP_28807",
-      GODSillyIDs = list("PGOD21_DWP_28807" = rownames(PGOD21_DWP_28807.gcl$counts)),
-      HeartSillys = "PGILMOUR18_DWP_28807",
-      loci = loci,
-      threshold = 0.9))
-```
-
-```{r fig.width=10, fig.height=15}
-# select the row with the highest match rate
-(dup_check_results_DWP_28807_best_match <- dup_check_results_DWP_28807 %>% 
-  group_by(otolith_fish_id) %>% 
-  slice_max(duplicate_rate, n = 1))
-
-# facet by oto ID
-dup_check_results_DWP_28807 %>% 
-  ggplot(aes(x = duplicate_rate)) +
-  geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_28807_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(otolith_fish_id)) +
-  theme_bw()
-
-# facet by heart ID
-dup_check_results_DWP_28807 %>% 
-  ggplot(aes(x = duplicate_rate)) +
-  geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_28807_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(heart_fish_id)) +
-  theme_bw()
-```
-
-Investigate the relationship between duplicate rate and otolith genotyping success for each heart
-
-```{r fig.width=10, fig.height=15}
-# facet by heart ID
-dup_check_results_DWP_28807 %>% 
-  mutate(oto_geno_success = 1 - (missing_loci_otolith / 298)) %>% 
-  ggplot(aes(x = duplicate_rate, y = oto_geno_success)) +
-  geom_point() +
-  geom_vline(xintercept = 0.7, colour = "red") + 
-  scale_y_continuous(limits = c(0, 1)) +
-  # geom_text(data = dup_check_results_DWP_28807_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(heart_fish_id)) +
-  theme_bw()
-```
-
-##### Top pairwise duplicate rate comparisons
-
-```{r}
-dup_check_results_DWP_28807_1stbest <- dup_check_results_DWP_28807 %>% 
-  group_by(heart_fish_id) %>% 
-  dplyr::slice_max(duplicate_rate, n = 2) %>% 
-  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
-  slice_max(duplicate_rate, n = 1) %>% 
-  add_column(rank = 1:1) %>% 
-  ungroup()
-
-dup_check_results_DWP_28807_2ndbest <- dup_check_results_DWP_28807 %>% 
-  group_by(heart_fish_id) %>% 
-  dplyr::slice_max(duplicate_rate, n = 2) %>% 
-  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
-  slice_min(duplicate_rate, n = 1) %>% 
-  add_column(rank = 2:2) %>% 
-  ungroup()
-
-(dup_check_results_DWP_28807_top_2 <- rbind(dup_check_results_DWP_28807_1stbest, dup_check_results_DWP_28807_2ndbest))
-
-ggplot(data = dup_check_results_DWP_28807_top_2, aes(x = diff, y = duplicate_rate, color = rank)) +
-  geom_point() +
-  theme_bw()
-```
-
-Duplicate_rate >= 0.7 and diff >= 0.15
-
-```{r}
-# filtered results table
-(dup_check_results_DWP_28807_pass <- dup_check_results_DWP_28807_1stbest %>% 
-  filter(duplicate_rate >= 0.7) %>% 
-  filter(diff >= 0.15))
-
-# vector lengths
-nrow(dup_check_results_DWP_28807_pass)
-length(unique(dup_check_results_DWP_28807_pass$heart_fish_id))
-length(unique(dup_check_results_DWP_28807_pass$otolith_fish_id))
-```
-
-##### Status: OK
-
-```{r}
-write.table(dup_check_results_DWP_28807_pass, "dup_check_results_pass.csv", append = TRUE)
-```
-
-#### *5. PGILMOUR18_DWP_28812*
-
-```{r}
-# create *.gcl objects for comparison according to *._fish_ids
-PoolCollections.GCL(collections = "PGILMOUR18", loci = loci, IDs = list("PGILMOUR18" = as.character(PGILMOUR18_DWP_28812_fish_ids)), newname = "PGILMOUR18_DWP_28812")
-PoolCollections.GCL(collections = "PGOD21", loci = loci, IDs = list("PGOD21" = as.character(PGOD21_DWP_28812_fish_ids)), newname = "PGOD21_DWP_28812")
-```
-
-```{r}
-# generate a tibble of all pairwise duplicate rates
-(dup_check_results_DWP_28812 <- DupCheckBetweenSillys_GOD.GCL(
-      GODSillys = "PGOD21_DWP_28812",
-      GODSillyIDs = list("PGOD21_DWP_28812" = rownames(PGOD21_DWP_28812.gcl$counts)),
-      HeartSillys = "PGILMOUR18_DWP_28812",
-      loci = loci,
-      threshold = 0.9))
-```
-
-```{r fig.width=10, fig.height=15}
-# select the row with the highest match rate
-(dup_check_results_DWP_28812_best_match <- dup_check_results_DWP_28812 %>% 
-  group_by(otolith_fish_id) %>% 
-  slice_max(duplicate_rate, n = 1))
-
-# facet by oto ID
-dup_check_results_DWP_28812 %>% 
-  ggplot(aes(x = duplicate_rate)) +
-  geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_28812_best_match, aes(x = duplicate_rate, y = 5, label = heart_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(otolith_fish_id)) +
-  theme_bw()
-
-# facet by heart ID
-dup_check_results_DWP_28812 %>% 
-  ggplot(aes(x = duplicate_rate)) +
-  geom_histogram(binwidth = 0.05) +
-  geom_text(data = dup_check_results_DWP_28812_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(heart_fish_id)) +
-  theme_bw()
-```
-
-Investigate the relationship between duplicate rate and otolith genotyping success for each heart
-
-```{r fig.width=10, fig.height=15}
-# facet by heart ID
-dup_check_results_DWP_28812 %>% 
-  mutate(oto_geno_success = 1 - (missing_loci_otolith / 298)) %>% 
-  ggplot(aes(x = duplicate_rate, y = oto_geno_success)) +
-  geom_point() +
-  geom_vline(xintercept = 0.7, colour = "red") + 
-  scale_y_continuous(limits = c(0, 1)) +
-  # geom_text(data = dup_check_results_DWP_28812_best_match, aes(x = duplicate_rate, y = 5, label = otolith_fish_id, colour = "red", angle = 90, hjust = 0)) +
-  facet_wrap(facets = vars(heart_fish_id)) +
-  theme_bw()
-```
-
-##### Top pairwise duplicate rate comparisons
-
-```{r}
-dup_check_results_DWP_28812_1stbest <- dup_check_results_DWP_28812 %>% 
-  group_by(heart_fish_id) %>% 
-  dplyr::slice_max(duplicate_rate, n = 2) %>% 
-  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
-  slice_max(duplicate_rate, n = 1) %>% 
-  add_column(rank = 1:1) %>% 
-  ungroup()
-
-dup_check_results_DWP_28812_2ndbest <- dup_check_results_DWP_28812 %>% 
-  group_by(heart_fish_id) %>% 
-  dplyr::slice_max(duplicate_rate, n = 2) %>% 
-  mutate(diff = max(duplicate_rate) - min(duplicate_rate)) %>% 
-  slice_min(duplicate_rate, n = 1) %>% 
-  add_column(rank = 2:2) %>% 
-  ungroup()
-
-(dup_check_results_DWP_28812_top_2 <- rbind(dup_check_results_DWP_28812_1stbest, dup_check_results_DWP_28812_2ndbest))
-
-ggplot(data = dup_check_results_DWP_28812_top_2, aes(x = diff, y = duplicate_rate, color = rank)) +
-  geom_point() +
-  theme_bw()
-```
-
-Duplicate_rate >= 0.8 and diff >= 0.15
-
-```{r}
-# filtered results table
-(dup_check_results_DWP_28812_pass <- dup_check_results_DWP_28812_1stbest %>% 
-  filter(duplicate_rate >= 0.8) %>% 
-  filter(diff >= 0.15))
-
-# vector lengths
-nrow(dup_check_results_DWP_28812_pass)
-length(unique(dup_check_results_DWP_28812_pass$heart_fish_id))
-length(unique(dup_check_results_DWP_28812_pass$otolith_fish_id))
-```
-
-##### Status: Changed cutoff; OK
-
-```{r}
-write.table(dup_check_results_DWP_28812_pass, "dup_check_results_pass.csv", append = TRUE)
 ```
 
 #### ###############**PPADDY16**###############
