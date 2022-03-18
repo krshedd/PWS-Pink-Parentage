@@ -823,7 +823,7 @@ PPADDY16_DWP_16132_fish_ids <- PPADDY16_DWP_16132 %>% pull(FK_FISH_ID)
 
 ### **Duplicate rate checks by DWP**
 
-A total of 19 PGOD21 DWPs still don't have OGSilly DWP matches, presumably because they haven't been genotyped yet, leaving 58 DWPs for matching.
+A total of 19 PGOD21 DWPs still don't have OGSilly DWP matches, presumably because they haven't been genotyped yet, leaving 57 DWPs for matching.
 
 * PERB16: n = 9
 * PGILMOUR15: n = 10
