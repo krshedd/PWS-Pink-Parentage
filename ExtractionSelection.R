@@ -598,7 +598,7 @@ extraction_eP005_addendum %>%
   count(`Silly Code`, `Tissue Type`)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### eP006: Create extraction list for ####
+#### eP006: Create extraction list for Hogan 2016####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # All remaining Hogan from 2016 (hatchery and left over natural)
 # Can't select Hogan 2018 yet, because we are uncertain if/how many hatchery-origin to select (are we sampling in 2020???)
@@ -654,7 +654,7 @@ extraction_eP006 %>%
   count(`Silly Code`, `Tissue Type`)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### eP007: Create extraction list for ####
+#### eP007: Create extraction list for Gilmour 2014, 2016, 2018 ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Our next priority was Hogan 2018, but we don't have a firm decision on whether we are doing 2020 sampling yet,
 # so I don't want to extract several thousand hatchery-origin 2018 fish if it isn't necessary
@@ -802,7 +802,7 @@ trays_to_separate %>%
   write_csv(path = "../Extraction/DWP_otolith_transfer_paddy_erb_gilmour_2015-2018.csv")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### eP008 + eP009: Create extraction list for ####
+#### eP008 + eP009: Create extraction list for Paddy and Erb 2014, 2016, 2018 ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Our next priority was Hogan 2018, but we don't have a firm decision on whether we are doing 2020 sampling yet,
 # so I don't want to extract several thousand hatchery-origin 2018 fish if it isn't necessary
@@ -1367,8 +1367,6 @@ oceanak %>%
   ) %>%
   dplyr::count(`Sample Year`, `Otolith Mark Present`, `Location Code`)
 
-# Just go ahead and extract all 2019 Gilmour natural-origin
-
 #### Filter for Paddy and Erb 2020 Natural-origin Samples ####
 Paddy_Erb_natural_2020 <- oceanak %>%
   dplyr::filter(
@@ -1393,3 +1391,347 @@ save.image("~/../Desktop/Local_PWS_pinks/Extraction/eP014_Extraction_List_220214
 
 extraction_eP014 %>%
   dplyr::count(`Silly Code`, `Tissue Type`)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP015: Create extraction list for Hogan 2017 Left-overs ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# April 18, 2022
+# At the time that Hogan 2017 was extracted back in eP004, we only had otolith reads from every other DWP
+# At the time, we extracted ALL natural-origin and 1K hatchery-origin fish from those DWPs
+# Now, we are going to go back and extract all remaining fish (hatchery + natural) from those "other" DWPs to improve F1 and F2
+# We are going to ditch the hatchery-origin fish from the original DWPs (we got 1K and left the rest), rather than go back and cherry pick forever
+
+
+# See "Genotype_Status.Rmd" for additional background
+
+require(tidyverse)
+
+oceanak <-
+  readr::read_csv(file = "~/../Desktop/Local_PWS_pinks/OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv")  # Kyle at home
+
+## Modify for extraction list prep
+oceanak <- oceanak %>%
+  tidyr::replace_na(list(
+    `Well Has More Than One Sample` = 0,
+    `Is Missing Paired Data Exists` = 0
+  )) %>%
+  dplyr::mutate(`DNA Tray Code` = str_pad(
+    string = `DNA Tray Code`,
+    width = 10,
+    pad = "0",
+    side = "left"
+  )) %>%
+  dplyr::mutate(`DNA Tray Well Code` = str_pad(
+    string = `DNA Tray Well Code`,
+    width = 2,
+    pad = "0",
+    side = "left"
+  )) %>%
+  dplyr::mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>%
+  tidyr::unite(
+    col = "SillySource",
+    c("Silly Code", "Fish ID"),
+    sep = "_",
+    remove = FALSE
+  ) %>%
+  dplyr::filter(`Well Has More Than One Sample` != 1) %>%  # filter out double tissues
+  dplyr::filter(`Is Missing Paired Data Exists` != 1) %>%  # filter out missing tissues
+  dplyr::filter(Sex %in% c("M", "F"))
+
+# Need to figure out what we've already genotyped
+PHOGAN17.gcl <- dget("~/../Desktop/Local_PWS_pinks/Genotypes/Hogan_17_19/OceanAK/PHOGAN17.txt")
+
+# Confirm that samples sizes match with "Genotype_Status.nb.html"
+PHOGAN17.gcl$n  # 4407; checks out!
+
+#### Filter for Hogan 2017 virgin DWPs ####
+PHOGAN17_genotyped_DWPs <- stringr::str_pad(string = unique(PHOGAN17.gcl$attributes$DNA_TRAY_CODE), width = 10, side = "left", pad = "0")
+
+Hogan_2017_v2 <- oceanak %>%
+  dplyr::filter(
+    `Sample Year` == 2017,
+    `Location Code` == "Hogan Creek",
+    !`DNA Tray Code` %in% PHOGAN17_genotyped_DWPs
+  )
+
+nrow(Hogan_2017_v2)  # 8,988
+
+# Checks out with "Genotype_Status.nb.html"
+
+#### Combine tibbles ####
+
+extraction_eP015 <- bind_rows(Hogan_2017_v2) %>%
+  dplyr::select(`Silly Code`,
+                `Fish ID`,
+                `DNA Tray Code`,
+                `DNA Tray Well Code`,
+                `Tissue Type`) %>%
+  dplyr::arrange(`Silly Code`, `Fish ID`)
+
+readr::write_csv(x = extraction_eP015, file = "~/../Desktop/Local_PWS_pinks/Extraction/eP015_Extraction_List_220418.csv")
+
+save.image("~/../Desktop/Local_PWS_pinks/Extraction/eP015_Extraction_List_220418.RData")
+
+extraction_eP015 %>%
+  dplyr::count(`Silly Code`, `Tissue Type`)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP016: Create extraction list for Paddy/Erb 2015 ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# April 19, 2022
+# Originally, we were going to get otolith reads back before extracting these samples, but then GOD happened.
+# Now we are going to extract ALL Paddy and Erb 2015 samples, EXCEPT those involved in GOD
+# In order to resolve GOD in a timely manner (i.e. before Chris retires), we are going to prioritize hearts from GOD (eP018)
+# Since those hearts will appear in eP018, we need to remove them here
+
+# See "Genotype_Status.Rmd" for additional background
+
+require(tidyverse)
+source("~/../R/GCL-R-Scripts/load_objects.R")
+
+oceanak <-
+  readr::read_csv(file = "~/../Desktop/Local_PWS_pinks/OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv")  # Kyle at home
+
+## Modify for extraction list prep
+oceanak <- oceanak %>%
+  tidyr::replace_na(list(
+    `Well Has More Than One Sample` = 0,
+    `Is Missing Paired Data Exists` = 0
+  )) %>%
+  dplyr::mutate(`DNA Tray Code` = str_pad(
+    string = `DNA Tray Code`,
+    width = 10,
+    pad = "0",
+    side = "left"
+  )) %>%
+  dplyr::mutate(`DNA Tray Well Code` = str_pad(
+    string = `DNA Tray Well Code`,
+    width = 2,
+    pad = "0",
+    side = "left"
+  )) %>%
+  dplyr::mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>%
+  tidyr::unite(
+    col = "SillySource",
+    c("Silly Code", "Fish ID"),
+    sep = "_",
+    remove = FALSE
+  ) %>%
+  dplyr::filter(`Well Has More Than One Sample` != 1) %>%  # filter out double tissues
+  dplyr::filter(`Is Missing Paired Data Exists` != 1) %>%  # filter out missing tissues
+  dplyr::filter(Sex %in% c("M", "F"))
+
+## How about what we want to extract
+oceanak %>% 
+  filter(`Sample Year` == 2015 & `Location Code` %in% c("Paddy Creek", "Erb Creek")) %>%  # we have deep sixed this year
+  count(`Sample Year`, `Location Code`)
+
+## Read in GOD affected DWPs
+load_objects(path = "GOD", pattern = "GOD_affected_DWPs_consensus")
+
+# Just go ahead and extract all 2015 Paddy and Erb
+
+#### Filter for non-GOD affected DWPs from Paddy and Erb 2015 Samples ####
+Paddy_Erb_2015 <- oceanak %>%
+  dplyr::filter(
+    `Location Code` %in% c("Paddy Creek", "Erb Creek"),
+    `Sample Year` == 2015,
+    !`DNA Tray Code` %in% GOD_affected_DWPs_consensus
+  )
+
+Paddy_Erb_2015 %>% 
+  dplyr::count(`Silly Code`)
+
+# Checks out with "Genotype_Status.nb.html" 20,950 fish
+
+#### Combine tibbles ####
+
+extraction_eP016 <- bind_rows(Paddy_Erb_2015) %>%
+  dplyr::select(`Silly Code`,
+                `Fish ID`,
+                `DNA Tray Code`,
+                `DNA Tray Well Code`,
+                `Tissue Type`) %>%
+  dplyr::arrange(`Silly Code`, `Fish ID`)
+
+readr::write_csv(x = extraction_eP016, file = "~/../Desktop/Local_PWS_pinks/Extraction/eP016_Extraction_List_220419.csv")
+
+save.image("~/../Desktop/Local_PWS_pinks/Extraction/eP016_Extraction_List_220419.RData")
+
+extraction_eP016 %>%
+  dplyr::count(`Silly Code`, `Tissue Type`)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP017: Create extraction list for Paddy/Erb 2017 ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# April 19, 2022
+# Originally, we were going to get otolith reads back before extracting these samples, but then GOD happened.
+# Now we are going to extract ALL Paddy and Erb 2017 samples, EXCEPT those involved in GOD or with hatchery-origin otoliths
+# There was no sampling in either of these two streams in 2019, so we don't need hatchery-origin fish.
+# In order to resolve GOD in a timely manner (i.e. before Chris retires), we are going to prioritize hearts from GOD (eP018)
+# Since those hearts will appear in eP018, we need to remove them here
+
+# See "Genotype_Status.Rmd" for additional background
+
+rm(list = ls())
+require(tidyverse)
+source("~/../R/GCL-R-Scripts/load_objects.R")
+
+oceanak <-
+  readr::read_csv(file = "~/../Desktop/Local_PWS_pinks/OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv")  # Kyle at home
+
+## Modify for extraction list prep
+oceanak <- oceanak %>%
+  tidyr::replace_na(list(
+    `Well Has More Than One Sample` = 0,
+    `Is Missing Paired Data Exists` = 0
+  )) %>%
+  dplyr::mutate(`DNA Tray Code` = str_pad(
+    string = `DNA Tray Code`,
+    width = 10,
+    pad = "0",
+    side = "left"
+  )) %>%
+  dplyr::mutate(`DNA Tray Well Code` = str_pad(
+    string = `DNA Tray Well Code`,
+    width = 2,
+    pad = "0",
+    side = "left"
+  )) %>%
+  dplyr::mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>%
+  tidyr::unite(
+    col = "SillySource",
+    c("Silly Code", "Fish ID"),
+    sep = "_",
+    remove = FALSE
+  ) %>%
+  dplyr::filter(`Well Has More Than One Sample` != 1) %>%  # filter out double tissues
+  dplyr::filter(`Is Missing Paired Data Exists` != 1) %>%  # filter out missing tissues
+  dplyr::filter(Sex %in% c("M", "F"))
+
+## How about what we want to extract
+oceanak %>% 
+  filter(`Sample Year` == 2017 & `Location Code` %in% c("Paddy Creek", "Erb Creek")) %>%  # we have deep sixed this year
+  count(`Sample Year`, `Location Code`, `Otolith Mark Present`)
+
+## Read in GOD affected DWPs
+load_objects(path = "GOD", pattern = "GOD_affected_DWPs_consensus")
+
+# Just go ahead and extract all 2017 Paddy and Erb, except GOD and hatchery-origin
+
+#### Filter for non-GOD affected DWPs from Paddy and Erb 2015 Samples ####
+Paddy_Erb_2017 <- oceanak %>%
+  dplyr::filter(
+    `Location Code` %in% c("Paddy Creek", "Erb Creek"),
+    `Sample Year` == 2017,
+    is.na(`Otolith Mark Present`) | `Otolith Mark Present` == "NO",
+    !`DNA Tray Code` %in% GOD_affected_DWPs_consensus
+  )
+
+Paddy_Erb_2017 %>% 
+  dplyr::count(`Silly Code`)
+
+# Checks out with "Genotype_Status.nb.html" 17,648 fish
+
+#### Combine tibbles ####
+
+extraction_eP017 <- bind_rows(Paddy_Erb_2017) %>%
+  dplyr::select(`Silly Code`,
+                `Fish ID`,
+                `DNA Tray Code`,
+                `DNA Tray Well Code`,
+                `Tissue Type`) %>%
+  dplyr::arrange(`Silly Code`, `Fish ID`)
+
+readr::write_csv(x = extraction_eP017, file = "~/../Desktop/Local_PWS_pinks/Extraction/eP017_Extraction_List_220419.csv")
+
+save.image("~/../Desktop/Local_PWS_pinks/Extraction/eP017_Extraction_List_220419.RData")
+
+extraction_eP017 %>%
+  dplyr::count(`Silly Code`, `Tissue Type`)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### eP018: Create extraction list for GOD affected Paddy/Erb 2015/2017 ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# April 19, 2022
+# Originally, we were going to get otolith reads back before extracting these samples, but then GOD happened.
+# We are going to prioritize the GOD-affected DWPs, so we can get heart genotypes to match the otoliths back to
+# In order to resolve GOD in a timely manner (i.e. before Chris retires), we are going to prioritize hearts from GOD (eP018)
+# Since those hearts will appear in eP018, we removed them from eP016 and eP017
+
+# See "Genotype_Status.Rmd" for additional background
+
+rm(list = ls())
+require(tidyverse)
+source("~/../R/GCL-R-Scripts/load_objects.R")
+
+oceanak <-
+  readr::read_csv(file = "~/../Desktop/Local_PWS_pinks/OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv")  # Kyle at home
+
+## Modify for extraction list prep
+oceanak <- oceanak %>%
+  tidyr::replace_na(list(
+    `Well Has More Than One Sample` = 0,
+    `Is Missing Paired Data Exists` = 0
+  )) %>%
+  dplyr::mutate(`DNA Tray Code` = str_pad(
+    string = `DNA Tray Code`,
+    width = 10,
+    pad = "0",
+    side = "left"
+  )) %>%
+  dplyr::mutate(`DNA Tray Well Code` = str_pad(
+    string = `DNA Tray Well Code`,
+    width = 2,
+    pad = "0",
+    side = "left"
+  )) %>%
+  dplyr::mutate(Key = paste(`DNA Tray Code`, `DNA Tray Well Code`, sep = "_")) %>%
+  tidyr::unite(
+    col = "SillySource",
+    c("Silly Code", "Fish ID"),
+    sep = "_",
+    remove = FALSE
+  ) %>%
+  dplyr::filter(`Well Has More Than One Sample` != 1) %>%  # filter out double tissues
+  dplyr::filter(`Is Missing Paired Data Exists` != 1) %>%  # filter out missing tissues
+  dplyr::filter(Sex %in% c("M", "F"))
+
+## Read in GOD affected DWPs
+load_objects(path = "GOD", pattern = "GOD_affected_DWPs_consensus")
+
+# Just go ahead and extract all 2017 Paddy and Erb, except GOD and hatchery-origin
+
+#### Filter for GOD affected DWPs from Paddy and Erb 2015 and 2017 Samples ####
+GOD_affected_Paddy_Erb_2015_2017 <- oceanak %>%
+  dplyr::filter(
+    `Location Code` %in% c("Paddy Creek", "Erb Creek"),
+    `Sample Year` %in% c(2015, 2017),
+    `DNA Tray Code` %in% GOD_affected_DWPs_consensus
+  )
+
+GOD_affected_Paddy_Erb_2015_2017 %>% 
+  dplyr::count(`Silly Code`)
+
+# Checks out with "Genotype_Status.nb.html" 1,758 fish
+
+#### Combine tibbles ####
+
+extraction_eP018 <- bind_rows(GOD_affected_Paddy_Erb_2015_2017) %>%
+  dplyr::select(`Silly Code`,
+                `Fish ID`,
+                `DNA Tray Code`,
+                `DNA Tray Well Code`,
+                `Tissue Type`) %>%
+  dplyr::arrange(`Silly Code`, `Fish ID`)
+
+readr::write_csv(x = extraction_eP018, file = "~/../Desktop/Local_PWS_pinks/Extraction/eP018_Extraction_List_220419.csv")
+
+save.image("~/../Desktop/Local_PWS_pinks/Extraction/eP018_Extraction_List_220419.RData")
+
+extraction_eP018 %>%
+  dplyr::count(`Silly Code`, `Tissue Type`)
+
+#### END ####
+# There are NO MORE PWS PINK SALMON AHRP SAMPLES FOR EXTRACTION 4/19/22!!!
