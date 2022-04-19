@@ -2,7 +2,7 @@
 title: "Genotype Status for PWS Pink Salmon Fitness Study"
 subtitle: "Which Samples Have NOT Been Genotyped?"
 author: "Kyle Shedd"
-date: "9 February 2022"
+date: "9 February 2022; update 14 April 2022"
 output:
   html_notebook:
     theme: united
@@ -28,7 +28,7 @@ source("~/../R/Functions.GCL.R")  # develop branch!!!
 
 # Objective
 
-Create a pedigree for all fitness streams for 2014/2016.
+Figure out which hearts need are remaning and need to be genotyped.
 
 # Introduction
 
@@ -171,6 +171,9 @@ Bind together genotyped and non-genotyped samples, rename, and reformat to new s
       `Otolith Mark Present`,
       `Otolith Mark ID`,
       `Otolith Mark Status Code`,
+      `Is Missing Paired Data Exists`,
+      `Well Has More Than One Sample`,
+      `Tissue Type`,
       genotyped
     ) %>%
     dplyr::rename(
@@ -182,7 +185,10 @@ Bind together genotyped and non-genotyped samples, rename, and reformat to new s
       length = "Length Mm",
       otolith_mark_present = "Otolith Mark Present",
       otolith_mark_id = "Otolith Mark ID",
-      otolith_mark_status_code = "Otolith Mark Status Code"
+      otolith_mark_status_code = "Otolith Mark Status Code",
+      is_missing = "Is Missing Paired Data Exists",
+      more_than_one = "Well Has More Than One Sample",
+      tissue_type = "Tissue Type"
     ) %>%
     dplyr::mutate(
       stream = stringr::str_remove(string = `Location Code`, pattern = " Creek"),
@@ -227,12 +233,20 @@ Bind together genotyped and non-genotyped samples, rename, and reformat to new s
       fish_id,
       sample,
       dna_tray_code,
-      dna_tray_well_code
+      dna_tray_well_code,
+      is_missing,
+      more_than_one,
+      tissue_type
     )
 )
 ```
 
 **NOTE** my naive attempt to create a boolean (TRUE/FALSE) `otolith_read` does **NOT** appear to be working as intended. Long story short, GOD screwed it all up. Since we have DWPs with *GOD-affected* otoliths being removed, but then the *unaffected* otoliths remaining in the DWPs and subsequently being logged and read by Cordova or MTAL, those empty wells get coded as `3N66` - missing. There is no way to tell which 3N66 otoliths are *true missing* vs. *GOD-affected*, so that sucks. Also, I have no earthly idea what `n` means (probably `null`) or how those otoliths got coded as such. Please, please, please, treat `otolith_read` with a dumptruck of salt.
+```{r}
+oceanak_geno %>% 
+  dplyr::count(otolith_read)
+```
+
 
 ## Table samples by genotyped vs. not
 
@@ -309,27 +323,40 @@ oceanak_geno %>%
 
 # Samples we should genotype
 
-## 2014 Stockdale and Hogan
+## eP013 - 2014 Stockdale and Hogan
 
 Extract these left-over 2014 hatchery-origin parents to aid in finding more offspring in 2016 for subsequent F2 analyses in 2018. Unfortunately this will involve going back through previously cherry picked DPWs.
 ```{r}
-oceanak_geno %>%
-  dplyr::filter(genotyped == FALSE,
-                stream %in% c("Stockdale", "Hogan"),
-                year == 2014,
-                origin == "Hatchery"
-  )
+(
+  eP013 <- oceanak_geno %>%
+    dplyr::filter(
+      genotyped == FALSE,
+      stream %in% c("Stockdale", "Hogan"),
+      year == 2014,
+      origin == "Hatchery",
+      is_missing != 1,
+      more_than_one != 1,
+      sex %in% c("Male", "Female")
+    )
+)
 ```
 
-## 2020 Paddy and Erb
+## eP014 - 2020 Paddy and Erb
 
 Extract these natural-origin offspring now that we have all of the otolith reads back. This is the final year of even-lineage analyses, so no need to grab hatchery-origin or `NA` otolith fish.
 ```{r}
-oceanak_geno %>%
-  dplyr::filter(genotyped == FALSE,
-                stream %in% c("Paddy", "Erb"),
-                year == 2020,
-                origin == "Natural")
+(
+  eP014 <- oceanak_geno %>%
+    dplyr::filter(
+      genotyped == FALSE,
+      stream %in% c("Paddy", "Erb"),
+      year == 2020,
+      origin == "Natural",
+      is_missing != 1,
+      more_than_one != 1,
+      sex %in% c("Male", "Female")
+    )
+)
 ```
 
 Verify that all of the `NA` otolith fish have been read
@@ -347,44 +374,388 @@ oceanak_geno %>%
 
 Hrmm, I should follow up on `3N66` - missing (could be *true missing* or *GOD-affected*) and `n` - null (dunno how an otolith gets this code)
 
-## 2017 Hogan
+## eP015 - 2017 Hogan
 
 At the time this collection was originally extracted, we only had otolith reads from every-other DWP, so we grabbed all of the natural-origin fish and 1K hatchery-origin fish. Now that all of the DWPs have been read, I propose that we genotype all fish from that 2nd round of otolith reads (i.e. all the "new" natural-origin fish + all the "new" hatchery-origin fish). This will get us more natural-origin fish as offspring for the 2015/2017 F~1~ analyses and 2015/2017/2019 F~2~ analyses, and also give us a lot more hatchery-origin parents for the 2017/2019 F~1~ analyses. I do not think it is worth going back to genotype all of the non-1K hatchery-origin fish that were originally passed over.
+
+How many previously genotyped
+```{r}
+oceanak_geno %>% 
+  dplyr::filter(stream == "Hogan",
+                year == 2017,
+                genotyped == TRUE)
+```
+
+What should we genotype now?
 ```{r}
 hogan_2017_DWPs_to_genotype <- oceanak_geno %>%
   dplyr::filter(stream == "Hogan",
-                year == 2017) %>% 
-  dplyr::group_by(dna_tray_code) %>% 
-  dplyr::summarise(genotyped = sum(genotyped)) %>% 
-  dplyr::filter(genotyped == 0) %>% 
+                year == 2017) %>%
+  dplyr::group_by(dna_tray_code) %>%
+  dplyr::summarise(genotyped = sum(genotyped)) %>%
+  dplyr::filter(genotyped == 0) %>%
   dplyr::pull(dna_tray_code)
 
-oceanak_geno %>% 
-  dplyr::filter(dna_tray_code %in% hogan_2017_DWPs_to_genotype)
+(
+  eP015 <- oceanak_geno %>%
+    dplyr::filter(
+      dna_tray_code %in% hogan_2017_DWPs_to_genotype,
+      is.na(is_missing) | is_missing != 1,
+      is.na(more_than_one) | more_than_one != 1,
+      sex %in% c("Male", "Female")
+    )
+)
 ```
 
-## 2015 Paddy and Erb
+Created this extraction list in `ExtractionSelection.R` on 4/18/22.
+
+## eP016 - 2015 Paddy and Erb
 
 Extract all, despite GOD. Originally we were going to wait until GOD is done, but it’s gonna take too long. These will be parents for the odd-lineage 2015/2017 F~1~ analyses. Ideally we could filter out `NA` origin fish, if they have been otolith read, but this is likely fairly few samples.
 ```{r}
-oceanak_geno %>%
-  dplyr::filter(genotyped == FALSE,
-                stream %in% c("Paddy", "Erb"),
-                year == 2015)
+(
+  eP016 <- oceanak_geno %>%
+    dplyr::filter(
+      genotyped == FALSE,
+      stream %in% c("Paddy", "Erb"),
+      year == 2015,
+      is.na(is_missing) | is_missing != 1,
+      is.na(more_than_one) | more_than_one != 1,
+      sex %in% c("Male", "Female")
+    )
+)
 ```
 
-## 2017 Paddy and Erb
+Not done yet!!! Need to remove GOD-affected DWPs that will be in eP018.
 
-Extract all natural-origin and `NA` origin, despite GOD. Originally we were going to wait until GOD is done, but it’s gonna take too long. These will be offspring for the odd-lineage 2015/2017 F~1~ analyses. Ideally we could filter out `NA` origin fish, if they have been otolith read, but this is likely fairly few samples.
+Updating to remove eP018 fish, should remove 705 fish from PERB15, leaving us with at least 20,950 fish.
 ```{r}
-oceanak_geno %>%
-  dplyr::filter(genotyped == FALSE,
-                stream %in% c("Paddy", "Erb"),
-                year == 2017,
-                is.na(origin) | origin == "Natural")
+(
+  eP016 <- oceanak_geno %>%
+    dplyr::filter(
+      genotyped == FALSE,
+      stream %in% c("Paddy", "Erb"),
+      year == 2015,
+      is.na(is_missing) | is_missing != 1,
+      is.na(more_than_one) | more_than_one != 1,
+      sex %in% c("Male", "Female"),
+      !dna_tray_code %in% GOD_affected_DWPs_consensus
+    )
+)
 ```
+
+Created this extraction list in `ExtractionSelection.R` on 4/19/22.
+
+## eP017 - 2017 Paddy and Erb
+
+Extract all natural-origin and `NA` origin, despite GOD. Originally we were going to wait until GOD is done, but it’s gonna take too long. These will be offspring for the odd-lineage 2015/2017 F~1~ analyses. Ideally we could filter out `NA` origin fish, if they have been otolith read, but this is likely fairly few samples. We do **NOT** need any hatchery-origin individuals.
+```{r}
+(
+  eP017 <- oceanak_geno %>%
+    dplyr::filter(
+      genotyped == FALSE,
+      stream %in% c("Paddy", "Erb"),
+      year == 2017,
+      is.na(origin) | origin == "Natural",
+      is.na(is_missing) | is_missing != 1,
+      is.na(more_than_one) | more_than_one != 1,
+      sex %in% c("Male", "Female")
+    )
+)
+```
+
+Not done yet!!! Need to remove GOD-affected DWPs that will be in eP018.
+
+Updating to remove eP018 fish, should remove 1,053 fish from PERB17, leaving us with at least 17,648 fish.
+```{r}
+(
+  eP017 <- oceanak_geno %>%
+    dplyr::filter(
+      genotyped == FALSE,
+      stream %in% c("Paddy", "Erb"),
+      year == 2017,
+      is.na(origin) | origin == "Natural",
+      is.na(is_missing) | is_missing != 1,
+      is.na(more_than_one) | more_than_one != 1,
+      sex %in% c("Male", "Female"),
+      !dna_tray_code %in% GOD_affected_DWPs_consensus
+    )
+)
+```
+
+Created this extraction list in `ExtractionSelection.R` on 4/19/22.
+
+## eP018 - GOD Hearts 2015/2017 Paddy and Erb
+
+In order to try to resolve GOD prior to Chris' retirement in February 2023, we are going to prioritize genotyping of all remaining hearts involved in GOD. This means that we want to grab all of the 2015 and 2017 Paddy and Erb DWPs **with affected otoliths** and remove them from eP016 and eP017 to get them in front of the line for extraction and genotyping.
+
+### Otolith Transfer 11/17/21
+
+First read in the GOD data from the MTAL transfer sheet to figure out which DWPs were affected.
+```{r}
+(otolith_transfer <- readr::read_csv(file = "GOD/otolith_transfer_111721.csv"))
+```
+
+Find unique, affected DWPs
+```{r}
+(GOD_affected_DWPs <- otolith_transfer %>% 
+   dplyr::mutate(DWP = stringr::str_pad(string = `48_DWP_tray_barcode`, width = 10, side = "left", pad = "0")) %>% 
+   dplyr::filter(!is.na(DWP)) %>% 
+   dplyr::distinct(DWP) %>% 
+   dplyr::pull(DWP)
+)
+```
+
+Are all of these in *OceanAK*?
+```{r}
+table(GOD_affected_DWPs %in% oceanak_geno$dna_tray_code)
+```
+
+Ugh, one of these isn't even in *OceanAK*
+
+Which one is not in *OceanAK*?
+```{r}
+setdiff(GOD_affected_DWPs, oceanak_geno$dna_tray_code)
+```
+
+How many otos?
+```{r}
+otolith_transfer %>% 
+   dplyr::mutate(DWP = stringr::str_pad(string = `48_DWP_tray_barcode`, width = 10, side = "left", pad = "0")) %>% 
+   dplyr::filter(DWP %in% setdiff(GOD_affected_DWPs, oceanak_geno$dna_tray_code))
+```
+
+#### Change 14037 to 14307
+
+Looks like we found a typo, *14037* is wrong and should be *14307*.
+```{r}
+"0000014307" %in% oceanak_geno$dna_tray_code
+```
+
+One 4/19/22, Kyle corrected this error in 3 files:
+  * "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\GOD\otolith_transfer_96_template_LEFT_all trays_17Nov21.xlsx"
+  * "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\GitHub-PWS-Pink-Parentage\GOD\otolith_transfer_111721.csv"
+  * "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\GitHub-PWS-Pink-Parentage\GOD\otolith_transfer_111721.xlsx"
+
+#### Re-read otolith_transfer_111721.csv
+
+Re-read in the *corrected* GOD data from the MTAL transfer sheet to figure out which DWPs were affected.
+```{r}
+(otolith_transfer <- readr::read_csv(file = "GOD/otolith_transfer_111721.csv"))
+```
+
+Find unique, affected DWPs
+```{r}
+(GOD_affected_DWPs <- otolith_transfer %>% 
+   dplyr::mutate(DWP = stringr::str_pad(string = `48_DWP_tray_barcode`, width = 10, side = "left", pad = "0")) %>% 
+   dplyr::filter(!is.na(DWP)) %>% 
+   dplyr::distinct(DWP) %>% 
+   dplyr::pull(DWP)
+)
+```
+
+Are all of these in *OceanAK*?
+```{r}
+table(GOD_affected_DWPs %in% oceanak_geno$dna_tray_code)
+```
+
+Great, all are in *OceanAK*
+
+### working_oto_sheet_combined
+
+Reading in the GOD data from the DWP investigations to cross check the transfer sheet.
+```{r}
+(working_oto_sheet_combined <- readxl::read_xlsx(path = "../GOD/working_oto_sheet_combined.xlsm", sheet = "oto unpacking data"))
+```
+
+Find unique, affected DWPs
+```{r}
+(GOD_affected_DWPs_v2 <- working_oto_sheet_combined %>% 
+   dplyr::mutate(DWP = stringr::str_pad(string = DWPbarcode, width = 10, side = "left", pad = "0")) %>% 
+   dplyr::filter(genotype_otot == "Y") %>% 
+   dplyr::distinct(DWP) %>% 
+   dplyr::pull(DWP)
+)
+```
+
+Are all of these in *OceanAK*?
+```{r}
+table(GOD_affected_DWPs_v2 %in% oceanak_geno$dna_tray_code)
+```
+
+Great, all are in *OceanAK* (425 DWPs)
+
+### Cross Reference
+
+Which DWPs are in the `otolith_transfer_111721.csv` spreadsheet, but were not originally flagged in the `working_oto_sheet_combined.xlsm`?
+```{r}
+setdiff(GOD_affected_DWPs, GOD_affected_DWPs_v2)
+```
+
+Looks like there are 2 DWPs in `otolith_transfer_111721.csv` that were **NOT** flagged in `working_oto_sheet_combined.xlsm`
+```{r}
+working_oto_sheet_combined %>% 
+   dplyr::mutate(DWP = stringr::str_pad(string = DWPbarcode, width = 10, side = "left", pad = "0")) %>% 
+   dplyr::filter(DWP %in% setdiff(GOD_affected_DWPs, GOD_affected_DWPs_v2))
+```
+
+Huh, 22770 is not in `working_oto_sheet_combined.xlsm`
+
+Upon review of `otolith_transfer_111721.csv`, there is a typo, 22770 should be 22700
+```{r}
+oceanak_geno %>% 
+  dplyr::filter(dna_tray_code %in% c("0000022770", "0000022700")) %>% 
+  dplyr::distinct(silly, dna_tray_code)
+```
+
+Ah, so there was a typo, because none of the PSTOCK17 DWPs should have been in GOD.
+
+#### Change 22770 to 22700
+
+Looks like we found a typo, *22770* is wrong and should be *22700*.
+```{r}
+"0000014307" %in% oceanak_geno$dna_tray_code
+```
+
+One 4/19/22, Kyle corrected this error in 3 files:
+  * "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\GOD\otolith_transfer_96_template_LEFT_all trays_17Nov21.xlsx"
+  * "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\GitHub-PWS-Pink-Parentage\GOD\otolith_transfer_111721.csv"
+  * "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\GitHub-PWS-Pink-Parentage\GOD\otolith_transfer_111721.xlsx"
+
+
+#### Re-read otolith_transfer_111721.csv
+
+Re-read in the *corrected* GOD data from the MTAL transfer sheet to figure out which DWPs were affected.
+```{r}
+(otolith_transfer <- readr::read_csv(file = "GOD/otolith_transfer_111721_updated_save_me.csv"))
+```
+
+Find unique, affected DWPs
+```{r}
+(GOD_affected_DWPs <- otolith_transfer %>% 
+   dplyr::mutate(DWP = stringr::str_pad(string = `48_DWP_tray_barcode`, width = 10, side = "left", pad = "0")) %>% 
+   dplyr::filter(!is.na(DWP)) %>% 
+   dplyr::distinct(DWP) %>% 
+   dplyr::pull(DWP)
+)
+```
+
+Are all of these in *OceanAK*?
+```{r}
+table(GOD_affected_DWPs %in% oceanak_geno$dna_tray_code)
+```
+
+Great, all are in *OceanAK* (now 421)
+
+Okay, so now redo the cross reference
+
+Which DWPs are in the `otolith_transfer_111721.csv` spreadsheet, but were not originally flagged in the `working_oto_sheet_combined.xlsm`?
+```{r}
+setdiff(GOD_affected_DWPs, GOD_affected_DWPs_v2)
+```
+
+Okay, just 2164 which is in `working_oto_sheet_combined.xlsm`, but not flagged for genotyping. We'll just want to include it in eP018 (if it is from Paddy or Erb 2015/2017).
+
+Okay, howe abotu the other way now....
+
+Which DWPs are flagged in the `working_oto_sheet_combined.xlsm`, but not in the `otolith_transfer_111721.csv` spreadsheet?
+```{r}
+setdiff(GOD_affected_DWPs_v2, GOD_affected_DWPs)
+```
+
+We know that all of these are in *OceanAK* (see above), but why are they not in `otolith_transfer_111721.csv`?
+```{r}
+working_oto_sheet_combined %>% 
+   dplyr::mutate(DWP = stringr::str_pad(string = DWPbarcode, width = 10, side = "left", pad = "0")) %>% 
+   dplyr::filter(DWP %in% setdiff(GOD_affected_DWPs_v2, GOD_affected_DWPs))
+```
+
+Hrmm, which silly codes?
+```{r}
+oceanak_geno %>% 
+  dplyr::filter(dna_tray_code %in% setdiff(GOD_affected_DWPs_v2, GOD_affected_DWPs)) %>% 
+  dplyr::distinct(silly, dna_tray_code)
+```
+
+Interesting, well none of these are in Paddy/Erb 2015/2017, so kinda moot re: eP018
+
+### Consensus GOD affected DWPs
+
+Venn diagram
+```{r}
+ggVennDiagram::ggVennDiagram(x = list("otolith_transfer" = GOD_affected_DWPs,
+                                      "working_oto_sheet" = GOD_affected_DWPs_v2))
+```
+
+Generate a *consensus* vector with all unique DWPs (426)
+```{r}
+(GOD_affected_DWPs_consensus <- sort(unique(c(GOD_affected_DWPs, GOD_affected_DWPs_v2))))
+```
+
+Save this vector so we can use it in `ExtractionSelection.R`!!!
+```{r}
+save_objects(objects = "GOD_affected_DWPs_consensus", path = "GOD")
+```
+
+What is the silly code breakdown of GOD?
+```{r}
+oceanak_geno %>% 
+  dplyr::filter(dna_tray_code %in% GOD_affected_DWPs_consensus) %>% 
+  dplyr::distinct(silly, dna_tray_code) %>% 
+  dplyr::count(silly)
+```
+
+Oh, interesting, that's not as bad as we thought! Unfortunately, most of them are Gilmour. However, for eP018, there are only 37 DWPs total, all Erb!
+
+### Final
+
+How many of these DWPs are Paddy/Erb 2015/2017?
+```{r}
+oceanak_geno %>% 
+  dplyr::filter(dna_tray_code %in% GOD_affected_DWPs_consensus,
+                silly %in% c("PPADDY15", "PPADDY17", "PERB15", "PERB17")) %>% 
+  dplyr::distinct(silly, dna_tray_code) %>% 
+  dplyr::count(silly)
+```
+
+How many of these fish are Paddy/Erb 2015/2017?
+```{r}
+oceanak_geno %>% 
+  dplyr::filter(dna_tray_code %in% GOD_affected_DWPs_consensus,
+                silly %in% c("PPADDY15", "PPADDY17", "PERB15", "PERB17")) %>% 
+  dplyr::count(silly)
+```
+
+Damn, not bad, only 1,776 total fish!
+
+How many would we actually want to extract (with all of our filters)?
+```{r}
+(
+  eP018 <- oceanak_geno %>%
+    dplyr::filter(
+      genotyped == FALSE,
+      stream %in% c("Paddy", "Erb"),
+      year %in% c(2015, 2017),
+      is.na(is_missing) | is_missing != 1,
+      is.na(more_than_one) | more_than_one != 1,
+      sex %in% c("Male", "Female"),
+      dna_tray_code %in% GOD_affected_DWPs_consensus
+    )
+)
+
+eP018 %>% 
+  dplyr::count(silly)
+```
+
+Extract these 1,758 fish!
 
 # Summary of genotype status 2/9/22
+
+```{r}
+oceanak_geno %>% 
+  dplyr::count(genotyped)
+```
+
 
 We have genotyped 133,369 fish.
 
