@@ -1,0 +1,223 @@
+---
+title: "Explore Adegenet DAPC - 2014"
+subtitle: "Hogan + Stockdale + Gilmour + Paddy + Erb"
+author: "Kyle Shedd"
+date: "24 February 2022"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup}
+rm(list = ls())
+
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(adegenet)
+
+source("~/../R/Functions.GCL.R")
+
+knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
+```
+
+# Objective
+
+Take a quick look at genetic structure using `adegenet::dapc` for our all stream 2014 PWS Pink Salmon dataset with our 298 SNP GT-seq panel. We already know that stock structure is extremely low for Pink Salmon in general and PWS Pink Salmon in particular, especially after working on the Coastwide Pink Salmon baseline using the 262 biallelic SNPs that overlap with Carolyn Tarpey's work. Here I'm going to look at the 2014 data using all 298 SNPs from all five streams, with our hatchery strays from 3 brood sources (AFK/WN, CC, and SG). This is mostly just an exercise in learning how to use `adegenet::dapc`, but will also help put the nail in the coffin on being able to detect hybrids/strays via genetic stock structure.
+
+# Load Data
+
+Get the 2014 genetic data
+Unfortunately, I'm on the R/V Bell M Shimada and wasn't smart enough to save the *.gcl* objects to my local Desktop, so we are going to have to do this the hard way...
+```{r}
+(
+  all_streams_paired_2014_2016 <-
+    readr::read_csv(
+      "../Franz/All_Streams_14_16_develop_postQA_OceanAK_paired_2014_2016_HOGAN_STOCK_GILMOUR_PADDY_ERB.csv",
+      show_col_types = FALSE
+    )
+)
+```
+
+Extract marker names
+```{r}
+(loci298 <-
+   grep(
+     pattern = "Ogo",
+     x = names(all_streams_paired_2014_2016),
+     value = TRUE
+   ))
+```
+
+# Manipulate Data
+
+Modify based on `2_Parentage_All_Streams_2014_2016_develop.Rmd`
+```{r}
+(
+  all_streams_paired_2014_2016_filter <- all_streams_paired_2014_2016 %>%
+    dplyr::select(
+      franz_id,
+      SILLY,
+      `Fish ID`,
+      `DNA Tray Code`,
+      `DNA Tray Well Code`,
+      `Location Code`,
+      `Sample Year`,
+      `Sample Date`,
+      SEX,
+      `Length Mm`,
+      `Otolith Mark Present`,
+      `Otolith Mark ID`,
+      tidyselect::contains("Ogo")
+    ) %>%
+    dplyr::rename(
+      silly = SILLY,
+      fish_id = "Fish ID",
+      dna_tray_code = "DNA Tray Code",
+      dna_tray_well_code = "DNA Tray Well Code",
+      year = "Sample Year",
+      length = "Length Mm",
+      otolith_mark_present = "Otolith Mark Present",
+      otolith_mark_id = "Otolith Mark ID"
+    ) %>%
+    dplyr::mutate(
+      stream = stringr::str_remove(string = `Location Code`, pattern = " Creek"),
+      date = lubridate::ymd(`Sample Date`),
+      DOY = lubridate::yday(date),  # day of year
+      sex = dplyr::case_when(SEX == "M" ~ "Male",
+                             SEX == "F" ~ "Female"),
+      origin = dplyr::case_when(
+        otolith_mark_present == "NO" ~ "Natural",
+        otolith_mark_present == "YES" ~ "Hatchery"
+      )  # add origin variable
+    ) %>%
+    dplyr::mutate(origin = base::factor(origin, c(
+      "Natural", "Hatchery"
+    ))) %>%  # make factor to ensure hatchery != red
+    tidyr::unite(
+      col = "sample",
+      c("dna_tray_code", "dna_tray_well_code"),
+      sep = "_",
+      remove = FALSE
+    ) %>%
+    dplyr::select(
+      franz_id,
+      stream,
+      year,
+      origin,
+      sex,
+      date,
+      DOY,
+      length,
+      otolith_mark_present,
+      otolith_mark_id,
+      silly,
+      fish_id,
+      sample,
+      dna_tray_code,
+      dna_tray_well_code,
+      tidyselect::contains("Ogo")
+    )
+)
+```
+
+What are the different otolith marks we have?
+```{r}
+all_streams_paired_2014_2016_filter %>% 
+  dplyr::filter(year == 2014) %>% 
+  dplyr::count(otolith_mark_id)
+```
+
+Create a new field for `population` based on `stream` and `otolith_mark_id`
+```{r}
+(paired_2014 <- all_streams_paired_2014_2016_filter %>% 
+   dplyr::filter(year == 2014) %>% 
+   dplyr::mutate(population = dplyr::case_when(origin == "Natural" ~ stream,
+                                               otolith_mark_id == "AFK12B" ~ "AFK",
+                                               otolith_mark_id == "CCH12" ~ "CCH",
+                                               otolith_mark_id == "SGH12" ~ "SGH",
+                                               otolith_mark_id == "WNH12PINKB" ~ "WNH")) %>% 
+   dplyr::select(franz_id, population, tidyselect::everything())
+)
+```
+
+# Convert to `genind`
+
+Convert to `genind` object
+```{r}
+(
+  all_streams_2014_genind <-
+    adegenet::df2genind(
+      X = dplyr::select(.data = paired_2014, tidyselect::contains("Ogo")),
+      sep = "/",
+      ncode = 2,
+      ind.names = paired_2014$franz_id,
+      loc.names = loci298,
+      pop = paired_2014$population,
+      NA.char = "?/?",
+      ploidy = 2,
+      type = "codom"
+    )
+)
+```
+
+# DAPC
+
+## Find Clusters
+
+Run in console
+```{r}
+grp <- adegenet::find.clusters(x = all_streams_2014_genind, max.n.clust = 15)
+```
+
+    Choose the number PCs to retain (>= 1): 
+    340
+    Choose the number of clusters (>=2): 
+    5
+
+What are assignments?
+```{r}
+table(paired_2014$population, grp$grp)
+```
+
+Lol, they are terrible, as expected, despite a decent elbow in the BIC plot. Fish are just evenly spread throughout my putative populations.
+
+```{r}
+table.value(
+  table(pop(all_streams_2014_genind), grp$grp),
+  col.lab = paste("inf", 1:5),
+  row.lab = paste("ori", 1:9)
+)
+```
+
+Well that was fun.
+
+## DAPC
+
+Run in console
+```{r}
+dapc1 <- dapc(all_streams_2014_genind, grp$grp)
+```
+
+    Choose the number PCs to retain (>=1): 
+    200
+    Choose the number discriminant functions to retain (>=1): 
+    4
+
+Inspect
+```{r}
+dapc1
+```
+
+```{r}
+scatter(dapc1)
+```
+
+I bet this is just showing homozygotes, alternate homozygotes, and three different heterozygotes (microhaplotypes).
+
+This was fun, but going to call it quits here. There is obviously no meaningful structure here at all.
+
+End
