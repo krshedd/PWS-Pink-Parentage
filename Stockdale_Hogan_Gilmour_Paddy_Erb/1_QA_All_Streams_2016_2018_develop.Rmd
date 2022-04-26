@@ -170,6 +170,36 @@ Well, shit. We do. I'm going to write out a .csv to send to Tim Frawley and figu
 readr::write_csv(oceanak_duplicates, "../../OceanAK/AHRP Salmon Biological Data 20220426_092121_duplicates.csv")
 ```
 
+#### 0000022639
+
+From Tim, it looks like SAMPLE_ID 201799494 is DWP 0000022639 and SAMPLE_ID 201799955 should be 0000022629.
+
+Investigate whether DWP 0000022629 has any otolith reads
+```{r}
+oceanak %>% 
+  dplyr::filter(DNA_TRAY_CODE == "0000022629") %>% 
+  dplyr::select(SILLY_CODE, DNA_TRAY_CODE, SAMPLE_ID, dplyr::contains("OTOLITH"))
+```
+
+Nope, no data from this PGILMOUR17 DWP. I double checked the export data (11/8/2017) and it lines up with the read date (5/4/2018)
+
+Sample ID: 201799955 , (otolith) Tray Number: 0000022629, current DNA Tray Code: 0000022639 should be changed to DNA Tray Code: 0000022629.
+
+#### 0000028424
+
+From Tim, it looks like TRAY_NUMBER 0000028401 is coded as DWP 0000028424 as well as TRAY_NUMBER 0000028424 is 0000028424
+
+Investigate whether DWP 0000028401 has any otolith reads
+```{r}
+oceanak %>% 
+  dplyr::filter(DNA_TRAY_CODE == "0000028401") %>% 
+  dplyr::select(DNA_TRAY_CODE, SAMPLE_ID, dplyr::contains("OTOLITH"))
+```
+
+Nope, same issue as above.
+
+Sample ID: 201800235 , (otolith) Tray Number: 0000028401, current DNA Tray Code: 0000028424 should be changed to DNA Tray Code: 0000028401.
+
 # STOPPED HERE 4/26/22 DUE TO DUPLICATE ISSUE!!!
 
 ### Re-name columns
