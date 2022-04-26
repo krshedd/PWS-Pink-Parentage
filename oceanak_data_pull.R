@@ -89,7 +89,7 @@ dataAll0 %>%
 # Write out the data to "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\OceanAK" with timestamp
 write_csv(
   x = dataAll0,
-  path = paste0(
+  file = paste0(
     "../OceanAK/AHRP Salmon Biological Data ",
     Sys.time() %>% str_remove_all(pattern = "-") %>% str_remove_all(pattern = ":") %>% str_replace(pattern = " ", replacement = "_"),
     ".csv"
