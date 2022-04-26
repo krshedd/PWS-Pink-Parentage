@@ -2,7 +2,7 @@
 title: "All Streams 2016/2018 Genotype QA + FRANz Input with 298 Markers"
 subtitle: "`develop` branch GCL-R-Scripts"
 author: "Kyle Shedd"
-date: "25 April 2022"
+date: "26 April 2022"
 output:
   html_notebook:
     theme: united
@@ -87,12 +87,12 @@ CreateLocusControl.GCL(locusnames = loci298,
 
 loci <- LocusControl$locusnames
 
-if(!dir.exists("../../Objects/All_Streams_14_16_develop/")) {
-  dir.create("../../Objects/All_Streams_14_16_develop/")
+if(!dir.exists("../../Objects/All_Streams_16_18_develop/")) {
+  dir.create("../../Objects/All_Streams_16_18_develop/")
 }
 
 save_objects(objects = c("LocusControl", "loci", "sillyvec"),
-             path = "../../Objects/All_Streams_14_16_develop/")
+             path = "../../Objects/All_Streams_16_18_develop/")
 ```
 
 ## Genotypes
@@ -106,17 +106,21 @@ LOKI2R.GCL(sillyvec = sillyvec,
 
 Save genotypes
 ```{r}
-if (!dir.exists("../../Genotypes/All_Streams_14_16_develop/")) {
-  dir.create("../../Genotypes/All_Streams_14_16_develop/")
+if (!dir.exists("../../Genotypes/All_Streams_16_18_develop/")) {
+  dir.create("../../Genotypes/All_Streams_16_18_develop/")
 }
 
-if (!dir.exists("../../Genotypes/All_Streams_14_16_develop/Raw/")) {
-  dir.create("../../Genotypes/All_Streams_14_16_develop/Raw/")
+if (!dir.exists("../../Genotypes/All_Streams_16_18_develop/Raw/")) {
+  dir.create("../../Genotypes/All_Streams_16_18_develop/Raw/")
 }
 
-save_sillys(sillyvec = sillyvec, path = "../../Genotypes/All_Streams_14_16_develop/Raw/")
+save_sillys(sillyvec = sillyvec, path = "../../Genotypes/All_Streams_16_18_develop/Raw/")
 ```
 
+Load genotypes (if re-running)
+```{r}
+load_sillys(path = "../../Genotypes/All_Streams_16_18_develop/Raw/")
+```
 
 # OceanAK
 
@@ -127,11 +131,48 @@ Read in paired field and otolith data from *OceanAK* and join that data to the a
 # The `genepop2franz.GCL` function we use in the very last step expects the *OceanAK* file to have the "old" names (lowercase with spaces) and not the "new" names (UPPERCASE with _); we convert the column names to the old format here. Note that this is a patch and column names should be double-checked during each new analysis.
 og_names <-
   suppressMessages(names(
-    read_csv(file = "../../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)
+    readr::read_csv(file = "../../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)
   )) # create object with the old names; do not update path - it is simply a file from which to pull the old names
 oceanak <-
-  read_csv(file = "../../OceanAK/AHRP Salmon Biological Data 20220124_151655.csv") # read in OceanAK data; recommend new data pull prior to running
+  readr::read_csv(file = "../../OceanAK/AHRP Salmon Biological Data 20220426_092121.csv") # read in OceanAK data; recommend new data pull prior to running
 ```
+
+### Duplicates?
+
+Before renameing those columns, check to see if we have any duplicates in `oceanak`
+```{r}
+(
+  oceanak_duplicates <- oceanak %>%
+    tidyr::unite(
+      silly_source,
+      c("SILLY_CODE", "FISH_ID"),
+      sep = "_",
+      remove = FALSE
+    ) %>%
+    dplyr::group_by(silly_source) %>%
+    dplyr::filter(dplyr::n() > 1)
+)
+
+oceanak_duplicates %>% 
+  dplyr::distinct(silly_source, SILLY_CODE, DNA_TRAY_CODE) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::count(SILLY_CODE, DNA_TRAY_CODE)
+```
+
+
+```{r}
+oceanak_duplicates %>% 
+  dplyr::select(silly_source, SAMPLE_ID, dplyr::contains("OTOLITH"))
+```
+
+Well, shit. We do. I'm going to write out a .csv to send to Tim Frawley and figure out WTF is going on here...
+```{r}
+readr::write_csv(oceanak_duplicates, "../../OceanAK/AHRP Salmon Biological Data 20220426_092121_duplicates.csv")
+```
+
+# STOPPED HERE 4/26/22 DUE TO DUPLICATE ISSUE!!!
+
+### Re-name columns
 
 Check names to confirm if they match up
 ```{r oceanak_name_check}
@@ -157,6 +198,7 @@ write_csv(oceanak, "../../OceanAK/AHRP Salmon Biological Data 20220124_151655_na
 
 ## Visualize and subset
 
+How many samples by stream and year?
 ```{r}
 oceanak %>%
   count(`Sample Year`, `Location Code`) %>%
@@ -168,8 +210,8 @@ oceanak %>%
 Subset the data by streams and years of interest
 ```{r}
 (
-  all_streams_14_16_oceanak <- oceanak %>%
-    dplyr::filter(`Sample Year` %in% c(2014, 2016)) %>%
+  all_streams_16_18_oceanak <- oceanak %>%
+    dplyr::filter(`Sample Year` %in% c(2016, 2018)) %>%
     tidyr::unite(
       silly_source,
       c("Silly Code", "Fish ID"),
@@ -179,9 +221,16 @@ Subset the data by streams and years of interest
 )
 ```
 
+Do we have any duplicates in `all_streams_16_18_oceanak`?
+```{r}
+table(table(all_streams_16_18_oceanak$silly_source))
+```
+
+Huh, it looks like we have 48 samples that exist twice in the database!
+
 Count otolith marks present/absent/NA by year
 ```{r}
-all_streams_14_16_oceanak %>% 
+all_streams_16_18_oceanak %>% 
   count(`Location Code`, `Sample Year`, `Otolith Mark Present`) %>% 
   pivot_wider(names_from = `Otolith Mark Present`,
               values_from = n,
@@ -192,7 +241,7 @@ Verify that all genotypes are in OceanAK data
 ```{r}
 sapply(sillyvec, function(silly) {
   my.gcl = get(paste0(silly, ".gcl"))
-  table(my.gcl$SillySource %in% all_streams_14_16_oceanak$silly_source)
+  table(my.gcl$SillySource %in% all_streams_16_18_oceanak$silly_source)
 }, simplify = FALSE)
 ```
 
@@ -204,7 +253,7 @@ lapply(objects(pattern = "\\.gcl"), get) %>%
   bind_rows() %>%
   select(SillySource) %>%
   anti_join(
-    x = all_streams_14_16_oceanak,
+    x = all_streams_16_18_oceanak,
     y = .,
     by = c("silly_source" = "SillySource")
   ) %>%
@@ -214,7 +263,7 @@ lapply(objects(pattern = "\\.gcl"), get) %>%
               values_fill =  0)
 ```
 
-**Note** that we did not genotype all hatchery-origin samples available in 2014 from Stockdale or Hogan. This decision was made at the time due to the unbalanced hatchery/natural sample sizes and the strict samples sizes budgeted for our external grants (NPRB and S/K). Otherwise, there are a smattering of samples that got passed over, likely due to NA origin reads at the time that later got 2nd read.
+**Note** that we did not genotype all hatchery-origin samples available in 2018 from  Hogan. This decision was made at the time due to the unbalanced hatchery/natural sample sizes and the strict samples sizes budgeted for our external grants (NPRB and S/K). Otherwise, there are a smattering of samples that got passed over (missing sex data or flagged as tissue missing), likely due to NA origin reads at the time that later got 2nd read.
 
 Remove `oceanak` for memory
 ```{r}
@@ -223,7 +272,7 @@ rm(oceanak)
 
 ## Join attributes table
 
-Join *all_streams_14_16_oceanak* data to the attributes table of each silly. Already looked to verify that no tissues were missing or duplicated, which makes sense because the lab can't genotype tissue that aren't there and they never genotype two samples in a well.
+Join *all_streams_16_18_oceanak* data to the attributes table of each silly. Already looked to verify that no tissues were missing or duplicated, which makes sense because the lab can't genotype tissue that aren't there and they never genotype two samples in a well.
 ```{r join_oceanak}
 invisible(sapply(sillyvec, function(silly) {
   my.gcl = get(paste0(silly, ".gcl"))
@@ -231,7 +280,7 @@ invisible(sapply(sillyvec, function(silly) {
   my_new.gcl <- my.gcl %>%
     dplyr::left_join(
       dplyr::select(  # just grab what we need from OceanAK data, not everything!
-        .data = all_streams_14_16_oceanak,
+        .data = all_streams_16_18_oceanak,
         silly_source,
         `Location Code`,
         `Sample Year`,
@@ -252,27 +301,27 @@ invisible(sapply(sillyvec, function(silly) {
 
 Save
 ```{r}
-if(!dir.exists("../../Genotypes/All_Streams_14_16_develop/OceanAK")) {
-  dir.create("../../Genotypes/All_Streams_14_16_develop/OceanAK")
+if(!dir.exists("../../Genotypes/All_Streams_16_18_develop/OceanAK")) {
+  dir.create("../../Genotypes/All_Streams_16_18_develop/OceanAK")
 }
 
-save_sillys(sillyvec = sillyvec, path = "../../Genotypes/All_Streams_14_16_develop/OceanAK")
+save_sillys(sillyvec = sillyvec, path = "../../Genotypes/All_Streams_16_18_develop/OceanAK")
 ```
 
-Remove `all_streams_14_16_oceanak` for memory
+Remove `all_streams_16_18_oceanak` for memory
 ```{r}
-rm(all_streams_14_16_oceanak)
+rm(all_streams_16_18_oceanak)
 ```
 
 ## Remove fish based on otolith data
 
-First, we need to verify that we only have hatchery and natural-origin fish for the parental year (2014), and remove any known hatchery-origin fish from the offspring year (2016). Normally we'd just keep natural-origin fish from the offspring year (2016), but so many of these samples were involved in the GOD event, the have NA.
+First, we need to verify that we only have hatchery and natural-origin fish for the parental year (2016), and remove any known hatchery-origin fish from the offspring year (2018). Normally we'd just keep natural-origin fish from the offspring year (2018), but so many of these samples were involved in the GOD event, the have NA.
 
-### 2014 - Parents
+### 2016 - Parents
 
 Just drop NAs from parent generation, we only want to keep known natural- and hatchery-origin fish
 ```{r}
-invisible(sapply(grep(pattern = "14", x = sillyvec, value = TRUE), function(silly) {
+invisible(sapply(grep(pattern = "16", x = sillyvec, value = TRUE), function(silly) {
   my.gcl = get(paste0(silly, ".gcl"))
   
   # drop hatchery, keep natural and NA
@@ -285,11 +334,11 @@ invisible(sapply(grep(pattern = "14", x = sillyvec, value = TRUE), function(sill
 }))
 ```
 
-### 2016 - Offspring
+### 2018 - Offspring
 
 Just drop known hatchery-origin fish from offspring generation, but keep NAs (so many NAs due to GOD event)
 ```{r}
-invisible(sapply(grep(pattern = "16", x = sillyvec, value = TRUE), function(silly) {
+invisible(sapply(grep(pattern = "18", x = sillyvec, value = TRUE), function(silly) {
   my.gcl = get(paste0(silly, ".gcl"))
   
   # keep natural and NA to drop hatchery, don't != "YES"
@@ -321,11 +370,11 @@ sapply(sillyvec, function(silly) {  # sillyvec_parentage
 
 Save, even though we didn't split sillys
 ```{r}
-if(!dir.exists("../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin")) {
-  dir.create("../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin")
+if(!dir.exists("../../Genotypes/All_Streams_16_18_develop/OceanAK_Origin")) {
+  dir.create("../../Genotypes/All_Streams_16_18_develop/OceanAK_Origin")
 }
 
-save_sillys(sillyvec = sillyvec, path = "../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin")
+save_sillys(sillyvec = sillyvec, path = "../../Genotypes/All_Streams_16_18_develop/OceanAK_Origin")
 ```
 
 # QA
@@ -348,7 +397,7 @@ miss_loci <-
                         loci = loci298)
 
 save_objects(objects = "miss_loci",
-             path =  "../../Objects/All_Streams_14_16_develop/")
+             path =  "../../Objects/All_Streams_16_18_develop/")
 
 # show individuals removed
 # miss_loci$IDs_Removed
@@ -361,7 +410,7 @@ save_objects(objects = "miss_loci",
 )
 ```
 
-Of the 4,033 individuals removed, almost half were from PSTOCK16!
+Of the 5,425 individuals removed, almost half were from PSTOCK16!
 
 ## Filter duplicates
 
@@ -379,8 +428,15 @@ duplicate_check_95 <-
     ncores = 4
   )
 
-save_objects("duplicate_check_95", path = "../../Objects/All_Streams_14_16_develop/")
+save_objects("duplicate_check_95", path = "../../Objects/All_Streams_16_18_develop/")
 ```
+
+Hrrm, looks like there are 28 individuals from PPADDY18 that are repeated? WTF? Why did those get read in twice? All are hearts...
+
+
+
+
+
 
 Remove **both** duplicates! As opposed to GSI work, where we want to keep individuals but aren't typically worried about paried data, here we want to remove both individuals as the paired data integrity is lost.
 ```{r qa_remove_duplicates}
@@ -492,7 +548,7 @@ Calculate heterozygosity
   het_tibble <- individual_heterozygosity(sillyvec = sillyvec, loci = loci298, ncores = 4)
 )
 
-save_objects(objects = "het_tibble", path = "../../Objects/All_Streams_14_16_develop/")
+save_objects(objects = "het_tibble", path = "../../Objects/All_Streams_16_18_develop/")
 ```
 
 ### Plot heterozygosities
@@ -580,7 +636,7 @@ Filter for fish to remove and save
     dplyr::filter(het < het_1.5IQR_low | het > het_1.5IQR_high)
 )
 
-save_objects("hets_removed", "../../Objects/All_Streams_14_16_develop/")
+save_objects("hets_removed", "../../Objects/All_Streams_16_18_develop/")
 ```
 
 Remove these fish
@@ -608,29 +664,29 @@ Count how many fish we retained
 (sample_size_qa <- sample_size_qa %>%
    mutate(final =  silly_n.GCL(sillyvec = sillyvec) %>% pull(n)))
 
-save_objects("sample_size_qa", path = "../../Objects/All_Streams_14_16_develop/")
+save_objects("sample_size_qa", path = "../../Objects/All_Streams_16_18_develop/")
 ```
 
 Save the post-QA genotypes
 ```{r save_postQA_genotypes}
-if(!dir.exists("../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin_PostQA")) {
-  dir.create("../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin_PostQA")
+if(!dir.exists("../../Genotypes/All_Streams_16_18_develop/OceanAK_Origin_PostQA")) {
+  dir.create("../../Genotypes/All_Streams_16_18_develop/OceanAK_Origin_PostQA")
 }
 
-save_sillys(sillyvec, "../../Genotypes/All_Streams_14_16_develop/OceanAK_Origin_PostQA/")
+save_sillys(sillyvec, "../../Genotypes/All_Streams_16_18_develop/OceanAK_Origin_PostQA/")
 ```
 
 # Export genepop file
 
 Now that we have final post QA/QC genotypes, we want to save our work by exporting the genotypes as a **Genepeop** file using `gcl2Genepop.GCL`, with individuals named by *SillySource*.
 ```{r genepop}
-if(!dir.exists("../../Genepop/All_Streams_14_16_develop")) {
-  dir.create("../../Genepop/All_Streams_14_16_develop")
+if(!dir.exists("../../Genepop/All_Streams_16_18_develop")) {
+  dir.create("../../Genepop/All_Streams_16_18_develop")
 }
 
 gcl2Genepop.GCL(sillyvec = sillyvec, 
                 loci = loci298, 
-                path = "../../Genepop/All_Streams_14_16_develop/All_Streams_14_16_develop_postQA.gen", 
+                path = "../../Genepop/All_Streams_16_18_develop/All_Streams_16_18_develop_postQA.gen", 
                 VialNums = TRUE, 
                 usat = FALSE,
                 ncores = 4)
@@ -643,9 +699,9 @@ The **Genepop** file is fed into Chase's *genepop2franz.GCL.r* script to create 
 # detach(package:reshape2, unload = TRUE)
 source("../genepop2franz.GCL.r")
 genepop2franz.GCL(
-  Genepop = "../../Genepop/All_Streams_14_16_develop/All_Streams_14_16_develop_postQA.gen",
+  Genepop = "../../Genepop/All_Streams_16_18_develop/All_Streams_16_18_develop_postQA.gen",
   OceanAK = "../../OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv",
-  Year = c(2014, 2016),
+  Year = c(2016, 2018),
   Stream = c("HOGAN", "STOCK", "GILMOUR", "PADDY", "ERB"),
   output_dir = "../"
 )
