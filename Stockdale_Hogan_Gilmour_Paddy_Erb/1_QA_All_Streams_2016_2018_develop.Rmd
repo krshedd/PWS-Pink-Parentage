@@ -200,6 +200,9 @@ Nope, same issue as above.
 
 Sample ID: 201800235 , (otolith) Tray Number: 0000028401, current DNA Tray Code: 0000028424 should be changed to DNA Tray Code: 0000028401.
 
+**RESOLUTION**
+Worked with Tim Frawley, Jenni Morella, and Megan Lovejoy to resolve this issue on 4/26/22. Update should take place at end of April.
+
 # STOPPED HERE 4/26/22 DUE TO DUPLICATE ISSUE!!!
 
 ### Re-name columns
