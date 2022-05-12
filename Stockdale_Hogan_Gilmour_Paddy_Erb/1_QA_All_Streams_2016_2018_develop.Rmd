@@ -2,7 +2,7 @@
 title: "All Streams 2016/2018 Genotype QA + FRANz Input with 298 Markers"
 subtitle: "`develop` branch GCL-R-Scripts"
 author: "Kyle Shedd"
-date: "26 April 2022"
+date: "12 May 2022"
 output:
   html_notebook:
     theme: united
@@ -134,7 +134,7 @@ og_names <-
     readr::read_csv(file = "../../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)
   )) # create object with the old names; do not update path - it is simply a file from which to pull the old names
 oceanak <-
-  readr::read_csv(file = "../../OceanAK/AHRP Salmon Biological Data 20220426_092121.csv") # read in OceanAK data; recommend new data pull prior to running
+  readr::read_csv(file = "../../OceanAK/AHRP Salmon Biological Data 20220511_174609.csv") # read in OceanAK data; recommend new data pull prior to running
 ```
 
 ### Duplicates?
@@ -159,15 +159,16 @@ oceanak_duplicates %>%
   dplyr::count(SILLY_CODE, DNA_TRAY_CODE)
 ```
 
+Whew, all resolved :)
 
 ```{r}
-oceanak_duplicates %>% 
-  dplyr::select(silly_source, SAMPLE_ID, dplyr::contains("OTOLITH"))
+# oceanak_duplicates %>% 
+#   dplyr::select(silly_source, SAMPLE_ID, dplyr::contains("OTOLITH"))
 ```
 
 Well, shit. We do. I'm going to write out a .csv to send to Tim Frawley and figure out WTF is going on here...
 ```{r}
-readr::write_csv(oceanak_duplicates, "../../OceanAK/AHRP Salmon Biological Data 20220426_092121_duplicates.csv")
+# readr::write_csv(oceanak_duplicates, "../../OceanAK/AHRP Salmon Biological Data 20220426_092121_duplicates.csv")
 ```
 
 #### 0000022639
@@ -176,9 +177,9 @@ From Tim, it looks like SAMPLE_ID 201799494 is DWP 0000022639 and SAMPLE_ID 2017
 
 Investigate whether DWP 0000022629 has any otolith reads
 ```{r}
-oceanak %>% 
-  dplyr::filter(DNA_TRAY_CODE == "0000022629") %>% 
-  dplyr::select(SILLY_CODE, DNA_TRAY_CODE, SAMPLE_ID, dplyr::contains("OTOLITH"))
+# oceanak %>% 
+#   dplyr::filter(DNA_TRAY_CODE == "0000022629") %>% 
+#   dplyr::select(SILLY_CODE, DNA_TRAY_CODE, SAMPLE_ID, dplyr::contains("OTOLITH"))
 ```
 
 Nope, no data from this PGILMOUR17 DWP. I double checked the export data (11/8/2017) and it lines up with the read date (5/4/2018)
@@ -191,9 +192,9 @@ From Tim, it looks like TRAY_NUMBER 0000028401 is coded as DWP 0000028424 as wel
 
 Investigate whether DWP 0000028401 has any otolith reads
 ```{r}
-oceanak %>% 
-  dplyr::filter(DNA_TRAY_CODE == "0000028401") %>% 
-  dplyr::select(DNA_TRAY_CODE, SAMPLE_ID, dplyr::contains("OTOLITH"))
+# oceanak %>% 
+#   dplyr::filter(DNA_TRAY_CODE == "0000028401") %>% 
+#   dplyr::select(DNA_TRAY_CODE, SAMPLE_ID, dplyr::contains("OTOLITH"))
 ```
 
 Nope, same issue as above.
@@ -202,8 +203,6 @@ Sample ID: 201800235 , (otolith) Tray Number: 0000028401, current DNA Tray Code:
 
 **RESOLUTION**
 Worked with Tim Frawley, Jenni Morella, and Megan Lovejoy to resolve this issue on 4/26/22. Update should take place at end of April.
-
-# STOPPED HERE 4/26/22 DUE TO DUPLICATE ISSUE!!!
 
 ### Re-name columns
 
@@ -226,7 +225,7 @@ oceanak <-
                      -contains("DETERMINATION"),
                      -contains("ARRAY"))
 
-write_csv(oceanak, "../../OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv") # output renamed OceanAK data
+write_csv(oceanak, "../../OceanAK/AHRP Salmon Biological Data 20220511_174609_names.csv") # output renamed OceanAK data
 ```
 
 ## Visualize and subset
@@ -259,7 +258,7 @@ Do we have any duplicates in `all_streams_16_18_oceanak`?
 table(table(all_streams_16_18_oceanak$silly_source))
 ```
 
-Huh, it looks like we have 48 samples that exist twice in the database!
+Nope, not anymore! (previously there were 48)
 
 Count otolith marks present/absent/NA by year
 ```{r}
@@ -443,7 +442,7 @@ save_objects(objects = "miss_loci",
 )
 ```
 
-Of the 5,425 individuals removed, almost half were from PSTOCK16!
+Of the 5,565 individuals removed, almost half were from PSTOCK16, we lost ~25% of those samples!
 
 ## Filter duplicates
 
@@ -464,14 +463,7 @@ duplicate_check_95 <-
 save_objects("duplicate_check_95", path = "../../Objects/All_Streams_16_18_develop/")
 ```
 
-Hrrm, looks like there are 28 individuals from PPADDY18 that are repeated? WTF? Why did those get read in twice? All are hearts...
-
-
-
-
-
-
-Remove **both** duplicates! As opposed to GSI work, where we want to keep individuals but aren't typically worried about paried data, here we want to remove both individuals as the paired data integrity is lost.
+Remove **both** duplicates! As opposed to GSI work, where we want to keep individuals but aren't typically worried about paired data, here we want to remove both individuals as the paired data integrity is lost.
 ```{r qa_remove_duplicates}
 RemoveDups.GCL(dupcheck = duplicate_check_95, remove_both = TRUE)
 
@@ -733,7 +725,7 @@ The **Genepop** file is fed into Chase's *genepop2franz.GCL.r* script to create 
 source("../genepop2franz.GCL.r")
 genepop2franz.GCL(
   Genepop = "../../Genepop/All_Streams_16_18_develop/All_Streams_16_18_develop_postQA.gen",
-  OceanAK = "../../OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv",
+  OceanAK = "../../OceanAK/AHRP Salmon Biological Data 20220511_174609_names.csv",
   Year = c(2016, 2018),
   Stream = c("HOGAN", "STOCK", "GILMOUR", "PADDY", "ERB"),
   output_dir = "../"
