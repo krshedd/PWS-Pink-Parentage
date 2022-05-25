@@ -2,7 +2,7 @@
 title: "All Streams 2016/2018 Parentage"
 subtitle: "Hogan + Stockdale + Gilmour + Paddy + Erb"
 author: "Kyle Shedd"
-date: "12 May 2022"
+date: "25 May 2022"
 output:
   html_notebook:
     theme: united
@@ -30,8 +30,17 @@ knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
 
 We use the program *FRANz* [link](https://www.bioinf.uni-leipzig.de/Software/FRANz/About.html) to reconstruct parent-offspring relationships. Below are analyses of parentage for **all fitness streams (Hogan, Stockdale, Gilmour, Paddy, and Erb)** for the **even lineage** years **2016** (potential parents) and **2018** (potential offspring).
 
-*FRANz* was run by Chase secretly on the UAF cluster on *INSERT DATE* using the following parameters:
-FRANz.exe --Nmmax 25000 --Nfmax 25000 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2 All_Streams_16_18_postQA_2014_2016.dat
+**NOTE** due to memory allocation limits on the UAF cluster, we had to break this into two (2) separate analyses:
+  1) only Hogan 2016 parents (n = 11,522), all streams 2018 offspring  (n = 25,926), and 
+  2) no Hogan 2016 parents (just Stockdale, Gilmour, Paddy, and Erb; n = 12,973), all streams 2018 offspring (n = 25,926)
+
+Ideally, offspring will only have parentage assignments from a single stream...
+
+*FRANz* was run by Chase secretly on the UAF cluster on 5/23/2022 using the following parameters:
+FRANz.exe --Nmmax 25000 --Nfmax 25000 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2 All_Streams_16_18_develop_postQA_2016_2018_Hogan_parents_only.dat
+
+*FRANz* was run by Chase secretly on the UAF cluster on 5/24/2022 using the following parameters:
+FRANz.exe --Nmmax 25000 --Nfmax 25000 --femrepro 1:2 --malerepro 1:2 --typingerror 0.006 --updatefreqs --poutformat 2 All_Streams_16_18_develop_postQA_2016_2018_no_Hogan_parents.dat
 
 The parameters are defined as follows:
 
@@ -44,7 +53,7 @@ The parameters are defined as follows:
 
 We do not use --fullsibtest; it won't save output (Kyle's Genetics Domain Computer) or it maxes memory (Kristen's computer).
 
-All output files can also be found here: Output is saved here: [link](V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink/Franz\All_Streams_14_16_develop\results). The summary file provides information about the power of our marker suite. According to the FRANz manual, marker sets are not considered powerful if these cumulative exclusion probabilities are less than 0.95, indicating the probability  a random pair of individuals in the population has a 5% chance of having a genotype pair compatible to an offspring genotype. Since nearly all of our probabilities are 1, we can be confident in the power of our 298 amplicons to make parent-offspring assignments.  
+All output files can also be found here: Output is saved here: [link](V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\Franz\All_Streams_16_18_develop). The summary file provides information about the power of our marker suite. According to the FRANz manual, marker sets are not considered powerful if these cumulative exclusion probabilities are less than 0.95, indicating the probability  a random pair of individuals in the population has a 5% chance of having a genotype pair compatible to an offspring genotype. Since nearly all of our probabilities are 1, we can be confident in the power of our 298 amplicons to make parent-offspring assignments.  
 
 ## Data import and overview
 
@@ -53,9 +62,33 @@ All output files can also be found here: Output is saved here: [link](V:\Analysi
     2) paired genotype and OceanAK data (otolith reads, some field data), and  
     3) paired StreamSpecimens contractor data (gill condition, preyed upon, etc.) and `riverdist` data (stream distance)
 
+Since we had to do two *FRANz* runs for memory allocation reasons, we need to combine the `parentage.csv` outputs before we proceed.
+```{r}
+parentage_14_16_hogan_parents <- readr::read_csv("~/../Desktop/Local_PWS_pinks/Franz/All_Streams_16_18_develop/2016_2018_HoganParentsOnly/results/parentage.csv")  # read_csv("../../Franz/All_Streams_16_18_develop/2016_2018_HoganParentsOnly/results/parentage.csv") 
+```
+
+Combine
+```{r}
+(
+  parentage_14_16_hogan_parents_filter <- parentage_14_16_hogan_parents %>%
+    dplyr::filter(Posterior > 0.9) %>%
+    dplyr::select(Offspring, `Parent 1`, `Parent 2`) %>%
+    tidyr::pivot_longer(
+      names_to = "Parent",
+      values_to = "Parent_ID",
+      cols = -Offspring
+    ) %>%
+    dplyr::filter(!is.na(Parent_ID))
+)
+
+parentage_14_16_hogan_parents_filter %>% 
+  dplyr::mutate(stream_off = stringr::str_sub(string = Offspring, start = 2, end = 2)) %>% 
+  count(stream_off)
+```
+
+Import paired *OceanAK* data and `riverdist` stream location data.
 ```{r data_import, echo=FALSE, warning=FALSE, message=FALSE}
-parentage_14_16 <- readr::read_csv("~/../Desktop/Local_PWS_pinks/Franz/All_Streams_14_16_develop/results/parentage.csv")  # read_csv("../../Franz/All_Streams_14_16_develop/results/parentage.csv") 
-paired_14_16 <- readr::read_csv("../Franz/All_Streams_14_16_develop_postQA_OceanAK_paired_2014_2016_HOGAN_STOCK_GILMOUR_PADDY_ERB.csv")
+paired_14_16 <- readr::read_csv("../Franz/All_Streams_16_18_develop_postQA_OceanAK_paired_2016_2018_HOGAN_STOCK_GILMOUR_PADDY_ERB.csv")
 stream_specimens_riverdist <- readr::read_csv("~/../Desktop/Local_PWS_pinks/GIS/stream_specimens_riverdist_all_streams_2013_2020.csv")  # read_csv("../GIS/R/all_streams/stream_specimens_riverdist_all_streams_2013_2020.csv")
 ```
 
