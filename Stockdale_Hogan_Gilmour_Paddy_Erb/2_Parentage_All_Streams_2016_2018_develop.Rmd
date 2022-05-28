@@ -2,7 +2,7 @@
 title: "All Streams 2016/2018 Parentage"
 subtitle: "Hogan + Stockdale + Gilmour + Paddy + Erb"
 author: "Kyle Shedd"
-date: "25 May 2022"
+date: "26 May 2022"
 output:
   html_notebook:
     theme: united
@@ -25,6 +25,8 @@ knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
 ```
 
 # **Background**
+
+**NOTE** the Gilmour, Erb, and Paddy data will need to be re-run post-GOD. All of the `NA`-origin parents (2016) were removed in `1_QA`, and thus not included in these analyses. The `NA`-origin offspring (2018) were retained.
 
 ## Pedigree reconstruction
 
@@ -64,32 +66,39 @@ All output files can also be found here: Output is saved here: [link](V:\Analysi
 
 Since we had to do two *FRANz* runs for memory allocation reasons, we need to combine the `parentage.csv` outputs before we proceed.
 ```{r}
-parentage_14_16_hogan_parents <- readr::read_csv("~/../Desktop/Local_PWS_pinks/Franz/All_Streams_16_18_develop/2016_2018_HoganParentsOnly/results/parentage.csv")  # read_csv("../../Franz/All_Streams_16_18_develop/2016_2018_HoganParentsOnly/results/parentage.csv") 
-```
+parentage_16_18_hogan_parents <-
+  readr::read_csv(
+    "~/../Desktop/Local_PWS_pinks/Franz/All_Streams_16_18_develop/2016_2018_HoganParentsOnly/results/parentage.csv"
+  ) %>%  # read_csv("../../Franz/All_Streams_16_18_develop/2016_2018_HoganParentsOnly/results/parentage.csv") 
+  dplyr::mutate(run = "only_hogan")
 
-Combine
-```{r}
+parentage_16_18_no_hogan_parents <-
+  readr::read_csv(
+    "~/../Desktop/Local_PWS_pinks/Franz/All_Streams_16_18_develop/2016_2018_NoHoganParents/results/parentage.csv"
+  ) %>%  # read_csv("../../Franz/All_Streams_16_18_develop/2016_2018_NoHoganParents/results/parentage.csv")
+  dplyr::mutate(run = "no_hogan")
+
 (
-  parentage_14_16_hogan_parents_filter <- parentage_14_16_hogan_parents %>%
-    dplyr::filter(Posterior > 0.9) %>%
-    dplyr::select(Offspring, `Parent 1`, `Parent 2`) %>%
-    tidyr::pivot_longer(
-      names_to = "Parent",
-      values_to = "Parent_ID",
-      cols = -Offspring
-    ) %>%
-    dplyr::filter(!is.na(Parent_ID))
+  parentage_16_18 <-
+    dplyr::bind_rows(
+      parentage_16_18_hogan_parents,
+      parentage_16_18_no_hogan_parents
+    )
 )
 
-parentage_14_16_hogan_parents_filter %>% 
-  dplyr::mutate(stream_off = stringr::str_sub(string = Offspring, start = 2, end = 2)) %>% 
-  count(stream_off)
+base::rm(parentage_16_18_hogan_parents, parentage_16_18_no_hogan_parents)
 ```
 
 Import paired *OceanAK* data and `riverdist` stream location data.
 ```{r data_import, echo=FALSE, warning=FALSE, message=FALSE}
-paired_14_16 <- readr::read_csv("../Franz/All_Streams_16_18_develop_postQA_OceanAK_paired_2016_2018_HOGAN_STOCK_GILMOUR_PADDY_ERB.csv")
-stream_specimens_riverdist <- readr::read_csv("~/../Desktop/Local_PWS_pinks/GIS/stream_specimens_riverdist_all_streams_2013_2020.csv")  # read_csv("../GIS/R/all_streams/stream_specimens_riverdist_all_streams_2013_2020.csv")
+paired_16_18 <-
+  readr::read_csv(
+    "../Franz/All_Streams_16_18_develop_postQA_OceanAK_paired_2016_2018_HOGAN_STOCK_GILMOUR_PADDY_ERB.csv"
+  )
+stream_specimens_riverdist <-
+  readr::read_csv(
+    "~/../Desktop/Local_PWS_pinks/GIS/stream_specimens_riverdist_all_streams_2013_2020.csv"
+  )  # read_csv("../GIS/R/all_streams/stream_specimens_riverdist_all_streams_2013_2020.csv")
 ```
 
   * Plot a histogram of *FRANz* parentage posterior probabilities to show strength of assignments
@@ -100,14 +109,15 @@ cbPalette1 <- c("#0072b2", "#d55e00", "#F0E442", "#CC79A7") # blue, orange, yell
 cbPalette2 <- c("#CC79A7", "#0072b2") # pink and blue for natural- and hatchery-origin
 
 # plot the posteriors
-parentage_14_16  %>% 
+parentage_16_18  %>% 
   dplyr::filter(!base::is.na(`Parent 1`)) %>% 
   ggplot2::ggplot(aes(x = Posterior)) +
   ggplot2::geom_histogram(breaks = seq(0, 1, 0.01), colour = "black") +
   ggplot2::theme_bw() +
   ggplot2::labs(x = "Posterior Probability",
                 y = "Count") +
-  ggplot2::ggtitle("Histogram of FRANz posterior probabilities for parental assignments")
+  ggplot2::ggtitle("Histogram of FRANz posterior probabilities for parental assignments") +
+  ggplot2::facet_grid(rows = dplyr::vars(run))
 ```
 
 **Results:** Almost all parental assignments have a posterior probability of 1, which is very robust.  
@@ -120,16 +130,37 @@ Filter parentage data from *FRANz* to only keep assignments with a posterior pro
 ```{r filter_parentage_data, echo=FALSE, warning=FALSE, message=FALSE}
 # Filter for posterior > 0.9 + make tidy relative to assignment (1 row per parentage assignment)
 (
-  parentage_14_16_filter <- parentage_14_16 %>%
+  parentage_16_18_filter <- parentage_16_18 %>%
     dplyr::filter(Posterior > 0.9) %>%
-    dplyr::select(Offspring, `Parent 1`, `Parent 2`) %>%
+    dplyr::select(Offspring, `Parent 1`, `Parent 2`, run) %>%
     tidyr::pivot_longer(
       names_to = "Parent",
       values_to = "Parent_ID",
-      cols = -Offspring
+      cols = -c(Offspring, run)
     ) %>%
     dplyr::filter(!is.na(Parent_ID))
 )
+```
+
+Since we are combining runs ("only Hogan parents" and "no Hogan parents"), we need to verify that Offspring were only assigned parents in 1 of those two runs (i.e. not both!). Going to check two different ways to make extra, super-duper sure :).
+```{r}
+tmp_only_hogan <- parentage_16_18_filter %>% 
+  dplyr::filter(run == "only_hogan") %>% 
+  dplyr::pull(Offspring)
+
+tmp_no_hogan <- parentage_16_18_filter %>% 
+  dplyr::filter(run == "no_hogan") %>% 
+  dplyr::pull(Offspring)
+
+base::intersect(tmp_only_hogan, tmp_no_hogan)
+
+base::rm(tmp_no_hogan, tmp_only_hogan)
+
+parentage_16_18_filter %>% 
+  dplyr::filter(Parent == "Parent 1") %>% 
+  dplyr::count(Offspring, run) %>% 
+  dplyr::count(Offspring) %>% 
+  dplyr::count(n, name = "count")
 ```
 
 ### OceanAK
@@ -139,7 +170,7 @@ The file containing paired genotype and OceanAK data has a lot of information we
 First view all the non-genotype columns to see what we want to retain.
 ```{r view_oceanak_paired_data, echo=FALSE, warning=FALSE, message=FALSE}
 # Find the non-genotype columns
-paired_14_16 %>% 
+paired_16_18 %>% 
   dplyr::select(-tidyselect::starts_with("Ogo_RAD")) %>% 
   utils::head()
 ```
@@ -148,7 +179,7 @@ Remove genotype columns, rename, and reformat others.
 ```{r subset_oceanak_paired_data, echo=FALSE, warning=FALSE, message=FALSE}
 # Filter for non-genotype columns
 (
-  paired_14_16_filter <- paired_14_16 %>%
+  paired_16_18_filter <- paired_16_18 %>%
     dplyr::select(
       franz_id,
       SILLY,
@@ -226,7 +257,7 @@ stream_specimens_riverdist %>%
 Join with *OceanAK* paired data, rename, and reformat columns.
 ```{r subset_stream_specimens_riverdist_paired_data, echo=FALSE, warning=FALSE, message=FALSE}
 (
-  paired_14_16_filter <- paired_14_16_filter %>%
+  paired_16_18_filter <- paired_16_18_filter %>%
     dplyr::left_join(stream_specimens_riverdist, by = c("sample" = "Sample")) %>%  # join based on DWP_well
     dplyr::select(-ADFGStreamCode) %>%
     dplyr::rename(
@@ -267,35 +298,46 @@ Join with *OceanAK* paired data, rename, and reformat columns.
 
 Save paired data.
 ```{r save_paired_filter}
-readr::write_csv(paired_14_16_filter, "all_streams_paired_14_16_filter.csv")
+readr::write_csv(paired_16_18_filter, "all_streams_paired_16_18_filter.csv")
 ```
 
 Clean up environment to save memory.
 ```{r}
-base::rm(paired_14_16, stream_specimens_riverdist, parentage_14_16)
+base::rm(paired_16_18, stream_specimens_riverdist, parentage_16_18)
 ```
 
 ## Sample sizes
 
-  * Quick look at sample sizes for potential parents (2014)
+  * Quick look at sample sizes for potential parents (2016)
 
+**NOTE** Gilmour, Erb, and Paddy were all affected by GOD. We *dropped* the `NA` origin parents (2016) in `1_QA`
 ```{r sample_sizes_parents, echo=FALSE, warning=FALSE, message=FALSE}
-paired_14_16_filter %>% 
-  dplyr::filter(year == 2014) %>%  # filter for parent year
+paired_16_18_filter %>% 
+  dplyr::filter(year == 2016) %>%  # filter for parent year
   dplyr::count(stream, origin) %>% 
   tidyr::pivot_wider(names_from = origin, values_from = n, values_fill = 0)
 ```
 
-  * Quick look at sample sizes for potential offspring (2016)
+  * Quick look at sample sizes for potential offspring (2018)
 
+**NOTE** Gilmour, Erb, and Paddy were all affected by GOD. We *kept* the `NA` origin offspring (2018) in `1_QA`
 ```{r sample_sizes_offspring, echo=FALSE, warning=FALSE, message=FALSE}
-paired_14_16_filter %>% 
-  dplyr::filter(year == 2016) %>%  # filter for parent year
+paired_16_18_filter %>% 
+  dplyr::filter(year == 2018) %>%  # filter for offspring year
   dplyr::count(stream)
+```
+
+Which ones were involved in GOD?
+```{r}
+paired_16_18_filter %>% 
+  dplyr::filter(year == 2018) %>%  # filter for offspring year
+  dplyr::count(stream, origin) %>% 
+  tidyr::pivot_wider(names_from = origin, values_from = n, values_fill = 0)
 ```
 
   * Sample size plots of potential parents and potential offspring collected by day for each stream
 
+**NOTE** Since we already dropped the `NA` parents (2016) for Gilmour, Erb, and Paddy, they do not show up as grey columns here in these plots.
 ```{r sample_sizes_plot, echo=FALSE, warning=FALSE, message=FALSE}
 sample_size_plot <-
   function(indata = paired_XX_XX_filter, title = "Stream Year-Year") {
@@ -321,10 +363,10 @@ sample_size_plot <-
     }, simplify = FALSE)
   }
 
-sample_size_plot(indata = paired_14_16_filter, title = "All Streams 2014-2016")
+sample_size_plot(indata = paired_16_18_filter, title = "All Streams 2016-2018")
 ```
 
-**NOTE** `NA` origin fish in 2016 (offspring) for Erb, Gilmour, and Paddy are due to the GOD event.
+**NOTE** `NA` origin fish in 2018 (offspring) for Erb, Gilmour, and Paddy are due to the GOD event.
 
 # **Basic Statistics**
 
@@ -338,10 +380,10 @@ Here, we joined parentage data from *FRANz* with individual paired data so that 
 # Offspring with 2 parents have 2 rows
 # _off data is offspring, _par data is parents
 (
-  parents_paired_14_16 <- parentage_14_16_filter %>%
-    dplyr::left_join(paired_14_16_filter, by = c("Offspring" = "franz_id")) %>%
+  parents_paired_16_18 <- parentage_16_18_filter %>%
+    dplyr::left_join(paired_16_18_filter, by = c("Offspring" = "franz_id")) %>%
     dplyr::left_join(
-      paired_14_16_filter,
+      paired_16_18_filter,
       by = c("Parent_ID" = "franz_id"),
       suffix = c("_off", "_par")
     ) %>% 
@@ -350,14 +392,14 @@ Here, we joined parentage data from *FRANz* with individual paired data so that 
                   parent_id = Parent_ID)
 )
 
-readr::write_csv(x = parents_paired_14_16,
-                 file = "all_streams_parents_paired_14_16.csv")
+readr::write_csv(x = parents_paired_16_18,
+                 file = "all_streams_parents_paired_16_18.csv")
 ```
 
   * Number of single-parent offspring (dyad) and two-parent offspring (triad) assignments for each stream
 
 ```{r n_dyads_triads}
-parents_paired_14_16 %>% 
+parents_paired_16_18 %>% 
   dplyr::count(stream_par, parent) %>% 
   tidyr::pivot_wider(names_from = parent, values_from = n)
 ```
@@ -365,11 +407,11 @@ parents_paired_14_16 %>%
   * Percent of offspring sampled that were assigned parents (from any stream) for each stream
 
 ```{r}
-n_off <- paired_14_16_filter %>%
-  dplyr::filter(year == 2016) %>%  # filter for parent year
+n_off <- paired_16_18_filter %>%
+  dplyr::filter(year == 2018) %>%  # filter for offspring year
   dplyr::count(stream)
 
-n_off_assigned <- parents_paired_14_16 %>%
+n_off_assigned <- parents_paired_16_18 %>%
   dplyr::filter(parent == "Parent 1") %>% 
   dplyr::count(stream_off)  # accounts for offspring straying among streams
 
@@ -386,7 +428,7 @@ rm(n_off, n_off_assigned)
   * Number of offspring (from any stream) assigned by parent origin for each stream
 
 ```{r n_offspring_by_origin}
-parents_paired_14_16 %>% 
+parents_paired_16_18 %>% 
   dplyr::count(stream_par, origin_par) %>% 
   tidyr::pivot_wider(names_from = origin_par, values_from = n)
 ```
@@ -394,7 +436,7 @@ parents_paired_14_16 %>%
   * Number of distinct, successful (assigned offspring) parents by origin for each stream
 
 ```{r}
-parents_paired_14_16 %>% 
+parents_paired_16_18 %>% 
   dplyr::distinct(parent_id, stream_par, origin_par) %>% 
   dplyr::count(stream_par, origin_par) %>% 
   tidyr::pivot_wider(names_from = origin_par, values_from = n)
@@ -403,14 +445,14 @@ parents_paired_14_16 %>%
   * Number of distinct, successful (assigned offspring) hatchery-origin parents by hatchery code for each stream
 
 ```{r}
-parents_paired_14_16 %>% 
+parents_paired_16_18 %>% 
   dplyr::filter(origin_par == "Hatchery") %>% 
   dplyr::distinct(parent_id, stream_par, otolith_mark_id_par) %>% 
   dplyr::count(stream_par, otolith_mark_id_par) %>% 
   tidyr::pivot_wider(names_from = otolith_mark_id_par, values_from = n)
 ```
 
-**Results:** Most offspring were only assigned to 1 parent (dyads), but there were a decent amount assigned to 2 parents (triads). Offspring assignment rates ranged from a low of **12.1%** in Hogan to a high of **38.6%** in Erb. Interestingly, Stockdale and Gilmour (on Montague Island) mostly receive strays from AFK, Hogan receives a mix of AFK (most common), CCH, and WNH, and Paddy and Erb recieve most of their strays from WNH, followed by AFK, CCH, and a few SGH.
+**Results:** Most offspring were only assigned to 1 parent (dyads), but there were a decent amount assigned to 2 parents (triads). Offspring assignment rates ranged from a low of **12.2%** in Paddy to a high of **34.8%** in Hogan. Interestingly, Stockdale and Gilmour (on Montague Island) mostly receive strays from AFK, Hogan receives a mix of AFK (most common), CCH, WNH, and SGH, and Paddy and Erb receive most of their strays from WNH, followed by AFK, CCH, and a few SGH.
 
 ## Proportion test
 
@@ -419,13 +461,13 @@ We performed a chi-square test on the data to naively determine whether the prop
 **Note** that for this analysis, the data were not divided out by sex, so offspring from triads are double counted. 
 ```{r chi_square_test, echo=FALSE, warning=FALSE, message=FALSE}
 # How many potential spawners from each origin?
-spawners_14 <- paired_14_16_filter %>%
-  dplyr::filter(year == 2014) %>%  # filter for parent year
+spawners_16 <- paired_16_18_filter %>%
+  dplyr::filter(year == 2016) %>%  # filter for parent year
   dplyr::count(stream, origin) %>%
   dplyr::mutate(generation = "Parents")
 
 # How many offspring from each origin?
-offspring_16 <- parents_paired_14_16 %>%
+offspring_18 <- parents_paired_16_18 %>%
   dplyr::count(stream_par, origin_par) %>%
   dplyr::rename(origin = origin_par,
                 stream = stream_par) %>%
@@ -433,16 +475,16 @@ offspring_16 <- parents_paired_14_16 %>%
 
 # Make tidy and spread
 (
-  spawners_and_offspring_14_16 <-
-    dplyr::bind_rows(spawners_14, offspring_16) %>%
+  spawners_and_offspring_16_18 <-
+    dplyr::bind_rows(spawners_16, offspring_18) %>%
     dplyr::arrange(stream, origin) %>%
     tidyr::pivot_wider(names_from = generation, values_from = n)
 )
 
-rm(spawners_14, offspring_16)  # keep it clean!
+rm(spawners_16, offspring_18)  # keep it clean!
 
 # Run chisq.test by stream
-spawners_and_offspring_14_16 %>%
+spawners_and_offspring_16_18 %>%
   dplyr::nest_by(stream) %>%
   dplyr::mutate(model = list(stats::chisq.test(x = data[,-1]))) %>%
   dplyr::summarise(
@@ -457,7 +499,7 @@ spawners_and_offspring_14_16 %>%
   dplyr::select(stream, chisq, df, p_value, signif, method)
 ```
 
-**Results:** All streams, except for Gilmour, showed a significant difference in the proportions of offspring assigned to hatchery- and natural-origin parents relative to the proportions of potential parents sampled, indicating an under-representation of offspring assigning to hatchery-origin parents. 
+**Results:** All streams, except for Gilmour and Paddy, showed a significant difference in the proportions of offspring assigned to hatchery- and natural-origin parents relative to the proportions of potential parents sampled, indicating an under-representation of offspring assigning to hatchery-origin parents. 
 
 # **Reproductive Success (RS)**
 
@@ -470,7 +512,7 @@ Here, we calculate family size for parents of both sexes. We also plot two sets 
 This first plot does **not** include zeroes, of which there will be many, but it provides better resolution among successful parents, especially for visualizing max family size.
 ```{r family_size_by_sex_without_zeros, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10}
 # Plot histogram of proportion of successful parents with a given family size
-parents_paired_14_16 %>% 
+parents_paired_16_18 %>% 
   dplyr::count(stream_par, parent_id, origin_par, sex_par) %>% 
   dplyr::count(stream_par, sex_par, origin_par, n, name = "n_par") %>% 
   dplyr::group_by(stream_par, sex_par, origin_par) %>% 
@@ -494,29 +536,29 @@ Here, we transform the data to **one row per parent** with `n` = number of offsp
 ```{r paired_filter_parents, echo=FALSE, warning=FALSE, message=FALSE}
 # Transform to one row per parent with n = number of offspring produced
 (
-  paired_14_16_filter_parents <- paired_14_16_filter %>%
-    dplyr::filter(year == "2014") %>%
+  paired_16_18_filter_parents <- paired_16_18_filter %>%
+    dplyr::filter(year == "2016") %>%
     dplyr::left_join(
       x = .,
-      y = dplyr::count(parents_paired_14_16, parent_id),
+      y = dplyr::count(parents_paired_16_18, parent_id),
       by = c("franz_id" = "parent_id")
     ) %>% 
     dplyr::mutate(n = tidyr::replace_na(data = n, replace = 0)) %>% 
     dplyr::select(franz_id, n, tidyselect::everything())
 )
 
-write_csv(x = paired_14_16_filter_parents, file = "all_streams_paired_14_16_filter_parents.csv")
+write_csv(x = paired_16_18_filter_parents, file = "all_streams_paired_16_18_filter_parents.csv")
 ```
 
   * RS including sampled fish from the parental generation to which offspring were not assigned.
 
 ```{r calculate_RS, echo=FALSE, warning=FALSE, message=FALSE}
 # Mean RS, including zeroes
-rs_14_16_0 <- paired_14_16_filter_parents %>%
+rs_16_18_0 <- paired_16_18_filter_parents %>%
   dplyr::group_by(stream, origin, sex) %>% 
   dplyr::summarise(RS = mean(n, na.rm = TRUE), .groups = "drop")
 
-rs_14_16_0 %>%
+rs_16_18_0 %>%
   tidyr::pivot_wider(names_from = origin, values_from = RS, names_prefix = "RS_") %>% 
   dplyr::mutate(RRS = RS_Hatchery / RS_Natural) %>% 
   dplyr::select(stream, sex, RS_Hatchery, RS_Natural, RRS) %>% 
@@ -528,7 +570,7 @@ rs_14_16_0 %>%
 This plot **does** include zeroes.
 ```{r family_size_by_sex_with_zeros, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10}
 # Plot histogram of proportion of all parents with a given family size
-paired_14_16_filter_parents %>% 
+paired_16_18_filter_parents %>% 
   dplyr::count(stream, sex, origin, n, name = "n_par") %>% 
   dplyr::group_by(stream, sex, origin) %>% 
   dplyr::mutate(p = n_par / sum(n_par)) %>% 
@@ -553,7 +595,7 @@ paired_14_16_filter_parents %>%
 
 Caclulcate RRS by stream and sex.
 ```{r calculate RRS}
-rs_14_16_0 %>%
+rs_16_18_0 %>%
   tidyr::pivot_wider(names_from = origin, values_from = RS, names_prefix = "RS_") %>% 
   dplyr::mutate(RRS = RS_Hatchery / RS_Natural) %>% 
   dplyr::select(stream, sex, RRS) %>% 
@@ -576,7 +618,7 @@ P-values are presented for each statistical test.
 
 We'll test for difference separately for each sex (dyad data).
 ```{r RRS_statistical_testing_by_sex}
-paired_14_16_filter_parents %>%
+paired_16_18_filter_parents %>%
   dplyr::nest_by(stream, sex) %>%
   dplyr::mutate(permutation = list(
     coin::oneway_test(
@@ -598,13 +640,13 @@ paired_14_16_filter_parents %>%
   dplyr::mutate(dplyr::across(where(is.numeric), round, 4))
 ```
 
-**Results:** There are significant differences in RRS for females in all streams except Gilmour, but only in Erb and Stockdale for males. 
+**Results:** There are *only* significant differences in RRS for females in Erb, and *only* in Erb, Hogan, and Paddy for males. 
 
 ##### Both sexes combined
 
 ...and again with both sexes together (offspring in triads are double counted).
 ```{r RRS_statistical_testing_by_stream}
-paired_14_16_filter_parents %>%
+paired_16_18_filter_parents %>%
   dplyr::nest_by(stream) %>%
   dplyr::mutate(permutation = list(
     coin::oneway_test(
@@ -626,7 +668,7 @@ paired_14_16_filter_parents %>%
   dplyr::mutate(dplyr::across(where(is.numeric), round, 4))
 ```
 
-**Results:** There are significant differences in RRS for all streams except Gilmour when we ignore sex-specific differences. 
+**Results:** There are significant differences in RRS for Erb, Hogan, and Stockdale^*^ when we ignore sex-specific differences. 
 
 #### *RRS plus 95% CIs for females and males*
 
@@ -693,7 +735,7 @@ rrs_ci_kalinowski <- function(n_h_off, n_w_off, n_h_par, n_w_par, alpha = .05) {
 
 Calculate RRS with 95% CI's
 ```{r RRS_confidence_intervals}
-paired_14_16_filter_parents %>%
+paired_16_18_filter_parents %>%
   dplyr::rename(n_off = n) %>%
   dplyr::group_by(stream, sex, origin) %>%
   dplyr::summarise(n_par = dplyr::n(),
@@ -737,7 +779,7 @@ View how RS varies by parent sample date across the season.
 **NOTE** the y-axis varies among streams to facilitate visualizing patterns.
 ```{r RS_by_sample_date, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10}
 # Females and males separated
-paired_14_16_filter_parents %>%
+paired_16_18_filter_parents %>%
   ggplot2::ggplot(aes(x = date, y = n, fill = origin)) +
   ggplot2::geom_hline(yintercept = 0, color = "grey50") +
   ggplot2::geom_jitter(
@@ -764,7 +806,7 @@ paired_14_16_filter_parents %>%
   ggplot2::scale_fill_manual(values = cbPalette2)
 ```
 
-**Results:** Trends vary by stream, but there is pretty clear separation in RS between hatchery- and natural-origin fish regardless of parent sample date.
+**Results:** Trends vary by stream, but there is not a ton of separation in RS between hatchery- and natural-origin fish regardless of parent sample date.
 
 #### *RS by body length*
 
@@ -773,7 +815,7 @@ View how RS varies by parent body length (MEH).
 **NOTE** the y-axis varies among streams to facilitate visualizing patterns.
 ```{r RS_by_body_length, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10}
 # Females and males separated
-paired_14_16_filter_parents %>%
+paired_16_18_filter_parents %>%
   dplyr::filter(length > 300) %>%  # remove outlier from Stockdale female
   ggplot2::ggplot(aes(x = length, y = n, fill = origin)) +
   ggplot2::geom_hline(yintercept = 0, color = "grey50") +
@@ -813,9 +855,9 @@ View how RS varies by parent sample location within the stream (distance from st
 ```{r RS_by_location, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10}
 # Females and males separated
 RS_by_location_plots <-
-  sapply(unique(paired_14_16_filter_parents$stream), function(x)
+  sapply(unique(paired_16_18_filter_parents$stream), function(x)
   {
-    paired_14_16_filter_parents %>%
+    paired_16_18_filter_parents %>%
       filter(stream == x) %>%
       ggplot2::ggplot(aes(x = distance_mouth, y = n, fill = origin)) +
       ggplot2::geom_hline(yintercept = 0, color = "grey50") +
@@ -860,22 +902,29 @@ gridExtra::grid.arrange(RS_by_location_plots$Erb,
                         bottom = "Parental Sample Distance from Stream Mouth (m)")
 ```
 
-**Results:** Trends vary by stream, but in general, RS is higher near the intertidal.
+**Results:** Trends vary by stream, but in general, RS is higher near the intertidal for Erb, Paddy, and Stockdale. Not so much for Hogan and Gilmour.
 
 #### *RS by intertidal*
 
 View how RS varies by parent sample location within the stream (intertidal or upstream).
 
-**NOTE** the y-axis varies among streams to facilitate visualizing patterns.
+**NOTE** the y-axis varies among streams to facilitate visualizing patterns, labels indicate mean values.
 ```{r RS_by_intertidal, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10}
 # Females and males separated
-paired_14_16_filter_parents %>%
+paired_16_18_filter_parents %>%
   dplyr::filter(!is.na(intertidal)) %>% 
   ggplot2::ggplot(aes(x = intertidal, y = n, fill = origin)) +
   ggplot2::geom_hline(yintercept = 0, color = "grey50") +
   ggplot2::geom_boxplot() +
+  ggplot2::stat_summary(
+    ggplot2::aes(label = round(..y.., 2)),
+    fun.y = "mean",
+    position = ggplot2::position_dodge(width = 1.2),
+    geom = "text",
+    vjust = -1
+  ) +
   ggplot2::facet_grid(stream ~ sex, scales = "free_y") +
-  ggplot2::labs(title = "Reproductive Success by Parental Body Length and Sex",
+  ggplot2::labs(title = "Reproductive Success by Parental Location (Intertidal) and Sex",
                 fill = "Parent: Origin",
                 x = "Stream Location: Intertidal vs. Upstream",
                 y = "Reproductive Success") +
@@ -896,7 +945,7 @@ View how RS varies by parent sample location within the stream (river segment).
 
 ```{r RS_by_riverdist_seg_gilmour, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5}
 # Females and males separated
-paired_14_16_filter_parents %>%
+paired_16_18_filter_parents %>%
   dplyr::filter(stream == "Gilmour",
                 !is.na(riverdist_seg)) %>% 
   dplyr::mutate(river_seg = factor(riverdist_seg)) %>% 
@@ -904,13 +953,20 @@ paired_14_16_filter_parents %>%
   tidyr::pivot_wider(names_from = origin, values_from = n_par)
 
 
-paired_14_16_filter_parents %>%
+paired_16_18_filter_parents %>%
   dplyr::filter(stream == "Gilmour",
                 !is.na(riverdist_seg)) %>% 
   dplyr::mutate(river_seg = factor(riverdist_seg)) %>% 
   ggplot2::ggplot(aes(x = river_seg, y = n, fill = origin)) +
   ggplot2::geom_hline(yintercept = 0, color = "grey50") +
   ggplot2::geom_boxplot() +
+  ggplot2::stat_summary(
+    ggplot2::aes(label = round(..y.., 2)),
+    fun.y = "mean",
+    position = ggplot2::position_dodge(width = 1.2),
+    geom = "text",
+    vjust = -1
+  ) +
   ggplot2::facet_grid(stream ~ sex, scales = "free_y") +
   ggplot2::labs(title = "Reproductive Success by River Segment and Sex: Gilmour",
                 fill = "Parent: Origin",
@@ -925,7 +981,7 @@ paired_14_16_filter_parents %>%
 
 ```{r RS_by_riverdist_seg_stockdale, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5}
 # Females and males separated
-paired_14_16_filter_parents %>%
+paired_16_18_filter_parents %>%
   dplyr::filter(stream == "Stockdale",
                 !is.na(riverdist_seg)) %>% 
   dplyr::mutate(river_seg = factor(riverdist_seg)) %>% 
@@ -933,13 +989,20 @@ paired_14_16_filter_parents %>%
   tidyr::pivot_wider(names_from = origin, values_from = n_par)
 
 
-paired_14_16_filter_parents %>%
+paired_16_18_filter_parents %>%
   dplyr::filter(stream == "Stockdale",
                 !is.na(riverdist_seg)) %>% 
   dplyr::mutate(river_seg = factor(riverdist_seg)) %>% 
   ggplot2::ggplot(aes(x = river_seg, y = n, fill = origin)) +
   ggplot2::geom_hline(yintercept = 0, color = "grey50") +
   ggplot2::geom_boxplot() +
+  ggplot2::stat_summary(
+    ggplot2::aes(label = round(..y.., 2)),
+    fun.y = "mean",
+    position = ggplot2::position_dodge(width = 1.2),
+    geom = "text",
+    vjust = -1
+  ) +
   ggplot2::facet_grid(stream ~ sex, scales = "free_y") +
   ggplot2::labs(title = "Reproductive Success by River Segment and Sex: Stockdale",
                 fill = "Parent: Origin",
@@ -954,7 +1017,7 @@ paired_14_16_filter_parents %>%
 
 ```{r RS_by_riverdist_seg_paddy, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5}
 # Females and males separated
-paired_14_16_filter_parents %>%
+paired_16_18_filter_parents %>%
   dplyr::filter(stream == "Paddy",
                 !is.na(riverdist_seg)) %>% 
   dplyr::mutate(river_seg = factor(riverdist_seg)) %>% 
@@ -962,13 +1025,20 @@ paired_14_16_filter_parents %>%
   tidyr::pivot_wider(names_from = origin, values_from = n_par)
 
 
-paired_14_16_filter_parents %>%
+paired_16_18_filter_parents %>%
   dplyr::filter(stream == "Paddy",
                 !is.na(riverdist_seg)) %>% 
   dplyr::mutate(river_seg = factor(riverdist_seg)) %>% 
   ggplot2::ggplot(aes(x = river_seg, y = n, fill = origin)) +
   ggplot2::geom_hline(yintercept = 0, color = "grey50") +
   ggplot2::geom_boxplot() +
+  ggplot2::stat_summary(
+    ggplot2::aes(label = round(..y.., 2)),
+    fun.y = "mean",
+    position = ggplot2::position_dodge(width = 1.2),
+    geom = "text",
+    vjust = -0.2
+  ) +
   ggplot2::facet_grid(stream ~ sex, scales = "free_y") +
   ggplot2::labs(title = "Reproductive Success by River Segment and Sex: Paddy",
                 fill = "Parent: Origin",
@@ -981,15 +1051,96 @@ paired_14_16_filter_parents %>%
 
 #### *RS by pre-spawn*
 
-Unfortunately, data on pre-spawn status was not collected in 2014.
+View how RS varies by pre-spawning state within the stream (TRUE or FALSE).
+
+**NOTE** the y-axis varies among streams to facilitate visualizing patterns, labels indicate mean values.
+```{r RS_by_prespawn, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10}
+# Females and males separated
+paired_16_18_filter_parents %>%
+  dplyr::filter(!is.na(pre_spawn)) %>%
+  ggplot2::ggplot(ggplot2::aes(x = pre_spawn, y = n, fill = origin)) +
+  ggplot2::geom_hline(yintercept = 0, color = "grey50") +
+  ggplot2::geom_boxplot() +
+  ggplot2::stat_summary(
+    ggplot2::aes(label = round(..y.., 2)),
+    fun.y = "mean",
+    position = ggplot2::position_dodge(width = 1.2),
+    geom = "text",
+    vjust = -1
+  ) +
+  ggplot2::facet_grid(stream ~ sex, scales = "free_y") +
+  ggplot2::labs(title = "Reproductive Success by Pre-spawn Status and Sex",
+                fill = "Parent: Origin",
+                x = "Pre-spawn Mortality?",
+                y = "Reproductive Success") +
+  ggplot2::theme_bw() +
+  # ggplot2::theme(panel.grid.minor = element_blank()) +
+  ggplot2::scale_fill_manual(values = cbPalette2)
+```
+
+**Results:** Trends vary by stream, but in general, RS is higher for fish that were not marked as pre-spawn mortality.
 
 #### *RS by partial-spawn*
 
-Unfortunately, data on prartial-spawn status was not collected in 2014.
+View how RS varies by partial-spawning state within the stream (TRUE or FALSE).
+
+**NOTE** the y-axis varies among streams to facilitate visualizing patterns, labels indicate mean values.
+```{r RS_by_partialspawn, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10}
+# Females and males separated
+paired_16_18_filter_parents %>%
+  dplyr::filter(!is.na(partial_spawn)) %>%
+  ggplot2::ggplot(ggplot2::aes(x = partial_spawn, y = n, fill = origin)) +
+  ggplot2::geom_hline(yintercept = 0, color = "grey50") +
+  ggplot2::geom_boxplot() +
+  ggplot2::stat_summary(
+    ggplot2::aes(label = round(..y.., 2)),
+    fun.y = "mean",
+    position = ggplot2::position_dodge(width = 1.2),
+    geom = "text",
+    vjust = -1
+  ) +
+  ggplot2::facet_grid(stream ~ sex, scales = "free_y") +
+  ggplot2::labs(title = "Reproductive Success by Partial-spawn Status and Sex",
+                fill = "Parent: Origin",
+                x = "Partial-spawn Mortality?",
+                y = "Reproductive Success") +
+  ggplot2::theme_bw() +
+  # ggplot2::theme(panel.grid.minor = element_blank()) +
+  ggplot2::scale_fill_manual(values = cbPalette2)
+```
+
+**Results:** Trends vary by stream, but in general, RS is higher for fish that were not marked as partial-spawn mortality.
 
 #### *RS by preyed-upon*
 
-Unfortunately, data on preyed-upon status was not collected in 2014.
+View how RS varies by partial-spawning state within the stream (TRUE or FALSE).
+
+**NOTE** the y-axis varies among streams to facilitate visualizing patterns, labels indicate mean values.
+```{r RS_by_preyed_upon, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10}
+# Females and males separated
+paired_16_18_filter_parents %>%
+  dplyr::filter(!is.na(preyed_upon)) %>%
+  ggplot2::ggplot(ggplot2::aes(x = preyed_upon, y = n, fill = origin)) +
+  ggplot2::geom_hline(yintercept = 0, color = "grey50") +
+  ggplot2::geom_boxplot() +
+  ggplot2::stat_summary(
+    ggplot2::aes(label = round(..y.., 2)),
+    fun.y = "mean",
+    position = ggplot2::position_dodge(width = 1.2),
+    geom = "text",
+    vjust = -1
+  ) +
+  ggplot2::facet_grid(stream ~ sex, scales = "free_y") +
+  ggplot2::labs(title = "Reproductive Success by Preyed-upon Status and Sex",
+                fill = "Parent: Origin",
+                x = "Preyed-upon Mortality?",
+                y = "Reproductive Success") +
+  ggplot2::theme_bw() +
+  # ggplot2::theme(panel.grid.minor = element_blank()) +
+  ggplot2::scale_fill_manual(values = cbPalette2)
+```
+
+**Results:** Trends vary by stream, but in general, RS is higher for fish that were not marked as preyed-upon mortality.
 
 ## Parent pair-offspring trios (triads)
 
@@ -1000,13 +1151,13 @@ Because we have numerous individuals assigned two parents, we examined instances
 Need to reformat data so that we have **one row per offspring**, with both `sire` and `dam` data preserved.
 ```{r cross_as_new_grouping_variable, echo=FALSE, warning=FALSE, message=FALSE}
 # Which offspring have 2 parents?
-triads_14_16 <- parents_paired_14_16 %>% 
+triads_16_18 <- parents_paired_16_18 %>% 
   dplyr::filter(parent == "Parent 2") %>% 
   dplyr::pull(offspring_id)
 
 (
-  parents_paired_14_16_cross <- parents_paired_14_16 %>%
-    dplyr::filter(offspring_id %in% triads_14_16) %>%
+  parents_paired_16_18_cross <- parents_paired_16_18 %>%
+    dplyr::filter(offspring_id %in% triads_16_18) %>%
     dplyr::select(-parent) %>% # drop "Parent 1" and "Parent 2", replace with dam/sire
     dplyr::mutate(
       relationship = dplyr::case_when(sex_par == "Male" ~ "sire",
@@ -1037,29 +1188,29 @@ triads_14_16 <- parents_paired_14_16 %>%
     )
 )
 
-rm(triads_14_16)
+rm(triads_16_18)
 
-readr::write_csv(x = parents_paired_14_16_cross, file = "all_streams_parents_paired_14_16_cross.csv")
+readr::write_csv(x = parents_paired_16_18_cross, file = "all_streams_parents_paired_16_18_cross.csv")
 ```
 
 Verify that parents were sampled in the same stream.
 ```{r parents_from_same_stream}
-all(parents_paired_14_16_cross$stream_dam == parents_paired_14_16_cross$stream_sire)
+all(parents_paired_16_18_cross$stream_dam == parents_paired_16_18_cross$stream_sire)
 ```
 
 ### RS for cross types
 
 Great, now need to reformat data so that we have **one row per unique mating**, with both `sire` and `dam` data preserved, count number of offspring.
-```{r paired_14_16_filter_cross}
+```{r paired_16_18_filter_cross}
 # Join to get 1 row per unique mating with dam/sire data
 (
-  paired_14_16_filter_cross <- parents_paired_14_16_cross %>%
+  paired_16_18_filter_cross <- parents_paired_16_18_cross %>%
     dplyr::select(-c(
       offspring_id, tidyselect::contains("_off")
     )) %>%
     dplyr::distinct() %>%  # drop to one row per mating
     dplyr::left_join(x = .,
-                     y = dplyr::count(parents_paired_14_16_cross, mating_id),
+                     y = dplyr::count(parents_paired_16_18_cross, mating_id),
                      by = "mating_id") %>%  # join in n_offspring
     dplyr::rename(stream = stream_dam,
                   year = year_dam) %>%
@@ -1074,19 +1225,19 @@ Great, now need to reformat data so that we have **one row per unique mating**, 
     )
 )
 
-readr::write_csv(x = paired_14_16_filter_cross, file = "all_streams_paired_14_16_filter_cross.csv")
+readr::write_csv(x = paired_16_18_filter_cross, file = "all_streams_paired_16_18_filter_cross.csv")
 ```
 
-**Results:** We have **728** unique matings documented among the five fitness streams for 2014.
+**Results:** We have **617** unique matings documented among the five fitness streams for 2016.
 
 Calculate mean RS by stream and cross type
 ```{r calculate_RS_cross, echo=FALSE, warning=FALSE, message=FALSE}
 # Mean RS, including zeroes
-rs_14_16_cross <- paired_14_16_filter_cross %>%
+rs_16_18_cross <- paired_16_18_filter_cross %>%
   dplyr::group_by(stream, cross_type) %>% 
   dplyr::summarise(RS = mean(n, na.rm = TRUE), .groups = "drop")
 
-rs_14_16_cross %>%
+rs_16_18_cross %>%
   tidyr::pivot_wider(names_from = cross_type,
                      values_from = RS,
                      names_prefix = "RS_") %>%
@@ -1098,22 +1249,22 @@ rs_14_16_cross %>%
   dplyr::mutate(dplyr::across(where(is.numeric), round, 2))
 ```
 
-**Results:** For Erb, Gilmour, and Stockdale, we see that HH crosses have the lowest RRS, with HN and NH crosses intermediate to NN. This is not observed in Hogan or Paddy, however, samples sizes for Hogan are very small, and dyad-RRS in Paddy was non-significant for males.
+**Results:** RRS values by cross type are a bit all over the place, but looking at the sample sizes below, that isn't terribly surprising given the pretty sparse sample sizes by cross type.
 
 #### Samples sizes
 
 How many unique matings occurred by cross type and stream?
 ```{r n_matings by cross}
-paired_14_16_filter_cross %>%
+paired_16_18_filter_cross %>%
   dplyr::count(stream, cross_type, name = "n_mating") %>%
   tidyr::pivot_wider(names_from = cross_type, values_from =  n_mating)
 ```
 
-**Results:** Sample sizes of familys (matings) by cross type are fairly small, especially in Hogan.
+**Results:** Sample sizes of families (matings) by cross type are fairly small, especially for non-NN crosses.
 
 How many offspring where assigned to each cross type and stream?
 ```{r n_offspring by cross}
-paired_14_16_filter_cross %>% 
+paired_16_18_filter_cross %>% 
   dplyr::group_by(stream, cross_type) %>% 
   dplyr::summarise(n = sum(n), .groups = "drop") %>% 
   tidyr::pivot_wider(names_from = cross_type, values_from =  n)
@@ -1124,7 +1275,7 @@ paired_14_16_filter_cross %>%
 This plot does **not** include zeroes, because we can not infer a cross occurred unless offspring are assigned.
 ```{r family_size_by_cross, echo=FALSE, warning=FALSE, message=FALSE, fig.height=10}
 # Plot histogram of proportion of all parents with a given family size
-paired_14_16_filter_cross %>% 
+paired_16_18_filter_cross %>% 
   dplyr::count(stream, cross_type, n, name = "n_mating") %>% 
   dplyr::group_by(stream, cross_type) %>% 
   dplyr::mutate(p = n_mating / sum(n_mating)) %>% 
@@ -1147,7 +1298,7 @@ paired_14_16_filter_cross %>%
 
 Caclulcate RRS by stream and cross type, all relative to NN.
 ```{r calculate RRS by cross type}
-rs_14_16_cross %>%
+rs_16_18_cross %>%
   tidyr::pivot_wider(names_from = cross_type,
                      values_from = RS,
                      names_prefix = "RS_") %>%
@@ -1165,7 +1316,7 @@ rs_14_16_cross %>%
   dplyr::mutate(dplyr::across(where(is.numeric), round, 2))
 ```
 
-**Results:** RRS estimates are < 1 for all streams, although some estimates are likely not significantly < 1.
+**Results:** RRS estimates are not necessarily < 1 for all streams, although sample sizes for non-NN cross types are pretty low.
 
 #### *RRS plus 95% CIs for cross types*
 
@@ -1173,7 +1324,7 @@ rs_14_16_cross %>%
 
 Calculate RRS with 95% CI's
 ```{r RRS_confidence_intervals_by_cross_type_HH}
-paired_14_16_filter_cross %>%
+paired_16_18_filter_cross %>%
   dplyr::filter(cross_type %in% c("HH", "NN")) %>% 
   dplyr::rename(n_off = n) %>%
   dplyr::group_by(stream, cross_type) %>%
@@ -1205,13 +1356,13 @@ paired_14_16_filter_cross %>%
   dplyr::mutate(dplyr::across(where(is.numeric), round, 2))
 ```
 
-**Results:** RRS estimates are significant (upper 95% CI does not contain 1) for Erb and Gilmour, with Stockdale really darn close.
+**Results:** None of these RRS results are significant, low sample size of families + high variance in family size.
 
 ##### HN/NN
 
 Calculate RRS with 95% CI's
 ```{r RRS_confidence_intervals_by_cross_type_HN}
-paired_14_16_filter_cross %>%
+paired_16_18_filter_cross %>%
   dplyr::filter(cross_type %in% c("HN", "NN")) %>% 
   dplyr::rename(n_off = n) %>%
   dplyr::group_by(stream, cross_type) %>%
@@ -1243,13 +1394,13 @@ paired_14_16_filter_cross %>%
   dplyr::mutate(dplyr::across(where(is.numeric), round, 2))
 ```
 
-**Results:** RRS estimates are significant (upper 95% CI does not contain 1) only Gilmour.
+**Results:** None of these RRS results are significant, low sample size of families + high variance in family size.
 
 ##### NH/NN
 
 Calculate RRS with 95% CI's
 ```{r RRS_confidence_intervals_by_cross_type_NH}
-paired_14_16_filter_cross %>%
+paired_16_18_filter_cross %>%
   dplyr::filter(cross_type %in% c("NH", "NN")) %>% 
   dplyr::rename(n_off = n) %>%
   dplyr::group_by(stream, cross_type) %>%
@@ -1281,7 +1432,7 @@ paired_14_16_filter_cross %>%
   dplyr::mutate(dplyr::across(where(is.numeric), round, 2))
 ```
 
-**Results:** RRS estimates are not significant (upper 95% CI does not contain 1) for any of the streams.
+**Results:** None of these RRS results are significant, low sample size of families + high variance in family size.
 
 # **Mating dynamics**
 
@@ -1290,7 +1441,7 @@ We already verified that all of our matings took place between dams and sires th
 ## Sire vs. Dam sample date
 
 ```{r dam_v_sire_sample_date, fig.height = 10}
-paired_14_16_filter_cross %>% 
+paired_16_18_filter_cross %>% 
   ggplot2::ggplot(aes(x = date_dam, y = date_sire, fill = cross_type)) +
   ggplot2::geom_jitter(
     height = 0,
@@ -1317,7 +1468,7 @@ paired_14_16_filter_cross %>%
 ## Sire vs. Dam sample location
 
 ```{r dam_v_sire_sample_location, fig.height = 10}
-paired_14_16_filter_cross %>% 
+paired_16_18_filter_cross %>% 
   ggplot2::ggplot(aes(x = distance_mouth_dam, y = distance_mouth_sire, fill = cross_type)) +
   ggplot2::geom_jitter(
     height = 0,
@@ -1345,14 +1496,14 @@ paired_14_16_filter_cross %>%
 We set out to discover who is mating with whom and when. We know multiple matings occur, but we want to understand whether it's males and/or females that have multiple partners. We thus set out to assess promiscuity within the sexes. We next calculated the number of mates for each known female and male parent (dams and sires).
 ```{r multiple_matings, echo=FALSE, warning=FALSE, message=FALSE}
 # How many dams had multiple sires
-dam_promiscuity <- parents_paired_14_16_cross %>% 
+dam_promiscuity <- parents_paired_16_18_cross %>% 
   dplyr::group_by(parent_id_dam) %>% 
   dplyr::summarise(n_sires = n_distinct(parent_id_sire)) %>% 
   dplyr::count(n_sires) %>% 
   dplyr::rename(n_mates = n_sires, n_dams = n)
 
 # How many sires had multiple dams
-sire_promiscuitiy <- parents_paired_14_16_cross %>% 
+sire_promiscuitiy <- parents_paired_16_18_cross %>% 
   dplyr::group_by(parent_id_sire) %>% 
   dplyr::summarise(n_dams = n_distinct(parent_id_dam)) %>% 
   dplyr::count(n_dams) %>% 
@@ -1368,7 +1519,7 @@ rm(dam_promiscuity, sire_promiscuitiy)
 
 How many offspring had parent from each stream?
 ```{r n_offspring_by_parent_stream}
-parents_paired_14_16 %>%
+parents_paired_16_18 %>%
   dplyr::filter(parent == "Parent 1") %>% 
   dplyr::mutate(
     stream_par = base::factor(
@@ -1384,17 +1535,17 @@ parents_paired_14_16 %>%
   tidyr::pivot_wider(names_from = stream_off, values_from = n)
 ```
 
-**Results:** Geographic patterns of straying among streams make sense. Paddy and Erb are mainland populations that are fairly close together, and Gilmour and Stockdale are very close together on Montague Island. Hogan definitely seems like an "attractor" stream, receiving strays from all five study streams (and super high pHOS).
+**Results:** Geographic patterns of straying among streams make sense. Paddy and Erb are mainland populations that are fairly close together, and Gilmour and Stockdale are very close together on Montague Island. Hogan definitely seems like an "attractor" stream, receiving strays from all five study streams (and relatively high pHOS).
 
 Filter for parents that produced strays and determine how many of their offspring strayed.
 ```{r how_many_strays}
-parents_produce_strays <- parents_paired_14_16 %>%
+parents_produce_strays <- parents_paired_16_18 %>%
   dplyr::filter(parent == "Parent 1",
                 stream_par != stream_off) %>%
   dplyr::distinct(parent_id) %>%
   dplyr::pull()
 
-parents_paired_14_16 %>% 
+parents_paired_16_18 %>% 
   dplyr::filter(parent_id %in% parents_produce_strays) %>% 
   dplyr::group_by(parent_id, stream_par, origin_par) %>% 
   dplyr::summarise(n_home = sum(stream_par == stream_off),
@@ -1403,7 +1554,7 @@ parents_paired_14_16 %>%
   dplyr::mutate(n_off = sum(n_home, n_stray),
                 p_stray = n_stray / n_off) 
 
-parents_paired_14_16 %>% 
+parents_paired_16_18 %>% 
   dplyr::filter(parent_id %in% parents_produce_strays) %>% 
   dplyr::group_by(parent_id, stream_par, origin_par) %>% 
   dplyr::summarise(n_home = sum(stream_par == stream_off),
@@ -1419,9 +1570,11 @@ parents_paired_14_16 %>%
 rm(parents_produce_strays)
 ```
 
+Neat to see that sibling groups do not all tend to stray together, typically just 1 or 2 fish from a given parent end up straying. Keep in mind, that these aren't "stray rates" since sampling proportion varies across streams (and thus the probability of detection!).
+
 Compare to how many total offspring assigned back to parents from each stream.
 ```{r n_offspring_by_origin_total}
-parents_paired_14_16 %>% 
+parents_paired_16_18 %>% 
   dplyr::count(stream_par, origin_par) %>% 
   tidyr::pivot_wider(names_from = origin_par, values_from = n)
 ```
@@ -1430,15 +1583,15 @@ parents_paired_14_16 %>%
 
 # **Summary of Results**
 
-## 2014-2016 (Parentage)
+## 2016-2018 (Parentage)
 
 1. Almost all exclusion probabilities were equal to 1, which means we can be confident in the ability of our marker set to correctly assign parents to offspring.  
-2. 7,988 out of 27,935 offspring were assigned to 2,207 distince parents, for an overall assignment rate of 28.6%.
-4. RRS point estimates ranged from 0.29-0.96 for males and 0.34-0.88 for females. RRS estimates were statistically significant (95% CI did not contain 1) for all combinations, except Gilmour-female and Paddy-male.  
-5. All four crosses were represented (HH, NH, HN, and NN), but cross type RS relative to the NN were only significantly less than 1 for HH/NN for Erb, Gilmour, and almost Stockdale.  
+2. 6,412 out of 25,926 offspring were assigned to 2,925 distinct parents, for an overall assignment rate of 28.6%.
+4. RRS point estimates ranged from 0.30-1.01 for males and 0.45-1.31 for females. RRS estimates were statistically significant (95% CI did not contain 1) for all combinations, except Stockdale and Gilmour for males, and Gilmour and Paddy for females.  
+5. All four crosses were represented (HH, NH, HN, and NN), but cross type RS relative to the NN were not significant, largely due to small sample sizes of families.  
 
 ```{r}
-save.image("2_Parentage_All_Streams_2014_2016_develop_20220212.RData")
+save.image("2_Parentage_All_Streams_2016_2018_develop_20220527.RData")
 ```
 
 End
