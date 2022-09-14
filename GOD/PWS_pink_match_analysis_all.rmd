@@ -43,7 +43,10 @@ DNA was extracted from left-side or unknown otolith tissues of unknown origin us
 ```{r}
 .username <- ""
 .password <- ""
+```
 
+
+```{r}
 loci <- dget("../../Objects/loci298.txt") # saved list of loci
 
 CreateLocusControl.GCL(locusnames = loci, username = .username, password = .password)
@@ -130,20 +133,20 @@ PPADDY18_fish_ids <- oceanak_affected_DWPs %>%
   pull(FISH_ID)
 ```
 
-PERB15: 624
-PERB16: 2592
-PERB17: 240
+PERB15: 720
+PERB16: 3009
+PERB17: 1056
 PERB18: 0
-PGILMOUR15: 2466
-PGILMOUR16: 2112
-PGILMOUR17: 3008
-PGILMOUR18: 1091
+PGILMOUR15: 2946
+PGILMOUR16: 2736
+PGILMOUR17: 3667
+PGILMOUR18: 1311
 PPADDY15: 0
-PPADDY16: 1944
+PPADDY16: 2137
 PPADDY17: 0
 PPADDY18: 0
+Sum: 17,582
 
-# ---------------------------------------- 
 ```{r}
 # Project SILLYs by individuals in a SILLY per affected DWP
 # Comment out those SILLYs that have empty fish_ids above
@@ -165,7 +168,11 @@ unused_PERB16_fish_ids <- all_PERB16_fish_ids[!(all_PERB16_fish_ids %in% PERB16_
 RemoveIDs.GCL(silly = "PERB16", IDs = unused_PERB16_fish_ids)
 
 PERB17 <- "PERB17"
-LOKI2R_ind.GCL(sillyvec = PERB17, fish_ids = PERB17_fish_ids, username = .username, password = .password)
+# LOKI2R_ind.GCL(sillyvec = PERB17, fish_ids = PERB17_fish_ids, username = .username, password = .password)
+LOKI2R.GCL(sillyvec = PERB17, username = .username, password = .password)
+all_PERB17_fish_ids <- PERB17.gcl$attributes$FK_FISH_ID
+unused_PERB17_fish_ids <- all_PERB17_fish_ids[!(all_PERB17_fish_ids %in% PERB17_fish_ids)]
+RemoveIDs.GCL(silly = "PERB17", IDs = unused_PERB17_fish_ids)
 
 # PERB18 <- "PERB18"
 # LOKI2R_ind.GCL(sillyvec = PERB18, fish_ids = PERB18_fish_ids, username = .username, password = .password)
@@ -218,7 +225,6 @@ RemoveIDs.GCL(silly = "PPADDY16", IDs = unused_PPADDY16_fish_ids)
 ```{r}
 rm(.username, .password)
 ```
-
 
 Create new directories and save objects
 
@@ -277,7 +283,7 @@ TestQCPercentbyLocus %>%
     labs(fill = "Percent\ngenotyped")
 ```
 
-**0 / 298** loci failed; rates >18% (see table).
+**0 / 298** loci failed; rates >17% (see table).
 
 ## QA project genotypes
 
@@ -285,7 +291,7 @@ TestQCPercentbyLocus %>%
 
 #### Remove fails and dupes
 
-Need to remove any particularly egregious otos, so let's see how badly they genotyped. 
+Let's see how badly the otoliths genotyped. 
 
 ```{r}
 PGOD21.gcl$counts[, , 1] %>% 
@@ -296,9 +302,9 @@ PGOD21.gcl$counts[, , 1] %>%
   arrange(desc(proportion_missing))
 ```
 
-There are 8,627 total otos in PGOD21, some of which failed, but we need to keep as many as possible. 
+There are 10,791 total otos in PGOD21, some of which failed, although we need to keep as many as possible. 
 
-Plot a histogram of proportion missing.
+Histogram of proportion missing
 ```{r}
 PGOD21.gcl$counts[, , 1] %>% 
   as_tibble(rownames = "fish_id") %>% 
@@ -311,7 +317,7 @@ PGOD21.gcl$counts[, , 1] %>%
   ggtitle("% Locus Failure Rate by Fish in PGOD21")
 ```
 
-We will retain the 15% cutoff (85% retention) from the initial rounds, giving us a minimum of 45 loci that must be genotyped. The internal duplicate rate check will remain at 99%. 
+We will retain the 15% cutoff (85% retention) from the initial rounds, giving us a minimum of 45 loci that must be genotyped. The internal duplicate rate check will be 99%. 
 
 ```{r}
 PGOD21_SampleSizes <- matrix(
@@ -369,9 +375,9 @@ PGOD21_SampleSizes[, "Final"] <- ColSizePostDuplicate
 PGOD21_SampleSizes
 ```
 
-We have 8,243 / 8,627 otoliths remaining, with 376 failing the missingness and eight failing the duplicate rate filters.
+We have 10,260 / 10,791 otoliths remaining, with 522 failing the missingness and 9 failing the duplicate rate filters.
 
-**NOTE** Similar to the normal AHRP samples, we'll want to remove **BOTH** duplicates, if they show up, since we won't know which one identifies back to the heart genotype. The function `RemoveDups.GCL` only removes 1 of the duplicates, and we need to manually remove the other.
+**NOTE** We need to remove both duplicates, however, since we won't know which one is the true match to the heart genotype. The function `RemoveDups.GCL` only removes one (above), and we manually remove the other.
 
 ```{r}
 (
@@ -388,7 +394,7 @@ We have 8,243 / 8,627 otoliths remaining, with 376 failing the missingness and e
 RemoveIDs.GCL(silly = "PGOD21", IDs = duplicates_to_remove)
 ```
 
-There are 8,235 otos going forward.
+There should now be 10,251 otos going forward.
 
 #### Final set
 
@@ -509,9 +515,42 @@ OGSillys_SampleSizes[, "Final"] <- ColSizePostDuplicate
 OGSillys_SampleSizes
 ```
 
-Losing more as expected due to missingness. One dupe in each of PERB16 and PGILMOUR15.
+# ------------------REMOVE HETS----------------------------
 
-# ------------------REMOVE HET >0.5----------------------------
+Visualize
+
+```{r}
+Ho_qc_PERB15 <- Ho_qc(PERB15.gcl$counts[ , , 1])
+Ho_qc_plot(Ho_qc_PERB15)
+
+Ho_qc_PERB16 <- Ho_qc(PERB16.gcl$counts[ , , 1])
+Ho_qc_plot(Ho_qc_PERB16)
+
+Ho_qc_PERB17 <- Ho_qc(PERB17.gcl$counts[ , , 1])
+Ho_qc_plot(Ho_qc_PERB17)
+
+Ho_qc_PGILMOUR15 <- Ho_qc(PGILMOUR15.gcl$counts[ , , 1])
+Ho_qc_plot(Ho_qc_PGILMOUR15)
+
+Ho_qc_PGILMOUR16 <- Ho_qc(PGILMOUR16.gcl$counts[ , , 1])
+Ho_qc_plot(Ho_qc_PGILMOUR16)
+
+Ho_qc_PGILMOUR17 <- Ho_qc(PGILMOUR17.gcl$counts[ , , 1])
+Ho_qc_plot(Ho_qc_PGILMOUR17)
+
+Ho_qc_PGILMOUR18 <- Ho_qc(PGILMOUR18.gcl$counts[ , , 1])
+Ho_qc_plot(Ho_qc_PGILMOUR18)
+
+Ho_qc_PPADDY16 <- Ho_qc(PPADDY16.gcl$counts[ , , 1])
+Ho_qc_plot(Ho_qc_PPADDY16)
+```
+
+Remove according to 1.5 IQR cutoff
+
+```{r}
+
+```
+
 
 ### Final sample sizes (reiterated)
 
@@ -542,14 +581,14 @@ write_csv(PGOD21_DWPs, "PGOD21_DWPs_091222.csv") # change date
  
 # copied SILLY_CODE column in PGOD21_DWPs.csv to OG_SILLY_CODE, trimmed all columns to correct length, saved as new csv, and uploaded
 # PGOD21_DWPs_and_SILLYs <- read_csv("PGOD21_DWPs_and_SILLYs_042721.csv") 
-PGOD21_DWPs_and_SILLYs <- read_csv("PGOD21_DWPs_and_SILLYs_trimmed_091222.csv")
+PGOD21_DWPs_and_SILLYs <- read_csv("PGOD21_DWPs_and_SILLYs_trimmed_091322.csv")
 
 attributes_xfer_and_SILLY_PGOD21 <- attributes_and_xfer_PGOD21 
 attributes_xfer_and_SILLY_PGOD21$OG_SILLY_CODE <- PGOD21_DWPs_and_SILLYs$OG_SILLY_CODE
 
 new_PGOD21_attributes_and_SILLY <- left_join(PGOD21.gcl$attributes, attributes_xfer_and_SILLY_PGOD21, by = "SillySource")
 
-write_csv(new_PGOD21_attributes_and_SILLY, "new_PGOD21_attributes_and_SILLY_091222.csv")
+write_csv(new_PGOD21_attributes_and_SILLY, "new_PGOD21_attributes_and_SILLY_091322.csv")
 
 # break down new_PGOD21_attributes_and_SILLY into individual DWPs
 # NOTE: need to figure out a loop based on PGOD21_DWPs
