@@ -1,0 +1,82 @@
+---
+title: "All Streams 2014/2016 PostQA Genotypes for Sam May"
+subtitle: "Make singleton-SNP, try Sequoia"
+author: "Kyle Shedd"
+date: "13 September 2022"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(DT)
+library(abind)
+bbind <- function(...) { abind(..., along = 3) }
+
+.username = readLines("~/../R/usr_pw.txt", n = 1)
+.password = readLines("~/../R/usr_pw.txt" , n = 2)[[2]]
+source("~/../R/Functions.GCL.R")  # develop branch!!!
+```
+
+Load PostQA Genotypes
+```{r}
+load_sillys(path = "~/../Desktop/Local_PWS_pinks/Genotypes/All_Streams_14_16_develop/OceanAK_Origin_PostQA/")
+load_objects(path = "~/../Desktop/Local_PWS_pinks/")
+```
+
+Sillys
+```{r}
+(sillys = stringr::str_remove(string = objects(pattern = "\\.gcl"), pattern = "\\.gcl"))
+```
+
+Pool and glimpse
+```{r}
+PoolCollections.GCL(collections = sillys, newname = "all_streams_2014_2016")
+glimpse(all_streams_2014_2016.gcl)
+```
+
+Reformat
+```{r}
+(all_streams_2014_2016_for_Sam_May.gcl <- all_streams_2014_2016.gcl %>%
+  tidyr::separate(
+    col = SillySource,
+    into = c("Silly", "FishID"),
+    sep = "_",
+    remove = FALSE
+  ) %>%
+  dplyr::select(
+    SillySource,
+    Silly,
+    FishID,
+    CAPTURE_LOCATION,
+    CAPTURE_DATE,
+    DNA_TRAY_CODE,
+    DNA_TRAY_WELL_CODE,
+    DNA_TRAY_WELL_POS,
+    tidyselect::starts_with("Ogo_")
+  ))
+```
+
+Save as .txt
+```{r}
+save_sillys(sillyvec = "all_streams_2014_2016_for_Sam_May", 
+            path = "~/../Desktop/Local_PWS_pinks/Genotypes/All_Streams_14_16_develop/OceanAK_Origin_PostQA/",
+            rds = FALSE)
+```
+
+Save as .rds
+```{r}
+save_sillys(sillyvec = "all_streams_2014_2016_for_Sam_May",
+            path = "~/../Desktop/Local_PWS_pinks/Genotypes/All_Streams_14_16_develop/OceanAK_Origin_PostQA/",
+            rds = TRUE)
+```
+
+The end
