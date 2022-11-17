@@ -1,0 +1,274 @@
+---
+title: "PWS Pink Salmon Run Timing"
+subtitle: "Look at AHRP Fitness Streams for Sample Date by Stream, Sex, and Origin"
+author: "Kyle Shedd & Kristen Gruenthal"
+date: "Started: 2022-11-10, last opened: `r Sys.Date()`"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+
+if(!require("pacman")) install.packages("pacman"); library(pacman)
+
+pacman::p_load(
+  tidyverse,
+  lubridate
+)
+
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Objective
+
+The purpose of this notebook is to take a quick look at "run timing" using sample date as a proxy. I'm planning to replicate my AK AFS 2022 density plots for the 2014 samples, but for all years and derive some summary statistics, such as the difference in mean (or mode) sample date between hatchery- and natural-origin samples. These summaries could help inform Sam May's model parameterization.
+
+# Import Data
+
+```{r}
+(oceanak_og <- readr::read_csv("~/../Desktop/Local_PWS_pinks/OceanAK/AHRP Salmon Biological Data 20220511_174609.csv"))
+```
+
+# Manipulate Data
+
+Reformat data so it is more pleasing to the eye and more appropriately behaved (i.e., dates).
+```{r}
+(
+  oceanak <- oceanak_og %>%
+    # dplyr::filter(TISSUE_TYPE == "Heart-bulbus arteriosus") %>%
+    dplyr::rename(
+      silly = SILLY_CODE,
+      fish_id = FISH_ID,
+      tissue_type = TISSUE_TYPE,
+      dwp_barcode = DNA_TRAY_CODE,
+      dwp_well = DNA_TRAY_WELL_CODE,
+      sample_date = SAMPLE_DATE,
+      sex = SEX,
+      length_mm_meh = LENGTH_MM,
+      otolith_mark_present = OTOLITH_MARK_PRESENT,
+      otolith_mark_id = OTOLITH_MARK_ID
+    ) %>%
+    dplyr::mutate(
+      sample_date = lubridate::ymd(sample_date),
+      hatchery = dplyr::case_when(
+        !is.na(otolith_mark_id) ~ stringr::str_sub(
+          string = otolith_mark_id,
+          start = 1,
+          end = 3
+        ),
+        TRUE ~ otolith_mark_id
+      ),
+      origin = dplyr::case_when(
+        otolith_mark_present == "NO" ~ "natural",
+        otolith_mark_present == "YES" ~ "hatchery"
+      ),
+      sex = dplyr::case_when(
+        sex == "M" ~ "male",
+        sex == "F" ~ "female",
+        sex == "U" ~ "unknown",
+        TRUE ~ sex
+      ),
+      DOY = lubridate::yday(sample_date),
+      sample_year = lubridate::year(sample_date),
+      lineage = dplyr::case_when(sample_year %% 2 == 0 ~ "even",
+                                 TRUE ~ "odd")
+    ) %>%
+    tidyr::unite(
+      col = "silly_source",
+      c(silly, fish_id),
+      sep = "_",
+      remove = FALSE
+    ) %>%
+    tidyr::unite(
+      col = "sample",
+      c(dwp_barcode, dwp_well),
+      sep = "_",
+      remove = FALSE
+    ) %>%
+    tidyr::separate(
+      col = LOCATION_CODE,
+      into = c("stream", "trash"),
+      sep = " ",
+      remove = FALSE
+    ) %>%
+    dplyr::select(
+      silly_source,
+      sample,
+      silly,
+      fish_id,
+      dwp_barcode,
+      dwp_well,
+      stream,
+      sample_year,
+      lineage,
+      sample_date,
+      DOY,
+      sex,
+      length_mm_meh,
+      origin,
+      otolith_mark_present,
+      otolith_mark_id,
+      hatchery
+    )
+)
+```
+
+# Plot
+
+Create function
+```{r}
+rm(yr)
+
+sample_date_density.f <- function(yr) {
+  oceanak %>%
+  dplyr::filter(sample_year == yr,
+                sex %in% c("male", "female"), !is.na(origin)) %>%
+  dplyr::mutate(stream = factor(
+    x = stream,
+    levels = c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale")
+  ),
+  origin = factor(x = origin, levels = c("natural", "hatchery"))) %>%
+  ggplot2::ggplot(ggplot2::aes(x = sample_date, fill = origin)) +
+  ggplot2::geom_density(alpha = 0.5, adjust = 2) +
+  ggplot2::labs(x = "Sample Date",
+                y = "Density",
+                fill = "Origin",
+                title = paste(yr)) +
+  ggplot2::facet_grid(rows = ggplot2::vars(sex), cols = ggplot2::vars(stream)) +
+  ggplot2::theme_bw(base_size = 20) +
+  ggplot2::theme(
+    # legend.position = c(0.475, 0.375),
+    legend.background = element_rect(colour = "black"),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 12),
+    legend.margin = margin(2, 2, 2, 2)
+  ) +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(
+    angle = 90,
+    hjust = 1,
+    vjust = 0.5
+  ))
+}
+```
+
+## 2013
+
+This is what bad sampling looks like...
+```{r fig.height=6, fig.width=10}
+sample_date_density.f(yr = 2013)
+```
+
+## 2014
+
+```{r fig.height=6, fig.width=10}
+sample_date_density.f(yr = 2014)
+```
+
+## 2015
+
+```{r fig.height=6, fig.width=10}
+sample_date_density.f(yr = 2015)
+```
+
+## 2016
+
+```{r fig.height=6, fig.width=10}
+sample_date_density.f(yr = 2016)
+```
+
+## 2017
+
+```{r fig.height=6, fig.width=10}
+sample_date_density.f(yr = 2017)
+```
+
+## 2018
+
+```{r fig.height=6, fig.width=10}
+sample_date_density.f(yr = 2018)
+```
+
+## 2019
+
+DROUGHT!!!
+```{r fig.height=6, fig.width=10}
+sample_date_density.f(yr = 2019)
+```
+
+## 2020
+
+```{r fig.height=6, fig.width=10}
+sample_date_density.f(yr = 2020)
+```
+
+# Summarize
+
+Means and SD by lineage, year, stream, sex, and origin.
+```{r}
+(
+  sample_date_summary <- oceanak %>%
+    dplyr::filter(sex %in% c("male", "female"), !is.na(origin)) %>%
+    dplyr::mutate(
+      stream = factor(
+        x = stream,
+        levels = c("Erb", "Paddy", "Hogan", "Gilmour", "Stockdale")
+      ),
+      origin = factor(x = origin, levels = c("natural", "hatchery"))
+    ) %>%
+    dplyr::group_by(lineage, sample_year, stream, sex, origin) %>%
+    dplyr::summarise(
+      mean_date = mean(sample_date),
+      mean_DOY = mean(DOY),
+      sd_date = sd(sample_date)
+    , .groups = "keep")
+)
+```
+
+## Plot
+
+### Mean DOY
+
+Boxplot of differences in mean sample date between hatchery and natural.
+```{r}
+sample_date_summary %>% 
+  dplyr::select(-mean_date, -sd_date) %>% 
+  tidyr::pivot_wider(names_from = origin, values_from = mean_DOY, names_prefix = "DOY_") %>% 
+  dplyr::mutate(DOY_diff = DOY_hatchery - DOY_natural) %>% 
+  ggplot2::ggplot(aes(x = lineage, y = DOY_diff, fill = sex)) +
+  ggplot2::geom_boxplot() +
+  ggplot2::scale_fill_manual(values = c("orange", "skyblue")) +
+  ggplot2::labs(title = "Difference in Mean DOY by Lineage and Sex",
+                fill = "Sex",
+                x = "Lineage",
+                y = "Difference in Mean DOY\n(hatchery - natural)") +
+  ggplot2::theme_bw(base_size = 16)
+```
+
+The mean sample date of hatchery-origin fish is **almost** always later than natural-origin fish. However, the differences in mean sample date appear to range from -2 to 11 days, with the most common difference ~ 2-3 days.
+
+### SD DOY
+
+Boxplot of differences in SD sample date between hatchery and natural.
+```{r}
+sample_date_summary %>% 
+  dplyr::select(-mean_date, -mean_DOY) %>% 
+  tidyr::pivot_wider(names_from = origin, values_from = sd_date, names_prefix = "sd_date_") %>% 
+  dplyr::mutate(sd_date_diff = sd_date_hatchery - sd_date_natural) %>% 
+  ggplot2::ggplot(aes(x = lineage, y = sd_date_diff, fill = sex)) +
+  ggplot2::geom_boxplot() +
+  ggplot2::scale_fill_manual(values = c("orange", "skyblue")) +
+  ggplot2::labs(title = "Difference in SD DOY by Lineage and Sex",
+                fill = "Sex",
+                x = "Lineage",
+                y = "Difference in SD DOY\n(hatchery - natural)") +
+  ggplot2::theme_bw(base_size = 16)
+```
+
+Hatchery-origin fish consistently have lower SD of sample date (i.e., more compressed distribution), especially in the odd lineage.
+
+End
