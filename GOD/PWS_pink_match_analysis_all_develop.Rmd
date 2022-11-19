@@ -579,7 +579,7 @@ PGOD21.gcl %>%
   dplyr::count(silly)
 ```
 
-Hrmm, still unclear as to the providence of those 1,360 otoliths. They are not in `oto_xfer_data`
+Hrmm, still unclear as to the providence of those 370 otoliths. They are not in `oto_xfer_data`
 ```{r}
 PGOD21.gcl %>% 
   dplyr::anti_join(oto_xfer_data, by = "oto_tray_and_well") %>% 
