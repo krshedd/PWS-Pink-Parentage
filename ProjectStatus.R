@@ -18,8 +18,8 @@ writeClipboard(paste(paste0("P", rep(streams, each = length(yrs)), yrs), collaps
 writeClipboard(paste(paste0("P", rep(streams, each = length(yrs)), yrs), collapse = "','"))
 
 og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP - Salmon Biological Data 2_PWS_2013-2018_no_otoliths.csv", progress = FALSE)))
-oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20201028_094948.csv")
-names(oceanak) <- og_names
+oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20221212_162324.csv")
+names(oceanak)[1:17] <- og_names
 
 # dups <- oceanak %>% 
 #   group_by(SillySource) %>% 
@@ -61,7 +61,7 @@ oceanak_mod <- oceanak  %>%
   mutate(origin = case_when(`Otolith Mark Present` == "NO" ~ "natural",
                             `Otolith Mark Present` == "YES" ~ "hatchery")) %>% 
   mutate(origin = factor(origin, levels = c("natural", "hatchery"))) %>% 
-  mutate(date = ymd(`Sample Date`))
+  mutate(date = as_date(`Sample Date`))
 
 # table of stream, year, and otolith_read
 addmargins(table(oceanak_mod$stream, oceanak_mod$year, oceanak_mod$otolith_read))
@@ -93,7 +93,7 @@ oceanak_mod %>%
 # min and max date within a year
 oceanak_mod %>% 
   group_by(year) %>% 
-  summarise(begin_date = min(date), end_date = max(date))
+  summarise(begin_date = min(yday(date)), end_date = max(yday(date)))
 
 # end date by stream and year
 # min and max date within a year
@@ -113,11 +113,13 @@ oceanak_mod %>%
 # histogram of samples per date per year per stream
 oceanak_mod %>% 
   mutate(julian_date = yday(date)) %>% 
+  mutate(stream = factor(x = stream, levels = c("Erb Creek", "Paddy Creek", "Hogan Creek", "Gilmour Creek", "Stockdale Creek"))) %>% 
   ggplot(aes(x = julian_date, fill = origin)) +
   geom_histogram(binwidth = 1, ) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-  scale_x_continuous(limits = c(210, 270), breaks = seq(213, 269, by = 14), labels = format(x = (as.Date("2012-12-31") + seq(213, 269, by = 14)), "%b %d")) +
+  scale_x_continuous(limits = c(210, 270), breaks = c(213, 227, 244, 258, 273), labels = format(x = (as.Date("2012-12-31") + c(213, 227, 244, 258, 273)), "%b %d")) +
+  # scale_x_continuous(limits = c(210, 270), breaks = seq(213, 269, by = 14), labels = format(x = (as.Date("2012-12-31") + seq(213, 269, by = 14)), "%b %d")) +
   ylim(0, 1501) +
   # xlim(210, 270) +
   facet_grid(year ~ stream) +
