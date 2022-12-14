@@ -2,7 +2,7 @@
 title: "Genotype Status for PWS Pink Salmon Fitness Study"
 subtitle: "Which Samples Have NOT Been Genotyped?"
 author: "Kyle Shedd"
-date: "9 February 2022; update 14 April 2022"
+date: "9 February 2022; update 14 April 2022; update 13 December 2022"
 output:
   html_notebook:
     theme: united
@@ -51,7 +51,7 @@ Read in paired field and otolith data from *OceanAK* and join that data to the a
 ```{r read_oceanak, message=FALSE}
 (
   oceanak <-
-    readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20220124_151655_names.csv") %>%
+    readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20221212_162324_names.csv") %>%
     tidyr::unite(
       col = "silly_source",
       c("Silly Code", "Fish ID"),
@@ -100,7 +100,8 @@ Read in genotypes
 ```{r}
 LOKI2R.GCL(sillyvec = sillyvec,
            username = .username,
-           password = .password)
+           password = .password,
+           test_type = "GTSNP")
 ```
 
 Not planning to save anything, since we are just looking
@@ -192,7 +193,7 @@ Bind together genotyped and non-genotyped samples, rename, and reformat to new s
     ) %>%
     dplyr::mutate(
       stream = stringr::str_remove(string = `Location Code`, pattern = " Creek"),
-      date = lubridate::ymd(`Sample Date`),
+      date = lubridate::as_date(`Sample Date`),
       DOY = lubridate::yday(date),
       # day of year
       sex = dplyr::case_when(Sex == "M" ~ "Male",
@@ -288,7 +289,7 @@ oceanak_geno %>%
   ggplot2::geom_hline(yintercept = 0, colour = "black") +
   ggplot2::ylab("Number of Samples") +
   ggplot2::xlab("") +
-  ggplot2::labs(title = "AHRP Samples Collected by Day - Genotype Status", fill = "Genotyped") +
+  ggplot2::labs(title = "AHRP Samples Collected by Day - Genotype Status 12/13/22", fill = "Genotyped") +
   ggplot2::theme_bw() +
   ggplot2::theme(text = element_text(size = 15),
                  axis.text.x = element_text(angle = 90)) +
