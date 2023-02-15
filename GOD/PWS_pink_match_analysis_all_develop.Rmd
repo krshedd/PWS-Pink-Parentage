@@ -45,6 +45,10 @@ Bottom line, we need to know to the finest scale possible (48 DWP or box) where 
 
 During shipment of otolith samples in February 2020 to the MTA in Juneau for reading, a significant proportion of otoliths migrated between cells within DWPs due to poor containment of the acetate lids that were attached with rubber bands to the DWPs. This incident is known as "the great otolith debacle", aka the "GOD" incident. Since some otoliths moved from their original cells in the DWP, the paired integrity of the otolith-origin information and the rest of the paired data (genotype + field data) was lost for just under 11,000 individuals. In an attempt to rectify the "GOD" incident, we are extracting DNA from the otolith tissues, genotyping the otolith-derived DNA at 298 GT-seq loci, and attempting to re-pair the otolith-heart samples from their genotypes.  
 
+In addition to this GitHub repository, other materials can be found on the V: drive here:
+<V:\Lab\Loki\Collection raw data sheets\Pink\Otolith Extravaganza\GOD Event 2020_2021>
+and on Kyle's Desktop (bad practice)
+
 # Methods
 
 DNA was extracted from left-side or unknown otolith tissues of unknown origin using conventional Machery-Nagel DNA extraction kits. Otoliths were placed in T1 buffer for an overnight soak in clear 96 shallow-well plates (SWP). Preamp at 14 cycles. Final elution volume was 75uL. All otoliths were transferred among plates with a jig. All liquid handling was done by robot.
@@ -797,11 +801,21 @@ The two full trays are **not** in the transfer records, however, the partial is,
 
 *Update 2023-02-10* The 2 full 96 otolith trays were from Jodi Estrada's in-house GCL otolith transfer!!!
 
+*Update 2023-02-13* The final 9 otoliths have been found, Jodi Estrada added the "freaks" to the end of 50960 since it was the last one from MTAL, and thus only partially filled.
+
 How many otolith genotypes do we have in the partial?
 ```{r}
 PGOD21.gcl %>% 
   dplyr::filter(DNA_TRAY_CODE == "0000050960")
 ```
+
+Jodi Estrada also transferred some right-side otoliths into 50943, did those get genotyped?
+```{r}
+PGOD21.gcl %>% 
+  dplyr::filter(DNA_TRAY_CODE == "0000050943")
+```
+
+Nope, it does not look like we genotyped those right side otoliths.
 
 # Oto Transfer Comments
 
@@ -838,9 +852,287 @@ PGOD21_48DWP_paired %>%
   dplyr::filter(`96_oto_tray_barcode` == 50908)
 ```
 
-# NEED TO READ IN JODI ESTRADA'S OTOLITH TRANSFERS AND UPDATE
+# Final Stats 2023-02-10
 
-# Final Stats
+10,791 otoliths with genotypes. Does not include Jodi's transfers...
+
+```{r}
+PGOD21_48DWP_paired %>%
+  dplyr::mutate(
+    match_type = dplyr::case_when(
+      !is.na(`48_DWP_tray_barcode`) & !is.na(`48_DWP_tray_position`) ~ "DWP+Position",
+      !is.na(`48_DWP_tray_barcode`) & is.na(`48_DWP_tray_position`) ~ "DWP_Only",
+      is.na(`48_DWP_tray_barcode`) & !is.na(box_number) ~ "Box",
+      is.na(`48_DWP_tray_barcode`) & is.na(box_number) ~ "Nothin",
+      TRUE ~ "WTF"
+    )
+  ) %>% 
+  dplyr::count(match_type)
+```
+
+Update 2023-02-10. Kristen remembered that Jodi had transferred these otoliths from 8 DWPs that had been sitting in her office. Going re-do this work and update again.
+
+# Re-do 2023-02-14 
+
+## Genotypes
+
+Go ahead and re-import all genotypes on 2023-02-14, to make sure we have the most up to date heart genotypes available.
+```{r}
+load_objects(path = "~/../Desktop/Local_PWS_pinks/Genotypes/GOD_develop/", pattern = "LocusControl")
+
+LOKI2R.GCL(
+  sillyvec = c(
+    "PGOD21",
+    paste0("PERB", 15:17),
+    paste0("PGILMOUR", 15:18),
+    "PPADDY16"
+  ),
+  username = .username,
+  password = .password,
+  test_type = "GTSNP"
+)
+```
+
+Save for ease of access (imported from **LOKI** 2023-02-14)
+```{r}
+save_sillys(
+  sillyvec = c(
+    "PGOD21",
+    paste0("PERB", 15:17),
+    paste0("PGILMOUR", 15:18),
+    "PPADDY16"
+  ),
+  path = "~/../Desktop/Local_PWS_pinks/Genotypes/GOD_develop/Raw"
+)
+```
+
+Read back in, if necessary
+```{r}
+load_objects(path = "~/../Desktop/Local_PWS_pinks/Genotypes/GOD_develop/")
+loci <- LocusControl$locusnames
+
+load_sillys(path = "~/../Desktop/Local_PWS_pinks/Genotypes/GOD_develop/Raw")
+```
+
+### Confirm `DNA_TRAY_WELL_CODE`
+
+Previously there was an issue with how `DNA_TRAY_WELL_POS` was translated into `DNA_TRAY_WELL_CODE`, remember that otolith trays are filled left to right.
+```{r}
+PGOD21.gcl %>% 
+  dplyr::filter(DNA_TRAY_WELL_CODE != 0) %>% 
+  dplyr::count(DNA_TRAY_WELL_CODE, DNA_TRAY_WELL_POS)
+```
+
+Okay, confirmed that all 96 otolith trays in `PGOD21.gcl` have the correct well code and well position.
+
+## Tissue Table
+
+Read in the tissue table for `PGOD21` (*note* we may not need this since we are on the `develop` branch)
+```{r}
+# (
+#   tissue_table_PGOD21 <- GEN_SAMPLED_FISH_TISSUE.GCL(
+#     sillyvec = "PGOD21",
+#     username = .username,
+#     password = .password,
+#     file = "~/../Desktop/Local_PWS_pinks/OceanAK/GEN_SAMPLED_FISH_TISSUE_PGOD21_20230208.csv"
+#   )
+# )
+
+(
+  tissue_table_PGOD21 <-
+    readr::read_csv(
+      "~/../Desktop/Local_PWS_pinks/OceanAK/GEN_SAMPLED_FISH_TISSUE_PGOD21_20230208.csv"
+    )
+)
+```
+
+There are 10,816 otoliths in PGOD21, but we only read in genotypes from 10,791, what happened to those 25 otoliths? Are they missing?
+```{r}
+table(tissue_table_PGOD21$IS_MISSING_PAIRED_DATA_EXISTS)
+```
+
+Looks like 11 are marked in *LOKI* missing, but that leaves a discrepancy of 14 otoliths. This was also noted above, not entirely sure what the issue is, but they weren't genotyped, so they are going to drop out anyways...
+
+## Otolith Transfer from MTAL
+
+Read in the otolith transfer data from our trip down to the MTAL in March 2021. This contains the original 48 DWP information and the 96 SWP otolith transfer locations, but no SILLY or collection information. The file was a combination of the DWP transfer file sent by Jodi Neil on 2021-11-17 (`otolith_transfer_96_template_LEFT.xlsx`) and the vial otolith transfer file sent by Jodi Neil on 2021-08-17 (`otolith_transfer_96_template_VIALS_LEFT.xlsx`) and Jodi Estrada's in-house GCL otolith transfers (`JLE_otolith_transfer_96.xlsx` & "PGOD21 data additions" e-mail from 2022-04-27) that Kyle saved as a `.csv` for ease of reading into R.
+```{r}
+(oto_xfer_data <- readr::read_csv("data/otolith_transfer_final.csv") %>% 
+   dplyr::filter(`96_oto_tray_position` != 96))  # filter out NTC
+```
+
+Right off the bat, we can see that we only have transfer records for 10,822 otoliths when we should have records for 10,816...that's (6 extra otoliths based on `PGOD21.gcl` tissue inventory).
+
+## AHRP Salmon Biological Fact
+
+Read in all of the heart tissue metadata for all PWS Pink Salmon collections from 2013-2020.
+```{r}
+(
+  AHRP_oceanAK <-
+    readr::read_csv(file = "~/../Desktop/Local_PWS_pinks/OceanAK/AHRP Salmon Biological Data 20220511_174609.csv")
+)
+```
+
+# Transform Data
+
+We need to join the transfer data with `PGOD21` so we have the `PGOD21` otolith genotypes paired with the 48DWP barcode and original silly. This will allow us to compare the `PGOD21` genotypes to the heart genotypes from the same 48DWP and limit our search image.
+
+## Subset 48DWP & Silly
+
+Make a simple tibble of the 48DWP barcode and silly from `AHRP_oceanAK`
+```{r}
+(
+  AHRP_DWP_data <- AHRP_oceanAK %>%
+    dplyr::mutate(
+      "48_DWP_tray_barcode" = as.numeric(DNA_TRAY_CODE),
+      sample_date = lubridate::as_date(SAMPLE_DATE)
+    ) %>%
+    dplyr::rename(
+      silly = SILLY_CODE,
+      sample_year = SAMPLE_YEAR,
+      stream = LOCATION_CODE
+    ) %>%
+    dplyr::distinct(`48_DWP_tray_barcode`, silly, stream, sample_year, sample_date) %>%
+    dplyr::select(`48_DWP_tray_barcode`, silly, stream, sample_year, sample_date)
+)
+```
+
+## Make Data Key
+
+Make a data key with `96_oto_tray_barcode` and `96_oto_tray_position` for both the `oto_xfer_data` and `PGOD21`.
+
+Already, removed NTC wells from `oto_xfer_data`
+```{r}
+(
+  oto_xfer_data <- oto_xfer_data %>%
+    # dplyr::filter(!(`48_DWP_tray_barcode` %in% "NTC")) %>%  # already did this above
+    tidyr::unite(
+      col = "oto_tray_and_well",
+      c(`96_oto_tray_barcode`, `96_oto_tray_position`),
+      sep = "_",
+      remove = FALSE
+    )
+)
+
+PGOD21.gcl <- PGOD21.gcl %>%
+  dplyr::mutate("96_oto_tray_barcode" = as.numeric(DNA_TRAY_CODE)) %>%
+  tidyr::unite(
+    col = "oto_tray_and_well",
+    c(`96_oto_tray_barcode`, `DNA_TRAY_WELL_CODE`),
+    sep = "_",
+    remove = FALSE
+  )
+```
+
+# Join Otolith Transfer & 48DWP Data With `PGOD21`
+
+By joining the transfer data we get the original 48DWP, which we can then join to the AHRP OceanAK metadata to get the 48DWP-level sampling data (silly, stream, year, sample date).
+```{r}
+PGOD21.gcl <- PGOD21.gcl %>%
+  dplyr::left_join(y = oto_xfer_data,
+                   by = c("oto_tray_and_well", "96_oto_tray_barcode")) %>%
+  dplyr::left_join(y = AHRP_DWP_data, by = "48_DWP_tray_barcode") %>% 
+  dplyr::relocate(dplyr::contains("Ogo_"), .after = dplyr::last_col())  # move genotype columns to the end
+```
+
+## How Many Fish and How Many 48DWPs?
+
+How many unique 48DPWs have GOD otolith genotypes?
+```{r}
+dplyr::n_distinct(PGOD21.gcl$`48_DWP_tray_barcode`, na.rm = TRUE)
+
+# Count of 48DWP per silly
+PGOD21.gcl %>% 
+  dplyr::distinct(silly, `48_DWP_tray_barcode`) %>% 
+  dplyr::count(silly)
+
+# Count of fish per silly
+PGOD21.gcl %>% 
+  dplyr::count(silly) %>% 
+  janitor::adorn_totals()
+```
+
+There are *439 48DWPs* involved in GOD!
+
+What about **160 otoliths** that did not assign to a 48DWP or silly? Are they all *box* otoliths that were just kicking around in one of the shipping boxes and were later put into vials at the MTAL? Or do we potentially have some data entry errors?
+```{r}
+PGOD21.gcl %>% 
+  dplyr::filter(is.na(silly)) %>% 
+  dplyr::mutate(is_box = !is.na(box_number)) %>% 
+  dplyr::count(is_box)
+```
+
+The transfer records for the **159 box otoliths** showing which 48DWPs were in which boxes are here `Oto Boxes that shipped to JNU.xlsx`.
+
+But the remaining issue here is that, there is **1 otolith** that does not match up to a 48DWP or `box_number`, WTF?!?!?!
+```{r}
+PGOD21.gcl %>% 
+  dplyr::filter(is.na(`48_DWP_tray_barcode`),
+                is.na(`box_number`)) %>% 
+  dplyr::select(-dplyr::contains("Ogo_")) %>% 
+  dplyr::count(DNA_TRAY_CODE)
+```
+
+It looks like this 1 otolith is on tray `0000050960`. No clue what these are, still need to resolve...
+
+Are these otolith trays present in the transfer data?
+```{r}
+PGOD21.gcl %>% 
+  dplyr::anti_join(oto_xfer_data, by = "oto_tray_and_well") %>% 
+  dplyr::count(`96_oto_tray_barcode`, PLATE_ID)  # in PGOD21.gcl, not in transfer records
+
+oto_xfer_data %>% 
+  dplyr::anti_join(PGOD21.gcl, by = "oto_tray_and_well") %>% 
+  dplyr::count(`96_oto_tray_barcode`)  # in transfer records, but not in PGOD21.gcl
+```
+
+This partial tray is in the otolith transfer records, but shows it was only filled until position 21. However, we have genotypes for positions 22 (no data) and 25-33 (Jodi Estrada's transfers).
+
+How many otolith genotypes do we have in the partial?
+```{r}
+PGOD21.gcl %>% 
+  dplyr::filter(DNA_TRAY_CODE == "0000050960")
+```
+
+Jodi Estrada also transferred some right-side otoliths into 50943, did those get genotyped?
+```{r}
+PGOD21.gcl %>% 
+  dplyr::filter(DNA_TRAY_CODE == "0000050943")
+```
+
+Nope, it does not look like we genotyped those right side otoliths.
+
+# Oto Transfer Comments
+
+We'll need to review these in the course of re-pairing otoliths with hearts.
+```{r}
+oto_xfer_data %>% 
+  dplyr::count(comment)
+```
+
+# Save `PGOD21` Data Pairing
+
+```{r}
+PGOD21.gcl %>% 
+  dplyr::select(-dplyr::contains("Ogo_")) %>% 
+  dplyr::glimpse()
+```
+
+Strip to the bare essentials and save.
+```{r}
+(
+  PGOD21_48DWP_paired <- PGOD21.gcl %>%
+    dplyr::select(
+      SillySource,
+      oto_tray_and_well,
+      `96_oto_tray_barcode`:sample_date
+    )
+)
+
+readr::write_csv(x = PGOD21_48DWP_paired, file = "output/PGOD21_48DWP_paired.csv")
+```
+
+# Final Stats 2023-02-13
 
 10,791 otoliths with genotypes.
 
@@ -858,12 +1150,125 @@ PGOD21_48DWP_paired %>%
   dplyr::count(match_type)
 ```
 
+Got it down to 1 unaccounted for otolith on tray `50960`, position 22.
+
+# Save `PGOD21` otolith genotypes
+
+```{r}
+save_sillys(sillyvec = "PGOD21", path = "output/")
+```
+
+# Subset and save heart genotypes
+
+Filter DWPs for only affected DWPs
+```{r}
+affected_DWPs <- unique(PGOD21.gcl$`48_DWP_tray_barcode`)
+
+AHRP_DWP_data %>% 
+  dplyr::filter(`48_DWP_tray_barcode` %in% affected_DWPs)
+```
+
+Pool all heart genotypes, then filter for otolith DWPs.
+```{r}
+PoolCollections.GCL(
+  collections = c(paste0("PERB", 15:17),
+                  paste0("PGILMOUR", 15:18),
+                  "PPADDY16"),
+  loci = LocusControl$locusnames,
+  newname = "heart_genotypes"
+)
+```
+
+Filter heart genotypes for affected DWPs
+```{r}
+(
+  heart_genotypes.gcl <- heart_genotypes.gcl %>%
+    dplyr::mutate("48_DWP_tray_barcode" = as.numeric(DNA_TRAY_CODE)) %>%
+    dplyr::filter(`48_DWP_tray_barcode` %in% affected_DWPs)
+)
+```
+
+Make sure that all affected DWPs are included.
+```{r}
+heart_genotypes.gcl %>% 
+  dplyr::distinct(`48_DWP_tray_barcode`, DNA_TRAY_CODE)
+```
+
+## Missing heart genotypes
+
+Huh, I appear to only have 431 out of 439 DWPs, what gives? Better cross reference the outersect with all AHRP DWPs, maybe some are not GOD-related, but other otolith incidents.
+```{r}
+missing_heart_DWPs <- setdiff(affected_DWPs, unique(heart_genotypes.gcl$`48_DWP_tray_barcode`))
+
+AHRP_DWP_data %>% 
+  dplyr::filter(`48_DWP_tray_barcode` %in% missing_heart_DWPs)
+```
+
+Oh snap, these are GOD otoliths, I just don't have heart genotypes? That's not good.
+
+Okay, time to go look at our extraction lists to see if these got missed in our GOD genotyping prioritization, which came from `GOD_affected_DWPs_consensus`. Need to investigate that origin of that file to see how these 8 DWPs were overlooked.
+
+Update on 2023-02-14: 
+
+`GOD_affected_DWPs_consensus` was developed off of `otolith_transfer_111721.csv`, which did **not** include the vial otoliths `otolith_transfer_96_template_VIALS_LEFT.xlsx` or Jodi Estrada's GCL in-house otolith transfers `JLE_otolith_transfer_96.xlsx`. Thus, these 8 DWPs that do not have heart genotypes were not prioritized for genotyping.
+
+The first 7 of these 48DWPs were on Jodi Estrada's 2 otolith trays, the last one was a vial extraction (14360 PPADDY16). Need to see which projects these are on to see if I can get them re-prioritized...
+
+It is very weird that 14360 (PPADDY16) has not been genotyped, as that entire SILLY has been genotyped, none remaining. Going back to the data used to make eP008 (when these fish should have been extracted), this DWP is absent, they must not have been built at the time. We are not going to go back and extract these hearts, this DWP is dead.
+
+For the first 7 DWPs (6 - PERB15, and 1 - PERB17), we'll need to see what genotyping projects they are on and see if we can re-prioritize those projects.
+
+Get `SillySource` for the fish on those DWPs
+```{r}
+(
+  missing_heart_SillySource <- AHRP_oceanAK %>%
+    dplyr::mutate(
+      "48_DWP_tray_barcode" = as.numeric(DNA_TRAY_CODE),
+      sample_date = lubridate::as_date(SAMPLE_DATE)
+    ) %>%
+    dplyr::filter(
+      `48_DWP_tray_barcode` %in% missing_heart_DWPs,
+      SILLY_CODE != "PPADDY16"
+    ) %>%  # drop PPDADDY16, this DWP is dead to me
+    tidyr::unite(
+      col = "SillySource",
+      c("SILLY_CODE", "FISH_ID"),
+      sep = "_",
+      remove = FALSE
+    ) %>%
+    dplyr::pull(SillySource)
+)
+```
+
+Read in Project Plate maps
+```{r}
+project_files <- sapply(paste0("P0", 87:98), function(project) {
+  list.files(
+    path = paste0("V:/Lab/Genotyping/DNA Plate Loki Exports/Pink/", project),
+    pattern = ".csv", 
+    full.names = TRUE
+  )
+}) %>% unlist()
+
+(project_plate_maps <- readr::read_csv(file = project_files))
+```
+
+Filter for missing hearts, which projects?
+```{r}
+project_plate_maps %>% 
+  dplyr::filter(SILLY_FISHID %in% missing_heart_SillySource) %>% 
+  dplyr::count(Project)
+```
+
+Damn, as suspected, these fish are spread over multiple projects, not going to rock the boat, will just have to wait patiently. We'll start our GOD matching without these fish.
+
 # Things to Consider for Matching
 
 Before we finalize otolith-heart "matches", there are a few modifications that I'd like to make:  
-  * we need a genotyping success threshold for otoliths, it doesn't have to be very high (likely ~5-10%), but we need something to weed out matches where we only have 5 loci for an otolith
-  * we need to implement a heterozygosity filter for hearts, just like we do for parentage analysis, otherwise we'll end up with some very heterozygous heart genotypes that will match *very* well to our highly contaminated (read heterozygous) otoliths 
-  * will want to check otolith transfer comments prior to finalizing matches
-  * will want to review `raw_working_oto_sheets/working_oto_sheet_combined.xlsm` to see DWP map prior to finalizing
 
-End 2023-02-10
+  * we need a genotyping success threshold for otoliths, it doesn't have to be very high (likely ~5-10%), but we need something to weed out matches where we only have 5 loci for an otolith  
+  * we need to implement a heterozygosity filter for hearts, just like we do for parentage analysis, otherwise we'll end up with some very heterozygous heart genotypes that will match *very* well to our highly contaminated (read heterozygous) otoliths  
+  * will want to check otolith transfer comments prior to finalizing matches  
+  * will want to review `raw_working_oto_sheets/working_oto_sheet_combined.xlsm` to see DWP map prior to finalizing  
+
+End 2023-02-15
