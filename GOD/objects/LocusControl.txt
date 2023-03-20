@@ -1,0 +1,1071 @@
+structure(list(MarkerSuite = c("User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames", "User defined from locusnames", 
+"User defined from locusnames"), locusnames = c("Ogo_RAD10094", 
+"Ogo_RAD10230", "Ogo_RAD10383", "Ogo_RAD10514", "Ogo_RAD10558", 
+"Ogo_RAD10597", "Ogo_RAD1068", "Ogo_RAD10723", "Ogo_RAD1109", 
+"Ogo_RAD11767", "Ogo_RAD1183", "Ogo_RAD12652", "Ogo_RAD12832", 
+"Ogo_RAD13108", "Ogo_RAD13232", "Ogo_RAD13247", "Ogo_RAD13427", 
+"Ogo_RAD13586", "Ogo_RAD13645", "Ogo_RAD14411", "Ogo_RAD14533", 
+"Ogo_RAD14808", "Ogo_RAD14867", "Ogo_RAD15419", "Ogo_RAD15422", 
+"Ogo_RAD15518", "Ogo_RAD1582", "Ogo_RAD1606", "Ogo_RAD16075", 
+"Ogo_RAD16712", "Ogo_RAD16915", "Ogo_RAD17270", "Ogo_RAD1730", 
+"Ogo_RAD17704", "Ogo_RAD17779", "Ogo_RAD18035", "Ogo_RAD18289", 
+"Ogo_RAD18621", "Ogo_RAD1880", "Ogo_RAD18812", "Ogo_RAD18822", 
+"Ogo_RAD18870", "Ogo_RAD19279", "Ogo_RAD19499", "Ogo_RAD19591", 
+"Ogo_RAD19823", "Ogo_RAD19946", "Ogo_RAD20618", "Ogo_RAD20672", 
+"Ogo_RAD20714", "Ogo_RAD20978", "Ogo_RAD2108", "Ogo_RAD21513", 
+"Ogo_RAD21581", "Ogo_RAD21635", "Ogo_RAD21824", "Ogo_RAD21973", 
+"Ogo_RAD22084", "Ogo_RAD22088", "Ogo_RAD22314", "Ogo_RAD22819", 
+"Ogo_RAD23035", "Ogo_RAD23174", "Ogo_RAD23361", "Ogo_RAD23390", 
+"Ogo_RAD23454", "Ogo_RAD23903", "Ogo_RAD24317", "Ogo_RAD24331", 
+"Ogo_RAD24412", "Ogo_RAD24415", "Ogo_RAD24703", "Ogo_RAD25350", 
+"Ogo_RAD25357", "Ogo_RAD2585", "Ogo_RAD25904", "Ogo_RAD26150", 
+"Ogo_RAD2631", "Ogo_RAD27156", "Ogo_RAD27199", "Ogo_RAD27365", 
+"Ogo_RAD27386", "Ogo_RAD27655", "Ogo_RAD27775", "Ogo_RAD2787", 
+"Ogo_RAD27872", "Ogo_RAD28194", "Ogo_RAD28204", "Ogo_RAD28663", 
+"Ogo_RAD28794", "Ogo_RAD29239", "Ogo_RAD29347", "Ogo_RAD29416", 
+"Ogo_RAD29673", "Ogo_RAD29748", "Ogo_RAD30443", "Ogo_RAD30540", 
+"Ogo_RAD30883", "Ogo_RAD31093", "Ogo_RAD31291", "Ogo_RAD31612", 
+"Ogo_RAD32389", "Ogo_RAD32976", "Ogo_RAD32977", "Ogo_RAD32983", 
+"Ogo_RAD33173", "Ogo_RAD33679", "Ogo_RAD33694", "Ogo_RAD33854", 
+"Ogo_RAD3392", "Ogo_RAD35202", "Ogo_RAD35734", "Ogo_RAD35892", 
+"Ogo_RAD36108", "Ogo_RAD36195", "Ogo_RAD36566", "Ogo_RAD36934", 
+"Ogo_RAD36977", "Ogo_RAD37276", "Ogo_RAD37369", "Ogo_RAD37424", 
+"Ogo_RAD37470", "Ogo_RAD37507", "Ogo_RAD37533", "Ogo_RAD37712", 
+"Ogo_RAD37958", "Ogo_RAD3822", "Ogo_RAD38228", "Ogo_RAD38320", 
+"Ogo_RAD38502", "Ogo_RAD38879", "Ogo_RAD40311", "Ogo_RAD40542", 
+"Ogo_RAD40604", "Ogo_RAD40675", "Ogo_RAD4082", "Ogo_RAD41416", 
+"Ogo_RAD41492", "Ogo_RAD42104", "Ogo_RAD42202", "Ogo_RAD42226", 
+"Ogo_RAD42330", "Ogo_RAD42970", "Ogo_RAD42976", "Ogo_RAD43201", 
+"Ogo_RAD4374", "Ogo_RAD44192", "Ogo_RAD44270", "Ogo_RAD45034", 
+"Ogo_RAD45772", "Ogo_RAD46183", "Ogo_RAD46295", "Ogo_RAD46372", 
+"Ogo_RAD4668", "Ogo_RAD46835", "Ogo_RAD47501", "Ogo_RAD47619", 
+"Ogo_RAD48171", "Ogo_RAD48181", "Ogo_RAD48307", "Ogo_RAD48525", 
+"Ogo_RAD48621", "Ogo_RAD48736", "Ogo_RAD49117", "Ogo_RAD49460", 
+"Ogo_RAD49598", "Ogo_RAD49647", "Ogo_RAD49752", "Ogo_RAD50452", 
+"Ogo_RAD50499", "Ogo_RAD50608", "Ogo_RAD50728", "Ogo_RAD50809", 
+"Ogo_RAD51386", "Ogo_RAD51855", "Ogo_RAD52151", "Ogo_RAD52189", 
+"Ogo_RAD52218", "Ogo_RAD52225", "Ogo_RAD523", "Ogo_RAD52488", 
+"Ogo_RAD52801", "Ogo_RAD52811", "Ogo_RAD52842", "Ogo_RAD53094", 
+"Ogo_RAD53165", "Ogo_RAD53342", "Ogo_RAD53716", "Ogo_RAD5397", 
+"Ogo_RAD54074", "Ogo_RAD54176", "Ogo_RAD54369", "Ogo_RAD54481", 
+"Ogo_RAD54818", "Ogo_RAD55035", "Ogo_RAD55099", "Ogo_RAD55164", 
+"Ogo_RAD55779", "Ogo_RAD55897", "Ogo_RAD5650", "Ogo_RAD5679", 
+"Ogo_RAD57344", "Ogo_RAD57492", "Ogo_RAD57625", "Ogo_RAD57924", 
+"Ogo_RAD57971", "Ogo_RAD5831", "Ogo_RAD5930", "Ogo_RAD59389", 
+"Ogo_RAD59478", "Ogo_RAD60104", "Ogo_RAD60523", "Ogo_RAD60538", 
+"Ogo_RAD60781", "Ogo_RAD61015", "Ogo_RAD61197", "Ogo_RAD61890", 
+"Ogo_RAD62098", "Ogo_RAD62146", "Ogo_RAD62169", "Ogo_RAD62258", 
+"Ogo_RAD62272", "Ogo_RAD62601", "Ogo_RAD62696", "Ogo_RAD62994", 
+"Ogo_RAD6323", "Ogo_RAD63386", "Ogo_RAD63466", "Ogo_RAD63642", 
+"Ogo_RAD63694", "Ogo_RAD63776", "Ogo_RAD63845", "Ogo_RAD63872", 
+"Ogo_RAD64165", "Ogo_RAD6419", "Ogo_RAD64414", "Ogo_RAD65137", 
+"Ogo_RAD65325", "Ogo_RAD65516", "Ogo_RAD65521", "Ogo_RAD65717", 
+"Ogo_RAD6596", "Ogo_RAD65993", "Ogo_RAD66024", "Ogo_RAD66127", 
+"Ogo_RAD66178", "Ogo_RAD66546", "Ogo_RAD67123", "Ogo_RAD67167", 
+"Ogo_RAD67267", "Ogo_RAD67284", "Ogo_RAD67367", "Ogo_RAD67470", 
+"Ogo_RAD67635", "Ogo_RAD67738", "Ogo_RAD67855", "Ogo_RAD68414", 
+"Ogo_RAD69145", "Ogo_RAD69296", "Ogo_RAD69356", "Ogo_RAD69952", 
+"Ogo_RAD70081", "Ogo_RAD70170", "Ogo_RAD70367", "Ogo_RAD70645", 
+"Ogo_RAD70771", "Ogo_RAD70836", "Ogo_RAD70911", "Ogo_RAD70912", 
+"Ogo_RAD70938", "Ogo_RAD7126", "Ogo_RAD72172", "Ogo_RAD7263", 
+"Ogo_RAD73191", "Ogo_RAD7330", "Ogo_RAD74710", "Ogo_RAD75819", 
+"Ogo_RAD76867", "Ogo_RAD7690", "Ogo_RAD77074", "Ogo_RAD77189", 
+"Ogo_RAD77424", "Ogo_RAD7751", "Ogo_RAD77610", "Ogo_RAD7828", 
+"Ogo_RAD79917", "Ogo_RAD8019", "Ogo_RAD8163", "Ogo_RAD81956", 
+"Ogo_RAD82358", "Ogo_RAD82401", "Ogo_RAD82542", "Ogo_RAD83424", 
+"Ogo_RAD85872", "Ogo_RAD86755", "Ogo_RAD905", "Ogo_RAD9738", 
+"Ogo_RAD9786"), Publishedlocusnames = c(Ogo_RAD10094 = NA_character_, 
+Ogo_RAD10230 = NA_character_, Ogo_RAD10383 = NA_character_, Ogo_RAD10514 = NA_character_, 
+Ogo_RAD10558 = NA_character_, Ogo_RAD10597 = NA_character_, Ogo_RAD1068 = NA_character_, 
+Ogo_RAD10723 = NA_character_, Ogo_RAD1109 = NA_character_, Ogo_RAD11767 = NA_character_, 
+Ogo_RAD1183 = NA_character_, Ogo_RAD12652 = NA_character_, Ogo_RAD12832 = NA_character_, 
+Ogo_RAD13108 = NA_character_, Ogo_RAD13232 = NA_character_, Ogo_RAD13247 = NA_character_, 
+Ogo_RAD13427 = NA_character_, Ogo_RAD13586 = NA_character_, Ogo_RAD13645 = NA_character_, 
+Ogo_RAD14411 = NA_character_, Ogo_RAD14533 = NA_character_, Ogo_RAD14808 = NA_character_, 
+Ogo_RAD14867 = NA_character_, Ogo_RAD15419 = NA_character_, Ogo_RAD15422 = NA_character_, 
+Ogo_RAD15518 = NA_character_, Ogo_RAD1582 = NA_character_, Ogo_RAD1606 = NA_character_, 
+Ogo_RAD16075 = NA_character_, Ogo_RAD16712 = NA_character_, Ogo_RAD16915 = NA_character_, 
+Ogo_RAD17270 = NA_character_, Ogo_RAD1730 = NA_character_, Ogo_RAD17704 = NA_character_, 
+Ogo_RAD17779 = NA_character_, Ogo_RAD18035 = NA_character_, Ogo_RAD18289 = NA_character_, 
+Ogo_RAD18621 = NA_character_, Ogo_RAD1880 = NA_character_, Ogo_RAD18812 = NA_character_, 
+Ogo_RAD18822 = NA_character_, Ogo_RAD18870 = NA_character_, Ogo_RAD19279 = NA_character_, 
+Ogo_RAD19499 = NA_character_, Ogo_RAD19591 = NA_character_, Ogo_RAD19823 = NA_character_, 
+Ogo_RAD19946 = NA_character_, Ogo_RAD20618 = NA_character_, Ogo_RAD20672 = NA_character_, 
+Ogo_RAD20714 = NA_character_, Ogo_RAD20978 = NA_character_, Ogo_RAD2108 = NA_character_, 
+Ogo_RAD21513 = NA_character_, Ogo_RAD21581 = NA_character_, Ogo_RAD21635 = NA_character_, 
+Ogo_RAD21824 = NA_character_, Ogo_RAD21973 = NA_character_, Ogo_RAD22084 = NA_character_, 
+Ogo_RAD22088 = NA_character_, Ogo_RAD22314 = NA_character_, Ogo_RAD22819 = NA_character_, 
+Ogo_RAD23035 = NA_character_, Ogo_RAD23174 = NA_character_, Ogo_RAD23361 = NA_character_, 
+Ogo_RAD23390 = NA_character_, Ogo_RAD23454 = NA_character_, Ogo_RAD23903 = NA_character_, 
+Ogo_RAD24317 = NA_character_, Ogo_RAD24331 = NA_character_, Ogo_RAD24412 = NA_character_, 
+Ogo_RAD24415 = NA_character_, Ogo_RAD24703 = NA_character_, Ogo_RAD25350 = NA_character_, 
+Ogo_RAD25357 = NA_character_, Ogo_RAD2585 = NA_character_, Ogo_RAD25904 = NA_character_, 
+Ogo_RAD26150 = NA_character_, Ogo_RAD2631 = NA_character_, Ogo_RAD27156 = NA_character_, 
+Ogo_RAD27199 = NA_character_, Ogo_RAD27365 = NA_character_, Ogo_RAD27386 = NA_character_, 
+Ogo_RAD27655 = NA_character_, Ogo_RAD27775 = NA_character_, Ogo_RAD2787 = NA_character_, 
+Ogo_RAD27872 = NA_character_, Ogo_RAD28194 = NA_character_, Ogo_RAD28204 = NA_character_, 
+Ogo_RAD28663 = NA_character_, Ogo_RAD28794 = NA_character_, Ogo_RAD29239 = NA_character_, 
+Ogo_RAD29347 = NA_character_, Ogo_RAD29416 = NA_character_, Ogo_RAD29673 = NA_character_, 
+Ogo_RAD29748 = NA_character_, Ogo_RAD30443 = NA_character_, Ogo_RAD30540 = NA_character_, 
+Ogo_RAD30883 = NA_character_, Ogo_RAD31093 = NA_character_, Ogo_RAD31291 = NA_character_, 
+Ogo_RAD31612 = NA_character_, Ogo_RAD32389 = NA_character_, Ogo_RAD32976 = NA_character_, 
+Ogo_RAD32977 = NA_character_, Ogo_RAD32983 = NA_character_, Ogo_RAD33173 = NA_character_, 
+Ogo_RAD33679 = NA_character_, Ogo_RAD33694 = NA_character_, Ogo_RAD33854 = NA_character_, 
+Ogo_RAD3392 = NA_character_, Ogo_RAD35202 = NA_character_, Ogo_RAD35734 = NA_character_, 
+Ogo_RAD35892 = NA_character_, Ogo_RAD36108 = NA_character_, Ogo_RAD36195 = NA_character_, 
+Ogo_RAD36566 = NA_character_, Ogo_RAD36934 = NA_character_, Ogo_RAD36977 = NA_character_, 
+Ogo_RAD37276 = NA_character_, Ogo_RAD37369 = NA_character_, Ogo_RAD37424 = NA_character_, 
+Ogo_RAD37470 = NA_character_, Ogo_RAD37507 = NA_character_, Ogo_RAD37533 = NA_character_, 
+Ogo_RAD37712 = NA_character_, Ogo_RAD37958 = NA_character_, Ogo_RAD3822 = NA_character_, 
+Ogo_RAD38228 = NA_character_, Ogo_RAD38320 = NA_character_, Ogo_RAD38502 = NA_character_, 
+Ogo_RAD38879 = NA_character_, Ogo_RAD40311 = NA_character_, Ogo_RAD40542 = NA_character_, 
+Ogo_RAD40604 = NA_character_, Ogo_RAD40675 = NA_character_, Ogo_RAD4082 = NA_character_, 
+Ogo_RAD41416 = NA_character_, Ogo_RAD41492 = NA_character_, Ogo_RAD42104 = NA_character_, 
+Ogo_RAD42202 = NA_character_, Ogo_RAD42226 = NA_character_, Ogo_RAD42330 = NA_character_, 
+Ogo_RAD42970 = NA_character_, Ogo_RAD42976 = NA_character_, Ogo_RAD43201 = NA_character_, 
+Ogo_RAD4374 = NA_character_, Ogo_RAD44192 = NA_character_, Ogo_RAD44270 = NA_character_, 
+Ogo_RAD45034 = NA_character_, Ogo_RAD45772 = NA_character_, Ogo_RAD46183 = NA_character_, 
+Ogo_RAD46295 = NA_character_, Ogo_RAD46372 = NA_character_, Ogo_RAD4668 = NA_character_, 
+Ogo_RAD46835 = NA_character_, Ogo_RAD47501 = NA_character_, Ogo_RAD47619 = NA_character_, 
+Ogo_RAD48171 = NA_character_, Ogo_RAD48181 = NA_character_, Ogo_RAD48307 = NA_character_, 
+Ogo_RAD48525 = NA_character_, Ogo_RAD48621 = NA_character_, Ogo_RAD48736 = NA_character_, 
+Ogo_RAD49117 = NA_character_, Ogo_RAD49460 = NA_character_, Ogo_RAD49598 = NA_character_, 
+Ogo_RAD49647 = NA_character_, Ogo_RAD49752 = NA_character_, Ogo_RAD50452 = NA_character_, 
+Ogo_RAD50499 = NA_character_, Ogo_RAD50608 = NA_character_, Ogo_RAD50728 = NA_character_, 
+Ogo_RAD50809 = NA_character_, Ogo_RAD51386 = NA_character_, Ogo_RAD51855 = NA_character_, 
+Ogo_RAD52151 = NA_character_, Ogo_RAD52189 = NA_character_, Ogo_RAD52218 = NA_character_, 
+Ogo_RAD52225 = NA_character_, Ogo_RAD523 = NA_character_, Ogo_RAD52488 = NA_character_, 
+Ogo_RAD52801 = NA_character_, Ogo_RAD52811 = NA_character_, Ogo_RAD52842 = NA_character_, 
+Ogo_RAD53094 = NA_character_, Ogo_RAD53165 = NA_character_, Ogo_RAD53342 = NA_character_, 
+Ogo_RAD53716 = NA_character_, Ogo_RAD5397 = NA_character_, Ogo_RAD54074 = NA_character_, 
+Ogo_RAD54176 = NA_character_, Ogo_RAD54369 = NA_character_, Ogo_RAD54481 = NA_character_, 
+Ogo_RAD54818 = NA_character_, Ogo_RAD55035 = NA_character_, Ogo_RAD55099 = NA_character_, 
+Ogo_RAD55164 = NA_character_, Ogo_RAD55779 = NA_character_, Ogo_RAD55897 = NA_character_, 
+Ogo_RAD5650 = NA_character_, Ogo_RAD5679 = NA_character_, Ogo_RAD57344 = NA_character_, 
+Ogo_RAD57492 = NA_character_, Ogo_RAD57625 = NA_character_, Ogo_RAD57924 = NA_character_, 
+Ogo_RAD57971 = NA_character_, Ogo_RAD5831 = NA_character_, Ogo_RAD5930 = NA_character_, 
+Ogo_RAD59389 = NA_character_, Ogo_RAD59478 = NA_character_, Ogo_RAD60104 = NA_character_, 
+Ogo_RAD60523 = NA_character_, Ogo_RAD60538 = NA_character_, Ogo_RAD60781 = NA_character_, 
+Ogo_RAD61015 = NA_character_, Ogo_RAD61197 = NA_character_, Ogo_RAD61890 = NA_character_, 
+Ogo_RAD62098 = NA_character_, Ogo_RAD62146 = NA_character_, Ogo_RAD62169 = NA_character_, 
+Ogo_RAD62258 = NA_character_, Ogo_RAD62272 = NA_character_, Ogo_RAD62601 = NA_character_, 
+Ogo_RAD62696 = NA_character_, Ogo_RAD62994 = NA_character_, Ogo_RAD6323 = NA_character_, 
+Ogo_RAD63386 = NA_character_, Ogo_RAD63466 = NA_character_, Ogo_RAD63642 = NA_character_, 
+Ogo_RAD63694 = NA_character_, Ogo_RAD63776 = NA_character_, Ogo_RAD63845 = NA_character_, 
+Ogo_RAD63872 = NA_character_, Ogo_RAD64165 = NA_character_, Ogo_RAD6419 = NA_character_, 
+Ogo_RAD64414 = NA_character_, Ogo_RAD65137 = NA_character_, Ogo_RAD65325 = NA_character_, 
+Ogo_RAD65516 = NA_character_, Ogo_RAD65521 = NA_character_, Ogo_RAD65717 = NA_character_, 
+Ogo_RAD6596 = NA_character_, Ogo_RAD65993 = NA_character_, Ogo_RAD66024 = NA_character_, 
+Ogo_RAD66127 = NA_character_, Ogo_RAD66178 = NA_character_, Ogo_RAD66546 = NA_character_, 
+Ogo_RAD67123 = NA_character_, Ogo_RAD67167 = NA_character_, Ogo_RAD67267 = NA_character_, 
+Ogo_RAD67284 = NA_character_, Ogo_RAD67367 = NA_character_, Ogo_RAD67470 = NA_character_, 
+Ogo_RAD67635 = NA_character_, Ogo_RAD67738 = NA_character_, Ogo_RAD67855 = NA_character_, 
+Ogo_RAD68414 = NA_character_, Ogo_RAD69145 = NA_character_, Ogo_RAD69296 = NA_character_, 
+Ogo_RAD69356 = NA_character_, Ogo_RAD69952 = NA_character_, Ogo_RAD70081 = NA_character_, 
+Ogo_RAD70170 = NA_character_, Ogo_RAD70367 = NA_character_, Ogo_RAD70645 = NA_character_, 
+Ogo_RAD70771 = NA_character_, Ogo_RAD70836 = NA_character_, Ogo_RAD70911 = NA_character_, 
+Ogo_RAD70912 = NA_character_, Ogo_RAD70938 = NA_character_, Ogo_RAD7126 = NA_character_, 
+Ogo_RAD72172 = NA_character_, Ogo_RAD7263 = NA_character_, Ogo_RAD73191 = NA_character_, 
+Ogo_RAD7330 = NA_character_, Ogo_RAD74710 = NA_character_, Ogo_RAD75819 = NA_character_, 
+Ogo_RAD76867 = NA_character_, Ogo_RAD7690 = NA_character_, Ogo_RAD77074 = NA_character_, 
+Ogo_RAD77189 = NA_character_, Ogo_RAD77424 = NA_character_, Ogo_RAD7751 = NA_character_, 
+Ogo_RAD77610 = NA_character_, Ogo_RAD7828 = NA_character_, Ogo_RAD79917 = NA_character_, 
+Ogo_RAD8019 = NA_character_, Ogo_RAD8163 = NA_character_, Ogo_RAD81956 = NA_character_, 
+Ogo_RAD82358 = NA_character_, Ogo_RAD82401 = NA_character_, Ogo_RAD82542 = NA_character_, 
+Ogo_RAD83424 = NA_character_, Ogo_RAD85872 = NA_character_, Ogo_RAD86755 = NA_character_, 
+Ogo_RAD905 = NA_character_, Ogo_RAD9738 = NA_character_, Ogo_RAD9786 = NA_character_
+), nalleles = c(Ogo_RAD10094 = 2L, Ogo_RAD10230 = 2L, Ogo_RAD10383 = 2L, 
+Ogo_RAD10514 = 2L, Ogo_RAD10558 = 2L, Ogo_RAD10597 = 4L, Ogo_RAD1068 = 2L, 
+Ogo_RAD10723 = 2L, Ogo_RAD1109 = 2L, Ogo_RAD11767 = 2L, Ogo_RAD1183 = 2L, 
+Ogo_RAD12652 = 2L, Ogo_RAD12832 = 2L, Ogo_RAD13108 = 4L, Ogo_RAD13232 = 2L, 
+Ogo_RAD13247 = 2L, Ogo_RAD13427 = 2L, Ogo_RAD13586 = 2L, Ogo_RAD13645 = 2L, 
+Ogo_RAD14411 = 2L, Ogo_RAD14533 = 2L, Ogo_RAD14808 = 2L, Ogo_RAD14867 = 2L, 
+Ogo_RAD15419 = 2L, Ogo_RAD15422 = 2L, Ogo_RAD15518 = 2L, Ogo_RAD1582 = 2L, 
+Ogo_RAD1606 = 4L, Ogo_RAD16075 = 2L, Ogo_RAD16712 = 2L, Ogo_RAD16915 = 2L, 
+Ogo_RAD17270 = 2L, Ogo_RAD1730 = 4L, Ogo_RAD17704 = 4L, Ogo_RAD17779 = 2L, 
+Ogo_RAD18035 = 2L, Ogo_RAD18289 = 2L, Ogo_RAD18621 = 4L, Ogo_RAD1880 = 4L, 
+Ogo_RAD18812 = 4L, Ogo_RAD18822 = 2L, Ogo_RAD18870 = 2L, Ogo_RAD19279 = 2L, 
+Ogo_RAD19499 = 2L, Ogo_RAD19591 = 2L, Ogo_RAD19823 = 4L, Ogo_RAD19946 = 2L, 
+Ogo_RAD20618 = 2L, Ogo_RAD20672 = 2L, Ogo_RAD20714 = 2L, Ogo_RAD20978 = 2L, 
+Ogo_RAD2108 = 4L, Ogo_RAD21513 = 2L, Ogo_RAD21581 = 2L, Ogo_RAD21635 = 4L, 
+Ogo_RAD21824 = 4L, Ogo_RAD21973 = 4L, Ogo_RAD22084 = 4L, Ogo_RAD22088 = 2L, 
+Ogo_RAD22314 = 2L, Ogo_RAD22819 = 2L, Ogo_RAD23035 = 4L, Ogo_RAD23174 = 2L, 
+Ogo_RAD23361 = 2L, Ogo_RAD23390 = 2L, Ogo_RAD23454 = 2L, Ogo_RAD23903 = 2L, 
+Ogo_RAD24317 = 2L, Ogo_RAD24331 = 2L, Ogo_RAD24412 = 2L, Ogo_RAD24415 = 2L, 
+Ogo_RAD24703 = 2L, Ogo_RAD25350 = 4L, Ogo_RAD25357 = 2L, Ogo_RAD2585 = 2L, 
+Ogo_RAD25904 = 2L, Ogo_RAD26150 = 2L, Ogo_RAD2631 = 2L, Ogo_RAD27156 = 2L, 
+Ogo_RAD27199 = 2L, Ogo_RAD27365 = 2L, Ogo_RAD27386 = 2L, Ogo_RAD27655 = 2L, 
+Ogo_RAD27775 = 4L, Ogo_RAD2787 = 2L, Ogo_RAD27872 = 2L, Ogo_RAD28194 = 2L, 
+Ogo_RAD28204 = 2L, Ogo_RAD28663 = 2L, Ogo_RAD28794 = 4L, Ogo_RAD29239 = 2L, 
+Ogo_RAD29347 = 2L, Ogo_RAD29416 = 4L, Ogo_RAD29673 = 4L, Ogo_RAD29748 = 2L, 
+Ogo_RAD30443 = 2L, Ogo_RAD30540 = 2L, Ogo_RAD30883 = 2L, Ogo_RAD31093 = 2L, 
+Ogo_RAD31291 = 4L, Ogo_RAD31612 = 2L, Ogo_RAD32389 = 4L, Ogo_RAD32976 = 4L, 
+Ogo_RAD32977 = 2L, Ogo_RAD32983 = 2L, Ogo_RAD33173 = 4L, Ogo_RAD33679 = 2L, 
+Ogo_RAD33694 = 4L, Ogo_RAD33854 = 2L, Ogo_RAD3392 = 4L, Ogo_RAD35202 = 4L, 
+Ogo_RAD35734 = 2L, Ogo_RAD35892 = 2L, Ogo_RAD36108 = 2L, Ogo_RAD36195 = 2L, 
+Ogo_RAD36566 = 2L, Ogo_RAD36934 = 2L, Ogo_RAD36977 = 2L, Ogo_RAD37276 = 4L, 
+Ogo_RAD37369 = 2L, Ogo_RAD37424 = 2L, Ogo_RAD37470 = 2L, Ogo_RAD37507 = 2L, 
+Ogo_RAD37533 = 2L, Ogo_RAD37712 = 4L, Ogo_RAD37958 = 4L, Ogo_RAD3822 = 2L, 
+Ogo_RAD38228 = 2L, Ogo_RAD38320 = 2L, Ogo_RAD38502 = 2L, Ogo_RAD38879 = 2L, 
+Ogo_RAD40311 = 4L, Ogo_RAD40542 = 2L, Ogo_RAD40604 = 4L, Ogo_RAD40675 = 2L, 
+Ogo_RAD4082 = 4L, Ogo_RAD41416 = 2L, Ogo_RAD41492 = 2L, Ogo_RAD42104 = 2L, 
+Ogo_RAD42202 = 2L, Ogo_RAD42226 = 4L, Ogo_RAD42330 = 2L, Ogo_RAD42970 = 2L, 
+Ogo_RAD42976 = 2L, Ogo_RAD43201 = 2L, Ogo_RAD4374 = 2L, Ogo_RAD44192 = 4L, 
+Ogo_RAD44270 = 4L, Ogo_RAD45034 = 2L, Ogo_RAD45772 = 2L, Ogo_RAD46183 = 2L, 
+Ogo_RAD46295 = 2L, Ogo_RAD46372 = 4L, Ogo_RAD4668 = 2L, Ogo_RAD46835 = 2L, 
+Ogo_RAD47501 = 2L, Ogo_RAD47619 = 2L, Ogo_RAD48171 = 4L, Ogo_RAD48181 = 2L, 
+Ogo_RAD48307 = 4L, Ogo_RAD48525 = 2L, Ogo_RAD48621 = 2L, Ogo_RAD48736 = 4L, 
+Ogo_RAD49117 = 4L, Ogo_RAD49460 = 4L, Ogo_RAD49598 = 4L, Ogo_RAD49647 = 4L, 
+Ogo_RAD49752 = 2L, Ogo_RAD50452 = 2L, Ogo_RAD50499 = 2L, Ogo_RAD50608 = 2L, 
+Ogo_RAD50728 = 2L, Ogo_RAD50809 = 2L, Ogo_RAD51386 = 2L, Ogo_RAD51855 = 2L, 
+Ogo_RAD52151 = 4L, Ogo_RAD52189 = 2L, Ogo_RAD52218 = 2L, Ogo_RAD52225 = 2L, 
+Ogo_RAD523 = 4L, Ogo_RAD52488 = 2L, Ogo_RAD52801 = 2L, Ogo_RAD52811 = 2L, 
+Ogo_RAD52842 = 2L, Ogo_RAD53094 = 4L, Ogo_RAD53165 = 2L, Ogo_RAD53342 = 2L, 
+Ogo_RAD53716 = 2L, Ogo_RAD5397 = 2L, Ogo_RAD54074 = 2L, Ogo_RAD54176 = 2L, 
+Ogo_RAD54369 = 4L, Ogo_RAD54481 = 2L, Ogo_RAD54818 = 2L, Ogo_RAD55035 = 4L, 
+Ogo_RAD55099 = 2L, Ogo_RAD55164 = 4L, Ogo_RAD55779 = 2L, Ogo_RAD55897 = 2L, 
+Ogo_RAD5650 = 4L, Ogo_RAD5679 = 4L, Ogo_RAD57344 = 2L, Ogo_RAD57492 = 2L, 
+Ogo_RAD57625 = 2L, Ogo_RAD57924 = 2L, Ogo_RAD57971 = 2L, Ogo_RAD5831 = 2L, 
+Ogo_RAD5930 = 4L, Ogo_RAD59389 = 2L, Ogo_RAD59478 = 2L, Ogo_RAD60104 = 4L, 
+Ogo_RAD60523 = 4L, Ogo_RAD60538 = 2L, Ogo_RAD60781 = 2L, Ogo_RAD61015 = 2L, 
+Ogo_RAD61197 = 2L, Ogo_RAD61890 = 4L, Ogo_RAD62098 = 2L, Ogo_RAD62146 = 2L, 
+Ogo_RAD62169 = 2L, Ogo_RAD62258 = 2L, Ogo_RAD62272 = 2L, Ogo_RAD62601 = 2L, 
+Ogo_RAD62696 = 2L, Ogo_RAD62994 = 4L, Ogo_RAD6323 = 2L, Ogo_RAD63386 = 4L, 
+Ogo_RAD63466 = 4L, Ogo_RAD63642 = 2L, Ogo_RAD63694 = 4L, Ogo_RAD63776 = 2L, 
+Ogo_RAD63845 = 2L, Ogo_RAD63872 = 2L, Ogo_RAD64165 = 2L, Ogo_RAD6419 = 2L, 
+Ogo_RAD64414 = 2L, Ogo_RAD65137 = 4L, Ogo_RAD65325 = 4L, Ogo_RAD65516 = 4L, 
+Ogo_RAD65521 = 2L, Ogo_RAD65717 = 2L, Ogo_RAD6596 = 2L, Ogo_RAD65993 = 2L, 
+Ogo_RAD66024 = 2L, Ogo_RAD66127 = 2L, Ogo_RAD66178 = 4L, Ogo_RAD66546 = 4L, 
+Ogo_RAD67123 = 2L, Ogo_RAD67167 = 4L, Ogo_RAD67267 = 2L, Ogo_RAD67284 = 4L, 
+Ogo_RAD67367 = 2L, Ogo_RAD67470 = 2L, Ogo_RAD67635 = 4L, Ogo_RAD67738 = 2L, 
+Ogo_RAD67855 = 2L, Ogo_RAD68414 = 2L, Ogo_RAD69145 = 4L, Ogo_RAD69296 = 2L, 
+Ogo_RAD69356 = 2L, Ogo_RAD69952 = 2L, Ogo_RAD70081 = 2L, Ogo_RAD70170 = 4L, 
+Ogo_RAD70367 = 4L, Ogo_RAD70645 = 4L, Ogo_RAD70771 = 2L, Ogo_RAD70836 = 4L, 
+Ogo_RAD70911 = 2L, Ogo_RAD70912 = 2L, Ogo_RAD70938 = 4L, Ogo_RAD7126 = 2L, 
+Ogo_RAD72172 = 2L, Ogo_RAD7263 = 2L, Ogo_RAD73191 = 4L, Ogo_RAD7330 = 4L, 
+Ogo_RAD74710 = 4L, Ogo_RAD75819 = 2L, Ogo_RAD76867 = 2L, Ogo_RAD7690 = 2L, 
+Ogo_RAD77074 = 4L, Ogo_RAD77189 = 4L, Ogo_RAD77424 = 4L, Ogo_RAD7751 = 4L, 
+Ogo_RAD77610 = 2L, Ogo_RAD7828 = 2L, Ogo_RAD79917 = 2L, Ogo_RAD8019 = 4L, 
+Ogo_RAD8163 = 4L, Ogo_RAD81956 = 2L, Ogo_RAD82358 = 2L, Ogo_RAD82401 = 2L, 
+Ogo_RAD82542 = 4L, Ogo_RAD83424 = 4L, Ogo_RAD85872 = 4L, Ogo_RAD86755 = 4L, 
+Ogo_RAD905 = 2L, Ogo_RAD9738 = 2L, Ogo_RAD9786 = 4L), ploidy = c(Ogo_RAD10094 = 2, 
+Ogo_RAD10230 = 2, Ogo_RAD10383 = 2, Ogo_RAD10514 = 2, Ogo_RAD10558 = 2, 
+Ogo_RAD10597 = 2, Ogo_RAD1068 = 2, Ogo_RAD10723 = 2, Ogo_RAD1109 = 2, 
+Ogo_RAD11767 = 2, Ogo_RAD1183 = 2, Ogo_RAD12652 = 2, Ogo_RAD12832 = 2, 
+Ogo_RAD13108 = 2, Ogo_RAD13232 = 2, Ogo_RAD13247 = 2, Ogo_RAD13427 = 2, 
+Ogo_RAD13586 = 2, Ogo_RAD13645 = 2, Ogo_RAD14411 = 2, Ogo_RAD14533 = 2, 
+Ogo_RAD14808 = 2, Ogo_RAD14867 = 2, Ogo_RAD15419 = 2, Ogo_RAD15422 = 2, 
+Ogo_RAD15518 = 2, Ogo_RAD1582 = 2, Ogo_RAD1606 = 2, Ogo_RAD16075 = 2, 
+Ogo_RAD16712 = 2, Ogo_RAD16915 = 2, Ogo_RAD17270 = 2, Ogo_RAD1730 = 2, 
+Ogo_RAD17704 = 2, Ogo_RAD17779 = 2, Ogo_RAD18035 = 2, Ogo_RAD18289 = 2, 
+Ogo_RAD18621 = 2, Ogo_RAD1880 = 2, Ogo_RAD18812 = 2, Ogo_RAD18822 = 2, 
+Ogo_RAD18870 = 2, Ogo_RAD19279 = 2, Ogo_RAD19499 = 2, Ogo_RAD19591 = 2, 
+Ogo_RAD19823 = 2, Ogo_RAD19946 = 2, Ogo_RAD20618 = 2, Ogo_RAD20672 = 2, 
+Ogo_RAD20714 = 2, Ogo_RAD20978 = 2, Ogo_RAD2108 = 2, Ogo_RAD21513 = 2, 
+Ogo_RAD21581 = 2, Ogo_RAD21635 = 2, Ogo_RAD21824 = 2, Ogo_RAD21973 = 2, 
+Ogo_RAD22084 = 2, Ogo_RAD22088 = 2, Ogo_RAD22314 = 2, Ogo_RAD22819 = 2, 
+Ogo_RAD23035 = 2, Ogo_RAD23174 = 2, Ogo_RAD23361 = 2, Ogo_RAD23390 = 2, 
+Ogo_RAD23454 = 2, Ogo_RAD23903 = 2, Ogo_RAD24317 = 2, Ogo_RAD24331 = 2, 
+Ogo_RAD24412 = 2, Ogo_RAD24415 = 2, Ogo_RAD24703 = 2, Ogo_RAD25350 = 2, 
+Ogo_RAD25357 = 2, Ogo_RAD2585 = 2, Ogo_RAD25904 = 2, Ogo_RAD26150 = 2, 
+Ogo_RAD2631 = 2, Ogo_RAD27156 = 2, Ogo_RAD27199 = 2, Ogo_RAD27365 = 2, 
+Ogo_RAD27386 = 2, Ogo_RAD27655 = 2, Ogo_RAD27775 = 2, Ogo_RAD2787 = 2, 
+Ogo_RAD27872 = 2, Ogo_RAD28194 = 2, Ogo_RAD28204 = 2, Ogo_RAD28663 = 2, 
+Ogo_RAD28794 = 2, Ogo_RAD29239 = 2, Ogo_RAD29347 = 2, Ogo_RAD29416 = 2, 
+Ogo_RAD29673 = 2, Ogo_RAD29748 = 2, Ogo_RAD30443 = 2, Ogo_RAD30540 = 2, 
+Ogo_RAD30883 = 2, Ogo_RAD31093 = 2, Ogo_RAD31291 = 2, Ogo_RAD31612 = 2, 
+Ogo_RAD32389 = 2, Ogo_RAD32976 = 2, Ogo_RAD32977 = 2, Ogo_RAD32983 = 2, 
+Ogo_RAD33173 = 2, Ogo_RAD33679 = 2, Ogo_RAD33694 = 2, Ogo_RAD33854 = 2, 
+Ogo_RAD3392 = 2, Ogo_RAD35202 = 2, Ogo_RAD35734 = 2, Ogo_RAD35892 = 2, 
+Ogo_RAD36108 = 2, Ogo_RAD36195 = 2, Ogo_RAD36566 = 2, Ogo_RAD36934 = 2, 
+Ogo_RAD36977 = 2, Ogo_RAD37276 = 2, Ogo_RAD37369 = 2, Ogo_RAD37424 = 2, 
+Ogo_RAD37470 = 2, Ogo_RAD37507 = 2, Ogo_RAD37533 = 2, Ogo_RAD37712 = 2, 
+Ogo_RAD37958 = 2, Ogo_RAD3822 = 2, Ogo_RAD38228 = 2, Ogo_RAD38320 = 2, 
+Ogo_RAD38502 = 2, Ogo_RAD38879 = 2, Ogo_RAD40311 = 2, Ogo_RAD40542 = 2, 
+Ogo_RAD40604 = 2, Ogo_RAD40675 = 2, Ogo_RAD4082 = 2, Ogo_RAD41416 = 2, 
+Ogo_RAD41492 = 2, Ogo_RAD42104 = 2, Ogo_RAD42202 = 2, Ogo_RAD42226 = 2, 
+Ogo_RAD42330 = 2, Ogo_RAD42970 = 2, Ogo_RAD42976 = 2, Ogo_RAD43201 = 2, 
+Ogo_RAD4374 = 2, Ogo_RAD44192 = 2, Ogo_RAD44270 = 2, Ogo_RAD45034 = 2, 
+Ogo_RAD45772 = 2, Ogo_RAD46183 = 2, Ogo_RAD46295 = 2, Ogo_RAD46372 = 2, 
+Ogo_RAD4668 = 2, Ogo_RAD46835 = 2, Ogo_RAD47501 = 2, Ogo_RAD47619 = 2, 
+Ogo_RAD48171 = 2, Ogo_RAD48181 = 2, Ogo_RAD48307 = 2, Ogo_RAD48525 = 2, 
+Ogo_RAD48621 = 2, Ogo_RAD48736 = 2, Ogo_RAD49117 = 2, Ogo_RAD49460 = 2, 
+Ogo_RAD49598 = 2, Ogo_RAD49647 = 2, Ogo_RAD49752 = 2, Ogo_RAD50452 = 2, 
+Ogo_RAD50499 = 2, Ogo_RAD50608 = 2, Ogo_RAD50728 = 2, Ogo_RAD50809 = 2, 
+Ogo_RAD51386 = 2, Ogo_RAD51855 = 2, Ogo_RAD52151 = 2, Ogo_RAD52189 = 2, 
+Ogo_RAD52218 = 2, Ogo_RAD52225 = 2, Ogo_RAD523 = 2, Ogo_RAD52488 = 2, 
+Ogo_RAD52801 = 2, Ogo_RAD52811 = 2, Ogo_RAD52842 = 2, Ogo_RAD53094 = 2, 
+Ogo_RAD53165 = 2, Ogo_RAD53342 = 2, Ogo_RAD53716 = 2, Ogo_RAD5397 = 2, 
+Ogo_RAD54074 = 2, Ogo_RAD54176 = 2, Ogo_RAD54369 = 2, Ogo_RAD54481 = 2, 
+Ogo_RAD54818 = 2, Ogo_RAD55035 = 2, Ogo_RAD55099 = 2, Ogo_RAD55164 = 2, 
+Ogo_RAD55779 = 2, Ogo_RAD55897 = 2, Ogo_RAD5650 = 2, Ogo_RAD5679 = 2, 
+Ogo_RAD57344 = 2, Ogo_RAD57492 = 2, Ogo_RAD57625 = 2, Ogo_RAD57924 = 2, 
+Ogo_RAD57971 = 2, Ogo_RAD5831 = 2, Ogo_RAD5930 = 2, Ogo_RAD59389 = 2, 
+Ogo_RAD59478 = 2, Ogo_RAD60104 = 2, Ogo_RAD60523 = 2, Ogo_RAD60538 = 2, 
+Ogo_RAD60781 = 2, Ogo_RAD61015 = 2, Ogo_RAD61197 = 2, Ogo_RAD61890 = 2, 
+Ogo_RAD62098 = 2, Ogo_RAD62146 = 2, Ogo_RAD62169 = 2, Ogo_RAD62258 = 2, 
+Ogo_RAD62272 = 2, Ogo_RAD62601 = 2, Ogo_RAD62696 = 2, Ogo_RAD62994 = 2, 
+Ogo_RAD6323 = 2, Ogo_RAD63386 = 2, Ogo_RAD63466 = 2, Ogo_RAD63642 = 2, 
+Ogo_RAD63694 = 2, Ogo_RAD63776 = 2, Ogo_RAD63845 = 2, Ogo_RAD63872 = 2, 
+Ogo_RAD64165 = 2, Ogo_RAD6419 = 2, Ogo_RAD64414 = 2, Ogo_RAD65137 = 2, 
+Ogo_RAD65325 = 2, Ogo_RAD65516 = 2, Ogo_RAD65521 = 2, Ogo_RAD65717 = 2, 
+Ogo_RAD6596 = 2, Ogo_RAD65993 = 2, Ogo_RAD66024 = 2, Ogo_RAD66127 = 2, 
+Ogo_RAD66178 = 2, Ogo_RAD66546 = 2, Ogo_RAD67123 = 2, Ogo_RAD67167 = 2, 
+Ogo_RAD67267 = 2, Ogo_RAD67284 = 2, Ogo_RAD67367 = 2, Ogo_RAD67470 = 2, 
+Ogo_RAD67635 = 2, Ogo_RAD67738 = 2, Ogo_RAD67855 = 2, Ogo_RAD68414 = 2, 
+Ogo_RAD69145 = 2, Ogo_RAD69296 = 2, Ogo_RAD69356 = 2, Ogo_RAD69952 = 2, 
+Ogo_RAD70081 = 2, Ogo_RAD70170 = 2, Ogo_RAD70367 = 2, Ogo_RAD70645 = 2, 
+Ogo_RAD70771 = 2, Ogo_RAD70836 = 2, Ogo_RAD70911 = 2, Ogo_RAD70912 = 2, 
+Ogo_RAD70938 = 2, Ogo_RAD7126 = 2, Ogo_RAD72172 = 2, Ogo_RAD7263 = 2, 
+Ogo_RAD73191 = 2, Ogo_RAD7330 = 2, Ogo_RAD74710 = 2, Ogo_RAD75819 = 2, 
+Ogo_RAD76867 = 2, Ogo_RAD7690 = 2, Ogo_RAD77074 = 2, Ogo_RAD77189 = 2, 
+Ogo_RAD77424 = 2, Ogo_RAD7751 = 2, Ogo_RAD77610 = 2, Ogo_RAD7828 = 2, 
+Ogo_RAD79917 = 2, Ogo_RAD8019 = 2, Ogo_RAD8163 = 2, Ogo_RAD81956 = 2, 
+Ogo_RAD82358 = 2, Ogo_RAD82401 = 2, Ogo_RAD82542 = 2, Ogo_RAD83424 = 2, 
+Ogo_RAD85872 = 2, Ogo_RAD86755 = 2, Ogo_RAD905 = 2, Ogo_RAD9738 = 2, 
+Ogo_RAD9786 = 2), alleles = list(Ogo_RAD10094 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD10230 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD10383 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD10514 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD10558 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD10597 = structure(list(
+    allele = 1:4, call = c("AC", "AT", "GC", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD1068 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD10723 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD1109 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD11767 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD1183 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD12652 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD12832 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD13108 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "CA", "CG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD13232 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD13247 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD13427 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD13586 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD13645 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD14411 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD14533 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD14808 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD14867 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD15419 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD15422 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD15518 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD1582 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD1606 = structure(list(
+    allele = 1:4, call = c("CC", "CT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD16075 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD16712 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD16915 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD17270 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD1730 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD17704 = structure(list(
+    allele = 1:4, call = c("AG", "AT", "TG", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD17779 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD18035 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD18289 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD18621 = structure(list(
+    allele = 1:4, call = c("AC", "AT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD1880 = structure(list(
+    allele = 1:4, call = c("CA", "CC", "GA", "GC")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD18812 = structure(list(
+    allele = 1:4, call = c("CA", "CG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD18822 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD18870 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD19279 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD19499 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD19591 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD19823 = structure(list(
+    allele = 1:4, call = c("GA", "GG", "TA", "TG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD19946 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD20618 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD20672 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD20714 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD20978 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD2108 = structure(list(
+    allele = 1:4, call = c("CC", "CG", "TC", "TG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD21513 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD21581 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD21635 = structure(list(
+    allele = 1:4, call = c("AC", "AT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD21824 = structure(list(
+    allele = 1:4, call = c("GC", "GT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD21973 = structure(list(
+    allele = 1:4, call = c("CA", "CT", "GA", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD22084 = structure(list(
+    allele = 1:4, call = c("GA", "GC", "TA", "TC")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD22088 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD22314 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD22819 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD23035 = structure(list(
+    allele = 1:4, call = c("AG", "AT", "GG", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD23174 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD23361 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD23390 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD23454 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD23903 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD24317 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD24331 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD24412 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD24415 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD24703 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD25350 = structure(list(
+    allele = 1:4, call = c("AG", "AT", "GG", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD25357 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD2585 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD25904 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD26150 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD2631 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD27156 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD27199 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD27365 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD27386 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD27655 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD27775 = structure(list(
+    allele = 1:4, call = c("AG", "AT", "GG", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD2787 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD27872 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD28194 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD28204 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD28663 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD28794 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD29239 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD29347 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD29416 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "CA", "CG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD29673 = structure(list(
+    allele = 1:4, call = c("GC", "GT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD29748 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD30443 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD30540 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD30883 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD31093 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD31291 = structure(list(
+    allele = 1:4, call = c("AA", "AT", "TA", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD31612 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD32389 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "CA", "CG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD32976 = structure(list(
+    allele = 1:4, call = c("CA", "CG", "TA", "TG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD32977 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD32983 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD33173 = structure(list(
+    allele = 1:4, call = c("CA", "CT", "TA", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD33679 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD33694 = structure(list(
+    allele = 1:4, call = c("GG", "GT", "TG", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD33854 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD3392 = structure(list(
+    allele = 1:4, call = c("CA", "CT", "GA", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD35202 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD35734 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD35892 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD36108 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD36195 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD36566 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD36934 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD36977 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD37276 = structure(list(
+    allele = 1:4, call = c("GC", "GT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD37369 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD37424 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD37470 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD37507 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD37533 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD37712 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD37958 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "TA", "TG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD3822 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD38228 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD38320 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD38502 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD38879 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD40311 = structure(list(
+    allele = 1:4, call = c("CC", "CT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD40542 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD40604 = structure(list(
+    allele = 1:4, call = c("AA", "AT", "GA", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD40675 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD4082 = structure(list(
+    allele = 1:4, call = c("CA", "CG", "TA", "TG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD41416 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD41492 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD42104 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD42202 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD42226 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD42330 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD42970 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD42976 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD43201 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD4374 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD44192 = structure(list(
+    allele = 1:4, call = c("CA", "CC", "GA", "GC")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD44270 = structure(list(
+    allele = 1:4, call = c("CA", "CT", "GA", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD45034 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD45772 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD46183 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD46295 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD46372 = structure(list(
+    allele = 1:4, call = c("CA", "CT", "TA", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD4668 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD46835 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD47501 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD47619 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD48171 = structure(list(
+    allele = 1:4, call = c("CC", "CT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD48181 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD48307 = structure(list(
+    allele = 1:4, call = c("CC", "CT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD48525 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD48621 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD48736 = structure(list(
+    allele = 1:4, call = c("AG", "AT", "CG", "CT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD49117 = structure(list(
+    allele = 1:4, call = c("GA", "GG", "TA", "TG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD49460 = structure(list(
+    allele = 1:4, call = c("AA", "AT", "CA", "CT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD49598 = structure(list(
+    allele = 1:4, call = c("CA", "CG", "TA", "TG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD49647 = structure(list(
+    allele = 1:4, call = c("CG", "CT", "GG", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD49752 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD50452 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD50499 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD50608 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD50728 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD50809 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD51386 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD51855 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD52151 = structure(list(
+    allele = 1:4, call = c("AC", "AT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD52189 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD52218 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD52225 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD523 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD52488 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD52801 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD52811 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD52842 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD53094 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD53165 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD53342 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD53716 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD5397 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD54074 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD54176 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD54369 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD54481 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD54818 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD55035 = structure(list(
+    allele = 1:4, call = c("AA", "AC", "CA", "CC")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD55099 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD55164 = structure(list(
+    allele = 1:4, call = c("CA", "CG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD55779 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD55897 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD5650 = structure(list(
+    allele = 1:4, call = c("AA", "AC", "GA", "GC")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD5679 = structure(list(
+    allele = 1:4, call = c("CA", "CT", "TA", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD57344 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD57492 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD57625 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD57924 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD57971 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD5831 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD5930 = structure(list(
+    allele = 1:4, call = c("AC", "AT", "GC", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD59389 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD59478 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD60104 = structure(list(
+    allele = 1:4, call = c("GA", "GC", "TA", "TC")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD60523 = structure(list(
+    allele = 1:4, call = c("GG", "GT", "TG", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD60538 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD60781 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD61015 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD61197 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD61890 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD62098 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD62146 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD62169 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD62258 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD62272 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD62601 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD62696 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD62994 = structure(list(
+    allele = 1:4, call = c("AG", "AT", "GG", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD6323 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD63386 = structure(list(
+    allele = 1:4, call = c("CA", "CC", "TA", "TC")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD63466 = structure(list(
+    allele = 1:4, call = c("AG", "AT", "GG", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD63642 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD63694 = structure(list(
+    allele = 1:4, call = c("CG", "CT", "TG", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD63776 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD63845 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD63872 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD64165 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD6419 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD64414 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD65137 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD65325 = structure(list(
+    allele = 1:4, call = c("CG", "CT", "GG", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD65516 = structure(list(
+    allele = 1:4, call = c("AC", "AT", "GC", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD65521 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD65717 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD6596 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD65993 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD66024 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD66127 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD66178 = structure(list(
+    allele = 1:4, call = c("CC", "CT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD66546 = structure(list(
+    allele = 1:4, call = c("AC", "AT", "CC", "CT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD67123 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD67167 = structure(list(
+    allele = 1:4, call = c("AA", "AT", "GA", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD67267 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD67284 = structure(list(
+    allele = 1:4, call = c("CA", "CG", "TA", "TG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD67367 = structure(list(
+    allele = 1:2, call = c("A", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD67470 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD67635 = structure(list(
+    allele = 1:4, call = c("AA", "AC", "CA", "CC")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD67738 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD67855 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD68414 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD69145 = structure(list(
+    allele = 1:4, call = c("AC", "AT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD69296 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD69356 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD69952 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD70081 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD70170 = structure(list(
+    allele = 1:4, call = c("CA", "CC", "GA", "GC")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD70367 = structure(list(
+    allele = 1:4, call = c("AA", "AT", "GA", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD70645 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD70771 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD70836 = structure(list(
+    allele = 1:4, call = c("GA", "GG", "TA", "TG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD70911 = structure(list(
+    allele = 1:2, call = c("A", "C")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD70912 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD70938 = structure(list(
+    allele = 1:4, call = c("AC", "AT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD7126 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD72172 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD7263 = structure(list(
+    allele = 1:2, call = c("G", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD73191 = structure(list(
+    allele = 1:4, call = c("GC", "GT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD7330 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "CA", "CG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD74710 = structure(list(
+    allele = 1:4, call = c("CC", "CT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD75819 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD76867 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD7690 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD77074 = structure(list(
+    allele = 1:4, call = c("GG", "GT", "TG", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD77189 = structure(list(
+    allele = 1:4, call = c("CG", "CT", "TG", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD77424 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "TA", "TG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD7751 = structure(list(
+    allele = 1:4, call = c("CC", "CG", "TC", "TG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD77610 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD7828 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD79917 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD8019 = structure(list(
+    allele = 1:4, call = c("AA", "AG", "GA", "GG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD8163 = structure(list(
+    allele = 1:4, call = c("AC", "AT", "GC", "GT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD81956 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD82358 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD82401 = structure(list(
+    allele = 1:2, call = c("C", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD82542 = structure(list(
+    allele = 1:4, call = c("CA", "CG", "TA", "TG")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD83424 = structure(list(
+    allele = 1:4, call = c("CC", "CT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD85872 = structure(list(
+    allele = 1:4, call = c("AG", "AT", "CG", "CT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD86755 = structure(list(
+    allele = 1:4, call = c("CA", "CC", "TA", "TC")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)), Ogo_RAD905 = structure(list(
+    allele = 1:2, call = c("C", "T")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD9738 = structure(list(
+    allele = 1:2, call = c("A", "G")), class = c("tbl_df", "tbl", 
+"data.frame"), row.names = c(NA, -2L)), Ogo_RAD9786 = structure(list(
+    allele = 1:4, call = c("AC", "AT", "TC", "TT")), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -4L)))), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -298L))

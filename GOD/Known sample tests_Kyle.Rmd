@@ -1,0 +1,1730 @@
+---
+title: "Matching tissues to otoliths with known samples"
+subtitle: "T028 redux: can we find a better way to match otoliths and hearts?"
+author: "Andy Barclay & Kyle Shedd"
+date: "Andy - 2022-02-24, Kyle - 2023-03-16"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Background
+
+During shipment of otolith samples to the MTA in Juneau for reading, a significant proportion of otoliths migrated between cells within DWPs due to poor containment of the acetate lids that were attached with rubber bands to the DWPs. This incident is known as "the great otolith debacle", aka the "GOD" incident. Since some otoliths moved from their original cells in the DWP, the paired integrity of the otolith-origin information and the rest of the paired data (genotype + field data) was lost for many individuals. In an attempt to rectify the "GOD" incident, we are extracting DNA from the otolith tissues, genotyping the otolith-derived DNA for a subset of the GT-seq loci using SNP Type markers, and attempting to re-pair the otolith-heart samples from their genotypes. 
+
+A test lab project (T028) was conducted using DNA was extracted from right-side otolith tissues from known paired samples using conventional Machery-Nagel DNA extraction kits using several methods to reduce DNA contamination while preserving the target DNA (DNA from the fish sampled). Otolith genotypes were produce using both SNP type and GTseq methods. Several methods were tested to pair the otolith and heart tissue DNA. Excess heterozygosity was used to assess levels of contamination. DupCheckBetweenSillys.GCL was used to pair the otolith and heart samples.
+
+This notebook is a continuation of work conducted in [lab project T028](V:\Lab\Genotyping\SNP Projects\Tests\Project T028 DNA Extractions from Pink Otoliths) by Kyle Shedd and Kristen Gruenthal. In this notebook I test new methods for pairing genotypes derived from otolith and genetic tissue DNA. For these tests, I will used the otolith GT-seq genotypes produced in T028 and attempt to match them to their heart tissues. 
+
+*Note: T028 was conducted using the QC R scripts from the static branch of the GCL-R-Scrips repository. Here, I attempt to use the new tidy functions from the development branch to hopefully make things easier. To do this, I had to modify the ReadGTseqQC.GCL function so I can read in the otolith genotypes and create a tibble-style .gcl object.*
+
+
+# Setup workspace
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+
+rm(list = ls())
+
+library(tidyverse)
+library(readxl)
+# devtools::install_github("eriqande/CKMRsim", build_vignettes = FALSE)
+library(CKMRsim)
+library(gridExtra)
+library(rubias)
+
+
+source("~/../R/Functions.GCL.R")  # develop branch!
+
+source("ReadGTseqQC_new.GCL.r")  # This is a tidy version of the function on the static branch. Eventually, this will get push up to the development branch 
+
+.username = readLines("~/../R/usr_pw.txt", n = 1)
+.password = readLines("~/../R/usr_pw.txt" , n = 2)[[2]]
+```
+
+Kyle said that T028 rounds 10-12 used similar lab methods to those used for PGOD, so I will use the otolith genotypes for those rounds to test my otolith/heart genotype pairing method. 
+
+# Get otolith fluidigm genotypes
+
+Read in the otolith chip data to get the fish ID's in rounds 10-12
+```{r}
+files <- list.files("data/T28 files/Rounds 10 to 12 chips", full.names = TRUE)
+
+(oto_geno_nonGTseq <- lapply(files, function(file){
+  
+  readr::read_csv(file, show_col_types = FALSE)
+  
+}) %>% dplyr::bind_rows())
+
+fish_ids <- oto_geno_nonGTseq$SAMPLE_NUM %>% unique() %>% sort()
+```
+
+# Get genotyping error rate
+
+Here's the correct folder for concordance and genotype files:
+*V:\Lab\Genotyping\SNP Projects\Tests\Project T028 DNA Extractions from Pink Otoliths\Chips\T028_outputs_from_P061*
+
+This is the overall discrepancy rate for T028. This will be used later for the genotyping error model in CKMRsim.
+```{r}
+# oto_concord <- read_csv("V:/Lab/Genotyping/SNP Projects/Tests/Project T028 DNA Extractions from Pink Otoliths/Chips/T028_outputs_from_P061/Concordance__T028_LOKI_input_all.csv", show_col_types = FALSE)
+
+oto_concord <- readr::read_csv("data/T28 files/Concordance__T028_LOKI_input_all.csv", show_col_types = FALSE)
+
+total_genotypes <- dim(oto_concord)[1]
+
+conflicts <- (oto_concord %>% 
+  dplyr::filter(Concordance == "Conflict", !`Concordance Type` %in% c("File Zero", "DB Zero")) %>% 
+  dim())[1]
+
+(discrepancy_rate <- conflicts/total_genotypes)
+
+#error_rate <- discrepancy_rate/2
+```
+
+# Get loci
+
+Getting loci from the GTseq Loki input file.  There are 304 loci and 517 fish in the test data set.
+```{r}
+# geno_file <- "V:/Lab/Genotyping/SNP Projects/Tests/Project T028 DNA Extractions from Pink Otoliths/Chips/T028_outputs_from_P061/T028_LOKI_input_all.csv"
+
+geno_file <- "data/T28 files/T028_LOKI_input_all.csv"
+
+oto_geno_GTseq <- readr::read_csv(geno_file, show_col_types = FALSE) 
+
+# loci <- oto_geno_GTseq %>% 
+#   distinct(LOCUS) %>% 
+#   pull()
+
+loci <- dget("objects/loci298.txt")
+
+fish_ids <- oto_geno_GTseq %>% 
+  dplyr::distinct(SAMPLE_NUM) %>% 
+  dplyr::pull()
+```
+
+# Get genotypes
+
+## Create LocusControl
+
+```{r}
+CreateLocusControl.GCL(locusnames = loci, username = "krshedd", password = .password)
+
+save_objects(objects = "LocusControl", path = "objects/")
+
+# loci <- LocusControl$locusnames
+```
+
+## GT-seq heart data
+
+```{r}
+heart_silly <- "PSTOCK17"
+
+# Andy
+# LOKI2R.GCL(sillyvec = heart_silly, username = "awbarclay", password = .password, test_type = c("SNP", "GTSNP", "MSAT")[2])
+# 
+# PSTOCK17.gcl <- PSTOCK17.gcl %>%
+#   filter(FK_FISH_ID %in% fish_ids) # Reduce the object down to the fish IDs in T028
+# 
+# write_rds(PSTOCK17.gcl, "objects/PSTOCK17.gcl.rds")# Saving the reduced object
+
+# (PSTOCK17.gcl <-  read_rds("objects/PSTOCK17.gcl.rds"))
+
+# Kyle
+# LOKI2R.GCL(sillyvec = heart_silly, username = "krshedd", password = .password, test_type = "GTSNP")
+# 
+# PSTOCK17.gcl <- PSTOCK17.gcl %>%
+#   dplyr::filter(FK_FISH_ID %in% fish_ids) # Reduce the object down to the fish IDs in T028
+# 
+# save_sillys(sillyvec = heart_silly, path = "objects/", rds = FALSE)
+
+load_sillys(path = "objects/", sillyvec = heart_silly, rds = FALSE)
+```
+
+## GT-seq otolith data
+
+```{r}
+#ReadGTseqQC.GCL(ProjectSillys = "PSTOCK17", QCcsvFilepaths = geno_file)
+
+#write_csv(PSTOCK17QC.gcl, "objects/PSTOCK17QC.gcl.csv")# Saving the original object
+
+otolith_silly <-"PSTOCK17QC"
+
+(PSTOCK17QC.gcl <- readr::read_csv("objects/PSTOCK17QC.gcl.csv", col_types = as.col_spec(PSTOCK17.gcl))) 
+```
+
+# Common Data Set: Pre-QA
+
+Make sure all otolith samples have heart to compare with
+
+There are **514 fish in common** between the heart and otolith sillys.
+```{r}
+common_samps <- intersect(PSTOCK17.gcl$FK_FISH_ID, PSTOCK17QC.gcl$FK_FISH_ID)
+
+length(common_samps)
+```
+
+Reduce to 514 fish in common, this is necessary since only the hearts have DWP information.
+```{r}
+PSTOCK17.gcl <- PSTOCK17.gcl %>% dplyr::filter(FK_FISH_ID %in% common_samps)
+
+PSTOCK17QC.gcl <- PSTOCK17QC.gcl %>% dplyr::filter(FK_FISH_ID %in% common_samps)
+
+silly_n.GCL(c(heart_silly, otolith_silly))
+```
+
+Get DWP information for all 514 fish so we can compare within DWPs
+```{r}
+(DWPs <- PSTOCK17.gcl %>% dplyr::select(FK_FISH_ID, DNA_TRAY_CODE))
+```
+
+# Quality Assurance
+
+Should create a table of QA sample size attrition (started with 514, lost 21 to missing, lost 4 to dups, lost 8 due to heterozygosity)
+
+## Hearts
+
+```{r qa_setup}
+(
+  sample_size_qa <- dplyr::tibble(silly = heart_silly) %>%
+    dplyr::mutate(genotyped = silly_n.GCL(sillyvec = heart_silly) %>% dplyr::pull(n))
+)
+```
+
+### Missing loci
+
+For the hearts, I'm using our standard 80% cutoff to remove any poor quality samples. 
+```{r}
+heart_missloci <- RemoveIndMissLoci.GCL("PSTOCK17", proportion = 0.8)
+
+(
+  sample_size_qa <- sample_size_qa %>%
+    dplyr::mutate(
+      missing = genotyped - silly_n.GCL(sillyvec = heart_silly) %>% dplyr::pull(n)
+    )
+)
+```
+
+### Duplicate check
+
+The heart genotypes have two duplicates. These look real because their sample IDs are close together and they are matching at >96% of loci.
+```{r}
+(heart_dupcheck <- CheckDupWithinSilly.GCL(sillyvec = heart_silly, minproportion = 0.95, ncores = 8))
+```
+
+Remove both samples from each duplicate set.
+```{r}
+RemoveDups.GCL(dupcheck = heart_dupcheck, remove_both = TRUE)
+
+# rm_IDs <-  heart_dupcheck %>% select(ID1, ID2) %>% as_vector()
+# RemoveIDs.GCL("PSTOCK17", IDs = rm_IDs)
+
+(
+  sample_size_qa <- sample_size_qa %>%
+    mutate(
+      duplicate = genotyped - missing - silly_n.GCL(sillyvec = heart_silly) %>% pull(n)
+    )
+)
+```
+
+### Heterozygosity
+
+Excess heterozygosity can be an indication of contamination. Removing potentially contaminated individuals from the heart data will help reduce the number of erroneous matches in the dupcheck and CKMRsim analyses.
+
+Plot heterozygosities by lineage with *tidyverse* for ease of use/visualization. Cutoffs (red vertical lines) are based on the +/- 1.5 IQR method that it is well known and well documented in literature.
+
+```{r}
+Ho <- dplyr::left_join(
+  x = PSTOCK17.gcl %>%
+    dplyr::select(-dplyr::all_of(paste0(loci, ".1"))) %>%
+    tidyr::pivot_longer(
+      dplyr::all_of(loci),
+      names_to = "locus",
+      values_to = "allele1"
+    ),
+  y = PSTOCK17.gcl %>%
+    dplyr::select(SillySource, dplyr::all_of(paste0(loci, ".1"))) %>%
+    tidyr::pivot_longer(-SillySource, names_to = "locus", values_to = "allele2") %>%
+    dplyr::mutate(locus = gsub("\\.1", "", locus)),
+  
+  by = c("SillySource", "locus")
+) %>%
+  dplyr::select(dplyr::everything(), allele2) %>%
+  dplyr::mutate(Ind_het = dplyr::case_when(allele1 == allele2 ~ TRUE,
+                                           allele1 != allele2 ~ FALSE,
+                                           TRUE ~ NA)) %>%
+  dplyr::group_by(SillySource) %>%
+  dplyr::summarize(Ind_het = sum(Ind_het, na.rm = TRUE) / length(!is.na(Ind_het))) %>%
+  dplyr::arrange(dplyr::desc(Ind_het))
+
+het_means <- Ho %>%
+  dplyr::summarise(
+    het_mean = mean(Ind_het),
+    het_1.5IQR_low = quantile(Ind_het, probs = 0.25) - 1.5 * diff(quantile(Ind_het, probs = c(0.25, 0.75))),
+    het_1.5IQR_high = quantile(Ind_het, probs = 0.75) + 1.5 * diff(quantile(Ind_het, probs = c(0.25, 0.75)))
+  )
+
+Ho %>%
+  ggplot(aes(x = Ind_het)) +
+  ggplot2::geom_histogram(binwidth = 1 / length(loci)) +
+  ggplot2::geom_vline(data = het_means, aes(xintercept = het_mean, colour = "mean")) +
+  ggplot2::geom_vline(data = het_means, aes(xintercept = het_1.5IQR_low, colour = "IQR")) +
+  ggplot2::geom_vline(data = het_means, aes(xintercept = het_1.5IQR_high, colour = "IQR")) +
+  ggplot2::scale_color_manual(name = "statistics", values = c(mean = "blue", IQR = "red")) +
+  ggplot2::xlim(0, 1) +
+  ggplot2::xlab("Individual Heterozygosity") +
+  ggplot2::ylab("Frequency") +
+  ggplot2::theme_bw() 
+```
+
+### Remove fish outside of the IQR cutoffs
+
+Get the IDs with higher 
+```{r table_het_cutoff}
+# Calculate 1.5 IQR
+het_means
+
+# Get list of fish to remove
+Ho_rm_IDs <- Ho %>%
+  dplyr::bind_cols(het_means) %>%
+  dplyr::filter(Ind_het < het_1.5IQR_low | Ind_het > het_1.5IQR_high) %>% 
+  tidyr::separate(SillySource, into = c("Silly", "ID"), sep = "_") %>% 
+  dplyr::pull(ID)
+```
+
+Remove fish outside the cutoffs
+```{r}
+(Hets_removed <- RemoveIDs.GCL("PSTOCK17", IDs = Ho_rm_IDs))
+```
+
+### Final
+
+A total of **481 heart samples remain** after removing fish with missing loci, duplicate, and heterozygosity issues.
+```{r}
+(
+  sample_size_qa <- sample_size_qa %>%
+    mutate(
+      heterozygosity = genotyped - missing - duplicate - silly_n.GCL(sillyvec = heart_silly) %>% pull(n),
+      final = silly_n.GCL(sillyvec = heart_silly) %>% pull(n)
+    )
+)
+```
+
+## Otoliths
+
+```{r qa_setup_otos}
+(
+  sample_size_otolith_qa <- dplyr::tibble(silly = otolith_silly) %>%
+    dplyr::mutate(genotyped = silly_n.GCL(sillyvec = otolith_silly) %>% dplyr::pull(n))
+)
+```
+
+### Missing loci
+
+For the otoliths,  I'm going to use a 10% cutoff for removing individuals with missing loci. 12 otolith samples would have to be dropped if the 80% rule were applied here, but I'm just going to remove the 3 samples for now.
+```{r}
+oto_missloci <- RemoveIndMissLoci.GCL(sillyvec = "PSTOCK17QC", loci = LocusControl$locusnames, proportion = 0.10)
+
+(
+  sample_size_otolith_qa <- sample_size_otolith_qa %>%
+    dplyr::mutate(
+      missing = genotyped - silly_n.GCL(sillyvec = otolith_silly) %>% dplyr::pull(n),
+    )
+)
+```
+
+A total of **510 otolith samples remain** after removing fish with missing loci.
+
+### Duplicate check
+
+The otolith genotypes have three duplicates. At least 1 / 3  looks real because their sample IDs are close together and they are matching at >95% of loci.
+```{r}
+(otolith_dupcheck <- CheckDupWithinSilly.GCL(sillyvec = otolith_silly, minproportion = 0.95, minnonmissing = 0.1, ncores = 8))
+```
+
+Remove both samples from each duplicate set.
+```{r}
+RemoveDups.GCL(dupcheck = otolith_dupcheck, remove_both = TRUE)
+
+# rm_IDs <-  heart_dupcheck %>% select(ID1, ID2) %>% as_vector()
+# RemoveIDs.GCL("PSTOCK17", IDs = rm_IDs)
+
+(
+  sample_size_otolith_qa <- sample_size_otolith_qa %>%
+    mutate(
+      duplicate = genotyped - missing - silly_n.GCL(sillyvec = otolith_silly) %>% pull(n)
+    )
+)
+```
+
+### Final
+
+A total of **504 otolith samples remain** after removing fish with missing loci and duplicate issues.
+```{r}
+(
+  sample_size_otolith_qa <- sample_size_otolith_qa %>%
+    mutate(
+      final = silly_n.GCL(sillyvec = otolith_silly) %>% pull(n)
+    )
+)
+```
+
+# Common data set
+
+Make sure all otolith samples have heart to compare with
+
+There are **472 fish in common** between the heart and otolith sillys.
+```{r}
+final_samps <- intersect(PSTOCK17.gcl$FK_FISH_ID, PSTOCK17QC.gcl$FK_FISH_ID)
+
+length(final_samps)
+```
+**HOWEVER I am NOT going to reduce down to this common set of 472 otolith and heart samples since we will not be able to do this for PGOD21**
+
+```{r}
+# PSTOCK17.gcl <- PSTOCK17.gcl %>% dplyr::filter(FK_FISH_ID %in% final_samps)
+# 
+# PSTOCK17QC.gcl <- PSTOCK17QC.gcl %>% dplyr::filter(FK_FISH_ID %in% final_samps)
+
+silly_n.GCL(c(heart_silly, otolith_silly))
+```
+
+# Method 1 - standard duplicate check
+
+Looking for duplicates between the heart and otolith samples one DWP at a time. 
+
+Save our original sillys so we can modify them for the duplicate check without losing data (i.e. make a copy for safe keeping).
+```{r}
+PSTOCK17_orig.gcl <- PSTOCK17.gcl
+rm(PSTOCK17.gcl)
+
+PSTOCK17QC_orig.gcl <- PSTOCK17QC.gcl
+rm(PSTOCK17QC.gcl)
+
+# (DWPs <- PSTOCK17_orig.gcl %>% dplyr::select(FK_FISH_ID, DNA_TRAY_CODE))  # did this above, pre-QA
+```
+
+## Calculate number of comparisons
+
+Before we do the duplicate check, let's see how many pairwise comparisons we expect to get in `dup_check_results` **IF** our code is working as intended, and only comparing genotypes within a DWP, as opposed to all pairwise comparisons between hearts and otoliths.
+```{r}
+DWPs_postQA <- DWPs %>% 
+  dplyr::mutate(heart = FK_FISH_ID %in% PSTOCK17_orig.gcl$FK_FISH_ID,
+                otolith = FK_FISH_ID %in% PSTOCK17QC_orig.gcl$FK_FISH_ID)
+
+DWPs_postQA %>% 
+  dplyr::group_by(DNA_TRAY_CODE) %>% 
+  dplyr::summarise(n_heart = sum(heart),
+                   n_otolith = sum(otolith)) %>% 
+  dplyr::mutate(n_comparisons = n_heart * n_otolith) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::summarise(total_comparisons = sum(n_comparisons))
+
+DWPs_postQA %>%
+  dplyr::summarise(n_heart = sum(heart),
+                   n_otolith = sum(otolith)) %>%
+  dplyr::mutate(total_comparisons = n_heart * n_otolith)
+```
+
+We should have ~20K rows of data if we are comparing within DWP vs. ~242K rows of data if doing ALL pairwise comparisons.
+
+## Duplicate check
+
+**NOTE** it is necessary to assign the silly to the global environment since `DupCheckBetweenSillys.GCL` uses `get` to grab the .gcl objects.
+```{r}
+dup_check_results <-
+  lapply(unique(DWPs$DNA_TRAY_CODE), function(ID) {
+    fishIDs <- DWPs %>%
+      dplyr::filter(DNA_TRAY_CODE == ID) %>%
+      dplyr::pull(FK_FISH_ID)
+    
+    assign(x = "PSTOCK17.gcl", value = PSTOCK17_orig.gcl %>% dplyr::filter(FK_FISH_ID %in% fishIDs), pos = 1)
+    
+    assign(x = "PSTOCK17QC.gcl", value = PSTOCK17QC_orig.gcl %>% dplyr::filter(FK_FISH_ID %in% fishIDs), pos = 1)
+    
+    DupCheckBetweenSillys.GCL(
+      KeySillys = "PSTOCK17QC",
+      KeySillyIDs = list(PSTOCK17QC = fishIDs),
+      BetweenSillys = "PSTOCK17",
+      loci = loci,
+      minnonmissing = 0.05,
+      minproportion = 0.05,
+      ncores = 8,
+      plot.results = FALSE
+    )
+    
+  }) %>% dplyr::bind_rows()
+
+# replace sillys
+PSTOCK17.gcl <- PSTOCK17_orig.gcl
+rm(PSTOCK17_orig.gcl)
+
+PSTOCK17QC.gcl <- PSTOCK17QC_orig.gcl
+rm(PSTOCK17QC_orig.gcl)
+
+dup_check_results
+```
+
+Great, it worked as expected, we only compared within a DWP.
+
+## Top 2 matches per otolith
+
+Get the top 2 matches (ignoring ties!) for each otolith.
+```{r}
+dup_check_results %>%
+  dplyr::mutate(
+    otolith_fish_id = stringr::str_remove(string = Keysillyvial, pattern = "PSTOCK17QC_"),
+    heart_fish_id = stringr::str_remove(string = Betweensillyvial, pattern = "PSTOCK17_")
+  ) %>%
+  dplyr::group_by(otolith_fish_id) %>%
+  dplyr::slice_max(DuplicateRate, n = 2, with_ties = FALSE) %>%  # ignore ties
+  dplyr::mutate(oto_heart_match = otolith_fish_id == heart_fish_id) %>%
+  dplyr::rename(missing_loci_heart = Betweenmissing,
+                missing_loci_otolith = Keymissing) %>%
+  dplyr::select(
+    otolith_fish_id,
+    heart_fish_id,
+    DuplicateRate,
+    oto_heart_match,
+    missing_loci_otolith,
+    missing_loci_heart
+  ) %>%
+  dplyr::arrange(otolith_fish_id, dplyr::desc(DuplicateRate))
+```
+
+## Top otolith match vs. 2nd best
+
+Group by otolith, get the top 2 heart matches (ignoring ties), compare to top heart match (with ties), save top heart match (with ties).
+```{r}
+(
+  dup_check_top2 <-  dup_check_results %>%
+    dplyr::mutate(
+      otolith_fish_id = stringr::str_remove(string = Keysillyvial, pattern = "PSTOCK17QC_"),
+      heart_fish_id = stringr::str_remove(string = Betweensillyvial, pattern = "PSTOCK17_")
+    ) %>%
+    dplyr::group_by(otolith_fish_id) %>%
+    dplyr::slice_max(DuplicateRate, n = 2, with_ties = FALSE) %>%
+    dplyr::mutate(diff = max(DuplicateRate) - min(DuplicateRate)) %>%
+    dplyr::slice_max(DuplicateRate, n = 1, with_ties = TRUE) %>%  # this filters for the best match, but INCLUDES ties...
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      otolith_indiv = as.numeric(otolith_fish_id),
+      heart_indiv = as.numeric(heart_fish_id),
+      Positive_match = otolith_fish_id == heart_fish_id
+    )
+)
+```
+
+We have 507 total comparisons, but only 504 otoliths, this means that there are some otoliths with ties. We also want to know if multiple otoliths matched to the same heart.
+
+### Is the top match correct?
+
+```{r}
+dup_check_top2 %>% 
+  dplyr::count(Positive_match)
+```
+
+There are a lot of incorrect matches...
+
+### Did any heart samples match more than one otolith?
+
+```{r}
+dup_check_top2 %>%
+  dplyr::count(heart_indiv) %>%
+  dplyr::filter(n > 1) %>% {
+    ggplot(., aes(x = n)) +
+      geom_histogram(binwidth = 1) +
+      ggtitle(paste0(nrow(.), " hearts matched more than one otolith sample")) +
+      theme_bw()
+  }
+```
+
+Yes, we had 68 hearts matched to > 1 otolith. Did they include correct matches as well as erroneous matches?
+```{r}
+dup_check_top2 %>%
+  dplyr::group_by(heart_indiv) %>%
+  dplyr::filter(dplyr::n() > 1) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(
+    match_type = dplyr::case_when(
+      otolith_indiv == heart_indiv ~ "self",
+      otolith_indiv != heart_indiv &
+        heart_indiv %in% c(otolith_indiv + 1, otolith_indiv - 1) ~ "nearest neighbor",
+      TRUE ~ "random"
+    )
+  ) %>%
+  count(match_type)
+```
+
+It looks like 67 / 68 hearts matched themselves in addition to an erroneous otolith.
+
+## Keep only top heart match 
+
+Group by heart, save top otolith match (with ties).
+```{r}
+(
+  dup_check_top2_heart <- dup_check_top2 %>%
+    dplyr::group_by(heart_fish_id) %>%
+    dplyr::slice_max(DuplicateRate, n = 1, with_ties = TRUE) %>%
+    dplyr::ungroup()
+)
+```
+
+### Is the top match correct?
+
+```{r}
+dup_check_top2_heart %>% 
+  dplyr::count(Positive_match)
+```
+
+How does this compare to if we just dropped those hearts that matched multiple otoliths?
+```{r}
+dup_check_top2 %>%
+  dplyr::group_by(heart_indiv) %>%
+  dplyr::filter(dplyr::n() == 1) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(method = "drop_multi_hearts") %>%
+  dplyr::select(method, Positive_match) %>%
+  dplyr::bind_rows(
+    dplyr::mutate(.data = dup_check_top2_heart, method = "keep_best_heart") %>% dplyr::select(method, Positive_match)
+  ) %>% 
+  dplyr::count(method, Positive_match) %>% 
+  tidyr::pivot_wider(names_from = Positive_match, values_from = n) %>% 
+  dplyr::mutate(FDR = round(`FALSE` / (`FALSE` + `TRUE`), 3))
+```
+
+Hrmm, it looks like the false discovery rate is a bit lower if we drop the multiple matching hearts, like Andy did, but we lose more correct matches.
+
+Is the difference in FDR statistically significant?
+```{r}
+dup_check_top2 %>%
+  dplyr::group_by(heart_indiv) %>%
+  dplyr::filter(dplyr::n() == 1) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(method = "drop_multi_hearts") %>%
+  dplyr::select(method, Positive_match) %>%
+  dplyr::bind_rows(
+    dplyr::mutate(.data = dup_check_top2_heart, method = "keep_best_heart") %>% dplyr::select(method, Positive_match)
+  ) %>% 
+  infer::chisq_test(Positive_match ~ method)
+```
+
+Nope, it is not.
+
+## Remove duplicate ties
+
+We need to make sure that there are no ties left where an otolith is tied for > 1 hearts or vice versa.
+```{r}
+(
+  dup_check_top2_heart_no_ties <- dup_check_top2_heart %>%
+    dplyr::group_by(otolith_indiv) %>%
+    dplyr::filter(dplyr::n() == 1) %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by(heart_indiv) %>%
+    dplyr::filter(dplyr::n() == 1) %>%
+    dplyr::ungroup()
+)
+```
+
+### Is the top match correct?
+
+How'd we do?
+```{r}
+dup_check_top2_heart_no_ties %>% 
+  dplyr::count(Positive_match)
+```
+
+Wow, so just going by top match alone, both ways, (not considering `diff` or a `DuplicateRate` threshold), we had 410 / 428 match correctly (96%) and 18 / 428 match incorrectly (4%). HOWEVER, we lost 76 post-QA otolith samples as unassigned.
+```{r fig.width=10, fig.height=10} 
+true_pos <- dup_check_top2_heart_no_ties %>%
+  dplyr::summarize(True_match = sum(Positive_match),
+                   NFish = length(Positive_match)) %>%
+  dplyr::mutate(False_match = NFish - True_match)
+
+(
+  DupCheck_top2plot <- plotly::ggplotly(
+    dup_check_top2_heart_no_ties %>%
+      ggplot(
+        aes(
+          x = diff,
+          y = DuplicateRate,
+          colour = Positive_match,
+          text = otolith_indiv
+        )
+      ) +
+      geom_point() +
+      theme_bw() +
+      ggtitle(
+        paste0(
+          "DupCheck:" ,
+          true_pos$True_match,
+          " true matches and ",
+          true_pos$False_match,
+          " false matches"
+        )
+      )
+  )
+)
+```
+
+## What samples did the false matches match with?
+
+Of the 428 otolith samples that only matched one heart sample, 6 did not have a heart to match to, 9 matched their nearest neighbor (i.e., fish ID +/- 1) and 3 "random" matched a relatively near neighbor (i.e., otolith 851 and heart 849). 
+```{r}
+dup_check_top2_heart_no_ties_match_type <- dup_check_top2_heart_no_ties %>%
+  dplyr::mutate(
+    match_type = dplyr::case_when(
+      otolith_indiv == heart_indiv ~ "self",
+      otolith_indiv != heart_indiv &
+        !(otolith_indiv %in% (
+          dplyr::filter(DWPs_postQA, heart == TRUE) %>% dplyr::pull(FK_FISH_ID)
+        )) ~ "heart not in sample",
+      otolith_indiv != heart_indiv &
+        heart_indiv == (otolith_indiv + 1) |
+        heart_indiv == (otolith_indiv - 1) ~ "nearest neighbor",
+      TRUE ~ "random"
+    )
+  ) 
+
+dup_check_top2_heart_no_ties_match_type %>% 
+  dplyr::filter(Positive_match == FALSE)
+
+dup_check_top2_heart_no_ties_match_type %>%
+  dplyr::count(match_type)
+```
+
+## Is there a pattern of missing loci by match type? {#dup_check_match_type_plot}
+
+```{r fig.width=10, fig.height=10}
+plotly::ggplotly(
+  dup_check_top2_heart_no_ties_match_type %>%
+    ggplot(
+      aes(
+        x = diff,
+        y = DuplicateRate,
+        colour = match_type,
+        text = otolith_indiv
+      )
+    ) +
+    geom_point() +
+    theme_bw() +
+    ggtitle(paste0("DupCheck by match type"))
+)
+```
+
+Of our 6 otoliths that did NOT have hearts in the sample, four of them cluster towards the bottom left, so we could potentially eliminate those with some minor thresholds on `DuplicateRate` and `diff`.
+
+Specifically, setting a lower end `DuplicateRate` threshold may be beneficial.
+```{r}
+dup_check_top2_heart_no_ties_match_type %>%
+  ggplot(aes(x = DuplicateRate, fill = match_type)) +
+  geom_histogram(binwidth = .01) +
+  theme_bw()
+```
+
+Similarly, setting a lower end `diff` threshold may be beneficial, although it is less clean, we'd lose some correct self-matches.
+```{r}
+dup_check_top2_heart_no_ties_match_type %>%
+  ggplot(aes(x = diff, fill = match_type)) +
+  geom_histogram(binwidth = .01) +
+  theme_bw()
+```
+
+What about genotype rate? Nope, that doesn't really help at all!
+```{r}
+dup_check_top2_heart_no_ties_match_type %>%
+  ggplot(aes(x = 298 - Keymissing, fill = match_type)) +
+  geom_histogram(bins = 30) +
+  xlim(-1, 300) +
+  xlab("# of loci genotyped for otolith") +
+  theme_bw()
+```
+
+Looks like our incorrect matches were not due to few loci being genotyped for the otolith.
+
+# Method 2 - CKMRsim
+
+Here, I'm going to attempt to use CKMRsim to pair the otoliths and hearts.  To do this, I first have to do simulations using a large data set. Instead of using the heart data for simulations, I'm going to use some baseline collections that have been analyzed for the GT-seq Loci.   
+
+Kyle is going to deviate from what Andy did. Rather than calculate allele frequencies from a bazillion PWS pink salmon (Andy had 14,716), I'm just going to use the heart genotypes in `PSTOCK17.gcl`. **NOTE** when we do this for real, we'll want to do separate analyses by lineage (odd vs. even).
+
+## Get simulation dataset
+
+There are 8 Prince William Sound collections to read in from 4 locations (even and odd for each location)
+```{r}
+# (simulation_sillys <- read.table("data/Pink_GTseq_sillys.txt") %>% 
+#   pull(V1))
+# 
+# simulation_sillys <- simulation_sillys[c(2, 3, 6, 8)] # Since the test dataset if from 2017, I will only include the odd-year collections in my simulation dataset.
+```
+
+```{r}
+
+#LOKI2R.GCL(sillyvec = simulation_sillys, username = "awbarclay", password = .password, test_type = "GTSNP")
+  
+#dump(paste0(simulation_sillys, ".gcl"), "objects/Simulation_Sillys.txt") 
+
+# source("objects/Simulation_Sillys.txt")
+
+```
+
+## Quick QA of simulation dataset
+
+I don't care how many fish I lose here, I just want to have a clean data set for the simulations
+```{r}
+# miss_loci_sim <- RemoveIndMissLoci.GCL(sillyvec = simulation_sillys, proportion = 0.8)
+```
+
+Duplicate check
+```{r}
+# (sim_dupcheck <- CheckDupWithinSilly.GCL(sillyvec = simulation_sillys, ncores = 20))
+```
+
+Remove duplicates
+```{r}
+# RemoveDups.GCL(sim_dupcheck)
+```
+
+Pool and save simulation data set. 
+```{r}
+# PoolCollections.GCL(collections = simulation_sillys, newname = "Pooled_PWS")
+
+#write_rds(Pooled_PWS.gcl, "objects/Pooled_PWS.rds") 
+
+#Pooled_PWS.gcl <- read_rds("objects/Pooled_PWS.rds")
+
+# silly_n.GCL("Pooled_PWS") 
+```
+
+## Format data for *CKMRsim*
+
+### Tall, 2 Column Format
+
+```{r}
+loci.1 <- paste0(loci, ".1")
+
+sim_dose1 <- PSTOCK17.gcl %>%
+  dplyr::select(SillySource, tidyselect::all_of(loci)) %>%
+  tidyr::pivot_longer(
+    cols = tidyselect::all_of(loci),
+    names_to = "locus",
+    values_to = "dose1"
+  ) %>%
+  dplyr::rename(ind = SillySource)
+
+sim_dose2 <- PSTOCK17.gcl %>%
+  dplyr::select(SillySource, tidyselect::all_of(loci.1)) %>%
+  dplyr::rename_with(~ loci[which(loci.1 == .x)], .cols = tidyselect::all_of(loci.1)) %>%
+  tidyr::pivot_longer(
+    cols = tidyselect::all_of(loci), 
+    names_to = "locus", 
+    values_to = "dose2") %>% 
+  dplyr::rename(ind = SillySource)
+
+(Pooled_PWS_input <- dplyr::left_join(x = sim_dose1, y = sim_dose2, by = c("ind", "locus")))
+```
+
+Looks like there are a few microhaplotype loci here. `emo::ji("smile")`
+
+### Tall, 1 Column Format
+
+To compute allele frequencies we need to just count up the occurrences of the different types among `dose1` and `dose2`. So, we need to get them into a single column (i.e. what Eric calls *long* format).
+```{r }
+(
+  Pooled_PWS_tidy_4_ckmrsim <- Pooled_PWS_input %>%
+    # filter(!is.na(dose1)) %>%  # get rid of no-calls
+    tidyr::pivot_longer(
+      cols = c("dose1", "dose2"),
+      names_to = "gene_copy",
+      values_to = "Allele"
+    ) %>%
+    dplyr::arrange(locus, ind, gene_copy) %>%
+    dplyr::mutate(gene_copy = stringr::str_remove(string = gene_copy, pattern = "dose")) %>%
+    dplyr::rename(Indiv = ind,
+                  Locus = locus)
+)
+```
+
+Make sure we don't have any weird `Allele` calls...
+```{r}
+Pooled_PWS_tidy_4_ckmrsim %>% 
+  dplyr::count(Allele)
+```
+
+Great, all is well, either a proper allele or `NA`, no `0` for no-calls.
+
+## Simulations for Estimating Power for Relationship Inference
+
+The first step in the simulation process is to create an object of class `ckmr` which holds a large number of matrices useful for simulating genotypes (and thus for estimating power for relationship inference). The main function that we use for this is `create_ckmr()`. This function takes, as input, the allele frequencies formatted as we will below, and a few other settings having to do with the relationships that the user is interested in simulation and the genotyping error models that the user want to consider, and then it creates all the necessary elements for doing the simulations.
+
+Specifically, the arguments you need to pass to `create_ckmr()` are as follows:
+
+* `D` : the tibble of allele frequencies that has been run through `reindex_markers()`.
+* `kappa_matrix` : A matrix that describes the pairwise relationships that you will be wanting to jointly simulate genotypes and likelihoods for. Each row is named by what you want to call the relationship and there are three columns which give, respectively, the probability that a pair with such a relationship share 0, 1, or 2 genes *identical-by-descent* (IBD). The CKMRsim package comes with a matrix called `kappas` that has this information for 12 relationships:
+    - **MZ** : monozgotic twins (or "self"). This can be used to figure out how much power you
+    have for identifying the same individual, sampled twice.  
+    - **PO** : parent-offspring.
+    - **FS** : full siblings.
+    - **HS** : half siblings.
+    - **GP** : grandparent - grandoffspring.
+    - **AN** : aunt-neice (same as uncle-nephew or any such avuncular relationship)
+    - **DFC** : double first cousins.
+    - **FC** : first cousins.
+    - **HC** : half cousins.
+    - **U** : unrelated.
+
+The `kappas` matrix looks like this:
+```{r}
+kappas
+```
+
+* `ge_mod_assumed` : a function that describes the genotyping error model that will be applied to the simulated data when computing the likelihoods of the genotypes. In this case we will use `ge_model_TGIE` which is appropriate for integer-coded data. More information about this is in the vignette about writing genotyping error functions: [the-tgie-function](CKMRsim-writing-geno-error-funcs.html#the-tgie-function).
+* `ge_mod_true` : a function that describes the genotyping error model that will actually be used to simulate the genotype data. Being able to separately specify these two models (assumed and true) allows the user to investigate the effects of misspecification of the genotyping error model.
+* `ge_mod_assumed_pars_list` a list of named parameters for the assumed genotyping error model (or, leave blank to use the defaults).
+* `ge_mod_true_pars_list` a list of named parameters for the true genotyping error model (or, leave blank to use the defaults).
+
+### Computing Allele Frequencies
+
+So, now we just need to compute the frequencies for each of the allele. We have to get that data frame in the right format and re-index the markers and make something that `CKMRsim` is expecting to be able to work with (i.e., it has haplotypes in descending frequency at each locus and it has locus and allele indices in there). To get loci to be ordered as they are, I have to throw `Pos` (position) in there, even though they are not known to have a position on any `Chrom` (chromosome).
+
+```{r}
+long2freqs <- function(L) {
+  L %>%
+    group_by(Locus, Allele) %>%
+    tally() %>%
+    filter(!is.na(Allele)) %>%
+    mutate(Freq = n / sum(n)) %>%
+    arrange(Locus, desc(Freq)) %>%
+    select(-n) %>%
+    group_by(Locus) %>%
+    filter(n() > 1) %>% # this removes monomorphic loci
+    mutate(AlleIdx = 1:n()) %>%
+    ungroup() %>%
+    mutate(LocIdx = as.integer(factor(Locus, levels = unique(Locus))),
+           Chrom = "Unk",  # Ian probably knows where these are, but I don't have that info at the moment.
+           Pos = LocIdx
+           ) %>% 
+    select(Chrom, Pos, Locus, Allele, Freq, LocIdx, AlleIdx) %>%
+    reindex_markers()  # this is a CKMRsim function
+}
+
+(PWS_allele_freqs <- long2freqs(Pooled_PWS_tidy_4_ckmrsim))
+```
+
+### Create *CKMRsim* Object
+
+*need to check T028 for discrepancy rates*
+For this object, I'm only including monozygotic (MZ), full sibling (FS), and unknown (U) relationships. The ge_model_TGIE error model requires an epsilon parameter (i.e., the rate at which genotypes are incorrectly observed).  For this parameter, I will use the overall discrepancy rate for T028 rounds 10-12 -> 15.3%
+```{r}
+(PWS_ckmr <-
+  create_ckmr(
+    D = PWS_allele_freqs,
+    kappa_matrix = kappas[c("MZ", "FS", "U"), ],
+    ge_mod_assumed = ge_model_TGIE,
+    ge_mod_true = ge_model_TGIE,
+    ge_mod_assumed_pars_list = list(epsilon = discrepancy_rate),
+    ge_mod_true_pars_list = list(epsilon = discrepancy_rate)
+  ))
+```
+
+### Simulate Genotype Pairs & Calculate Their Log-Probabilities
+
+Once we have created our `ckmr` object, we can use it to efficiently simulate the multilocus genotypes of pairs of individuals (of different relationships). At the same time, we can calculate the log-probability of those genotypes of simulated pairs of individuals under the assumption that they are of one relationship type or another. Those log genotype probabilities are the main ingredient for computing the log-likelihood ratios used for inferring relationships. 
+
+The main function that we use in this step is `simulate_Qij()`. This function simulates genotypes from different relationships, and then for each simulated genotype pair it also calculates the log probability of the pair of genotypes _conditional on the pair being_ of one or several relationships. This function has four main inputs that we discuss here (the others allow the addition of missing data and physical linkage, and are discussed in other vignettes).
+
+* `C` : the `ckmr` object to use for simulation and probability calculation.
+* `sim_relats` : the set of true relationships you want to simulate genotypes from. 
+* `calc_relats` : the set of assumed relationships you wish to compute genotype probabilities for, from the simulated data.
+* `reps` : for each relationship in `sim_relats`, the number of genotype pairs to simulate. This is, by default 10,000.
+
+The arguments `sim_relats` and `calc_relats` can use some extra discussion here. Keep in mind that we are going to use the output of this function to learn about the distribution of likelihood ratios. For example, if we are trying to identify parent-offspring pairs, we will typically use the ratio of the probability of a pair's genotypes given that they are parent-offspring, divided by the probability of the pair's genotypes given that they are unrelated. We can denote such a likelihood ratio by PO/U. If we are looking for full sibling pairs, we would, rather, typically use the likelihood ratio FS/U. If, on the other we hand we wanted to know how well full-siblings might be resolved from half-siblings, we could use FS/HS. Whatever the target of one's question, in order for CKMRsim to calculate such likelihood ratios from the simulated data, it is necessary to compute the probabilities that are used in the ratios---that is what the `calc_relats` argument is for. You should set it to a vector of the relationships that occur in the numerator or the denominator of the likelihood ratios that you might want to investigate. For example, if we want to investigate the distribution of the ratios PO/U, FS/U, and FS/HS, then `calc_relats` should be `c("PO", "FS", "HS", "U")`.
+
+`sim_relats` refers to the set of relationships that pairs of individuals are simulated from. You will typically be interested in the distribution of a likelihood ratio _when the truth is relationship X_. For example, if doing parentage inference, then to compute false positive and false negative rates (FPR and), you will need to know the distribution of PO/U when pairs are truly unrelated (U) and when they are truly parent-offspring, (PO). But, you might also be interested to know what the distribution of PO/U looks like when the pairs are actually full-siblings. If you were interested in all of the above, then you would set `sim_relats` equal to `c("PO", "FS", "U")`.
+
+It is worth pointing out at this point that any relationship found in `calc_relats` or `sim_relats` must have been included as a rowname in the `kappa_matrix` argument to `create_ckmr()`! 
+
+Here we simulate all the genotype-pair probabilities we will need:
+
+Then, let's simulate 1 million replicates. 
+
+### Accounting for missing data in simulation
+
+`rando_miss_wts`	- weights to be given to different loci that influence whether they will be one of the rando_miss_n missing loci in any iteration. These will be recycled (or truncated) to have length equal to the number of loci, and they will be normalized to sum to one as appropriate (so you can provide them in unnormalized form.) The idea of this is to be able to use observed rates of missingness amongst loci to mask some loci as missing. Given as a comma-delimited string in column `rando_miss_wts` in the output.
+
+`rando_miss_n` - a single number less than the number of loci. Each iteration, `rando_miss_n` loci will be considered missing, according to the rando_miss_wts. This let's you get a sense for how well you will do, on average, with a certain number of missing loci.
+
+Here I'm using the PWS simulation data to figure out the `rando_miss_wts`. 
+```{r}
+missing_wts <- Pooled_PWS_input %>% 
+  dplyr::group_by(locus) %>% 
+  dplyr::summarize(missing = sum(is.na(dose1))) %>% 
+  dplyr::mutate(missing = dplyr::case_when(missing == 0 ~ 1,
+                                           TRUE ~ missing)) %>%  # prevent hard zeros for loci that have no missing data!
+  dplyr::mutate(weight = missing/sum(missing))
+         
+missing_wts %>% 
+  dplyr::arrange(desc(missing))
+```
+
+### Simulation 1 - 60 missing loci
+
+Since we normally remove individuals with missing data at >= 20% of loci, I'll set `rando_missing_n` to 60 (i.e. 298 X .20 = 59.8).
+```{r}
+Qs60 <- simulate_Qij(
+  C = PWS_ckmr,
+  reps = 1e06,
+  sim_relats = c("MZ", "FS","U"),
+  calc_relats = c("MZ", "FS", "U"),
+  rando_miss_wts = missing_wts$weight,
+  rando_miss_n = 60
+)
+```
+
+This next step is not entirely necessary, but it helps to create pictures to understand what we are doing here, and the `extract_logls()` function lets us get simulated log-likelihood ratios out of the `Qij` object we created above and plot a histogram or a density plot of the distributions. This is helpful for developing intuition about things and understanding what is going on.
+
+The main function here is `extract_logls()`. It simply takes an object of class `Qij` and uses the information within it to compute log-likelihood ratios from all the genotype probabilities that are stored within it. There is one small twist: the numerator and denominator of the likelihood ratios can be mixtures of different relationship categories. For example, instead of just computing PO/U, you might want to compute a log likelihood ratio that reflects your belief that, of the genotyping pairs you are sampling, 95% are unrelated and the other 5% are full siblings. Then you might want to base your inference on a log-likelihood ratio that looked like: PO/(0.95 * U + 0.05 * FS). 
+
+Often you will not want to do that, but, because `extract_logls()` is designed to do that, you have explicitly tell it how much weight to give each relationship category in the numerator and the denominator of the log likelihood ratio. 
+```{r}
+logls <-
+  dplyr::bind_rows(extract_logls(Qs60, numer = c(MZ = 1), denom = c(U = 1)),
+                   extract_logls(Qs60, numer = c(MZ = 1), denom = c(FS = 1)))
+```
+
+This plots the MZ/U, MZ/PO, MZ/FS, and MZ/HS log likelihood ratios. 
+```{r, fig.width=6.5, fig.height=6}
+plot_logls <- function(logls, title) {
+  logls %>%
+    dplyr::mutate(
+      denom_wts_explained = dplyr::case_when(
+        denom_wts == "U=1" ~ "Log-Likelihoods for MZ / U (self-assignment) for these true relationships",
+        denom_wts == "FS=1" ~ "Log-Likelihoods for MZ / FS for these true relationships",
+        denom_wts == "HS=1" ~ "Log-Likelihoods for MZ / HS for these true relationships",
+        denom_wts == "PO=1" ~ "Log-Likelihoods for MZ / PO for these true relationships",
+        TRUE ~ NA_character_
+      ),
+      true_relat_cat = dplyr::case_when(
+        true_relat %in% c("MZ", "U") & denom_wts == "U=1" ~ "Log-Likelihoods for MZ / U (self-assignment)",
+        true_relat %in% c("MZ", "FS") &  denom_wts == "FS=1" ~ "Log-Likelihoods for MZ / FS",
+        true_relat %in% c("MZ", "HS") & denom_wts == "HS=1" ~ "Log-Likelihoods for MZ / HS",
+        true_relat %in% c("MZ", "PO") & denom_wts == "PO=1" ~ "Log-Likelihoods for MZ / PO",
+        TRUE ~ NA_character_
+      )
+    ) %>%
+    dplyr::mutate(true_relat_cat = factor(
+      x = true_relat_cat,
+      levels = c(
+        "Log-Likelihoods for MZ / U (self-assignment)",
+        "Log-Likelihoods for MZ / FS",
+        "Log-Likelihoods for MZ / HS",
+        "Log-Likelihoods for MZ / PO"
+      )
+    )) %>%
+    dplyr::mutate(true_relat = factor(x = true_relat, levels = c("MZ", "PO", "FS", "HS", "U"))) %>%
+    dplyr::filter(!is.na(true_relat_cat)) %>%
+    ggplot(., aes(x = logl_ratio, fill = true_relat)) +
+    geom_density(alpha = 0.5) +
+    facet_wrap( ~ true_relat_cat, ncol = 1) +
+    labs(fill = "True Relationship", x = "Log-Likelihood Ratio", y = "Density") +
+    ggtitle(title) +
+    theme_bw()
+}
+
+(p60 <- plot_logls(logls, title = "60 random SNPs removed"))
+```
+
+Self assignment looks really good with 20% of loci missing at each iteration and there's a little separation between monozygotic vs unrelated. Now let try removing 50% of loci (149) to see how will they work.
+
+### Simulation 2 - 149 missing loci
+
+```{r}
+Qs149 <- simulate_Qij(
+  C = PWS_ckmr,
+  reps = 1e06,
+  sim_relats = c("MZ", "FS", "U"),
+  calc_relats = c("MZ", "FS", "U"),
+  rando_miss_wts = missing_wts$weight,
+  rando_miss_n = length(loci)/2
+)
+```
+
+```{r, fig.width=6.5, fig.height=6}
+logls <-
+  dplyr::bind_rows(extract_logls(Qs149, numer = c(MZ = 1), denom = c(U = 1)),
+                   extract_logls(Qs149, numer = c(MZ = 1), denom = c(FS = 1)))
+
+(p149 <- plot_logls(logls, title = "149 random SNPs removed"))
+```
+
+As expected, things got a little worse, but there's still separation between the two distributions for MZ vs U. However, now there's some overlap for MZ vs. FS.
+
+There are a bunch of otoliths missing genotypes at around 200 SNPs, let's try this again removing 200 random SNPs at each iteration.
+
+### Simulation 3 - 200 missing loci
+
+```{r}
+Qs200 <- simulate_Qij(
+  C = PWS_ckmr,
+  reps = 1e06,
+  sim_relats = c("MZ", "FS", "U"),
+  calc_relats = c("MZ", "FS", "U"),
+  rando_miss_wts = missing_wts$weight,
+  rando_miss_n = 200
+)
+```
+
+```{r, fig.width=6.5, fig.height=6}
+logls <-
+  dplyr::bind_rows(extract_logls(Qs200, numer = c(MZ = 1), denom = c(U = 1)),
+                   extract_logls(Qs200, numer = c(MZ = 1), denom = c(FS = 1)))
+
+(p200 <- plot_logls(logls, title = "200 random SNPs removed"))
+```
+
+### Simulation 4 - 253 missing loci
+
+Now lets try it again removing all but 45 loci. Kyle and Kristen said that in their previous tests they set a cutoff of 45 for the minimum number of SNPs that a samples needs to have in order to pair samples.
+```{r}
+Qs253 <- simulate_Qij(
+  C = PWS_ckmr,
+  reps = 1e06,
+  sim_relats = c("MZ", "FS", "U"),
+  calc_relats = c("MZ", "FS", "U"),
+  rando_miss_wts = missing_wts$weight,
+  rando_miss_n = 298-45
+)
+```
+
+```{r, fig.width=6.5, fig.height=6}
+logls <-
+  dplyr::bind_rows(extract_logls(Qs253, numer = c(MZ = 1), denom = c(U = 1)),
+                   extract_logls(Qs253, numer = c(MZ = 1), denom = c(FS = 1)))
+
+(p253 <- plot_logls(logls, title = "253 random SNPs removed"))
+```
+
+Create a pdf of all Logl plots for easy access
+```{r}
+pdf("output/LogL_Ratio_sims_Kyle.pdf", height = 6, width = 6.5)
+
+lapply(c("p60", "p149", "p200", "p253"), function(p){
+  
+  get(p)
+  
+})
+
+dev.off()
+```
+
+### Estimating False Negative and False Positive Rates (FNR & FPR)
+
+The function `mc_sample_simple()` lets you estimate false positive rates and false negative rates from the simulated values in an object of class Qij. The function is configured so that it will automatically compute both regular or "vanilla" Monte Carlo estimates of these probabilities, and also _importance sampling_ (IS) Monte Carlo estimates, which are particularly good for estimating very small probabilities.
+
+By default, it uses importance sampling to compute false positive rates that are associated with false-negative rates of 0.3, 0.2, 0.1, 0.05, 0.01, and 0.001, but you can set those false negative rates to be whatever you wish.
+
+Here is a simple use case to estimate false positive rates when the true relationship is U, but we are looking for MZ pairs. This will, by default, use importance sampling.
+
+Note: I used the simulation output with 200 loci randomly removed at each iteration.  
+```{r}
+(MZ_U_is <- mc_sample_simple(Qs200, nu = "MZ", de = "U",
+                                    lambda_stars = seq(0, 20, by = 0.5)))
+```
+This shows a FPR of ~ /2.6e-7 and smaller when the FNR is 0.01 and greater.
+
+For reference, Eric's general recommendation for being confident about not erroneously identifying unrelated individuals as related pairs is to require that the FPR be about 10 to 100 times smaller than the reciprocal of the number of comparisons. So, in this case, assuming our ~10K PGOD21 total otoliths we'd be making a maximum of 10,000 * 48 comparisons (compare each otolith to up to 48 hearts in a DWP), which is over 480K.
+
+So in a perfect world we'd want an FPR less than:
+```{r}
+0.1 * 480000 ^ (-1)
+```
+So a lambda star of ~10 (and that's with 200 loci missing!!!)
+
+## Analyze Test Dataset
+
+Now, I'm going to see how well we can match up the samples in the test data. 
+
+### Format Heart Data
+
+```{r}
+heart_data_dose1 <- PSTOCK17.gcl %>%
+  dplyr::select(SillySource, tidyselect::all_of(loci)) %>%
+  tidyr::pivot_longer(
+    cols = tidyselect::all_of(loci),
+    names_to = "locus",
+    values_to = "dose1"
+  ) %>%
+  dplyr::rename(ind = SillySource)
+
+heart_data_dose2 <- PSTOCK17.gcl %>%
+  dplyr::select(SillySource, all_of(loci.1)) %>%
+  dplyr::rename_with( ~ loci[which(loci.1 == .x)], .cols = tidyselect::all_of(loci.1)) %>%
+  tidyr::pivot_longer(cols = all_of(loci),
+                      names_to = "locus",
+                      values_to = "dose2") %>%
+  dplyr::rename(ind = SillySource)
+
+heart_data_input <-
+  dplyr::left_join(x = heart_data_dose1,
+                   y = heart_data_dose2,
+                   by = c("ind", "locus"))
+```
+
+```{r }
+(
+  heart_allele_tidy_4_ckmrsim <- heart_data_input %>%
+    # filter(!is.na(dose1)) %>%  # get rid of no-call
+    tidyr::pivot_longer(
+      cols = c("dose1", "dose2"),
+      names_to = "gene_copy",
+      values_to = "Allele"
+    ) %>%
+    dplyr::arrange(locus, ind, gene_copy) %>%
+    dplyr::mutate(gene_copy = stringr::str_remove(string = gene_copy, pattern = "dose")) %>%
+    dplyr::rename(Indiv = ind,
+                  Locus = locus)
+)
+```
+
+### Format Otolith Data
+
+```{r}
+otolith_data_dose1 <- PSTOCK17QC.gcl %>%
+  dplyr::select(SillySource, tidyselect::all_of(loci)) %>%
+  tidyr::pivot_longer(
+    cols = tidyselect::all_of(loci),
+    names_to = "locus",
+    values_to = "dose1"
+  ) %>%
+  dplyr::rename(ind = SillySource)
+
+otolith_data_dose2 <- PSTOCK17QC.gcl %>%
+  dplyr::select(SillySource, all_of(loci.1)) %>%
+  dplyr::rename_with( ~ loci[which(loci.1 == .x)], .cols = tidyselect::all_of(loci.1)) %>%
+  tidyr::pivot_longer(cols = all_of(loci),
+                      names_to = "locus",
+                      values_to = "dose2") %>%
+  dplyr::rename(ind = SillySource)
+
+otolith_data_input <-
+  dplyr::left_join(x = otolith_data_dose1,
+                   y = otolith_data_dose2,
+                   by = c("ind", "locus"))
+```
+
+```{r tidyhaps_all}
+(
+  otolith_allele_tidy_4_ckmrsim <- otolith_data_input %>%
+    # filter(!is.na(dose1)) %>%  # get rid of no-call
+    tidyr::pivot_longer(
+      cols = c("dose1", "dose2"),
+      names_to = "gene_copy",
+      values_to = "Allele"
+    ) %>%
+    dplyr::arrange(locus, ind, gene_copy) %>%
+    dplyr::mutate(gene_copy = stringr::str_remove(string = gene_copy, pattern = "dose")) %>%
+    dplyr::rename(Indiv = ind,
+                  Locus = locus)
+)
+```
+
+### Create *CKMRsim* Object
+
+Kyle initially tried using the CKMRsim object based on just the test heart data, however, it failed because there must be an allele present in the otolith data that is NOT present in the test heart data.
+
+Going to recreate a CKMR object with a bigger dataset. For simplicity here, I'll just use the hearts + otoliths.
+```{r}
+Pooled_PWS_tidy_4_ckmrsim_v2 <-
+  dplyr::bind_rows(heart_allele_tidy_4_ckmrsim, otolith_allele_tidy_4_ckmrsim) %>%
+  dplyr::arrange(Locus, Indiv, gene_copy)
+
+PWS_allele_freqs_v2 <- long2freqs(Pooled_PWS_tidy_4_ckmrsim_v2)
+
+(
+  PWS_ckmr_v2 <-
+    create_ckmr(
+      D = PWS_allele_freqs_v2,
+      kappa_matrix = kappas[c("MZ", "FS", "U"),],
+      ge_mod_assumed = ge_model_TGIE,
+      ge_mod_true = ge_model_TGIE,
+      ge_mod_assumed_pars_list = list(epsilon = discrepancy_rate),
+      ge_mod_true_pars_list = list(epsilon = discrepancy_rate)
+    )
+)
+```
+
+### Identifying Matches (Monozygotic/Self vs Unrelated)
+
+Now, using the `pairwise_kin_logl_ratios` we can compute the Monozygotic/self vs unrelated log-likelihood ratios for each pair of samples in the test data set.
+```{r}
+test_MZ_pairwise_logls <-
+  pairwise_kin_logl_ratios(
+    D1 = heart_allele_tidy_4_ckmrsim,
+    D2 = otolith_allele_tidy_4_ckmrsim,
+    CK = PWS_ckmr_v2,
+    numer = "MZ",
+    denom = "U",
+    num_cores = 8
+  )
+
+(
+  test_MZ_pairwise_logls <- test_MZ_pairwise_logls %>%
+    dplyr::rename(otolith_indiv = D2_indiv, heart_indiv = D1_indiv)
+)
+```
+
+As a reminder, Eric's general recommendation for being confident about not erroneously identifying unrelated individuals as related pairs is to require that the FPR be about 10 to 100 times smaller than the reciprocal of the number of comparisons. So, in this case, there are 478 otolith samples to compare with 478 heart samples, which is a total of `dim(expand.grid(seq(481), seq(504)))[1]` comparisons. 
+
+**HOWEVER** that is more than we really need! We want to compare within a DWP!!
+
+So in a perfect world we'd want an FPR less than:
+```{r}
+(andersons_recommended_FPR_cutoff <- 0.1 * dim(expand.grid(seq(481), seq(504)))[1] ^ (-1))
+```
+So if we go with his recommendation, we would want to use ($\lambda^* = ??$) as the cutoff, which would give us a FNR < 0.01 and a FPR of ~4.125e-07	
+
+```{r}
+(
+  mc_sample_simple(
+    Qs200,
+    nu = "MZ",
+    de = "U",
+    lambda_stars = seq(1, 20, by = 0.5)
+  )
+) %>% dplyr::filter(FPR < andersons_recommended_FPR_cutoff)
+```
+
+### Look at distriubution log likelihood ratios {#logl_ratio_histograms}
+
+Because we know which samples are suppose to match we can look at logl_ratios for true matches vs. false matches.  
+```{r}
+test_MZ_pairwise_logls <- test_MZ_pairwise_logls %>%
+  dplyr::mutate(
+    otolith_indiv = stringr::str_replace_all(
+      pattern = "QC",
+      replacement = "",
+      string = otolith_indiv
+    )
+  ) %>%
+  dplyr::mutate(
+    Positive_match = dplyr::case_when(
+      otolith_indiv == heart_indiv ~ TRUE,
+      otolith_indiv != heart_indiv ~ FALSE
+    )
+  )
+
+test_MZ_pairwise_logls %>%
+  ggplot2::ggplot(aes(x = logl_ratio, fill = Positive_match)) +
+  ggplot2::geom_histogram(binwidth = 1) +
+  geom_vline(xintercept = 8.5) +
+  theme_bw()
+```
+
+It looks like most of the false positives have logl_ratios < 0; however, it's hard to see the TRUE matches at this scale. 
+```{r}
+test_MZ_pairwise_logls %>%
+  dplyr::filter(logl_ratio >= 0) %>%
+  dplyr::mutate(
+    otolith_indiv = stringr::str_replace_all(
+      string = otolith_indiv,
+      pattern = "QC",
+      replacement = ""
+    )
+  ) %>%
+  ggplot2::ggplot(aes(x = logl_ratio, fill = Positive_match)) +
+  ggplot2::geom_histogram(binwidth = 1) +
+  geom_vline(xintercept = 9.5) +
+  theme_bw()
+```
+
+Now, with only logl_ratios > 0, we can see some true positive matches with logl_ratios down near zero and false positive matches with logl_ratios above 200. 
+
+It doesn't look like a $\lambda^*$ cutoff will work as a cutoff because there are a lot of FALSE positives with higher log-likelihood ratios.  I will go with the top match like I did with the dupcheck results.
+
+### Top match vs. 2nd best
+
+Plot the difference in log-likelihood ratios (logl_ratio) between the first and second best matches by the top match logl_ratios
+
+First, join in DWP info (`DNA_TRAY_CODE`) so we can pick the top match within a DWP.
+```{r}
+DWPs_v2 <- DWPs %>%
+  dplyr::mutate(SillySource = paste("PSTOCK17", FK_FISH_ID, sep = "_")) %>% 
+  dplyr::select(SillySource, DNA_TRAY_CODE) %>%
+  dplyr::rename(DWP = DNA_TRAY_CODE)
+
+test_MZ_pairwise_logls <- test_MZ_pairwise_logls %>%
+  dplyr::left_join(DWPs_v2, by = c("otolith_indiv" = "SillySource")) %>%
+  dplyr::rename(otolith_DWP = DWP) %>%
+  dplyr::left_join(DWPs_v2, by = c("heart_indiv" = "SillySource")) %>%
+  dplyr::rename(heart_DWP = DWP)
+```
+
+Get top 2 matches within a DWP
+```{r}
+(
+  CKMRsim_top2 <- lapply(unique(DWPs_v2$DWP), function(ID) {
+    test_MZ_pairwise_logls %>%
+      dplyr::filter(otolith_DWP == ID, heart_DWP == ID) %>%
+      dplyr::group_by(otolith_indiv) %>%
+      dplyr::slice_max(logl_ratio, n = 2, with_ties = FALSE) %>%
+      dplyr::mutate(diff = max(logl_ratio) - min(logl_ratio)) %>%
+      dplyr::slice_max(logl_ratio, n = 1, with_ties = TRUE) %>%  # this keeps any ties
+      dplyr::ungroup()
+  }) %>%
+    dplyr::bind_rows() %>%
+    tidyr::separate(
+      otolith_indiv,
+      into = c("NA", "otolith_indiv"),
+      sep = "_"
+    ) %>%
+    tidyr::separate(
+      heart_indiv,
+      into = c("NA", "heart_indiv"),
+      sep = "_"
+    ) %>%
+    dplyr::mutate(
+      otolith_indiv = as.numeric(otolith_indiv),
+      heart_indiv = as.numeric(heart_indiv)
+    ) %>% 
+    dplyr::select(-`NA`, otolith_DWP) %>% 
+    dplyr::rename(DWP = heart_DWP)
+)
+```
+
+#### Is the top match correct?
+
+We have 504 total comparisons and 504 total otoliths. Using CKMRsim, it is much less likely that we'd have ties for `logl_ratio` compared to `DuplicateRate`.
+```{r}
+CKMRsim_top2 %>% 
+  dplyr::count(Positive_match)
+```
+
+Still a lot of incorrect matches.
+
+#### Did any heart samples match more than one otolith?
+
+```{r}
+CKMRsim_top2 %>%
+  dplyr::count(heart_indiv) %>%
+  dplyr::filter(n > 1) %>% {
+    ggplot(., aes(x = n)) +
+      geom_histogram(binwidth = 1) +
+      ggtitle(paste0(nrow(.), " hearts matched more than one otolith sample")) +
+      theme_bw()
+  }
+```
+
+Yes, we had 63 hearts matched to > 1 otolith. Did they include correct matches as well as erroneous matches?
+```{r}
+CKMRsim_top2 %>%
+  dplyr::group_by(heart_indiv) %>%
+  dplyr::filter(dplyr::n() > 1) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(
+    match_type = dplyr::case_when(
+      otolith_indiv == heart_indiv ~ "self",
+      otolith_indiv != heart_indiv &
+        !(otolith_indiv %in% (
+          dplyr::filter(DWPs_postQA, heart == TRUE) %>% dplyr::pull(FK_FISH_ID)
+        )) ~ "heart not in sample",
+      otolith_indiv != heart_indiv &
+        heart_indiv == (otolith_indiv + 1) |
+        heart_indiv == (otolith_indiv - 1) ~ "nearest neighbor",
+      TRUE ~ "random"
+    )
+  )  %>%
+  count(match_type)
+```
+
+It looks like 62 / 32 hearts matched themselves in addition to an erroneous otolith.
+
+What if we just drop those instances where a heart matches best with more than one otolith, like Andy did?
+```{r}
+CKMRsim_top2 %>% 
+  dplyr::group_by(heart_indiv) %>%
+  dplyr::filter(dplyr::n() == 1) %>%
+  dplyr::ungroup() %>% 
+  dplyr::count(Positive_match)
+```
+
+### Keep only top heart match
+
+Group by heart, save top otolith match (with ties).
+```{r}
+(
+  CKMRsim_top2_heart <- CKMRsim_top2 %>%
+    dplyr::group_by(heart_indiv) %>%
+    dplyr::slice_max(logl_ratio, n = 1, with_ties = TRUE) %>%
+    dplyr::ungroup()
+)
+```
+
+#### Is the top match correct?
+
+```{r}
+CKMRsim_top2_heart %>% 
+  dplyr::count(Positive_match)
+```
+
+How does this compare to if we just dropped those hearts that matched multiple otoliths?
+```{r}
+CKMRsim_top2 %>%
+  dplyr::group_by(heart_indiv) %>%
+  dplyr::filter(dplyr::n() == 1) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(method = "drop_multi_hearts") %>%
+  dplyr::select(method, Positive_match) %>%
+  dplyr::bind_rows(
+    dplyr::mutate(.data = CKMRsim_top2_heart, method = "keep_best_heart") %>% dplyr::select(method, Positive_match)
+  ) %>% 
+  dplyr::count(method, Positive_match) %>% 
+  tidyr::pivot_wider(names_from = Positive_match, values_from = n) %>% 
+  dplyr::mutate(FDR = round(`FALSE` / (`FALSE` + `TRUE`), 3))
+```
+
+Hrmm, it looks like the false discovery rate is a bit lower if we drop the multiple matching hearts, like Andy did, but we lose more correct matches.
+
+Is the difference in FDR statistically significant?
+```{r}
+CKMRsim_top2 %>%
+  dplyr::group_by(heart_indiv) %>%
+  dplyr::filter(dplyr::n() == 1) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(method = "drop_multi_hearts") %>%
+  dplyr::select(method, Positive_match) %>%
+  dplyr::bind_rows(
+    dplyr::mutate(.data = CKMRsim_top2_heart, method = "keep_best_heart") %>% dplyr::select(method, Positive_match)
+  ) %>% 
+  infer::chisq_test(Positive_match ~ method)
+```
+
+Nope, it is not.
+
+## Remove duplicate ties
+
+We need to make sure that there are no ties left where an otolith is tied for > 1 hearts or vice versa.
+```{r}
+(
+  CKMRsim_top2_heart_no_ties <- CKMRsim_top2_heart %>%
+    dplyr::group_by(otolith_indiv) %>%
+    dplyr::filter(dplyr::n() == 1) %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by(heart_indiv) %>%
+    dplyr::filter(dplyr::n() == 1) %>%
+    dplyr::ungroup()
+)
+```
+
+### Is the top match correct?
+
+How'd we do?
+```{r}
+CKMRsim_top2_heart_no_ties %>% 
+  dplyr::count(Positive_match)
+```
+
+Wow, so just going by top match alone, both ways, (not considering `diff` or a `logl_ratio` threshold), we had 413 / 432 match correctly (96%) and 19 / 432 match incorrectly (4%). HOWEVER, we lost 72 post-QA otolith samples as unassigned.
+```{r fig.width=10, fig.height=10} 
+true_pos_CKMRsim <- CKMRsim_top2_heart_no_ties %>%
+  dplyr::summarize(True_match = sum(Positive_match),
+                   NFish = length(Positive_match)) %>%
+  dplyr::mutate(False_match = NFish - True_match)
+
+(
+  CKMRsim_top2plot <- plotly::ggplotly(
+    CKMRsim_top2_heart_no_ties %>%
+      ggplot(
+        aes(
+          x = diff,
+          y = logl_ratio,
+          colour = Positive_match,
+          text = otolith_indiv
+        )
+      ) +
+      geom_point() +
+      theme_bw() +
+      ggtitle(
+        paste0(
+          "DupCheck:" ,
+          true_pos_CKMRsim$True_match,
+          " true matches and ",
+          true_pos_CKMRsim$False_match,
+          " false matches"
+        )
+      )
+  )
+)
+```
+
+## What samples did the false matches match with?
+
+Of the 432 otolith samples that only matched one heart sample, 6 did not have a heart to match to, 10 matched their nearest neighbor (i.e., fish ID +/- 1) and 3 "random" matched a relatively near neighbor (i.e., otolith 851 and heart 849). 
+```{r}
+CKMRsim_top2_heart_no_ties_match_type <- CKMRsim_top2_heart_no_ties %>%
+  dplyr::mutate(
+    match_type = dplyr::case_when(
+      otolith_indiv == heart_indiv ~ "self",
+      otolith_indiv != heart_indiv &
+        !(otolith_indiv %in% (
+          dplyr::filter(DWPs_postQA, heart == TRUE) %>% dplyr::pull(FK_FISH_ID)
+        )) ~ "heart not in sample",
+      otolith_indiv != heart_indiv &
+        heart_indiv == (otolith_indiv + 1) |
+        heart_indiv == (otolith_indiv - 1) ~ "nearest neighbor",
+      TRUE ~ "random"
+    )
+  ) 
+
+CKMRsim_top2_heart_no_ties_match_type %>% 
+  dplyr::filter(Positive_match == FALSE)
+
+CKMRsim_top2_heart_no_ties_match_type %>%
+  dplyr::count(match_type)
+```
+
+## Is there a pattern of missing loci by match type? {#CKMRsim_match_type_plot}
+
+```{r fig.width=10, fig.height=10}
+plotly::ggplotly(
+  CKMRsim_top2_heart_no_ties_match_type %>%
+    ggplot(
+      aes(
+        x = diff,
+        y = logl_ratio,
+        colour = match_type,
+        text = otolith_indiv
+      )
+    ) +
+    geom_point() +
+    theme_bw() +
+    ggtitle(paste0("CKMRsim logl_ratio by match type"))
+)
+```
+
+Of our 6 otoliths that did NOT have hearts in the sample, four of them cluster towards the bottom left, so we could potentially eliminate those with some minor thresholds on `logl_ratio` and `diff`.
+
+Specifically, setting a lower end `logl_ratio` threshold may be beneficial.
+```{r}
+CKMRsim_top2_heart_no_ties_match_type %>%
+  ggplot(aes(x = logl_ratio, fill = match_type)) +
+  geom_histogram(binwidth = 5) +
+  theme_bw()
+```
+
+Similarly, setting a lower end `diff` threshold may be beneficial, although it is less clean, we'd lose some correct self-matches.
+```{r}
+CKMRsim_top2_heart_no_ties_match_type %>%
+  ggplot(aes(x = diff, fill = match_type)) +
+  geom_histogram(binwidth = 5) +
+  theme_bw()
+```
+
+# Comparing Methods: Duplicate Rate vs. CKMRsim
+
+## Combine Results
+
+Strip down Duplicate Check final tibble.
+```{r}
+(
+  top_matches_dup_check <-
+    dup_check_top2_heart_no_ties_match_type %>%
+    dplyr::mutate(method = "dup_check") %>% 
+    dplyr::select(
+      method,
+      otolith_indiv,
+      heart_indiv,
+      Positive_match,
+      match_type
+    )
+)
+```
+
+Strip down CKMRsim final tibble.
+```{r}
+(
+  top_matches_CKMRsim <- CKMRsim_top2_heart_no_ties_match_type %>%
+    dplyr::mutate(method = "CKMRsim") %>% 
+    dplyr::select(
+      method,
+      otolith_indiv,
+      heart_indiv,
+      Positive_match,
+      match_type
+    )
+)
+```
+
+Now do a full join so we can see differences between the methods.
+```{r}
+(
+  top_matches_both <-
+    dplyr::bind_rows(top_matches_dup_check, top_matches_CKMRsim)
+    )
+)
+```
+
+How'd each method do? Let's look at the headline numbers of `TRUE` and `FALSE` matches.
+```{r}
+top_matches_both %>%
+  dplyr::count(method, Positive_match) %>% 
+  tidyr::pivot_wider(names_from = method, values_from = n)
+```
+
+How about for `FALSE` matches, did the two methods differ?
+```{r}
+top_matches_both %>% 
+  dplyr::filter(Positive_match == FALSE) %>% 
+  dplyr::count(method, match_type) %>% 
+  tidyr::pivot_wider(names_from = method, values_from = n)
+```
+
+# Differences from what Andy did
+
+* Andy subset the hearts and otoliths to a common dataset post-QA (all otoliths had hearts, all hearts had otoliths), as we told him to do! I switched tracks and decided to use all otoliths and hearts that were gentoyped for T028, similar to how we'll handle `PGOD21`. The main difference here is that once we get through genotyping and QA, we are going to end up with some otolith genotypes that do not have the correct heart genotyped, so I wanted to do more of a "real world" test. This makes **all of my numbers** worse than Andy's.  
+* Andy inadvertently did ALL pairwise comparisons for the duplicate check (Method 1), rather than looking within DWPs. This drastically lowered the number of correct pairings observed. For CKMRsim (Method 2), he did comparisons within DNA Plates (not DWPs). Ultimately, this led to an apples to oranges comparison duplicate check and CKMRsim methodologies within his analysis, giving CKMRsim a significant leg up.  
+* Andy matched otoliths to the best heart, then dropped all hearts that best matched more than one otolith. I explored the same method, but also tried to increase the total number of matches by picking the top match for hearts that matched more than one otolith. This slightly (but not significantly) increased my FDR from ~3% to ~4% while increasing the number of `TRUE` matches by ~15%.  
+
+# Overall Summary
+
+* The test data set started out with 514 hearts and 517 otoliths (T028 rounds 10-12).  
+* Since the otolith DNA data did not have DWP associated, I had to drop down to 514 otoliths pre-QA so I had DWP data for all heart and otolith samples. We will not have to do this for `PGOD21`.  
+* QA  
+  + Hearts - after applying the 80% of loci rule (21 dropped), duplicate check (4 dropped), and removal of individuals for heterozygosities outside of IQR cutoffs (8 dropped), 481 hearts remained.  
+  + Otoliths - I downgraded the 80% rule to 10% (4 dropped) and did a standard duplicate check (6 dropped), leaving me with 504 otoliths remaining.  
+* Of the remaining heart (n = 481) and otolith (n = 504) samples, 472 had data for both tissues. HOWEVER, I did not filter down to a common dataset. I wanted to see what would happen to the otoliths that did not have heart genotypes.  
+* Method 1 - Duplicate check  
+  + 68 hearts matched more than one otolith sample, of those 67 matched themselves in addition to another otolith.  
+  + If we drop all of those multiple matching hearts (Andy's method), we are left with 360 matches, 349 were TRUE positives and 11 were FALSE positives (FPR 3.1%).  
+  + If we filter multiple matching hearts for the best match, we are left with 428 matches, 410 were TRUE positives and 18 were FALSE positives (FPR 4.2%).  
+  + Of the 18 FALSE positive matches, all were for individuals near each other, including 6 that did not have hearts in the sample.  
+  + We could likely eliminate some of the FALSE positives with very modest `DuplicateRate` and `diff` cutoffs ([see plot](#dup_check_match_type_plot)).  
+* Method 2 - CKMRsim  
+  + Simulations were performed using genotypes from the T028 otoliths and hearts themselves, we'd need to do this by lineage for `PGOD21`.  
+  + The overall discrepancy rate of ~15% for T028 and locus-specific missing data rates from the simulation data set were accounted for in the simulations.  
+  + In the simulations, there was decent separation of log-likelihood distributions for MZ/U and MZ/FS relationships when only 61 random loci were removed at each iteration. These distributions started to overlap as more random loci were removed in additional simulations.  
+  + However, the log-likelihood ratio distribution from empirical T028 data indicated that a $\lambda^*$ cutoff would **not** work alone to remove FALSE positive matches ([see histograms](#logl_ratio_histograms)).  
+  + 63 hearts matched more than one otolith sample, of those 62 matched themselves in addition to another otolith.  
+  + If we drop all of those multiple matching hearts (Andy's method), we are left with 369 matches, 357 were TRUE positives and 12 were FALSE positives (FPR 3.3%).  
+  + If we filter multiple matching hearts for the best match, we are left with 432 matches, 413 were TRUE positives and 19 were FALSE positives (FPR 4.4%).  
+  + Of the 19 FALSE positive matches, all were for individuals near each other, including 6 that did not have hearts in the sample.  
+  + We could likely eliminate some of the FALSE positives with very modest `DuplicateRate` and `diff` cutoffs ([see plot](#CKMRsim_match_type_plot)).  
+
+# Conclusions and Recommendation
+
+The duplicate rate and CKMRsim methodologies were virtually identical in performance, despite the extra information being used by CKMRsim (allele frequencies, known discrepancy rate, etc.). A big part of this is likely due to our parentage panel having SNPs with very high MAF, so the allele frequency info isn't quite as informative as it would be for other marker panels. I think we should just stick with duplicate rate, since it is simpler and won't need to be implemented separately for each lineage.
+
+We need to decide how to deal with hearts that most closely match more than one otolith. We can either drop them (Andy's method), which had a slightly lower FPR (3.1%), or keep the top heart-otolith match, which gives us more overall correct matches, but a slightly higher FPR (4.2%). Here's how all of that breaks down using the duplicate rate results and starting with all 514 pre-QA otoliths:  
+
+* Keep best match from multiple matching hearts (Kyle's method)  
+  + 410 TRUE matches (79.8%), 18 FALSE matches (3.5%), 86 dropouts/no matches (16.7%)  
+* Drop multiple matching hearts (Andy's method)  
+  + 349 TRUE matches (67.9%), 11 FALSE matches (2.1%), 154 dropouts/no matches (30.0%)  
+
+We need to decide if we want to implement some very modest cutoffs to help weed out otoliths that do not have a heart in the sample. This would change the above numbers a bit.
+
+As a final thought, we already know from Kristen's previous `PGOD21` matching that the T028 samples are a bit "rosier" than `PGOD21`, so I would consider the final TRUE matching rates that we observed here to be the ceiling (and conversly our FPR to be the floor) for what we'll see in the real world. This is a major reason that I think we still need some sort of threshold/cutoff value.
+
+End
