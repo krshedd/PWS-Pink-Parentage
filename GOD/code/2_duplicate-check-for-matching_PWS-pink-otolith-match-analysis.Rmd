@@ -1,0 +1,76 @@
+---
+title: "2_duplicate-check-for-matching_PWS-pink-otolith-match-analysis"
+subtitle: "Re-do with `develop` branch GCL-R-Scripts"
+author: "Kyle Shedd & Kristen Gruenthal"
+date: "Started: 2023-05-31, last opened: `r Sys.Date()`"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+
+if(!require("pacman")) install.packages("pacman"); library(pacman)
+
+pacman::p_load(
+  tidyverse,
+  lubridate
+)
+
+source("~/../R/Functions.GCL.R")
+# source("../../GOD/LOKI2R_ind.GCL.R")
+# source("../../GOD/DupCheckBetweenSillys_GOD.GCL.r")
+
+.username = readLines("~/../R/usr_pw.txt", n = 1)
+.password = readLines("~/../R/usr_pw.txt" , n = 2)[[2]]
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Objective
+
+The purpose of this notebook is to prepare the data for our attempt to re-pair GT-seq genotypes from otolith-derived DNA with GT-seq genotypes from heart-derived DNA for individuals of unknown origin. This notebook will match up the 96 SWP locations from `PGOD21.gcl` to the original 48 DWP to prepare for matching (separate notebook). This will be done by linking 3 things:  
+
+  1) `PGOD21.gcl` otolith genotypes from 96 SWP,
+  2) Otolith transfer records documenting the transfer of otoliths from their original 48 DWP (or box of 48 DWP),
+  3) AHRP Salmon Biological Fact data containing field data (silly code, stream, year, 48 DWP, etc.)
+  
+Bottom line, we need to know to the finest scale possible (48 DWP or box) where otoliths in `PGOD21.gcl` came from so we can limit our search space for matching.
+
+# Background
+
+During shipment of otolith samples in February 2020 to the MTA in Juneau for reading, a significant proportion of otoliths migrated between cells within DWPs due to poor containment of the acetate lids that were attached with rubber bands to the DWPs. This incident is known as "the great otolith debacle", aka the "GOD" incident. Since some otoliths moved from their original cells in the DWP, the paired integrity of the otolith-origin information and the rest of the paired data (genotype + field data) was lost for just under 11,000 individuals. In an attempt to rectify the "GOD" incident, we are extracting DNA from the otolith tissues, genotyping the otolith-derived DNA at 298 GT-seq loci, and attempting to re-pair the otolith-heart samples from their genotypes.  
+
+In addition to this GitHub repository, other materials can be found on the V: drive here:
+<V:\Lab\Loki\Collection raw data sheets\Pink\Otolith Extravaganza\GOD Event 2020_2021>
+and on Kyle's Desktop (bad practice)
+
+# Methods
+
+## Laboratory
+
+DNA was extracted from left-side or unknown otolith tissues of unknown origin using conventional Machery-Nagel DNA extraction kits. Otoliths were placed in T1 buffer for an overnight soak in clear 96 shallow-well plates (SWP). Preamp at 14 cycles. Final elution volume was 75uL. All otoliths were transferred among plates with a jig. All liquid handling was done by robot.
+
+## Analysis Workflow
+
+### Data Prep
+
+All data prep was done in this R Notebook `PWS_pink_match_analysis_all_develop.Rmd`, which should have been titled `1_data_prep_PWS_pink_otolith_match_analysis`, but I couldn't change the file name without ruining the notebook. The purpose of that R Notebook was to come up with a definitive link between the `PGOD21.gcl` otoliths and their 96 SWP locations and the *original* 48 DWP or otolith box location. This was accomplished by linking these 3 things:  
+
+  1) `PGOD21.gcl` otolith genotypes from 96 SWP,
+  2) Otolith transfer records documenting the transfer of otoliths from their original 48 DWP (or box of 48 DWP),
+  3) AHRP Salmon Biological Fact data containing field data (silly code, stream, year, 48 DWP, etc.)
+  
+Bottom line, we need to know to the finest scale possible (48 DWP or box) where otoliths in `PGOD21.gcl` came from so we can limit our search space for matching.
+
+### Matching Prep
+
+Techniques for matching otoliths back to hearts were refined over time, however, the most definitive work is in this R Notebook `Known sample tests_Kyle.Rmd`, also titled `Matching tissues to otoliths with known samples`, which revisited T028 data to see if `CKMRsim` was better for matching tissues than a standard duplicate check. Andy Barclay had the idea to try `CKMRsim`, and while initial results were promising, they ultimately fared no better than a duplicate check.
+
+Bottom line, this R notebook refined the methods used for otolith-heart matching.
+
+End
