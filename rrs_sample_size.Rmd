@@ -1,0 +1,478 @@
+---
+title: "Determine RRS Parents Sample Size with Data Simulation"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+  html_document:
+    df_print: paged
+    toc: yes
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(tidyverse)
+
+knitr::opts_chunk$set(out.width = "100%", fig.width = 10)
+setwd("C:/Users/bhsu/Documents/projects/rrs_sensitivity/round2_sampsize")
+
+```
+
+# Objectives
+Determine the potential sample size needed for parents in RRS analysis for Paddy and Erb Creeks.
+
+# Methods
+## Simulation Model
+I used a zero-inflated Poisson (ZIP; Lambert, 1992) to model the reproductive success (RS) of pink salmon in this analysis. There were two components in a ZIP model: a binomial process and a Poisson count process. We observed in the data that only a minority of parents contributed to most of the successful returns. As a modeling exercise, I categorized parents as "successful" or "unsuccessful" based on a binomial process. There were few parents with a successful family, their counts for offspring would be modeled with a Poisson distribution. Note that even with a successful family, a parent could have a zero offspring count due to a Poisson process.
+
+Fitting the data for Hogan Bay pink salmon (2015/2017) with a ZIP model, the estimated family success was around 0.1. The estimated mean offspring counts for a successful parent was around 0.09 for hatchery origin and 0.6 for natural origin. With these numbers in mind, we can simulate scenarios to assess different sample sizes and their associated statistical precision or powers.
+
+```{r zip-it-simulator}
+# r code for data simulation under a zip model
+# simplified zip it (with constant binomial model)
+## inputs:
+# n_dat: total sample size
+# p_nat: portion of natural origin parent
+# p_0: probability of failed family (family success = 1 - p_0)
+# mu_nat_f: mean RS for natural origin females
+# mu_hat_f: mean RS for hatchery origin females
+# mu_nat_m: mean RS for natural origin males
+# mu_hat_m: mean RS for hatchery origin males
+
+dat_sim<- function(n_dat, p_nat=0.5, p_0, mu_nat_f, mu_hat_f, mu_nat_m, mu_hat_m, ...) {
+  ori<- sample(c("Natural","Hatchery"), n_dat,
+               prob= c(p_nat, 1- p_nat), replace= TRUE)
+  sex<- sample(c("Female","Male"), n_dat, replace= TRUE)
+  
+  n_kid<- rbinom(n_dat, 1, prob= 1- p_0)
+  n_kid[n_kid==1 & ori=="Natural" & sex=="Female"]<-
+    rpois(length(n_kid[n_kid==1 & ori=="Natural" & sex=="Female"]),
+          lambda= mu_nat_f)
+  n_kid[n_kid==1 & ori=="Hatchery" & sex=="Female"]<-
+    rpois(length(n_kid[n_kid==1 & ori=="Hatchery" & sex=="Female"]),
+          lambda= mu_hat_f)
+  n_kid[n_kid==1 & ori=="Natural" & sex=="Male"]<-
+    rpois(length(n_kid[n_kid==1 & ori=="Natural" & sex=="Male"]),
+          lambda= mu_nat_m)
+  n_kid[n_kid==1 & ori=="Hatchery" & sex=="Male"]<-
+    rpois(length(n_kid[n_kid==1 & ori=="Hatchery" & sex=="Male"]),
+          lambda= mu_hat_m)
+  
+  df<- data.frame(ori, sex, n_kid)
+  colnames(df) <- c("origin","sex","n_kid")
+  return(df)
+}
+
+```
+
+To make the data simulation as simple as possible, our ZIP model had a constant binomial process. That is, we assumed that the binomial portion of the ZIP model did not depend on the sex nor origin of parents. So we would consider the family success rate was the same for natural and hatchery origins, and for males and females as well. Also for the sake of simplicity, we did not distinguish RS's between sexes. However, these metrics could be implemented in the simulation if needed.
+
+## Simulation Procedures
+I set up the simulated data to have an equal proportion between origins and between sexes. And the family success rate was set at 0.1 for all simulations. The main focus of the analysis was to assess the precision and/or power for different combinations of RS's. Because it was impossible to simulate all combinations, I only simulated a subset to represent possible scenarios. Mainly, I chose RS's ranged from 0.5 to 0.9 for natural origin parents and 0.1 to 0.5 for hatchery origin parents (see table below). It was expected that combinations with notable differences such as 0.1 versus 0.9 would be associated with a stronger statistical power compared to combinations that had little or no difference such as 0.5 versus 0.5. I simulated 1,000 data sets for each RS combination in three different sample sizes: 250, 500, and 1,000 fish per stratum.
+
+```{r rrs-combinations, results='asis', echo=FALSE, warning=FALSE}
+mu_nat<- seq(from= 0.9, to= 0.5, by= -0.1) # mu for natural origin
+mu_hat<- seq(from= 0.1, to= 0.5, by= 0.1) # hatchery origin
+
+expand_grid(mu_hat, mu_nat) %>% 
+  rename("RS hatchery"= mu_hat,
+         "RS natural"= mu_nat) %>%
+  kable() %>%
+  kableExtra::kable_styling("striped", position = "left", font_size = 12)
+
+```
+
+## Power Analysis for a Two-Sample T-Test
+I also ran a power analysis for a two-sample *t*-test. It was not based on a zero-inflated model, so I expected the test would underestimate the sample size needed. However, I included the test here as a comparison to the simulation results.
+
+I utilized `pwr.t.test()` function from  package *pwr* for the power analysis (Champely, 2020). Instead of testing RRS, I compared RS's between hatchery and natural origins using a two-sample *t*-test. The power analysis would estimate the sample sizes needed to detect a range of effect sizes with a power of 0.8. Effect size was basically a standardized difference between the two independent samples. Cohen (1988) suggested that 0.2, 0.5, and 0.8 represent small, medium, and large effect sizes respectively. To be on a more conservative side, we would estimate the sample size needed for a small to medium effect size.
+
+
+# Results
+## 250 Per Stratum
+
+R code for running the simulation:
+```{r data-sim-250, eval=FALSE}
+pnat<- 0.5 # propotion for natural origin
+p0<- 0.9 # 1- family success
+mun<- seq(from= 0.9, to= 0.5, by= -0.1) # mu for natural origin
+muh<- seq(from= 0.1, to= 0.5, by= 0.1) # hatchery origin
+samp_n<- 250 # sample per stratum
+
+rrs_simout_250<- 
+  apply(expand_grid(muh, mun), 1,
+        function(mu) {
+          setTxtProgressBar(
+            txtProgressBar(min=min(muh), max=max(muh), style = 3),
+            mu[1]
+            )
+          sapply(1:1000,
+                 function(rep_n) { # n rep for a given scenario
+                   sim_dat<- dat_sim(
+                     n_dat=samp_n*4, p_nat=pnat, p_0=p0,
+                     mu_nat_f=mu[2], mu_hat_f=mu[1],
+                     mu_nat_m=mu[2], mu_hat_m=mu[1]
+                     ) %>%
+                     # dplyr::group_by(origin, sex) %>%
+                     dplyr::group_by(origin) %>%
+                     dplyr::summarise(rs = mean(n_kid)) %>%
+                     tidyr::spread(origin, rs) %>%
+                     # dplyr::group_by(sex) %>%
+                     dplyr::summarise(rrs = Hatchery/ Natural) %>%
+                     dplyr::ungroup() %>%
+                     dplyr::mutate(mu_n = mu[2],
+                                   mu_h = mu[1])
+                   }, # rep_n
+                 simplify = FALSE) %>%
+            dplyr::bind_rows() %>%
+            dplyr::mutate(
+              real_rrs= ((1- p0)* mu_h)/ ((1- p0)* mu_n),
+              )} # mu
+        ) %>%
+  dplyr::bind_rows()
+
+# save(rrs_simout_250, file= "rrs_simout_250.Rdata")
+
+```
+
+The results for 250 fish per stratum were summarized in the following table. *mu_h* was the mean for RS for hatchery origin parents, *mu_n* was the mean for RS for natural origin parents, *Mean* was the mean RRS for the simulations, *Real_RRS* was the RRS calculated based on the set RS and family success values, *q_0.05* and *q_0.95* were the 5^th^ and 95^th^ percentiles of simulated estimates, *CV* was the coefficient of variation of RRS from the simulations, and *a* was the portion of simulated RRS within 0.1 from the true RRS value.
+
+Our simulations showed that most of the RS combinations did not have a good enough precision with 250 fish per stratum. Except for 0.1 versus 0.9 combination, most other combinations produced estimates within 0.1 from the true value less than 90% of time. All CV's from the simulations were higher than 0.25 and between the range of 0.3 to 0.6.
+
+```{r sim-250-output}
+load(file= "rrs_simout_250.Rdata")
+
+out_summ_250<- rrs_simout_250 %>%
+  filter(rrs< 100) %>%
+  group_by(mu_h, mu_n) %>%
+  summarise(
+    # "<1" = mean(rrs< 1, na.rm= TRUE),
+    Mean = mean(rrs, na.rm= TRUE),
+    # Median = median(rrs, na.rm= TRUE),
+    Real_RRS = real_rrs[1],
+    SD = sd(rrs, na.rm= TRUE),
+    q_0.05 = quantile(rrs, 0.05, na.rm= TRUE),
+    q_0.95 = quantile(rrs, 0.95, na.rm= TRUE),
+    CV = sd(rrs, na.rm= TRUE)/ mean(rrs, na.rm= TRUE),
+    a = mean(abs(rrs- real_rrs)< 0.1)
+  ) %>% 
+  ungroup()
+
+print(round(out_summ_250, 3), n= Inf)
+
+```
+
+The plot below showed the mean RRS and 90% CI for simulated data with 250 fish per stratum. Confidence intervals were plotted in black vertical bars. True RRS value was plotted as a red dot for each RS combination.
+
+```{r range-250}
+cols<- c("Mean"= "black", "Real"= "red")
+
+out_summ_250 %>%
+  ggplot() +
+  geom_segment(
+    aes(x= paste0(mu_h,"/",mu_n), y= q_0.05,
+        xend= paste0(mu_h,"/",mu_n), yend= q_0.95), size= 2) +
+  geom_point(aes(x= paste0(mu_h,"/",mu_n), y= Real_RRS,
+                 color= "Real"), size= 3.5) +
+  geom_point(aes(x= paste0(mu_h,"/",mu_n), y= Mean,
+                 color= "Mean"), size= 3) +
+  scale_colour_manual(name= "RRS", values= cols) +
+  labs(title= "250 per stratum", x= "RS combination", y= "RRS") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(0, 2)
+
+```
+
+Below showed the portion of RRS estimates within 0.1 of the true RRS according to RS combination for simulated data with 250 per stratum. Horizontal red dash line indicated 0.9.
+
+```{r a-250}
+out_summ_250 %>%
+  ggplot(aes(x= paste0(mu_h,"/",mu_n), y= a)) +
+  geom_hline(
+    yintercept= 0.9, linetype= "dashed", color= "red", size= 1.2) +
+  geom_point(size= 2.2, color= "dodgerblue") +
+  labs(title= "250 per stratum",
+       x= "RS combination",
+       y= "Precision") +
+  ylim(0, 1) +
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+## 500 Per Stratum
+R code for running the simulation:
+```{r data-sim-500, eval=FALSE}
+samp_n<- 500 # sample per stratum
+
+rrs_simout_500<- 
+  apply(expand_grid(muh, mun), 1,
+        function(mu) {
+          setTxtProgressBar(
+            txtProgressBar(min=min(muh), max=max(muh), style = 3),
+            mu[1]
+            )
+          sapply(1:1000,
+                 function(rep_n) { # n rep for a given scenario
+                   sim_dat<- dat_sim(
+                     n_dat=samp_n*4, p_nat=pnat, p_0=p0,
+                     mu_nat_f=mu[2], mu_hat_f=mu[1],
+                     mu_nat_m=mu[2], mu_hat_m=mu[1]
+                     ) %>%
+                     # dplyr::group_by(origin, sex) %>%
+                     dplyr::group_by(origin) %>%
+                     dplyr::summarise(rs = mean(n_kid)) %>%
+                     tidyr::spread(origin, rs) %>%
+                     # dplyr::group_by(sex) %>%
+                     dplyr::summarise(rrs = Hatchery/ Natural) %>%
+                     dplyr::ungroup() %>%
+                     dplyr::mutate(mu_n = mu[2],
+                                   mu_h = mu[1])
+                   }, # rep_n
+                 simplify = FALSE) %>%
+            dplyr::bind_rows() %>%
+            dplyr::mutate(
+              real_rrs= ((1- p0)* mu_h)/ ((1- p0)* mu_n),
+              )} # mu
+        ) %>%
+  dplyr::bind_rows()
+
+# save(rrs_simout_500, file= "rrs_simout_500.Rdata")
+
+```
+
+Our simulations showed mixed results in precision with 500 fish per stratum. RS combinations with large differences such as 0.1 versus 0.9, 0.8 or 0.7 were the only ones that produced RRS's within 0.1 from the true value more than 90% of time. However, CV's from the simulations were between the range of 0.2 to 0.4, indicating improved precision compared to 250 per stratum.
+
+```{r sim-500-output}
+load(file= "rrs_simout_500.Rdata")
+
+out_summ_500<- rrs_simout_500 %>%
+  filter(rrs< 100) %>%
+  group_by(mu_h, mu_n) %>%
+  summarise(
+    # "<1" = mean(rrs< 1, na.rm= TRUE),
+    Mean = mean(rrs, na.rm= TRUE),
+    # Median = median(rrs, na.rm= TRUE),
+    Real_RRS = real_rrs[1],
+    SD = sd(rrs, na.rm= TRUE),
+    q_0.05 = quantile(rrs, 0.05, na.rm= TRUE),
+    q_0.95 = quantile(rrs, 0.95, na.rm= TRUE),
+    CV = sd(rrs, na.rm= TRUE)/ mean(rrs, na.rm= TRUE),
+    a = mean(abs(rrs- real_rrs)< 0.1)
+  ) %>% 
+  ungroup()
+
+print(round(out_summ_500, 3), n= Inf)
+
+```
+
+The plot below showed the mean RRS and 90% CI for simulated data with 500 fish per stratum. The results were similar but with tighter CI's compared to 250 fish per stratum.
+
+```{r range-500}
+cols<- c("Mean"= "black", "Real"= "red")
+
+out_summ_500 %>%
+  ggplot() +
+  geom_segment(
+    aes(x= paste0(mu_h,"/",mu_n), y= q_0.05,
+        xend= paste0(mu_h,"/",mu_n), yend= q_0.95), size= 2) +
+  geom_point(aes(x= paste0(mu_h,"/",mu_n), y= Real_RRS,
+                 color= "Real"), size= 3.5) +
+  geom_point(aes(x= paste0(mu_h,"/",mu_n), y= Mean,
+                 color= "Mean"), size= 3) +
+  scale_colour_manual(name= "RRS", values= cols) +
+  labs(title= "500 per stratum", x= "RS combination", y= "RRS") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(0, 2)
+
+```
+
+Below showed the portion of RRS estimates within 0.1 of the true RRS according to RS combination for simulated data with 500 per stratum. Horizontal red dash line indicated 0.9.
+
+```{r a-500}
+out_summ_500 %>%
+  ggplot(aes(x= paste0(mu_h,"/",mu_n), y= a)) +
+  geom_hline(
+    yintercept= 0.9, linetype= "dashed", color= "red", size= 1.2) +
+  geom_point(size= 2.2, color= "dodgerblue") +
+  labs(title= "500 per stratum",
+       x= "RS combination",
+       y= "Precision") +
+  ylim(0, 1) +
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+## 1,000 per stratum
+R code for running the simulation:
+```{r data-sim-1000, eval=FALSE}
+samp_n<- 1000 # sample per stratum
+
+rrs_simout_1000<- 
+  apply(expand_grid(muh, mun), 1,
+        function(mu) {
+          setTxtProgressBar(
+            txtProgressBar(min=min(muh), max=max(muh), style = 3),
+            mu[1]
+            )
+          sapply(1:1000,
+                 function(rep_n) { # n rep for a given scenario
+                   sim_dat<- dat_sim(
+                     n_dat=samp_n*4, p_nat=pnat, p_0=p0,
+                     mu_nat_f=mu[2], mu_hat_f=mu[1],
+                     mu_nat_m=mu[2], mu_hat_m=mu[1]
+                     ) %>%
+                     # dplyr::group_by(origin, sex) %>%
+                     dplyr::group_by(origin) %>%
+                     dplyr::summarise(rs = mean(n_kid)) %>%
+                     tidyr::spread(origin, rs) %>%
+                     # dplyr::group_by(sex) %>%
+                     dplyr::summarise(rrs = Hatchery/ Natural) %>%
+                     dplyr::ungroup() %>%
+                     dplyr::mutate(mu_n = mu[2],
+                                   mu_h = mu[1])
+                   }, # rep_n
+                 simplify = FALSE) %>%
+            dplyr::bind_rows() %>%
+            dplyr::mutate(
+              real_rrs= ((1- p0)* mu_h)/ ((1- p0)* mu_n),
+              )} # mu
+        ) %>%
+  dplyr::bind_rows()
+
+# save(rrs_simout_1000, file= "rrs_simout_1000.Rdata")
+
+```
+
+Our simulations showed mostly good results in precision with 1,000 fish per stratum. In RS combinations with large differences such as 0.1 or 0.2 for the hatchery origin parents versus 0.6, 0.7, 0.8 or 0.9 for the natural origin parents, simulations showed RRS's within 0.1 from the true value more than 90% of time. RS combinations with smaller differences or no difference at all still failed to produce RRS's within 0.1 from the true value more than 90% of time. However, all RS combinations produced a CV that was less than or very close to 0.25.
+
+```{r sim-1000-output}
+load(file= "rrs_simout_1000.Rdata")
+
+out_summ_1000<- rrs_simout_1000 %>%
+  filter(rrs< 100) %>%
+  group_by(mu_h, mu_n) %>%
+  summarise(
+    # "<1" = mean(rrs< 1, na.rm= TRUE),
+    Mean = mean(rrs, na.rm= TRUE),
+    # Median = median(rrs, na.rm= TRUE),
+    Real_RRS = real_rrs[1],
+    SD = sd(rrs, na.rm= TRUE),
+    q_0.05 = quantile(rrs, 0.05, na.rm= TRUE),
+    q_0.95 = quantile(rrs, 0.95, na.rm= TRUE),
+    CV = sd(rrs, na.rm= TRUE)/ mean(rrs, na.rm= TRUE),
+    a = mean(abs(rrs- real_rrs)< 0.1)
+  ) %>% 
+  ungroup()
+
+print(round(out_summ_1000, 3), n= Inf)
+
+```
+
+The plot below showed the mean RRS and 90% CI for simulated data with 1,000 fish per stratum. The results showed narrower CI's compared to 250 or 500 fish per stratum.
+
+```{r range-1000}
+cols<- c("Mean"= "black", "Real"= "red")
+
+out_summ_1000 %>%
+  ggplot() +
+  geom_segment(
+    aes(x= paste0(mu_h,"/",mu_n), y= q_0.05,
+        xend= paste0(mu_h,"/",mu_n), yend= q_0.95), size= 2) +
+  geom_point(aes(x= paste0(mu_h,"/",mu_n), y= Real_RRS,
+                 color= "Real"), size= 3.5) +
+  geom_point(aes(x= paste0(mu_h,"/",mu_n), y= Mean,
+                 color= "Mean"), size= 3) +
+  scale_colour_manual(name= "RRS", values= cols) +
+  labs(title= "1,000 per stratum", x= "RS combination", y= "RRS") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(0, 2)
+
+```
+
+Below showed the portion of RRS estimates within 0.1 of the true RRS according to RS combination for simulated data with 1,000 per stratum. Horizontal red dash line indicated 0.9.
+
+```{r a-1000}
+out_summ_1000 %>%
+  ggplot(aes(x= paste0(mu_h,"/",mu_n), y= a)) +
+  geom_hline(
+    yintercept= 0.9, linetype= "dashed", color= "red", size= 1.2) +
+  geom_point(size= 2.2, color= "dodgerblue") +
+  # geom_point(aes(x= paste0(mu_h,"/",mu_n), y= CV,
+  #                color= "black"), size= 2.2) +
+ labs(title= "1,000 per stratum",
+       x= "RS combination",
+       y= "Precision") +
+  ylim(0, 1) +
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+## Power Analysis using a Two-Sample T-Test
+Results suggested that with a sample size of 1,000 for each origin, it was more than enough to detect a small effect size with a power of 0.8. The plot below showed the sample size needed to detect a range of effect sizes with a power of 0.8. The red dot indicated a sample size of 1,000 per origin and its corresponding effect size.
+
+```{r power-2t}
+samsize<- tibble(
+  eff_size= seq(0.05, 0.5, by=0.01),
+  samp= sapply(eff_size, function(x) {
+    pwr::pwr.t.test(d= x, power= 0.8, type= "two.sample")$n
+  })
+)
+
+samsize %>%
+  ggplot(aes(x= eff_size, y= samp)) +
+  geom_line(size= 1.5) +
+  geom_segment(
+    aes(x= pwr::pwr.t.test(n= 1000, power= 0.8, type= "two.sample")$d,
+        y= -10,
+        xend= pwr::pwr.t.test(n= 1000, power= 0.8, type= "two.sample")$d,
+        yend= 1000),
+    linetype= "dashed", size= 1.2, color= "red") +
+  geom_point(aes(
+    pwr::pwr.t.test(n= 1000, power= 0.8, type= "two.sample")$d, 1000),
+    size= 4, color= "red") +
+  labs(x= "Effect size",
+       y= "Sample size for each origin") +
+  theme(axis.text= element_text(size= 12),
+        axis.title= element_text(size= 14, face= "bold"))
+
+```
+
+
+
+# Discussion
+A main assumption for the simulation was that the ZIP model captured the biological process of pink salmon family success and RS. We know that the ZIP model could under-represent the variation in the pink salmon data. In the previous analysis, we found more dispersion in Stockdale data compared to the data sets simulated under a ZIP model. So it is important to be aware of the limitations of this simulation analysis. If there was a notable difference in RS's between hatchery and natural origins, 1,000 fish per stratum would most likely be enough to achieve a strong power and precision. However, if there were little differences between the RS's, it would be safer to increase the sample size.
+
+The main purpose to include a power analysis for a two-sample *t*-test was to provide some context for the simulations. I expected that a power analysis based on a *t*-test would be overly optimistic; however, it would at least raise concerns if the results of the power analysis indicated a much larger sample size. Fortunately it did not.
+
+As mentioned earlier, the simulations were kept as simple as possible. But the analysis could be expanded to examine different family success rates, or unequal proportions in hatchery and natural origins. Further, I did not consider the effects might have on sample size when offspring was assigned to two parents (triads). Also, there were other versions of zero-inflated and hurdle models that can be utilized for RRS analysis. For example, a zero-inflated negative binomial model might be used to account for over-dispersion in data.
+
+
+# References
+
+Champely, S. 2020. pwr: Basic Functions for Power Analysis. R package version 1.3-0. https://CRAN.R-project.org/package=pwr
+
+Cohen, J. 1988.  Statistical power analysis for the behavioral sciences (2nd ed.). Hillsdale, NJ:Lawrence Erlbaum.
+
+Lambert, D. 1992. Zero-Inflated Poisson Regression, with an Application to Defects in Manufacturing. *Technometrics* 34(1):1–14.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
