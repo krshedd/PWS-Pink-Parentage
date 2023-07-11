@@ -1,0 +1,347 @@
+---
+title: "Stockdale Cross Data"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Pro Tips {#protip}
+
+Anything in [red](#protip) is a hyperlink that will either take you to the relevant location in this R Notebook .html file, or will link to an external reference (i.e. a publication we cite). If you just want to see the text and figures and **do not** want to see any of the `code` used to generate this R Notebook, click on the grey box in the upper right corner that says "Code" and select "Hide All Code". Happy data exploring!
+
+# Introduction
+
+The purpose of these analyses are to more fully explore the parent-pair offspring trio data (i.e. cross data).
+
+```{r setup, include=FALSE}
+library(coin)
+library(MASS)
+library(scales)
+library(tidyverse)
+library(leaflet)
+library(lubridate)
+library(ggExtra)
+library(gridExtra)
+library(MuMIn)
+library(GGally)
+library(gganimate)
+
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.width = 10)
+```
+
+How about the cross type data (offspring with two-parents, dam and sire)? What are the spatio-temporal patterns in matings of different cross types?
+```{r}
+riverdist <- read_csv("../../GIS/R/stockdale/stockdale_distances.csv") %>% 
+  mutate(Intertidal = case_when(dist2tide > 0 ~ "Upstream",
+                                dist2tide <= 0 ~ "Intertidal")) %>% 
+  rename(Distance = mouthdist, Segment = seg)
+
+parents_paired_14_16_cross <- read_csv("../Stockdale/stock_parents_paired_14_16_cross.csv")
+
+# organize by sire and dam, join riverdist data
+parents_paired_14_16_cross_riverdist <- parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`, `Sample Date`, `Sample Date.par1`, SEX, SEX.par1, `DNA Tray Code`, `DNA Tray Code.par1`, `DNA Tray Well Code`, `DNA Tray Well Code.par1`, origin.par1, origin, `Length Mm.par1`, `Length Mm`) %>% 
+  rename(`Fish ID.par2` = `Fish ID`, 
+         `Sample Date.par2` = `Sample Date`,
+         SEX.par2 = SEX,
+         `DNA Tray Code.par2` = `DNA Tray Code`,
+         `DNA Tray Well Code.par2` = `DNA Tray Well Code`,
+         origin.par2 = origin,
+         `Length Mm.par2` = `Length Mm`) %>% 
+  unite(Sample.par1, c("DNA Tray Code.par1", "DNA Tray Well Code.par1"), sep = "_", remove = TRUE) %>% 
+  unite(Sample.par2, c("DNA Tray Code.par2", "DNA Tray Well Code.par2"), sep = "_", remove = TRUE) %>% 
+  left_join(riverdist, by = c("Sample.par1" = "Sample")) %>% 
+  left_join(riverdist, by = c("Sample.par2" = "Sample"), suffix = c(".par1", ".par2")) %>% 
+  mutate(fish_id.sire = case_when(SEX.par1 == "M" ~ `Fish ID.par1`,
+                                  TRUE ~ `Fish ID.par2`)) %>% 
+  mutate(fish_id.dam = case_when(SEX.par1 == "F" ~ `Fish ID.par1`,
+                                  TRUE ~ `Fish ID.par2`)) %>% 
+  mutate(sample_date.sire = case_when(SEX.par1 == "M" ~ `Sample Date.par1`,
+                                  TRUE ~ `Sample Date.par2`)) %>% 
+  mutate(sample_date.dam = case_when(SEX.par1 == "F" ~ `Sample Date.par1`,
+                                  TRUE ~ `Sample Date.par2`)) %>% 
+  mutate(sex.sire = case_when(SEX.par1 == "M" ~ SEX.par1,
+                                  TRUE ~ SEX.par2)) %>% 
+  mutate(sex.dam = case_when(SEX.par1 == "F" ~ SEX.par1,
+                                  TRUE ~ SEX.par2)) %>%
+  mutate(origin.sire = case_when(SEX.par1 == "M" ~ origin.par1,
+                                  TRUE ~ origin.par2)) %>% 
+  mutate(origin.dam = case_when(SEX.par1 == "F" ~ origin.par1,
+                                  TRUE ~ origin.par2)) %>%
+  mutate(distance.sire = case_when(SEX.par1 == "M" ~ Distance.par1,
+                                  TRUE ~ Distance.par2)) %>% 
+  mutate(distance.dam = case_when(SEX.par1 == "F" ~ Distance.par1,
+                                  TRUE ~ Distance.par2)) %>%
+  mutate(intertidal.sire = case_when(SEX.par1 == "M" ~ Intertidal.par1,
+                                  TRUE ~ Intertidal.par2)) %>% 
+  mutate(intertidal.dam = case_when(SEX.par1 == "F" ~ Intertidal.par1,
+                                  TRUE ~ Intertidal.par2)) %>%
+  mutate(length.sire = case_when(SEX.par1 == "M" ~ `Length Mm.par1`,
+                                  TRUE ~ `Length Mm.par2`)) %>% 
+  mutate(length.dam = case_when(SEX.par1 == "F" ~ `Length Mm.par1`,
+                                  TRUE ~ `Length Mm.par2`)) %>%
+  select(cross, n, ends_with(".sire"), ends_with(".dam"))
+```
+
+**When** were Dams and Sires that mated together sampled? We would expected that they would be sampled within the same time frame. However, it looks like females were sampled later (on average) than males. This is likely due to earlier run timing in males.
+```{r}
+parents_paired_14_16_cross_riverdist %>% 
+  ggplot(aes(x = sample_date.sire, y = sample_date.dam)) +
+  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
+  geom_abline(slope = 1) +
+  theme_bw() +
+  ggtitle("Parent Sample Date by Cross Type") +
+  xlab("Sire Sample Date") +
+  ylab("Dam Sample Date") +
+  labs(size = "RS", 
+       colour = "Parent: Cross Type") +
+  theme(text = element_text(size = 20))  
+```
+
+**Where** were Dams and Sires that mated together sampled? We would expected that they would be sampled within the same area.
+```{r}
+parents_paired_14_16_cross_riverdist %>% 
+  ggplot(aes(x = distance.sire, y = distance.dam), alpha = 0.05) +
+  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
+  geom_abline(slope = 1)+
+  theme_bw() +
+  ggtitle("Parent Distance by Cross Type") +
+  xlab("Sire Sample Distance from Mouth") +
+  ylab("Dam Sample Distance from Mouth") +
+  labs(size = "RS", 
+       colour = "Parent: Cross Type") +
+  theme(text = element_text(size = 20))  
+```
+
+Was there evidence of size assortative mating? Did larger fish mate with each other? Nope, doesn't look like it.
+```{r}
+parents_paired_14_16_cross_riverdist %>% 
+  filter(length.sire > 300 & length.dam > 300) %>% 
+  ggplot(aes(x = length.sire, y = length.dam), alpha = 0.05) +
+  geom_jitter(aes(colour = cross, size = n), alpha = 0.5) +
+  geom_abline(slope = 1)+
+  geom_smooth(method = "lm") +
+  theme_bw() +
+  ggtitle("Parent Length by Cross Type")+
+  xlab("Sire Length") +
+  ylab("Dam Length") +
+  labs(size = "RS", 
+       colour = "Parent: Cross Type") +
+  theme(text = element_text(size = 20))  
+```
+
+
+# Cross Data
+
+## Each row as a cross
+```{r}
+riverdist <- read_csv("../../GIS/R/stockdale/stockdale_distances.csv") %>% 
+  mutate(Intertidal = case_when(dist2tide > 0 ~ "Upstream",
+                                dist2tide <= 0 ~ "Intertidal")) %>% 
+  rename(Distance = mouthdist, Segment = seg)
+
+parents_paired_14_16_cross <- read_csv("stock_parents_paired_14_16_cross.csv")
+
+# organize by sire and dam, join riverdist data
+parents_paired_14_16_cross_riverdist <- parents_paired_14_16_cross %>% 
+  count(cross, `Fish ID`, `Fish ID.par1`, `Sample Date`, `Sample Date.par1`, SEX, SEX.par1, `DNA Tray Code`, `DNA Tray Code.par1`, `DNA Tray Well Code`, `DNA Tray Well Code.par1`, origin.par1, origin, `Length Mm.par1`, `Length Mm`) %>% 
+  rename(`Fish ID.par2` = `Fish ID`, 
+         `Sample Date.par2` = `Sample Date`,
+         SEX.par2 = SEX,
+         `DNA Tray Code.par2` = `DNA Tray Code`,
+         `DNA Tray Well Code.par2` = `DNA Tray Well Code`,
+         origin.par2 = origin,
+         `Length Mm.par2` = `Length Mm`) %>% 
+  unite(Sample.par1, c("DNA Tray Code.par1", "DNA Tray Well Code.par1"), sep = "_", remove = TRUE) %>% 
+  unite(Sample.par2, c("DNA Tray Code.par2", "DNA Tray Well Code.par2"), sep = "_", remove = TRUE) %>% 
+  left_join(riverdist, by = c("Sample.par1" = "Sample")) %>% 
+  left_join(riverdist, by = c("Sample.par2" = "Sample"), suffix = c(".par1", ".par2")) %>% 
+  mutate(fish_id.sire = case_when(SEX.par1 == "M" ~ `Fish ID.par1`,
+                                  TRUE ~ `Fish ID.par2`)) %>% 
+  mutate(fish_id.dam = case_when(SEX.par1 == "F" ~ `Fish ID.par1`,
+                                  TRUE ~ `Fish ID.par2`)) %>% 
+  mutate(sample_date.sire = case_when(SEX.par1 == "M" ~ `Sample Date.par1`,
+                                  TRUE ~ `Sample Date.par2`)) %>% 
+  mutate(sample_date.dam = case_when(SEX.par1 == "F" ~ `Sample Date.par1`,
+                                  TRUE ~ `Sample Date.par2`)) %>% 
+  mutate(sex.sire = case_when(SEX.par1 == "M" ~ SEX.par1,
+                                  TRUE ~ SEX.par2)) %>% 
+  mutate(sex.dam = case_when(SEX.par1 == "F" ~ SEX.par1,
+                                  TRUE ~ SEX.par2)) %>%
+  mutate(origin.sire = case_when(SEX.par1 == "M" ~ origin.par1,
+                                  TRUE ~ origin.par2)) %>% 
+  mutate(origin.dam = case_when(SEX.par1 == "F" ~ origin.par1,
+                                  TRUE ~ origin.par2)) %>%
+  mutate(distance.sire = case_when(SEX.par1 == "M" ~ Distance.par1,
+                                  TRUE ~ Distance.par2)) %>% 
+  mutate(distance.dam = case_when(SEX.par1 == "F" ~ Distance.par1,
+                                  TRUE ~ Distance.par2)) %>%
+  mutate(intertidal.sire = case_when(SEX.par1 == "M" ~ Intertidal.par1,
+                                  TRUE ~ Intertidal.par2)) %>% 
+  mutate(intertidal.dam = case_when(SEX.par1 == "F" ~ Intertidal.par1,
+                                  TRUE ~ Intertidal.par2)) %>%
+  mutate(length.sire = case_when(SEX.par1 == "M" ~ `Length Mm.par1`,
+                                  TRUE ~ `Length Mm.par2`)) %>% 
+  mutate(length.dam = case_when(SEX.par1 == "F" ~ `Length Mm.par1`,
+                                  TRUE ~ `Length Mm.par2`)) %>%
+  select(cross, n, ends_with(".sire"), ends_with(".dam"))
+```
+
+```{r}
+parents_paired_14_16_cross_riverdist
+```
+
+# Each row as a parent
+```{r}
+riverdist_parentage_stock
+```
+
+# Each row as an offspring
+```{r}
+riverdist
+```
+
+```{r}
+(parents_paired_14_16 <- read_csv("stock_parents_paired_14_16.csv") %>% 
+     mutate(origin.par = factor(x = origin.par, levels = c("Natural", "Hatchery")))
+)
+```
+
+```{r, fig.width=10}
+parents_paired_14_16 %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
+                             SEX.par == "M" ~ "Parent: Male")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Offspring: Female",
+                             SEX.off == "M" ~ "Offspring: Male")) %>% 
+  group_by(sex.par, sex.off) %>% 
+  summarise(correlation = round(cor(Julian.off, Julian.par), 3),
+            r2 = round(cor(Julian.off, Julian.par)^2, 3))
+
+parents_paired_14_16 %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
+                             SEX.par == "M" ~ "Parent: Male")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Offspring: Female",
+                             SEX.off == "M" ~ "Offspring: Male")) %>% 
+  ggplot(aes(x = Julian.par, y = Julian.off, colour = origin.par)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(sex.off ~ sex.par) +
+  labs(title = "Heritability of Sample Date",  colour = "Parent: Origin") +
+  xlab("Parent Sample Date (Julian)") +
+  ylab("Offspring Sample Date (Julian)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
+
+# Each row as an offspring, dam and sire
+
+## read paired data
+```{r}
+(paired_14_16 <- read_csv("../Franz/stockdale_postQA_OceanAK_paired_2014_2016_STOCK.csv") %>% 
+   select(franz_id, starts_with("Sample"), SILLY, `Fish ID`, starts_with("DNA"), SEX, `Length Mm`, `Otolith Mark Present`, `Otolith Mark ID`) %>% 
+   rename(sample_id = "Sample ID", 
+          Year = "Sample Year", 
+          silly = "SILLY", 
+          fish_id = "Fish ID", 
+          dna_tray = "DNA Tray Code", 
+          dna_well = "DNA Tray Well Code",
+          Sex = "SEX",
+          Length = "Length Mm") %>% 
+   mutate(Origin = case_when(`Otolith Mark Present` == "YES" ~ "Hatchery",
+                             `Otolith Mark Present` == "NO" ~ "Natural")) %>% 
+   mutate(Origin = factor(x = Origin, levels = c("Natural", "Hatchery")))
+)
+```
+
+## get offspring, dam, sire relationships and join
+```{r}
+offspring_14_16_sire <- parents_paired_14_16 %>% 
+  filter(SEX.par == "M") %>% 
+  select(Offspring, Parent_ID)
+
+offspring_14_16_dam <- parents_paired_14_16 %>% 
+  filter(SEX.par == "F") %>% 
+  select(Offspring, Parent_ID)
+
+(offspring_14_16_dam_sire <- offspring_14_16_dam %>% 
+    full_join(offspring_14_16_sire, by = "Offspring", suffix = c(".dam", ".sire")))
+```
+
+## join back paired data to offspring, dam, and sire
+```{r}
+parents_paired_14_16_dam_sire <- offspring_14_16_dam_sire %>% 
+  left_join(paired_14_16, by = c("Offspring" = "franz_id")) %>% 
+  left_join(paired_14_16, by = c("Parent_ID.dam" = "franz_id"), suffix = c(".off", "")) %>% 
+  left_join(paired_14_16, by = c("Parent_ID.sire" = "franz_id"), suffix = c(".dam", ".sire")) %>% 
+  mutate(Julian.off = yday(`Sample Date.off`),
+         Julian.dam = yday(`Sample Date.dam`),
+         Julian.sire = yday(`Sample Date.sire`))
+```
+
+```{r}
+offspring_both_parents <- parents_paired_14_16_dam_sire %>% 
+  filter(!is.na(Parent_ID.dam) & !is.na(Parent_ID.sire)) %>% 
+  pull(Offspring)
+
+parents_paired_14_16 %>% 
+  filter(Offspring %in% offspring_both_parents) %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
+                             SEX.par == "M" ~ "Parent: Male")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Offspring: Female",
+                             SEX.off == "M" ~ "Offspring: Male")) %>% 
+  group_by(sex.par, sex.off) %>% 
+  summarise(correlation = round(cor(Julian.off, Julian.par), 3))
+
+parents_paired_14_16 %>% 
+  filter(Offspring %in% offspring_both_parents) %>% 
+  mutate(sex.par = case_when(SEX.par == "F" ~ "Parent: Female",
+                             SEX.par == "M" ~ "Parent: Male")) %>% 
+  mutate(sex.off = case_when(SEX.off == "F" ~ "Offspring: Female",
+                             SEX.off == "M" ~ "Offspring: Male")) %>% 
+  ggplot(aes(x = Julian.par, y = Julian.off, colour = origin.par)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  facet_grid(sex.off ~ sex.par) +
+  labs(title = "Heritability of Sample Date",  colour = "Parent: Origin") +
+  xlab("Parent Sample Date (Julian)") +
+  ylab("Offspring Sample Date (Julian)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
+
+
+```{r, fig.width=10}
+heritability_date <- parents_paired_14_16_dam_sire %>% 
+  drop_na(Julian.dam) %>% 
+  drop_na(Julian.sire) %>% 
+  mutate(Julian.par = (Julian.dam + Julian.sire) / 2) %>% 
+  mutate(Cross = case_when(Origin.dam == "Natural" & Origin.sire == "Natural" ~ "NN",
+                           Origin.dam == "Hatchery" & Origin.sire == "Hatchery" ~ "HH",
+                           TRUE ~ "HN"))
+
+fit <- lm(Julian.off ~ Julian.par, data = heritability_date)
+summary(fit)
+
+summary(lm(Julian.off ~ Julian.par, data = heritability_date %>% filter(Cross == "HH")))
+summary(lm(Julian.off ~ Julian.par, data = heritability_date %>% filter(Cross == "NN")))
+summary(lm(Julian.off ~ Julian.par, data = heritability_date %>% filter(Cross == "HN")))
+
+
+heritability_date %>% 
+  # filter(Julian.par >= 240) %>% 
+  ggplot(aes(x = Julian.par, y = Julian.off, colour = Cross)) +
+  geom_abline(slope = 1) +
+  geom_jitter(alpha = 0.5, size = 2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Heritability of Sample Date - Parent Pair",  colour = "Parent: Origin") +
+  xlab("Mid Parent Sample Date (Julian)") +
+  ylab("Offspring Sample Date (Julian)") +
+  theme_bw() +
+  theme(text = element_text(size = 20))
+```
+
