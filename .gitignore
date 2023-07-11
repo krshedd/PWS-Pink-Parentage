@@ -33,3 +33,5 @@ Stockdale/Stockdale_Colony_Input.nb.html
 Thumbs.db
 *.png
 !*/GOD/output/PGOD21_48DWP_paired.csv
+/GOD/objects/Pooled_PWS.rds
+/GOD/objects/Simulation_Sillys.txt
