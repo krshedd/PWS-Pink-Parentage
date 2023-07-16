@@ -21,6 +21,23 @@ og_names <- suppressMessages(names(read_csv(file = "../OceanAK/PedigreeData_AHRP
 oceanak <- read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20221212_162324.csv")
 names(oceanak)[1:17] <- og_names
 
+# for Sam May 2023-07-16
+# proportion of days sampled for 2014 and 2016 by stream
+oceanak %>% 
+  janitor::clean_names() %>% 
+  dplyr::filter(sample_year %in% c(2014, 2016)) %>% 
+  readr::write_csv(file = "~/pws_pink_pedigree_2014-2016_sample_metadata.csv")
+
+readr::read_csv(file = "~/pws_pink_pedigree_2014-2016_sample_metadata.csv") %>% 
+  dplyr::mutate(doy = lubridate::yday(sample_date)) %>% 
+  dplyr::group_by(silly_code) %>% 
+  dplyr::summarise(min_day = min(doy),
+                   max_day = max(doy),
+                   total_days = max_day - min_day,
+                   days_sampled = length(unique(doy)),
+                   proportion_days = days_sampled/total_days
+  )
+
 # dups <- oceanak %>% 
 #   group_by(SillySource) %>% 
 #   summarise(n = n()) %>% 
