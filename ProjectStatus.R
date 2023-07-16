@@ -28,7 +28,35 @@ oceanak %>%
   dplyr::filter(sample_year %in% c(2014, 2016)) %>% 
   readr::write_csv(file = "~/pws_pink_pedigree_2014-2016_sample_metadata.csv")
 
-readr::read_csv(file = "~/pws_pink_pedigree_2014-2016_sample_metadata.csv") %>% 
+metadata_2014_2016 <- readr::read_csv(file = "~/pws_pink_pedigree_2014-2016_sample_metadata.csv") 
+metadata_2014_2016 %>% 
+  dplyr::mutate(doy = lubridate::yday(sample_date)) %>% 
+  dplyr::group_by(silly_code) %>% 
+  dplyr::summarise(min_day = min(doy),
+                   max_day = max(doy),
+                   total_days = max_day - min_day,
+                   days_sampled = length(unique(doy)),
+                   proportion_days = days_sampled/total_days
+  )
+
+# update for Sam May to give `riverdist` output
+(
+  riverdist <-
+    readr::read_csv(
+      "../GIS/R/all_streams/stream_specimens_riverdist_all_streams_2013_2020.csv"
+    ) %>%
+    janitor::clean_names()
+)
+
+dplyr::glimpse(metadata_2014_2016)
+metadata_2014_2016_with_location <- metadata_2014_2016 %>% 
+  tidyr::unite("sample", dna_tray_code:dna_tray_well_code, remove = FALSE) %>% 
+  dplyr::left_join(y = riverdist, by = "sample")
+
+metadata_2014_2016_with_location %>% 
+  readr::write_csv(file = "~/pws_pink_pedigree_2014-2016_sample_metadata_with_location.csv")
+
+metadata_2014_2016_with_location %>% 
   dplyr::mutate(doy = lubridate::yday(sample_date)) %>% 
   dplyr::group_by(silly_code) %>% 
   dplyr::summarise(min_day = min(doy),
