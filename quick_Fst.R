@@ -46,4 +46,6 @@ fst <-
     popnames = c("Erb", "Hogan", "Gilmour", "Stockdale", "AFK")
   )
 
-range(fst[!fst == 0])
+range(fst[!fst == 0])  # 0.0001216 0.0015010
+
+# end
