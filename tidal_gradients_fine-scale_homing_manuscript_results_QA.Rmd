@@ -1,0 +1,157 @@
+---
+title: "Data Checking for Sam May Tidal Gradients Manuscript Resubmission"
+subtitle: "Make sure all of our numbers are correct!"
+author: "Kyle Shedd"
+date: "21 July 2023"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(DT)
+
+.username = readLines("~/R/usr_pw.txt", n = 1)
+.password = readLines("~/R/usr_pw.txt" , n = 2)[[2]]
+source("~/R/Functions.GCL.R")  # develop branch!!!
+```
+
+# Objective
+
+Check Sam May's numbers in our "Tidal gradients, fine-scale homing, and a potential cryptic ecotype of wild spawning pink salmon (Oncorhynchus gorbuscha)" Manuscript
+
+# Read in Data
+
+```{r}
+load_objects(path = "../Objects/All_Streams_14_16_develop/", pattern = "sample_size_qa")
+
+(paired_14_16_filter <- readr::read_csv(file = "Stockdale_Hogan_Gilmour_Paddy_Erb/all_streams_paired_14_16_filter.csv"))
+
+(parents_paired_14_16 <- readr::read_csv(file = "Stockdale_Hogan_Gilmour_Paddy_Erb/all_streams_parents_paired_14_16.csv"))
+```
+
+# QA of Results
+
+## Samples Sizes from Genotype QA
+
+```{r}
+sample_size_qa %>% 
+  dplyr::filter(!silly %in% c("PPADDY14", "PPADDY16")) %>% 
+  dplyr::mutate(sample_year = as.numeric(paste0("20", stringr::str_sub(string = silly, start = -2, end = -1)))) %>% 
+  dplyr::group_by(sample_year) %>%
+  dplyr::summarise(sum(genotyped), sum(missing), sum(duplicate), sum(heterozygosity), sum(final))
+```
+
+## How Many Unique Parents?
+
+This is the mistake I think Sam made...
+```{r}
+parents_paired_14_16 %>% 
+  dplyr::filter(stream_off != "Paddy") %>% 
+  dplyr::pull(parent_id) %>% 
+  dplyr::n_distinct()
+```
+
+He forgot to exclude both parents and offspring from Paddy!
+```{r}
+parents_paired_14_16 %>% 
+  dplyr::filter(stream_off != "Paddy" & stream_par!= "Paddy") %>% 
+  dplyr::pull(parent_id) %>% 
+  dplyr::n_distinct()
+```
+
+## How Many Offspring with at Least 1 Parent?
+
+This is the mistake I think Sam made...
+```{r}
+parents_paired_14_16 %>% 
+  dplyr::filter(stream_off != "Paddy") %>% 
+  dplyr::pull(offspring_id) %>% 
+  dplyr::n_distinct()
+```
+
+He forgot to exclude both parents and offspring from Paddy!
+```{r}
+parents_paired_14_16 %>% 
+  dplyr::filter(stream_off != "Paddy" & stream_par!= "Paddy") %>% 
+  dplyr::pull(offspring_id) %>% 
+  dplyr::n_distinct()
+```
+
+## How Many Unique Parents WITHOUT Dispersers?
+
+No mistakes here since `stream_off == stream_par` and we are already filtering out Paddy
+```{r}
+parents_paired_14_16 %>% 
+  dplyr::filter(stream_off != "Paddy" & stream_par!= "Paddy",
+                stream_off == stream_par) %>%
+  dplyr::pull(parent_id) %>% 
+  dplyr::n_distinct()
+```
+
+## How Many Unique Offspring WITHOUT Dispersers?
+
+No mistakes here since `stream_off == stream_par` and we are already filtering out Paddy
+```{r}
+parents_paired_14_16 %>% 
+  dplyr::filter(stream_off != "Paddy" & stream_par!= "Paddy",
+                stream_off == stream_par) %>%
+  dplyr::pull(offspring_id) %>% 
+  dplyr::n_distinct()
+```
+
+## How Many Dyads vs. Triads?
+
+```{r}
+parents_paired_14_16 %>% 
+  dplyr::filter(stream_off != "Paddy" & stream_par!= "Paddy",
+                stream_off == stream_par) %>% 
+  dplyr::count(parent)
+```
+
+## How Many Offspring Left After Removing `NA` for GLM Variables?
+
+```{r}
+parents_paired_14_16 %>% 
+  dplyr::filter(stream_off != "Paddy" & stream_par!= "Paddy",
+                stream_off == stream_par,
+                !is.na(distance_mouth_off),
+                !is.na(distance_mouth_par),
+                !is.na(sex_off),
+                !is.na(sex_par),
+                !is.na(length_off),
+                !is.na(DOY_off)) %>%
+  dplyr::pull(offspring_id) %>% 
+  dplyr::n_distinct()
+```
+
+## How Many Dyads vs. Triads Left After Removing `NA` for GLM Variables?
+
+```{r}
+parents_paired_14_16 %>% 
+  dplyr::filter(stream_off != "Paddy" & stream_par!= "Paddy",
+                stream_off == stream_par,
+                !is.na(distance_mouth_off),
+                !is.na(distance_mouth_par),
+                !is.na(sex_off),
+                !is.na(sex_par),
+                !is.na(length_off),
+                !is.na(DOY_off)) %>%
+  dplyr::count(parent)
+```
+
+What about just Dyads?
+```{r}
+5459-1045
+```
+
+Otherwise the numbers check out!
+
+End
