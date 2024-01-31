@@ -1,12 +1,16 @@
 
 
 
-setwd("H:/My Drive/PWS_Empirical/Scripts")
-microhap_genos<-readRDS("../Data/all_streams_2014_2016_for_Sam_May.rds")
+# setwd("H:/My Drive/PWS_Empirical/Scripts")
+# microhap_genos<-readRDS("../Data/all_streams_2014_2016_for_Sam_May.rds")
+
+microhap_genos<-readRDS("../Genotypes/All_Streams_14_16_develop/OceanAK_Origin_PostQA/all_streams_2014_2016_for_Sam_May.rds")  # Kyle testing 2024-01-30
+
 
 library(CKMRsim)
 library(tidyverse)
 library(adegenet)
+library(sequoia)
 
 colnames(microhap_genos)
 
@@ -83,6 +87,12 @@ alle_freqs <- long_genos %>%
   mutate(AlleIdx = NA,
          LocIdx = NA) %>%
   filter(!is.na(Allele))
+
+# Kyle - quick look at allele frequencies, assuming that those far away from 0.5 are microhaps?
+alle_freqs %>% 
+  dplyr::filter(Allele == 1) %>% 
+  ggplot2::ggplot(ggplot2::aes(x = Freq)) +
+  ggplot2::geom_histogram()
 
 input_AF<-reindex_markers(alle_freqs)
 
@@ -200,7 +210,8 @@ ggplot(PO_U_logls %>% filter(true_relat %in% c("PO", "U")),
 
 
 ####Run Sequoia for just stockdale 2014_2016 to compare with FRANz using Ped_compare
-PWS_meta_data<-read.csv(file = "../Data/All_Streams_14_16_develop_postQA_OceanAK_paired_2014_2016_HOGAN_STOCK_GILMOUR_PADDY_ERB.csv")
+# PWS_meta_data<-read.csv(file = "../Data/All_Streams_14_16_develop_postQA_OceanAK_paired_2014_2016_HOGAN_STOCK_GILMOUR_PADDY_ERB.csv")
+PWS_meta_data<-read.csv(file = "Franz/All_Streams_14_16_develop_postQA_OceanAK_paired_2014_2016_HOGAN_STOCK_GILMOUR_PADDY_ERB.csv")
 PWS_meta_data<- PWS_meta_data %>% mutate(SillySource = paste(SILLY,FISHID,sep="_"))
 
 STOCKDALE_LH_DATA<-PWS_meta_data %>% 
@@ -210,27 +221,28 @@ STOCKDALE_LH_DATA<-PWS_meta_data %>%
   mutate(SEX)
 
 snp_seq<-snp_genos %>% filter(SillySource%in%STOCKDALE_LH_DATA$SillySource)
-snp_seq<-GenoConvert(InData = snp_seq,InFormat = "double",OutFormat = "seq",Missing = NA,IDcol = 1)
+snp_seq<-sequoia::GenoConvert(InData = snp_seq,InFormat = "double",OutFormat = "seq",Missing = NA,IDcol = 1)
 
-Age_Priors<-MakeAgePrior(Discrete = T,MaxAgeParent = 2)
+Age_Priors<-sequoia::MakeAgePrior(Discrete = T,MaxAgeParent = 2)
 
 STOCKDALE_LH_DATA<-STOCKDALE_LH_DATA %>% select(SillySource,SEX,BIRTH_YR) %>% 
   rename(ID = SillySource,Sex = SEX, BirthYear=BIRTH_YR) %>% 
   mutate(Sex=ifelse(Sex=="F",1,ifelse(Sex=="M",2,3)))
   
-ParOUT<-sequoia(GenoM = snp_seq,
+ParOUT<-sequoia::sequoia(GenoM = snp_seq,
                 LifeHistData = STOCKDALE_LH_DATA,
                 Module = "par",
-                SeqList=list(Age_Priors))
+                SeqList=list("AgePriors" = Age_Priors))
 
-ParOUT<-sequoia(GenoM = snp_seq,
+ParOUT<-sequoia::sequoia(GenoM = snp_seq,
                 LifeHistData = STOCKDALE_LH_DATA,
                 Module = "ped",
                 SeqList=ParOUT)
 #save(list = "ParOUT",file="../Data/ParOUT_10062022_Full_Ped_Test_Stockdale.Rdata")
 load("../Data/ParOUT_10062022_Full_Ped_Test_Stockdale.Rdata")
 
-FRANz_ped<-read_csv("../Data/parentage_14_16.csv")
+# FRANz_ped<-read_csv("../Data/parentage_14_16.csv")
+FRANz_ped<-read_csv("../Franz/All_Streams_14_16_develop/results/parentage.csv")  # pretty sure this is what I sent Sam May back on 2022-09-12
 FRANz_ped<-FRANz_ped %>% rename(id = Offspring, sire = `Parent 1`, dam = `Parent 2`) %>% 
   #mutate(id=PWS_meta_data$SillySource[match(Offspring,PWS_meta_data$franz_id)]) %>% 
   filter(grepl(pattern = "PS",x = id)) %>% 
@@ -241,7 +253,7 @@ FRANz_ped<-FRANz_ped %>% rename(id = Offspring, sire = `Parent 1`, dam = `Parent
   #       sire=str_replace(dam,pattern = "PS16",replacement = "PSTOCK16"),
   #       dam=str_replace(dam,pattern = "_0",replacement = "_"),
   #       sire=str_replace(dam,pattern = "_0",replacement = "_"))
-  as.data.frame() %>% PedPolish() %>% 
+  as.data.frame() %>% sequoia::PedPolish() %>% 
   mutate(sex=PWS_meta_data$SEX[match(id,PWS_meta_data$franz_id)],
          dam_sex = PWS_meta_data$SEX[match(dam,PWS_meta_data$franz_id)],
          sire_sex = PWS_meta_data$SEX[match(sire,PWS_meta_data$franz_id)])  
@@ -267,20 +279,20 @@ for (i in 1:nrow(FRANz_ped)){
 }
 
 
-seq_ped <- ParOUT$Pedigree %>% PedPolish() %>% 
+seq_ped <- ParOUT$Pedigree %>% sequoia::PedPolish() %>% 
   mutate(id = ifelse(id%in%ParOUT$DummyIDs$id, id, PWS_meta_data$franz_id[match(id,PWS_meta_data$SillySource)]),
          dam = ifelse(dam%in%ParOUT$DummyIDs$id, dam, PWS_meta_data$franz_id[match(dam,PWS_meta_data$SillySource)]),
          sire = ifelse(sire%in%ParOUT$DummyIDs$id, sire, PWS_meta_data$franz_id[match(sire,PWS_meta_data$SillySource)]))
 
 
-franz_seq_compare<-PedCompare(seq_ped,FRANz_ped)
+franz_seq_compare<-sequoia::PedCompare(seq_ped,FRANz_ped)
 franz_seq_compare$Mismatch
 
-SummarySeq(FRANz_ped)
-xxx<-SummarySeq(ParOUT$Pedigree)
-SummarySeq(seq_ped)
+sequoia::SummarySeq(FRANz_ped)
+xxx<-sequoia::SummarySeq(ParOUT$Pedigree)
+sequoia::SummarySeq(seq_ped)
 
-franz_seq_compare<-PedCompare(seq_ped,FRANz_ped)
+franz_seq_compare<-sequoia::PedCompare(seq_ped,FRANz_ped)
 
-SummarySeq(franz_seq_compare$ConsensusPed)
+sequoia::SummarySeq(franz_seq_compare$ConsensusPed)
 
