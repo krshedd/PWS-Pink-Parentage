@@ -1,0 +1,183 @@
+---
+title: "02 - Genotype QA Hearts & Otoliths"
+subtitle: "Remove Untrustworthy Genotypes Prior to Matching"
+author: "Kyle Shedd"
+date: "2024-02-XX"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+    toc_float: true
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Setup
+
+Load all necessary packages, as of 2023-08-11 Kyle switched to [GCLr](https://github.com/commfish/GCLr).
+```{r setup, message=FALSE, results='hide'}
+rm(list = ls(all.names = TRUE))
+
+if(!require("pacman")) install.packages("pacman"); library(pacman)
+
+pacman::p_load(
+  tidyverse,
+  lubridate,
+  scales,
+  janitor,
+  GCLr
+)
+
+knitr::opts_chunk$set(fig.width = 10)
+
+.username = readLines("~/R/usr_pw.txt", n = 1)  # LOKI username
+.password = readLines("~/R/usr_pw.txt" , n = 2)[[2]]  # LOKI password
+```
+
+# Objective
+
+The purpose of this notebook is to take the output from `01_import-genotypes-join-otlith-transfer-records.Rmd` and perform genotyping quality assurance (QA) on the otoliths in `PGOD21.gcl` and GOD-affected hearts in Erb 2015-2017, Gilmour 2015-2018, and Paddy 2016.
+
+Hearts undergo standard AHRP PWS Pink Salmon QA:  
+
+  1) missing loci (80% rule)
+  2) duplicate check (95%)
+  3) 1.5 IQR heterozygosity
+
+Otoliths undergo a revised QA:  
+
+  1) missing loci (need at least 10% of loci)
+  2) duplicate check (95%).
+
+The next step after this will be to calculate the duplicate rate for each otolith-genotype compared to all heart-genotypes within a deep well plate (DWP).
+
+# Background
+
+During shipment of otolith samples in February 2020 to the MTA in Juneau for reading, a significant proportion of otoliths migrated between cells within DWPs due to poor containment of the acetate lids that were attached with rubber bands to the DWPs. This incident is known as "the great otolith debacle", aka the "GOD" incident. Since some otoliths moved from their original cells in the DWP, the paired integrity of the otolith-origin information and the rest of the paired data (genotype + field data) was lost for just under 11,000 individuals from the following collections:  
+
+  * PERB15
+  * PERB16
+  * PERB17
+  * PGILMOUR15
+  * PGILMOUR16
+  * PGILMOUR17
+  * PGILMOUR18
+  * PPADDY16
+
+In an attempt to rectify the "GOD" incident, we extracted DNA from the otolith tissues, genotyped the otolith-derived DNA at 298 GT-seq loci, and are attempting to re-pair the otolith-heart samples from their genotypes.  
+
+In addition to this GitHub repository, other materials can be found on the V: drive here:
+[link](V:\Lab\Loki\Collection raw data sheets\Pink\Otolith Extravaganza\GOD Event 2020_2021)
+
+# Methods
+
+DNA was extracted from left-side or unknown otolith tissues of unknown origin using conventional Machery-Nagel DNA extraction kits. Otoliths were placed in T1 buffer for an overnight soak in clear 96 shallow-well plates (SWP). Preamp at 14 cycles. Final elution volume was 75uL. All otoliths were transferred among plates with a jig. All liquid handling was done by robot.
+
+# Import Data
+
+## Genotypes
+
+### LocusControl
+
+Using our standard 298 SNP pink salmon GT-seq loci.
+```{r}
+GCLr::load_objects(path = "../objects", pattern = "loci298")
+GCLr::load_objects(path = "../objects", pattern = "LocusControl")
+```
+
+### Genotypes
+
+Read in `PGOD21.gcl` and heart genotypes for all affected DWPs.
+```{r}
+GCLr::load_sillys(path = "../data/genotypes/raw_join_48DWP")
+```
+
+# Hearts
+
+# STOPPED HERE 2024-02-04
+
+Standard data QA:
+
+  * Remove fish missing <80% genotypes
+  * Remove duplicates (>95% genotype concordance)
+
+```{r}
+(
+  THA_2023_sample_size_qa <- dplyr::tibble(silly = THA_2023_mixnames) %>%
+    dplyr::mutate(genotyped = GCLr::silly_n(sillyvec = THA_2023_mixnames) %>% dplyr::pull(n))
+)
+```
+
+## Missing Loci (<80%)
+
+Remove fish with <80% loci genotyped.
+```{r}
+THA_2023_miss_loci <-
+  GCLr::remove_ind_miss_loci(sillyvec = THA_2023_mixnames,
+                             proportion = 0.8)
+
+THA_2023_miss_loci$IDs_Removed
+
+GCLr::save_objects(objects = "THA_2023_miss_loci",
+                   path =  "Objects")
+
+(
+  THA_2023_sample_size_qa <- THA_2023_sample_size_qa %>%
+    dplyr::mutate(missing = genotyped - GCLr::silly_n(sillyvec = THA_2023_mixnames) %>% dplyr::pull(n))
+)
+```
+
+## Duplicate (>=95%)
+
+Identify and remove duplicate genotypes (>=95% loci).
+**NOTE** Since I'm splitting up mixtures first, there is the risk that I may miss duplicates since `GCLr::dupcheck_within_silly` only works within .gcl objects (could be lab duplicate issues within a plate, across mixtures). However, I compared this to K212 QC, and we identified the same two duplicates.
+```{r}
+(
+  THA_2023_duplicate_check_95 <-
+    GCLr::dupcheck_within_silly(
+      sillyvec = THA_2023_mixnames,
+      minproportion = 0.95,
+      minnonmissing = 0.6,
+      ncores = 4
+    )
+)
+
+GCLr::save_objects("THA_2023_duplicate_check_95", path = "Objects")
+```
+
+Remove one of the duplicates. They are in the same mixture, so no concerns about the paired ASL data.
+```{r}
+THA_2023_duplicates_removed <- GCLr::remove_dups(dupcheck = THA_2023_duplicate_check_95, remove_both = FALSE)
+GCLr::save_objects("THA_2023_duplicates_removed", path = "Objects")
+
+(
+  THA_2023_sample_size_qa <- THA_2023_sample_size_qa %>%
+    dplyr::mutate(
+      duplicate = genotyped - missing - GCLr::silly_n(sillyvec = THA_2023_mixnames) %>% dplyr::pull(n)
+    )
+)
+```
+
+## Final
+
+```{r}
+(
+  THA_2023_sample_size_qa <- THA_2023_sample_size_qa %>%
+    dplyr::mutate(
+      final =  GCLr::silly_n(sillyvec = THA_2023_mixnames) %>% dplyr::pull(n)
+    )
+)
+
+GCLr::save_objects("THA_2023_sample_size_qa", path = "Objects/")
+readr::write_csv(x = THA_2023_sample_size_qa, file = "Tables/THA_2023_sample_size_qa.csv")
+```
+
+Save the post-QA genotypes
+```{r}
+GCLr::save_sillys(sillyvec = THA_2023_mixnames, path = "Genotypes/strata_postQA/")
+```
+
+# Otoliths
+
+
+End
