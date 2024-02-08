@@ -2,7 +2,7 @@
 title: "01 - (re) Import Genotypes & Join Otolith Transfer Data"
 subtitle: "Re-do of `PWS_pink_match_analysis_all_develop.Rmd` with `GCLr`"
 author: "Kyle Shedd"
-date: "2024-02-05"
+date: "2024-02-07"
 output:
   html_notebook:
     theme: united
@@ -110,6 +110,18 @@ GCLr::save_sillys(
   path = "../data/genotypes/raw",
   rds = TRUE
 )
+```
+
+### Reload
+
+Re-load objects if necessary
+```{r}
+# GCLr::load_objects(path = "../objects", pattern = "loci298")
+# GCLr::load_objects(path = "../objects", pattern = "LocusControl")
+# GOD_affected_heart_sillys <- c(paste0("PERB", 15:17),
+#                                paste0("PGILMOUR", 15:18),
+#                                "PPADDY16")
+# GCLr::load_sillys(path = "../data/genotypes/raw", rds = TRUE)
 ```
 
 ## Otolith Transfer from MTAL
@@ -320,7 +332,7 @@ Strip to the bare essentials and save.
 readr::write_csv(x = PGOD21_48DWP_paired, file = "../output/PGOD21_48DWP_paired.csv")
 ```
 
-# Final Stats 2024-02-05
+# Final Stats 2024-02-07
 
 10,791 otoliths with genotypes.
 
@@ -371,17 +383,26 @@ GCLr::pool_collections(collections = GOD_affected_heart_sillys, newname = "heart
 
 Filter heart genotypes for affected DWPs. **NOTE** this assumes that any *box* otoliths would have come from one of the affected DWPs.
 ```{r}
-(
-  heart_genotypes_GOD.gcl <- heart_genotypes.gcl %>%
-    dplyr::mutate("48_DWP_tray_barcode" = as.numeric(DNA_TRAY_CODE)) %>%
-    dplyr::filter(`48_DWP_tray_barcode` %in% affected_DWPs)
-)
+heart_genotypes.gcl <- heart_genotypes.gcl %>%
+  dplyr::mutate("48_DWP_tray_barcode" = as.numeric(DNA_TRAY_CODE)) %>% 
+  dplyr::relocate(dplyr::contains("Ogo_"), .after = dplyr::last_col())  # move genotype columns to the end
+
+heart_genotypes_IDs_to_remove <- heart_genotypes.gcl %>%
+  dplyr::filter(!`48_DWP_tray_barcode` %in% affected_DWPs) %>% 
+  dplyr::pull(FK_FISH_ID)
+
+GCLr::remove_ids(silly = "heart_genotypes", IDs = heart_genotypes_IDs_to_remove)
+```
+
+How many heart genotypes are left?
+```{r}
+nrow(heart_genotypes.gcl)
 ```
 
 Save
 ```{r}
 GCLr::save_sillys(
-  sillyvec = "heart_genotypes_GOD",
+  sillyvec = "heart_genotypes",
   path = "../data/genotypes/raw_join_48DWP",
   rds = TRUE
 )
@@ -389,7 +410,7 @@ GCLr::save_sillys(
 
 Make sure that all GOD affected DWPs are included, should have 439 DWPs.
 ```{r}
-heart_genotypes_GOD.gcl %>% 
+heart_genotypes.gcl %>% 
   dplyr::distinct(`48_DWP_tray_barcode`, DNA_TRAY_CODE)
 ```
 
@@ -399,7 +420,7 @@ Uh oh, it looks like we only have heart genotypes for 438 out of the 439 GOD-aff
 
 Huh, I appear to only have 438 out of 439 DWPs, what gives? Better cross reference the outersect with all AHRP DWPs, maybe some are not GOD-related, but other otolith incidents.
 ```{r}
-missing_heart_DWPs <- setdiff(affected_DWPs, unique(heart_genotypes_GOD.gcl$`48_DWP_tray_barcode`))
+missing_heart_DWPs <- setdiff(affected_DWPs, unique(heart_genotypes.gcl$`48_DWP_tray_barcode`))
 
 AHRP_DWP_data %>% 
   dplyr::filter(`48_DWP_tray_barcode` %in% missing_heart_DWPs)
