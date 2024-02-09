@@ -1,0 +1,27 @@
+structure(list(silly = c("heart_genotypes", "heart_genotypes", 
+"heart_genotypes", "heart_genotypes", "heart_genotypes", "heart_genotypes", 
+"heart_genotypes", "heart_genotypes", "heart_genotypes", "heart_genotypes", 
+"heart_genotypes", "heart_genotypes", "heart_genotypes", "heart_genotypes", 
+"heart_genotypes", "heart_genotypes", "heart_genotypes", "heart_genotypes", 
+"heart_genotypes", "heart_genotypes", "heart_genotypes", "heart_genotypes", 
+"heart_genotypes", "heart_genotypes", "heart_genotypes", "heart_genotypes", 
+"heart_genotypes", "heart_genotypes", "heart_genotypes", "heart_genotypes"
+), ID1 = c(3531, 12160, 12422, 15691, 17377, 20379, 20811, 32398, 
+34204, 34222, 34561, 34740, 35397, 38264, 40524, 40704, 40773, 
+40838, 40899, 41586, 41650, 41787, 42194, 42393, 42697, 44153, 
+44327, 44755, 44879, 45782), ID2 = c(3538, 12161, 12423, 15692, 
+17378, 20380, 20812, 32399, 34205, 34224, 34564, 34741, 35398, 
+38265, 40540, 40705, 40774, 40839, 40900, 41588, 41651, 41788, 
+42201, 42394, 42698, 44154, 44328, 44756, 44887, 45789), Missing1 = c(0L, 
+45L, 7L, 0L, 53L, 1L, 0L, 0L, 3L, 2L, 1L, 2L, 18L, 2L, 0L, 1L, 
+0L, 5L, 0L, 1L, 0L, 2L, 5L, 0L, 8L, 0L, 0L, 0L, 0L, 0L), Missing2 = c(2L, 
+0L, 1L, 12L, 0L, 0L, 50L, 1L, 5L, 17L, 7L, 38L, 0L, 0L, 50L, 
+1L, 0L, 5L, 10L, 6L, 0L, 2L, 32L, 1L, 1L, 0L, 1L, 5L, 0L, 1L), 
+    proportion = c(0.996621621621622, 0.976284584980237, 0.986206896551724, 
+    0.972027972027972, 0.951020408163265, 0.996632996632997, 
+    0.959677419354839, 1, 1, 0.99644128113879, 0.989655172413793, 
+    0.961389961389961, 0.989285714285714, 1, 0.955645161290323, 
+    1, 1, 0.955017301038062, 0.961805555555556, 1, 0.996644295302013, 
+    1, 0.996212121212121, 1, 1, 1, 1, 0.996587030716723, 1, 0.98989898989899
+    )), row.names = c(NA, -30L), class = c("tbl_df", "tbl", "data.frame"
+))

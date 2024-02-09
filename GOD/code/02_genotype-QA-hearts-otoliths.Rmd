@@ -2,7 +2,7 @@
 title: "02 - Genotype QA Hearts & Otoliths"
 subtitle: "Remove Untrustworthy Genotypes Prior to Matching"
 author: "Kyle Shedd"
-date: "2024-02-XX"
+date: "2024-02-08"
 output:
   html_notebook:
     theme: united
@@ -42,7 +42,7 @@ Hearts undergo standard AHRP PWS Pink Salmon QA:
 
   1) missing loci (80% rule)
   2) duplicate check (95%)
-  3) 1.5 IQR heterozygosity
+  3) heterozygosity outlier removal (contamination)
 
 Otoliths undergo a revised QA:  
 
@@ -89,22 +89,21 @@ GCLr::load_objects(path = "../objects", pattern = "LocusControl")
 
 Read in `PGOD21.gcl` and heart genotypes for all affected DWPs.
 ```{r}
-GCLr::load_sillys(path = "../data/genotypes/raw_join_48DWP")
+GCLr::load_sillys(path = "../data/genotypes/raw_join_48DWP", rds = TRUE)
 ```
 
 # Hearts
 
-# STOPPED HERE 2024-02-04
-
-Standard data QA:
+Standard data QA (GT-seq, no `conScore`):
 
   * Remove fish missing <80% genotypes
   * Remove duplicates (>95% genotype concordance)
+  * Remove contamination (heterozygosity outliers +/- 3.5 modified z-score)
 
 ```{r}
 (
-  THA_2023_sample_size_qa <- dplyr::tibble(silly = THA_2023_mixnames) %>%
-    dplyr::mutate(genotyped = GCLr::silly_n(sillyvec = THA_2023_mixnames) %>% dplyr::pull(n))
+  heart_sample_size_qa <- dplyr::tibble(silly = "heart_genotypes") %>%
+    dplyr::mutate(genotyped = GCLr::silly_n(sillyvec = "heart_genotypes") %>% dplyr::pull(n))
 )
 ```
 
@@ -112,69 +111,276 @@ Standard data QA:
 
 Remove fish with <80% loci genotyped.
 ```{r}
-THA_2023_miss_loci <-
-  GCLr::remove_ind_miss_loci(sillyvec = THA_2023_mixnames,
+heart_miss_loci <-
+  GCLr::remove_ind_miss_loci(sillyvec = "heart_genotypes",
                              proportion = 0.8)
 
-THA_2023_miss_loci$IDs_Removed
+# heart_miss_loci$IDs_Removed
 
-GCLr::save_objects(objects = "THA_2023_miss_loci",
-                   path =  "Objects")
+GCLr::save_objects(objects = "heart_miss_loci",
+                   path =  "../objects")
 
 (
-  THA_2023_sample_size_qa <- THA_2023_sample_size_qa %>%
-    dplyr::mutate(missing = genotyped - GCLr::silly_n(sillyvec = THA_2023_mixnames) %>% dplyr::pull(n))
+  heart_sample_size_qa <- heart_sample_size_qa %>%
+    dplyr::mutate(missing = genotyped - GCLr::silly_n(sillyvec = "heart_genotypes") %>% dplyr::pull(n))
 )
 ```
 
 ## Duplicate (>=95%)
 
 Identify and remove duplicate genotypes (>=95% loci).
-**NOTE** Since I'm splitting up mixtures first, there is the risk that I may miss duplicates since `GCLr::dupcheck_within_silly` only works within .gcl objects (could be lab duplicate issues within a plate, across mixtures). However, I compared this to K212 QC, and we identified the same two duplicates.
+**NOTE** since we already subset down to heart samples involved in GOD, there is a slight chance that we may miss some lab duplicates since we aren't dealing with full plates of DNA. That said, I think this is fairly unlikely given that big duplicate issues would have been identified in lab QC.
 ```{r}
-(
-  THA_2023_duplicate_check_95 <-
-    GCLr::dupcheck_within_silly(
-      sillyvec = THA_2023_mixnames,
-      minproportion = 0.95,
-      minnonmissing = 0.6,
-      ncores = 4
-    )
-)
+heart_duplicate_check_95 <-
+  GCLr::dupcheck_within_silly(
+    sillyvec = "heart_genotypes",
+    minproportion = 0.95,
+    minnonmissing = 0.6,
+    ncores = 4
+  )
 
-GCLr::save_objects("THA_2023_duplicate_check_95", path = "Objects")
+GCLr::save_objects("heart_duplicate_check_95", path = "../objects")
 ```
 
-Remove one of the duplicates. They are in the same mixture, so no concerns about the paired ASL data.
+Investigate duplicates a bit to see if they are from the same collections?
 ```{r}
-THA_2023_duplicates_removed <- GCLr::remove_dups(dupcheck = THA_2023_duplicate_check_95, remove_both = FALSE)
-GCLr::save_objects("THA_2023_duplicates_removed", path = "Objects")
+heart_duplicate_check_95 %>% 
+  dplyr::mutate(ID_diff = ID2 - ID1)
+```
+
+Yes, most seem to be nearest neighbor or close to each other.
+
+Remove **both** duplicates! As opposed to GSI work, where we want to keep individuals but aren’t typically worried about paired data, here we want to remove both individuals as the paired data integrity (including otolith reads!) is lost.
+```{r}
+heart_duplicates_removed <-
+  GCLr::remove_dups(dupcheck = heart_duplicate_check_95, remove_both = TRUE)
+
+GCLr::save_objects("heart_duplicates_removed", path = "../objects")
 
 (
-  THA_2023_sample_size_qa <- THA_2023_sample_size_qa %>%
+  heart_sample_size_qa <- heart_sample_size_qa %>%
     dplyr::mutate(
-      duplicate = genotyped - missing - GCLr::silly_n(sillyvec = THA_2023_mixnames) %>% dplyr::pull(n)
+      duplicate = genotyped - missing - GCLr::silly_n(sillyvec = "heart_genotypes") %>% dplyr::pull(n)
     )
 )
 ```
+
+## Contamination (Heterozygosity)
+
+Individual heterozygosity outliers is our best metric for removing contaminated samples in the absence of something more sophisticated like *conScore* from [GTscore](https://github.com/gjmckinney/GTscore?tab=readme-ov-file#sample-summaries). In previous analyses, including [Shedd et al. 2022](https://doi.org/10.1111/eva.13356), we've used the standard 1.5 IQR outlier detection method to remove excessively heterozygous individuals. However, the 1.5 IQR method assumes a normal distribution, but heart sample heterozygosities tend to be skewed right due to contamination. As of 2024-02-08, we decided to pivot to using [modified Z-scores](https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm) with cutoffs of +/- 3.5 as recommended by Iglewicz and Hoaglin [^1]. The modified Z-score uses the median and median absolute deviation (MAD) instead of the mean and standard deviation, and is thus more robust to outliers and asymmetrical distributions.
+
+[^1]: Boris Iglewicz and David Hoaglin (1993), "Volume 16: How to Detect and Handle Outliers", The ASQC Basic References in Quality Control: Statistical Techniques, Edward F. Mykytka, Ph.D., Editor. 
+
+Create a function to calculate individual heterozygosities.
+```{r}
+calc_ind_het <- function(sillyvec, loci = LocusControl$locusnames, ncores = 4) {
+  
+  start.time <- Sys.time() 
+  
+  if(!all(loci %in% LocusControl$locusnames)){
+    
+    stop(paste0("'", setdiff(loci, LocusControl$locusnames), "' from argument 'loci' not found in 'LocusControl' object!!!"))
+    
+  }
+  
+  if(!require("pacman")) install.packages("pacman"); library(pacman); pacman::p_load(tidyverse, doParallel, parallel, foreach)  # Install packages, if not in library and then load them
+  
+  if(ncores > parallel::detectCores()) {
+    
+    stop("'ncores' is greater than the number of cores available on machine\nUse 'detectCores()' to determine the number of cores on your machine")
+    
+  }
+  
+  all.gcl <- sapply(sillyvec, function(silly) {get(paste0(silly, ".gcl"), pos = 1)}, simplify = FALSE)
+  
+  cl <- parallel::makePSOCKcluster(ncores)
+  
+  doParallel::registerDoParallel(cl, cores = ncores)
+  
+  # Start parallel loop
+  het <- foreach::foreach(silly = sillyvec, .packages = c("tidyverse")) %dopar% {
+    
+    my.gcl <- all.gcl[[silly]]
+    
+    dose1 <- my.gcl %>%
+      dplyr::select(SillySource, dplyr::all_of(loci)) %>%
+      tidyr::pivot_longer(
+        cols = -SillySource,
+        names_to = "locus",
+        values_to = "dose1",
+        values_drop_na = TRUE  # this drops any no-calls, which are NAs
+      )
+    
+    dose2 <- my.gcl %>%
+      dplyr::select(SillySource, dplyr::all_of(paste0(loci, ".1"))) %>%
+      dplyr::rename_at(vars(paste0(loci, ".1")), ~ loci) %>%
+      tidyr::pivot_longer(
+        cols = -SillySource,
+        names_to = "locus",
+        values_to = "dose2",
+        values_drop_na = TRUE  # this drops any no-calls, which are NAs
+      )
+    
+    if(all.equal(dose1$SillySource, dose2$SillySource) & all.equal(dose1$locus, dose2$locus)) {
+      
+      my.gcl_tall <- dplyr::bind_cols(dose1, select(dose2, dose2))  # faster
+      
+    } else {
+      
+      my.gcl_tall <- dplyr::left_join(x = dose1, y = dose2, by = c("SillySource", "locus"))  # safer
+      
+    }
+    
+    my.gcl_tall %>%
+      dplyr::group_by(SillySource) %>%
+      dplyr::summarise(het = sum(dose1 != dose2) / length(dose1))
+    
+  } %>%
+    dplyr::bind_rows()
+  
+  parallel::stopCluster(cl)  # end parallel loop
+  
+  output <- het %>%
+    tidyr::separate(
+      col = SillySource,
+      into = c("silly", "fish_id"),
+      sep = "_",
+      remove = FALSE
+    ) %>% 
+    dplyr::mutate(fish_id = as.numeric(fish_id)) %>% 
+    dplyr::arrange(silly, fish_id)
+  
+  print(Sys.time() - start.time)
+  
+  return(output)
+}
+```
+
+Calculate individual heterozygosities.
+```{r}
+(heart_ind_het <-
+   calc_ind_het(
+     sillyvec = "heart_genotypes",
+     loci = loci298,
+     ncores = 4
+   ))
+```
+
+Need to split by lineage (even vs. odd) since allele frequencies are likely slightly different. Add in lineage and the *new* `FK_FISH_ID` from `heart_genotypes.gcl`.
+```{r}
+(
+  heart_ind_het <- heart_ind_het %>%
+    dplyr::mutate(
+      year = 2000 + as.numeric(stringr::str_sub(
+        string = silly,
+        start = -2,
+        end = -1
+      )),
+      lineage = dplyr::case_when(
+        year %% 2 == 0 ~ "even",
+        year %% 2 == 1 ~ "odd",
+        TRUE ~ "mistakes_were_made"
+      )
+    ) %>%
+    dplyr::left_join(
+      y = heart_genotypes.gcl %>% dplyr::select(SillySource, FK_FISH_ID),
+      by = "SillySource"
+    )  # bring in FK_FISH_ID so we can use GCLr::remove_ids
+)
+
+heart_ind_het %>%
+  dplyr::count(lineage, silly)
+```
+
+### Even
+
+Plot distribution of modified z-scores of heterozygosity
+```{r}
+# Function to calculate median absolute deviation (MAD)
+mad <- function(x) {
+  median(abs(x - median(x)))
+}
+
+# Filter for even lineage & calculate the modified z-score for each individual
+heart_ind_het_even <- heart_ind_het %>% 
+  dplyr::filter(lineage == "even") %>%
+  dplyr::mutate(modified_z_score = 0.6745 * (het - median(het)) / mad(het),
+                outlier = dplyr::case_when(abs(modified_z_score) > 3.5 ~ TRUE,
+                                           TRUE ~ FALSE))
+
+heart_ind_het_even %>% 
+  ggplot2::ggplot(ggplot2::aes(x = modified_z_score)) +
+  ggplot2::geom_histogram(bins = length(loci298)) +
+  ggplot2::facet_grid(rows = ggplot2::vars(lineage)) +
+  ggplot2::geom_vline(xintercept = 0, colour = "blue") +
+  ggplot2::geom_vline(xintercept = c(-3.5, 3.5), colour = "red") +
+  ggplot2::xlab("Individual Heterozygosity Modified Z-Scores") +
+  ggplot2::ylab("Frequency") +
+  ggplot2::ggtitle("Individual Heterozygosity Modified Z-Scores - Even Lineage Collections") +
+  ggplot2::theme_bw(base_size = 14) 
+```
+
+Plot as a distribution of heterozygosities showing both 1.5IQR cutoffs and outliers +/- 3.5 modified Z-score.
+```{r}
+het_1.5IQR_cutoffs_even <- heart_ind_het_even %>% 
+  dplyr::summarise(
+    het_median = median(het),
+    het_1.5IQR_low = quantile(het, probs = 0.25) - 1.5 * diff(quantile(het, probs = c(0.25, 0.75))),
+    het_1.5IQR_high = quantile(het, probs = 0.75) + 1.5 * diff(quantile(het, probs = c(0.25, 0.75)))
+  )
+
+heart_ind_het_even %>% 
+  ggplot2::ggplot(ggplot2::aes(x = het, fill = outlier)) +
+  ggplot2::geom_histogram(binwidth = 1 / length(loci298)) +
+  ggplot2::facet_grid(rows = ggplot2::vars(lineage)) +
+  ggplot2::geom_vline(data = het_1.5IQR_cutoffs_even, ggplot2::aes(xintercept = het_median, colour = "median")) +
+  ggplot2::geom_vline(data = het_1.5IQR_cutoffs_even, ggplot2::aes(xintercept = het_1.5IQR_low, colour = "IQR")) +
+  ggplot2::geom_vline(data = het_1.5IQR_cutoffs_even, ggplot2::aes(xintercept = het_1.5IQR_high, colour = "IQR")) +
+  ggplot2::scale_color_manual(name = "statistics", values = c(median = "blue", IQR = "red")) +
+  ggplot2::scale_fill_manual(name = "mod_z_score_outlier", values = c("TRUE" = "black", "FALSE" = "grey60")) +
+  ggplot2::xlim(0, 1) +
+  ggplot2::xlab("Individual Heterozygosity") +
+  ggplot2::ylab("Frequency") +
+  ggplot2::ggtitle("Individual Heterozygosity - Even Lineage Collections") +
+  ggplot2::theme_bw(base_size = 14) 
+```
+
+How many fish from individual collections?
+```{r}
+heart_ind_het_even %>% 
+  dplyr::count(silly, outlier) %>% 
+  tidyr::pivot_wider(names_from = outlier, values_from = n)
+```
+
+Remove outliers based on +/- 3.5 modified Z-score.
+```{r}
+GCLr::remove_ids(
+  silly = "heart_genotypes",
+  IDs = heart_ind_het_even %>% dplyr::filter(outlier == TRUE) %>% dplyr::pull(FK_FISH_ID)
+)
+```
+
+### Odd
+
+REPEAT!
 
 ## Final
 
 ```{r}
 (
-  THA_2023_sample_size_qa <- THA_2023_sample_size_qa %>%
+  heart_sample_size_qa <- heart_sample_size_qa %>%
     dplyr::mutate(
-      final =  GCLr::silly_n(sillyvec = THA_2023_mixnames) %>% dplyr::pull(n)
+      final =  GCLr::silly_n(sillyvec = "heart_genotypes") %>% dplyr::pull(n)
     )
 )
 
-GCLr::save_objects("THA_2023_sample_size_qa", path = "Objects/")
-readr::write_csv(x = THA_2023_sample_size_qa, file = "Tables/THA_2023_sample_size_qa.csv")
+GCLr::save_objects("heart_sample_size_qa", path = "Objects/")
+readr::write_csv(x = heart_sample_size_qa, file = "Tables/heart_sample_size_qa.csv")
 ```
 
 Save the post-QA genotypes
 ```{r}
-GCLr::save_sillys(sillyvec = THA_2023_mixnames, path = "Genotypes/strata_postQA/")
+GCLr::save_sillys(sillyvec = "heart_genotypes", path = "Genotypes/strata_postQA/")
 ```
 
 # Otoliths
