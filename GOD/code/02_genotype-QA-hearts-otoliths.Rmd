@@ -2,7 +2,7 @@
 title: "02 - Genotype QA Hearts & Otoliths"
 subtitle: "Remove Untrustworthy Genotypes Prior to Matching"
 author: "Kyle Shedd"
-date: "2024-02-09"
+date: "2024-02-09 (hearts) 2024-05-21 (otoliths)"
 output:
   html_notebook:
     theme: united
@@ -97,7 +97,7 @@ GCLr::load_sillys(path = "../data/genotypes/raw_join_48DWP", rds = TRUE)
 Standard data QA (GT-seq, no `conScore`):
 
   * Remove fish missing <80% genotypes
-  * Remove duplicates (>95% genotype concordance)
+  * Remove duplicates (>95% genotype concordance, remove both duplicates)
   * Remove contamination (heterozygosity outliers +/- 3.5 modified z-score)
 
 ```{r}
@@ -233,7 +233,9 @@ calc_ind_het <- function(sillyvec, loci = LocusControl$locusnames, ncores = 4) {
     
     my.gcl_tall %>%
       dplyr::group_by(SillySource) %>%
-      dplyr::summarise(het = sum(dose1 != dose2) / length(dose1))
+      dplyr::summarise(nloci = length(dose1),
+                       ploci = nloci / length(loci),
+                       het = sum(dose1 != dose2) / nloci)
     
   } %>%
     dplyr::bind_rows()
@@ -287,6 +289,8 @@ Need to split by lineage (even vs. odd) since allele frequencies are likely slig
       by = "SillySource"
     )  # bring in FK_FISH_ID so we can use GCLr::remove_ids
 )
+
+GCLr::save_objects("heart_ind_het", path = "../objects")
 
 heart_ind_het %>%
   dplyr::count(lineage, silly)
@@ -354,10 +358,14 @@ heart_ind_het_even %>%
 
 Remove outliers based on +/- 3.5 modified Z-score.
 ```{r}
-GCLr::remove_ids(
-  silly = "heart_genotypes",
-  IDs = heart_ind_het_even %>% dplyr::filter(outlier == TRUE) %>% dplyr::pull(FK_FISH_ID)
+(
+  heart_hets_removed_even <- GCLr::remove_ids(
+    silly = "heart_genotypes",
+    IDs = heart_ind_het_even %>% dplyr::filter(outlier == TRUE) %>% dplyr::pull(FK_FISH_ID)
+  )
 )
+
+GCLr::save_objects("heart_hets_removed_even", path = "../objects")
 ```
 
 ### Odd
@@ -417,10 +425,14 @@ heart_ind_het_odd %>%
 
 Remove outliers based on +/- 3.5 modified Z-score.
 ```{r}
-GCLr::remove_ids(
-  silly = "heart_genotypes",
-  IDs = heart_ind_het_odd %>% dplyr::filter(outlier == TRUE) %>% dplyr::pull(FK_FISH_ID)
+(
+  heart_hets_removed_odd <- GCLr::remove_ids(
+    silly = "heart_genotypes",
+    IDs = heart_ind_het_odd %>% dplyr::filter(outlier == TRUE) %>% dplyr::pull(FK_FISH_ID)
+  )
 )
+
+GCLr::save_objects("heart_hets_removed_odd", path = "../objects")
 ```
 
 ```{r}
@@ -461,8 +473,8 @@ GCLr::save_sillys(
 
 Non-Standard data QA (GT-seq, no `conScore`):
 
-  * Remove fish missing <10% genotypes????
-  * Remove duplicates (>95% genotype concordance)
+  * Remove fish missing <15% genotypes
+  * Remove duplicates (>99% genotype concordance, remove one duplicate)
   * Remove contamination (heterozygosity outliers +/- 3.5 modified z-score)??????
 
 ```{r}
@@ -472,13 +484,29 @@ Non-Standard data QA (GT-seq, no `conScore`):
 )
 ```
 
-## Missing Loci (<80%)
+## Missing Loci (<15%)
 
-Remove fish with <80% loci genotyped.
+Plot distribution of genotyping success (proportion loci genotyped) per otolith.
+```{r}
+PGOD21.gcl %>% 
+  # dplyr::select(tidyselect::all_of(loci298)) %>% 
+  dplyr::mutate(n_missing = rowSums(is.na(dplyr::pick(tidyselect::all_of(loci298)))),
+                prop_loci = 1 - (n_missing / length(loci298))) %>% 
+  ggplot2::ggplot(ggplot2::aes(x = prop_loci)) +
+  ggplot2::geom_histogram(binwidth = 0.05) +
+  ggplot2::theme_bw() +
+  ggplot2::labs(x = "Proportion Loci Genotyped per Otolith",
+                y = "Frequency",
+                title = "PGOD21 Otolith Genotyping Success Rate")
+```
+
+Kristen had decided 15% previously, and that sounds better than 10%, but doesn't toss out too many otoliths.
+
+Remove fish with <15% loci genotyped.
 ```{r}
 PGOD21_miss_loci <-
   GCLr::remove_ind_miss_loci(sillyvec = "PGOD21",
-                             proportion = 0.8)
+                             proportion = 0.15)
 
 # PGOD21_miss_loci$IDs_Removed
 
@@ -491,14 +519,14 @@ GCLr::save_objects(objects = "PGOD21_miss_loci",
 )
 ```
 
-## Duplicate (>=95%)
+## Duplicate (>=99%)
 
-Identify and remove duplicate genotypes (>=95% loci).
+Identify and remove duplicate genotypes (>=99% loci). This is higher than our standard 95% cutoff rate due to contamination and lower genotyping success for otoliths.
 ```{r}
 PGOD21_duplicate_check_95 <-
   GCLr::dupcheck_within_silly(
     sillyvec = "PGOD21",
-    minproportion = 0.95,
+    minproportion = 0.99,
     minnonmissing = 0.6,
     ncores = 4
   )
@@ -512,12 +540,83 @@ PGOD21_duplicate_check_95 %>%
   dplyr::mutate(ID_diff = ID2 - ID1)
 ```
 
-Yes, most seem to be nearest neighbor or close to each other.
+Yes, most seem to be nearest neighbor or close to each other, but some are very different!
 
-Remove **both** duplicates! As opposed to GSI work, where we want to keep individuals but aren’t typically worried about paired data, here we want to remove both individuals as the paired data integrity (including otolith reads!) is lost.
+Investigate genotypes of duplicate otoliths from disparate IDs
 ```{r}
-PGOD21_duplicates_removed <-
-  GCLr::remove_dups(dupcheck = PGOD21_duplicate_check_95, remove_both = TRUE)
+PGOD21.gcl %>% 
+  dplyr::filter(FK_FISH_ID %in% c(794, 4767, 2501, 5610, 2503, 5616))
+```
+
+Oh, interesting, these two otoliths are from the same DWP, but got sorted into different 96 SWP, so they have different FK_FISH_IDs. Otherwise, some of these duplicates are from vial/box otoliths that match up with 48_DWP_tray otoliths. I think that we should just remove the box/vial otolith and retain the 48_DWP_tray otoliths.
+```{r}
+PGOD21.gcl %>% 
+  dplyr::filter(FK_FISH_ID %in% c(3902, 4084))
+```
+
+### Custom Duplicate Removal
+
+Rather than toss BOTH duplicates, as in hearts, we will only toss ONE duplicate from each pair. We need to pair the otolith genotype (and it's read) to the heart genotyped to successfully re-pair the heart genotype and otolith read. Rather than keeping the otolith with the most loci genotyped (standard practice for GSI), we'd prefer to toss any box/vial otoliths, since they are not associated with a specific DWP. I briefly explored trying to join in otolith read data for the PGOD21 otoliths, but was unable to efficiently query the data and moved on.
+
+Here's the logic for which otolith from each pair to toss  
+
+  * If one of the duplicates is a box/vial otolith and the other is not, toss the box/vial  
+  * If both DWP + position, toss whichever has the least amount of data  
+  * If both vial/box, toss whichever has the least amount of data  
+
+See what the different posibilities are.
+```{r}
+PGOD21.gcl %>% 
+  dplyr::filter(FK_FISH_ID %in% c(PGOD21_duplicate_check_95$ID1, PGOD21_duplicate_check_95$ID2)) %>% 
+  dplyr::count(`48_DWP_tray_position`, box_number)
+```
+
+Join in `48_DWP_tray_barcode` and `48_DWP_tray_position` from `PGOD21.gcl`, then assign *vial* or *DWP* based on `48_DWP_tray_position`, then add logic to preferentially select *vial* IDs to remove, otherwise standard whichever ID has the most missing loci.
+```{r}
+(
+  PGOD21_duplicates_to_remove <- PGOD21_duplicate_check_95 %>%
+    dplyr::left_join(
+      y = PGOD21.gcl %>% dplyr::select(FK_FISH_ID, `48_DWP_tray_barcode`, `48_DWP_tray_position`),
+      by = dplyr::join_by(ID1 == FK_FISH_ID)
+    ) %>%
+    dplyr::left_join(
+      y = PGOD21.gcl %>% dplyr::select(FK_FISH_ID, `48_DWP_tray_barcode`, `48_DWP_tray_position`),
+      by = dplyr::join_by(ID2 == FK_FISH_ID),
+      suffix = c("1", "2")
+    ) %>%
+    dplyr::mutate(
+      ID1_status = dplyr::case_when(
+        is.na(`48_DWP_tray_position1`) |
+          `48_DWP_tray_position1` == "vial" ~ "vial",
+        TRUE ~ "DWP"
+      ),
+      ID2_status = dplyr::case_when(
+        is.na(`48_DWP_tray_position2`) |
+          `48_DWP_tray_position2` == "vial" ~ "vial",
+        TRUE ~ "DWP"
+      ),
+      remove = dplyr::case_when(
+        ID1_status == ID2_status & Missing1 > Missing2 ~ ID1,
+        ID1_status == ID2_status &
+          Missing2 > Missing1 ~ ID2,
+        ID1_status == ID2_status &
+          Missing1 == Missing2 ~ ID1,
+        ID1_status != ID2_status &
+          ID1_status == "vial" ~ ID1,
+        ID1_status != ID2_status &
+          ID2_status == "vial" ~ ID2
+      )
+    )
+)
+
+GCLr::save_objects("PGOD21_duplicates_to_remove", path = "../objects")
+```
+
+Remove **one** from each duplicate pair! In this case, we know that we have some duplicate otoliths since crews took both left and right otoliths.
+```{r}
+(
+  PGOD21_duplicates_removed <- GCLr::remove_ids(silly = "PGOD21", IDs = PGOD21_duplicates_to_remove %>% dplyr::pull(remove))
+)
 
 GCLr::save_objects("PGOD21_duplicates_removed", path = "../objects")
 
@@ -528,5 +627,162 @@ GCLr::save_objects("PGOD21_duplicates_removed", path = "../objects")
     )
 )
 ```
+
+## Contamination (Heterozygosity)
+
+We may not know the lineage for all otoliths...does that matter? Let's look at the heart heterozygosity data broken out by lineage.
+```{r}
+heart_ind_het %>% 
+  ggplot2::ggplot(ggplot2::aes(x = het)) +
+  ggplot2::geom_histogram(binwidth = 0.01) +
+  ggplot2::theme_bw() +
+  ggplot2::facet_grid(rows = dplyr::vars(lineage)) +
+  ggplot2::labs(x = "Individual Heterozygosity",
+                y = "Frequency",
+                title = "Heart Heterozygoisty by Lineage")
+```
+
+Overall, these distributions appear similar enough to me to justify analyzing all PGOD21 otoliths together. We do have some otoliths with unknown lineage (n = 142).
+```{r}
+PGOD21.gcl %>% dplyr::count(silly_code)
+```
+
+Calculate individual heterozygosities.
+```{r}
+(PGOD21_ind_het <-
+   calc_ind_het(
+     sillyvec = "PGOD21",
+     loci = loci298,
+     ncores = 4
+   ))
+```
+
+Plot distribution of heterozygosity
+```{r}
+PGOD21_ind_het %>% 
+  ggplot2::ggplot(ggplot2::aes(x = het)) +
+  ggplot2::geom_histogram(binwidth = 0.01) +
+  ggplot2::theme_bw() +
+  ggplot2::labs(x = "Individual Heterozygosity",
+                y = "Frequency",
+                title = "Otolith Heterozygoisty (both Lineages)")
+```
+
+Whoa, this clearly demonstrates that the modified Z-score method will not work for the PGOD21 otoliths, there is just too much contamination!
+
+Plot distribution of PGOD21 otolith vs. heart heterozygosity for context.
+```{r}
+heart_ind_het %>% 
+  dplyr::bind_rows(PGOD21_ind_het %>% dplyr::select(-nloci, -ploci) %>% dplyr::mutate(lineage = "otolith")) %>% 
+  ggplot2::ggplot(ggplot2::aes(x = het)) +
+  ggplot2::geom_histogram(binwidth = 0.01) +
+  ggplot2::theme_bw() +
+  ggplot2::facet_grid(rows = dplyr::vars(lineage), scales = "free_y") +
+  ggplot2::labs(x = "Individual Heterozygosity",
+                y = "Frequency",
+                title = "Heart vs. Otolith Heterozygoisty by Lineage")
+```
+
+Plot otolith het vs. genotyping success (proportion of loci genotyped). For hearts, our cutoff was 80% of loci, but for otoliths it was only 15%!!!
+```{r}
+PGOD21_ind_het %>% 
+  ggplot2::ggplot(ggplot2::aes(x = ploci, y = het)) +
+  ggplot2::geom_point() +
+  ggplot2::theme_bw() +
+  ggplot2::labs(x = "Genotype Rate (Proportion of Loci)",
+                y = "Individual Heterozygosity",
+                title = "Heterozygosity vs. Genotype Rate per Otolith")
+```
+
+Wow, quite the gamut of contamination here. We know that we had some contamination in T028 and that the heart-otolith duplicate rate matching method still worked, so that gives us some hope. That said, the actual PGOD21 otoliths appear to be much more heavily contaminated.
+
+Rather than implement a simple heterozygosity cutoff, which doesn't account for the vast range of genotyping rates among individuals, I'm going to remove individuals with < 20 non-het genotypes. This is admittedly pretty arbitrary, but if we assume a MAF of ~ 0.35, the odds of any individual being homozygous for the major allele for 20 loci is > 100 times the odds of drawing 1 of the 10,791 PGOD21 otoliths that we started with at the beginning of QA. Here's the rough math.
+```{r}
+((1-0.35)^2)^20
+1/10791
+```
+
+This is what removing individuals with < 20 non-heterozygous loci would look like.
+```{r}
+PGOD21_ind_het_to_remove <- PGOD21_ind_het %>% 
+  dplyr::mutate(nhet = nloci * het,
+                nhomo = nloci - nhet,
+                remove = dplyr::case_when(nhomo < 20 ~ TRUE,
+                                          TRUE ~ FALSE)) 
+
+GCLr::save_objects("PGOD21_ind_het_to_remove", path = "../objects")
+
+PGOD21_ind_het_to_remove %>% 
+  ggplot2::ggplot(ggplot2::aes(x = ploci, y = het, colour = remove)) +
+  ggplot2::geom_point() +
+  ggplot2::theme_bw() +
+  ggplot2::scale_color_manual(values = c("grey20", "red3")) +
+  ggplot2::labs(x = "Genotype Rate (Proportion of Loci)",
+                y = "Individual Heterozygosity",
+                title = "Heterozygosity vs. Genotype Rate per Otolith - Remove < 20 non-Heterozygous Loci")
+```
+
+How many fish from individual collections?
+```{r}
+PGOD21_ind_het_to_remove %>%
+  dplyr::left_join(
+    y = PGOD21.gcl %>% dplyr::select(FK_FISH_ID, silly_code),
+    by = dplyr::join_by(fish_id == FK_FISH_ID)
+  ) %>%
+  dplyr::count(silly_code, remove) %>%
+  tidyr::pivot_wider(names_from = remove, values_from = n)
+```
+
+Remove outliers based on < 20 non-heterozygous loci.
+```{r}
+(
+  PGOD21_hets_removed <- GCLr::remove_ids(
+    silly = "PGOD21",
+    IDs = PGOD21_ind_het_to_remove %>% dplyr::filter(remove == TRUE) %>% dplyr::pull(fish_id)
+  )
+)
+
+GCLr::save_objects("PGOD21_hets_removed", path = "../objects")
+```
+
+```{r}
+(
+  PGOD21_sample_size_qa <- PGOD21_sample_size_qa %>%
+    dplyr::mutate(
+      heterozygosity = genotyped - missing - duplicate - GCLr::silly_n(sillyvec = "PGOD21") %>% dplyr::pull(n)
+    )
+)
+```
+
+## Final
+
+```{r}
+(
+  PGOD21_sample_size_qa <- PGOD21_sample_size_qa %>%
+    dplyr::mutate(
+      final =  GCLr::silly_n(sillyvec = "PGOD21") %>% dplyr::pull(n)
+    )
+)
+
+GCLr::save_objects("PGOD21_sample_size_qa", path = "../objects")
+readr::write_csv(x = PGOD21_sample_size_qa, file = "../output/PGOD21_sample_size_qa.csv")
+```
+
+Save the post-QA genotypes
+```{r}
+if(!dir.exists("../data/genotypes/postQA_join_48DWP")) {dir.create("../data/genotypes/postQA_join_48DWP")}
+
+GCLr::save_sillys(
+  sillyvec = "PGOD21",
+  path = "../data/genotypes/postQA_join_48DWP",
+  rds = TRUE
+)
+```
+
+# Summary
+
+We started with XX hearts from XX collections. We lost XX due to missing, XX due to duplicates (both removed), and XX due to contamination. XX collection lost more than the others, presumably due to XX. Final set of hearts is XX.
+
+We started with XX otoliths in PGOD21. We lost XX due to missing, XX due to duplicates (only 1 removed), and XX due to contamination. Final set of otoliths is XX.
 
 End

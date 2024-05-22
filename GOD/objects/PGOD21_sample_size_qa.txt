@@ -1,0 +1,3 @@
+structure(list(silly = "PGOD21", genotyped = 10791L, missing = 522L, 
+    duplicate = 87L, heterozygosity = 785L, final = 9397L), row.names = c(NA, 
+-1L), class = c("tbl_df", "tbl", "data.frame"))
