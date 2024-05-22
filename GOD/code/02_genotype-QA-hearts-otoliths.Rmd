@@ -2,7 +2,7 @@
 title: "02 - Genotype QA Hearts & Otoliths"
 subtitle: "Remove Untrustworthy Genotypes Prior to Matching"
 author: "Kyle Shedd"
-date: "2024-02-09 (hearts) 2024-05-21 (otoliths)"
+date: "2024-02-09 (hearts); 2024-05-22 (otoliths)"
 output:
   html_notebook:
     theme: united
@@ -40,14 +40,15 @@ The purpose of this notebook is to take the output from `01_import-genotypes-joi
 
 Hearts undergo standard AHRP PWS Pink Salmon QA:  
 
-  1) missing loci (80% rule)
-  2) duplicate check (95%)
-  3) heterozygosity outlier removal (contamination)
+  1) missing genotypes (<80% loci)
+  2) duplicate check (>95% loci, remove both)
+  3) contamination (heterozygosity outliers, +/- 3.5 modified z-score)
 
 Otoliths undergo a revised QA:  
 
-  1) missing loci (need at least 10% of loci)
-  2) duplicate check (95%).
+  1) missing genotypes (<15% loci)
+  2) duplicate check (>99% loci, remove 1)
+  3) contamination (<20 non-heterozygous loci)
 
 The next step after this will be to calculate the duplicate rate for each otolith-genotype compared to all heart-genotypes within a deep well plate (DWP).
 
@@ -96,9 +97,9 @@ GCLr::load_sillys(path = "../data/genotypes/raw_join_48DWP", rds = TRUE)
 
 Standard data QA (GT-seq, no `conScore`):
 
-  * Remove fish missing <80% genotypes
-  * Remove duplicates (>95% genotype concordance, remove both duplicates)
-  * Remove contamination (heterozygosity outliers +/- 3.5 modified z-score)
+  * Remove fish missing genotypes (**<80%** loci)
+  * Remove duplicates (**>95%** loci concordance, remove **both** duplicates)
+  * Remove contamination (heterozygosity outliers **+/- 3.5** modified z-score)
 
 ```{r}
 (
@@ -473,9 +474,9 @@ GCLr::save_sillys(
 
 Non-Standard data QA (GT-seq, no `conScore`):
 
-  * Remove fish missing <15% genotypes
-  * Remove duplicates (>99% genotype concordance, remove one duplicate)
-  * Remove contamination (heterozygosity outliers +/- 3.5 modified z-score)??????
+  * Remove fish missing genotypes (**<15%** loci)
+  * Remove duplicates (**>99%** loci concordance, remove **one** duplicate)
+  * Remove contamination (**<20** non-heterozygous loci)
 
 ```{r}
 (
@@ -637,6 +638,7 @@ heart_ind_het %>%
   ggplot2::geom_histogram(binwidth = 0.01) +
   ggplot2::theme_bw() +
   ggplot2::facet_grid(rows = dplyr::vars(lineage)) +
+  ggplot2::xlim(0, 1) +
   ggplot2::labs(x = "Individual Heterozygosity",
                 y = "Frequency",
                 title = "Heart Heterozygoisty by Lineage")
@@ -662,6 +664,7 @@ Plot distribution of heterozygosity
 PGOD21_ind_het %>% 
   ggplot2::ggplot(ggplot2::aes(x = het)) +
   ggplot2::geom_histogram(binwidth = 0.01) +
+  ggplot2::xlim(0, 1) +
   ggplot2::theme_bw() +
   ggplot2::labs(x = "Individual Heterozygosity",
                 y = "Frequency",
@@ -676,6 +679,7 @@ heart_ind_het %>%
   dplyr::bind_rows(PGOD21_ind_het %>% dplyr::select(-nloci, -ploci) %>% dplyr::mutate(lineage = "otolith")) %>% 
   ggplot2::ggplot(ggplot2::aes(x = het)) +
   ggplot2::geom_histogram(binwidth = 0.01) +
+  ggplot2::xlim(0, 1) +
   ggplot2::theme_bw() +
   ggplot2::facet_grid(rows = dplyr::vars(lineage), scales = "free_y") +
   ggplot2::labs(x = "Individual Heterozygosity",
@@ -689,6 +693,8 @@ PGOD21_ind_het %>%
   ggplot2::ggplot(ggplot2::aes(x = ploci, y = het)) +
   ggplot2::geom_point() +
   ggplot2::theme_bw() +
+  ggplot2::xlim(0, 1) +
+  ggplot2::ylim(0, 1) +
   ggplot2::labs(x = "Genotype Rate (Proportion of Loci)",
                 y = "Individual Heterozygosity",
                 title = "Heterozygosity vs. Genotype Rate per Otolith")
@@ -716,6 +722,8 @@ PGOD21_ind_het_to_remove %>%
   ggplot2::ggplot(ggplot2::aes(x = ploci, y = het, colour = remove)) +
   ggplot2::geom_point() +
   ggplot2::theme_bw() +
+  ggplot2::xlim(0, 1) +
+  ggplot2::ylim(0, 1) +
   ggplot2::scale_color_manual(values = c("grey20", "red3")) +
   ggplot2::labs(x = "Genotype Rate (Proportion of Loci)",
                 y = "Individual Heterozygosity",
@@ -733,7 +741,7 @@ PGOD21_ind_het_to_remove %>%
   tidyr::pivot_wider(names_from = remove, values_from = n)
 ```
 
-Remove outliers based on < 20 non-heterozygous loci.
+Remove outliers based on <20 non-heterozygous loci.
 ```{r}
 (
   PGOD21_hets_removed <- GCLr::remove_ids(
@@ -745,6 +753,7 @@ Remove outliers based on < 20 non-heterozygous loci.
 GCLr::save_objects("PGOD21_hets_removed", path = "../objects")
 ```
 
+This doesn't seem like an unreasonable amount of otoliths to remove due to rampant contamination. This will help prevent us from chasing down matches that are based on spurious relationships.
 ```{r}
 (
   PGOD21_sample_size_qa <- PGOD21_sample_size_qa %>%
@@ -781,8 +790,8 @@ GCLr::save_sillys(
 
 # Summary
 
-We started with XX hearts from XX collections. We lost XX due to missing, XX due to duplicates (both removed), and XX due to contamination. XX collection lost more than the others, presumably due to XX. Final set of hearts is XX.
+We started with 19,898 hearts from 8 collections. We removed 1,180 (5.9%) due to missing, 60 (0.6%) due to duplicates (both removed), and 592 (3.0%) due to contamination. Final set of hearts is 18,066 (90.8%).
 
-We started with XX otoliths in PGOD21. We lost XX due to missing, XX due to duplicates (only 1 removed), and XX due to contamination. Final set of otoliths is XX.
+We started with 10,791 otoliths in PGOD21. We removed 522 (4.8%) due to missing, 87 (0.8%) due to duplicates (only 1 removed), and 785 (7.3%) due to contamination. Final set of otoliths is 9,397 (87.1%).
 
 End
