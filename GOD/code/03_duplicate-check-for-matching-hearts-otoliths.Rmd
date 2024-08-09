@@ -226,15 +226,29 @@ DWPs_postQA <- DWP_n %>%
 length(DWPs_postQA)
 ```
 
-Subset otoliths and hearts.
-```{r}
-PGOD21_DWP.gcl <- PGOD21.gcl %>% 
-  dplyr::filter(`48_DWP_tray_barcode` %in% DWPs_postQA)
+Subset otoliths and hearts, modify `SILLY_CODE` and `SillySource` to match `.gcl` object names so we can use `GCLr::dupcheck_among_sillys`.
 
-heart_genotypes_DWP.gcl <- heart_genotypes.gcl %>% 
-  tidyr::separate(col = "SillySource", into = c("silly_code", "fish_id"), sep = "_", remove = FALSE) %>% 
-  dplyr::select(-fish_id) %>% 
-  dplyr::filter(`48_DWP_tray_barcode` %in% DWPs_postQA)
+**NOTE** `silly_source` is the original unique identifiers for fish (i.e., `PGOD21_2` for otoliths and `PERB15_33`, etc. for hearts). `silly_code` is the original collection (i.e., `PERB15` for otoliths *and* hearts based on DWP).
+```{r}
+PGOD21_DWP.gcl <- PGOD21.gcl %>%
+  dplyr::mutate(SILLY_CODE = "PGOD21_DWP") %>%  # SILLY_CODE needs to match the .gcl object name for GCLr::dupcheck_among_sillys
+  dplyr::rename(silly_source = SillySource) %>%  # save original SillySource as silly_source
+  tidyr::unite(col = "SillySource", SILLY_CODE, FK_FISH_ID, sep = "_", remove = FALSE) %>%  # SillySource needs to match the .gcl object name for GCLr::dupcheck_among_sillys
+  dplyr::relocate(SillySource, .before = silly_source)
+
+heart_genotypes_DWP.gcl <- heart_genotypes.gcl %>%
+  tidyr::separate(
+    col = "SillySource",
+    into = c("silly_code", "fish_id"),
+    sep = "_",
+    remove = FALSE
+  ) %>%
+  dplyr::select(-fish_id) %>%
+  dplyr::filter(`48_DWP_tray_barcode` %in% DWPs_postQA) %>%
+  dplyr::mutate(SILLY_CODE = "heart_genotypes_DWP") %>%  # SILLY_CODE needs to match the .gcl object name for GCLr::dupcheck_among_sillys
+  dplyr::rename(silly_source = SillySource) %>%  # save original SillySource as silly_source
+  tidyr::unite(col = "SillySource", SILLY_CODE, FK_FISH_ID, sep = "_", remove = FALSE) %>%  # SillySource needs to match the .gcl object name for GCLr::dupcheck_among_sillys
+  dplyr::relocate(SillySource, .before = silly_source)
 ```
 
 Final samples sizes going into duplicate matching by DWP. **9,258 otoliths, 17,943 hearts**
@@ -262,41 +276,109 @@ There should be a total of 394,316 pairwise otolith/heart genotype comparisons!
 
 ## Duplicate Check
 
-Here goes nothing!
+Save our DWP sillys so we can modify them for the duplicate check without losing data (i.e. make a copy for safe keeping).
 ```{r}
-dup_check_results <-
-  lapply(DWPs_postQA, function(ID) {
-    fishIDs <- PGOD21_DWP.gcl %>%
-      dplyr::filter(`48_DWP_tray_barcode` == ID) %>%
-      dplyr::pull(FK_FISH_ID)
-    
-    assign(x = "heart_DWP.gcl", value = heart_genotypes_DWP.gcl %>% dplyr::filter(`48_DWP_tray_barcode` %in% ID), pos = 1)
-    
-    assign(x = "otolith_DWP.gcl", value = PGOD21_DWP.gcl %>% dplyr::filter(`48_DWP_tray_barcode` %in% ID), pos = 1)
-    
-    GCLr::dupcheck_among_sillys(
-      KeySillys = "otolith_DWP",
-      KeySillyIDs = list(otolith_DWP = fishIDs),
-      BetweenSillys = "heart_DWP",
-      loci = loci298,
-      minnonmissing = 0.05,
-      minproportion = 0.05,
-      ncores = 8,
-      plot.results = FALSE
+PGOD21_DWP_original.gcl <- PGOD21_DWP.gcl
+# rm(PGOD21_DWP.gcl)
+
+heart_genotypes_DWP_original.gcl <- heart_genotypes_DWP.gcl
+# rm(heart_genotypes_DWP.gcl)
+```
+
+Here goes nothing! Time run the duplicate check by DWP for ALL 435 DWPs for a total of 394,316 comparisons!
+```{r}
+start.time <- Sys.time() 
+
+(dup_check_results <-
+   lapply(DWPs_postQA, function(ID) {
+     fishIDs <- PGOD21_DWP_original.gcl %>%
+       dplyr::filter(`48_DWP_tray_barcode` == ID) %>%
+       dplyr::pull(FK_FISH_ID)
+     
+     assign(
+       x = "heart_genotypes_DWP.gcl",
+       value = heart_genotypes_DWP_original.gcl %>% dplyr::filter(`48_DWP_tray_barcode` %in% ID),
+       pos = 1
+     )
+     
+     assign(
+       x = "PGOD21_DWP.gcl",
+       value = PGOD21_DWP_original.gcl %>% dplyr::filter(`48_DWP_tray_barcode` %in% ID),
+       pos = 1
+     )
+     
+     GCLr::dupcheck_among_sillys(
+       KeySillys = "PGOD21_DWP",
+       KeySillyIDs = list(PGOD21_DWP = fishIDs),
+       BetweenSillys = "heart_genotypes_DWP",
+       loci = loci298,
+       minnonmissing = 0,  # already dealt with this in QA
+       minproportion = 0,  # we want it all!
+       ncores = 20,
+       plot.results = FALSE
+     ) %>%
+       dplyr::mutate("48_DWP_tray_barcode" = ID)
+     
+   }) %>% dplyr::bind_rows())
+
+stop.time <- Sys.time()
+  
+(fulltime <- stop.time - start.time)
+```
+
+Cleanup objects.
+```{r}
+rm(start.time, stop.time, fulltime)
+
+# replace original sillys, remove copy
+PGOD21_DWP.gcl <- PGOD21_DWP_original.gcl
+rm(PGOD21_DWP_original.gcl)
+
+heart_genotypes_DWP.gcl <- heart_genotypes_DWP_original.gcl
+rm(heart_genotypes_DWP_original.gcl)
+```
+
+## Transform
+
+Swap `Keysillyvial` for `PGOD21.gcl$silly_source` and `Betweensillyvial` for `heart_genotypes.gcl$silly_source` to get sample unique identifiers.
+```{r}
+(
+  dup_check_DWP <- dup_check_results %>%
+    dplyr::left_join(
+      y = PGOD21_DWP.gcl %>% dplyr::select(SillySource, silly_source),
+      by = dplyr::join_by(Keysillyvial == SillySource)
+    ) %>%
+    dplyr::rename(otolith_fish_id = silly_source, otolith_miss_loci = Keymissing) %>%
+    dplyr::left_join(
+      y = heart_genotypes_DWP.gcl %>% dplyr::select(SillySource, silly_source),
+      by = dplyr::join_by(Betweensillyvial == SillySource)
+    ) %>%
+    dplyr::rename(
+      heart_fish_id = silly_source,
+      heart_miss_loci = Betweenmissing,
+      duplicate_rate = DuplicateRate
+    ) %>%
+    dplyr::select(
+      otolith_fish_id,
+      heart_fish_id,
+      otolith_miss_loci,
+      heart_miss_loci,
+      duplicate_rate,
+      `48_DWP_tray_barcode`
     )
-    
-  }) %>% dplyr::bind_rows()
+)
 ```
 
-Shit, didn't work, will need to hijack the `GCLr::dupcheck_among_sillys`
+## Save
 
-Need SILLY_CODE to match the actual name of the `.gcl` object you bozo! Names matter!
-
+Save the transformed `dup_check_DWP` object.
 ```{r}
-rm(ID, fishIDs, heart_DWP.gcl, otolith_DWP.gcl)
+GCLr::save_objects(objects = "dup_check_DWP", path = "../objects", rds = TRUE)
 ```
 
+# Summary
 
+# Box Otoliths
 
 Don't forget about the 129 "box" otoliths!
 
