@@ -1,6 +1,6 @@
 ---
 title: "03 - Duplicate Check for Matching Hearts & Otoliths"
-subtitle: "Remove Untrustworthy Genotypes Prior to Matching"
+subtitle: "Determine % Loci Matching Within DWPs"
 author: "Kyle Shedd"
 date: "Started: 2024-08-07, last opened: `r Sys.Date()`"
 output:
@@ -36,11 +36,11 @@ knitr::opts_chunk$set(fig.width = 10)
 
 # Objective
 
-Update this section (2024-08-07), originally came from `1_data_prep_PWS_pink_otolith_match_analysis`
-
 The purpose of this notebook is to calculate the duplicate rate for each otolith-genotype compared to all heart-genotypes within a deep well plate (DWP).
 
-The next step after this will be to **MAKE INDIVIDUAL MATCHING DECISIONS???**, which will need to consider whether any of the PGOD21 otoliths matched up to hearts/fish with "trustworthy", existing, otolith reads (i.e. we ended up with a right-side otolith in PGOD21, but the left-side otolith stayed put and was already read).
+The next step after this will be to *make individual matching decisions on a DWP by DWP basis*. 
+
+Following that matching, we will need to consider whether any of the PGOD21 otoliths matched up to hearts/fish with "trustworthy", existing, otolith reads (i.e. we ended up with a right-side otolith in PGOD21, but the left-side otolith stayed put and was already read). Otherwise, we may have duplicate information for the same individual fish.
 
 # Background
 
@@ -55,7 +55,7 @@ During shipment of otolith samples in February 2020 to the MTA in Juneau for rea
   * PGILMOUR18
   * PPADDY16
 
-In an attempt to rectify the "GOD" incident, we extracted DNA from the otolith tissues, genotyped the otolith-derived DNA at 298 GT-seq loci, and are attempting to re-pair the otolith-heart samples from their genotypes.  
+In an attempt to rectify the "GOD" incident, we determined which otoliths were "suspect" and had likely migrated between wells, transferred those to 96 shallow well plates (SWP), extracted DNA from the otolith tissues, genotyped the otolith-derived DNA at 298 GT-seq loci, and are attempting to re-pair the otolith-heart samples from their genotypes. 
 
 In addition to this GitHub repository, other materials can be found on the V: drive here:
 [link](V:\Lab\Loki\Collection raw data sheets\Pink\Otolith Extravaganza\GOD Event 2020_2021)
@@ -64,9 +64,15 @@ In addition to this GitHub repository, other materials can be found on the V: dr
 
 Here's a running list of methods and brief summary of results to help me remember how we got here since there are large gaps in between working on this project.
 
+## Otolith Tranfers
+
+We determined which otoliths were "suspect" and had likely migrated between wells based on comparing the DWP otolith inventory at the MTAL (destination, post-GOD) to the the inventory at the GCL (origin, pre-GOD). Full documentation of the *rules* are located here: `data/raw_working_oto_sheets/working_oto_sheet_combined.xlsm`, tab "decisions". Briefly, any well that was had an inventory discrepancy was "bad" and any adjacent well was "suspect" and physically labelled along the left edge of the well.
+
+All otoliths from "suspect" wells were transferred to 96 SWPs (i.e., standard otolith trays) with 1 otolith per well. Full documentation of the *rules* are located in the Excel files here: `data/raw_otolith_transfer_96`, see tab "oto_transfer_business_rules". After completing the transfers at the MTAL, SWPs were sent to the GCL for DNA extraction and genotyping.
+
 ## Laboratory
 
-DNA was extracted from `PGOD21` left-side or unknown otolith tissues of unknown origin using conventional Machery-Nagel DNA extraction kits. Otoliths were placed in T1 buffer for an overnight soak in clear 96 shallow-well plates (SWP). Preamp at 14 cycles. Final elution volume was 75uL. All otoliths were transferred among plates with a jig. All liquid handling was done by robot. Samples were genotyped using GT-seq in lab projects P062, P065, P066, P067, P068, P069, P070, P071, P072, P073. QC samples were included in P067, P068, and P074.
+DNA was extracted from `PGOD21` left-side or unknown otolith tissues of unknown origin using conventional Machery-Nagel DNA extraction kits. Otoliths were placed in T1 buffer for an overnight soak in clear 96 SWPs. Preamp at 14 cycles. Final elution volume was 75uL. All otoliths were transferred among plates with a jig. All liquid handling was done by robot. Samples were genotyped using GT-seq in lab projects P062, P065, P066, P067, P068, P069, P070, P071, P072, P073. QC samples were included in P067, P068, and P074.
 
 ## Analysis Workflow
 
@@ -231,6 +237,7 @@ Subset otoliths and hearts, modify `SILLY_CODE` and `SillySource` to match `.gcl
 **NOTE** `silly_source` is the original unique identifiers for fish (i.e., `PGOD21_2` for otoliths and `PERB15_33`, etc. for hearts). `silly_code` is the original collection (i.e., `PERB15` for otoliths *and* hearts based on DWP).
 ```{r}
 PGOD21_DWP.gcl <- PGOD21.gcl %>%
+  dplyr::filter(`48_DWP_tray_barcode` %in% DWPs_postQA) %>%
   dplyr::mutate(SILLY_CODE = "PGOD21_DWP") %>%  # SILLY_CODE needs to match the .gcl object name for GCLr::dupcheck_among_sillys
   dplyr::rename(silly_source = SillySource) %>%  # save original SillySource as silly_source
   tidyr::unite(col = "SillySource", SILLY_CODE, FK_FISH_ID, sep = "_", remove = FALSE) %>%  # SillySource needs to match the .gcl object name for GCLr::dupcheck_among_sillys
@@ -285,7 +292,7 @@ heart_genotypes_DWP_original.gcl <- heart_genotypes_DWP.gcl
 # rm(heart_genotypes_DWP.gcl)
 ```
 
-Here goes nothing! Time run the duplicate check by DWP for ALL 435 DWPs for a total of 394,316 comparisons!
+Here goes nothing! Time run the duplicate check by DWP for ALL 435 DWPs for a total of 394,316 comparisons! **NOTE** this took ~25 minutes on Kyle's laptop, running with 20 cores.
 ```{r}
 start.time <- Sys.time() 
 
@@ -371,15 +378,17 @@ Swap `Keysillyvial` for `PGOD21.gcl$silly_source` and `Betweensillyvial` for `he
 
 ## Save
 
-Save the transformed `dup_check_DWP` object.
+Save the transformed `dup_check_DWP` object along with `DWP_n`, `DWPs_postQA`, and the `*_DWP.gcl` sillys.
 ```{r}
-GCLr::save_objects(objects = "dup_check_DWP", path = "../objects", rds = TRUE)
+GCLr::save_objects(objects = c("dup_check_DWP", "DWP_n", "DWPs_postQA"), path = "../objects", rds = TRUE)
+if(!dir.exists("../data/genotypes/postQA_join_48DWP_dupcheck/")) {dir.create("../data/genotypes/postQA_join_48DWP_dupcheck/")}
+GCLr::save_sillys(sillyvec = c("heart_genotypes_DWP", "PGOD21_DWP"), path = "../data/genotypes/postQA_join_48DWP_dupcheck")
 ```
 
 # Summary
 
-# Box Otoliths
+We performed duplicate checks within DWPS for 9,258 otoliths and 17,943 hearts in 435 DWPs for a total of 394,316 total pairwise comparisons. Next step will be to filter for the top 2 matches, determine the `diff` in % loci with shared genotypes, and then filter for the top match and assign matches.
 
-Don't forget about the 129 "box" otoliths!
+**NOTE** This script only looked at the DWP by DWP comparisons and did **not** include the 129 "box" otoliths that could potentially match up with any heart in a DWP from that box!
 
 End
