@@ -152,9 +152,9 @@ Using our standard 298 SNP pink salmon GT-seq loci.
 ```{r}
 GCLr::load_objects(path = "../objects", pattern = "loci298")
 GCLr::load_objects(path = "../objects", pattern = "LocusControl")
-GCLr::load_objects(path = "../objects", pattern = "dup_check_DWP")
-GCLr::load_objects(path = "../objects", pattern = "DWP_n")
-GCLr::load_objects(path = "../objects", pattern = "DWPs_postQA")
+GCLr::load_objects(path = "../objects", pattern = "dup_check_DWP", rds = TRUE)
+GCLr::load_objects(path = "../objects", pattern = "DWP_n", rds = TRUE)
+GCLr::load_objects(path = "../objects", pattern = "DWPs_postQA", rds = TRUE)
 ```
 
 Read in postQA `PGOD21.gcl` and heart genotypes for all affected DWPs.

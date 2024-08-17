@@ -382,7 +382,7 @@ Save the transformed `dup_check_DWP` object along with `DWP_n`, `DWPs_postQA`, a
 ```{r}
 GCLr::save_objects(objects = c("dup_check_DWP", "DWP_n", "DWPs_postQA"), path = "../objects", rds = TRUE)
 if(!dir.exists("../data/genotypes/postQA_join_48DWP_dupcheck/")) {dir.create("../data/genotypes/postQA_join_48DWP_dupcheck/")}
-GCLr::save_sillys(sillyvec = c("heart_genotypes_DWP", "PGOD21_DWP"), path = "../data/genotypes/postQA_join_48DWP_dupcheck")
+GCLr::save_sillys(sillyvec = c("heart_genotypes_DWP", "PGOD21_DWP"), path = "../data/genotypes/postQA_join_48DWP_dupcheck", rds = TRUE)
 ```
 
 # Summary
