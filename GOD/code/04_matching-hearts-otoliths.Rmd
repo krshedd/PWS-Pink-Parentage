@@ -36,11 +36,11 @@ knitr::opts_chunk$set(fig.width = 10)
 
 # Objective
 
-The purpose of this notebook is to calculate the duplicate rate for each otolith-genotype compared to all heart-genotypes within a deep well plate (DWP).
-
-The next step after this will be to *make individual matching decisions on a DWP by DWP basis*. 
+The purpose of this notebook is to make individual matching decisions for otolith- and heart-genotypes within a deep well plate (DWP) based on the duplicate genotype rate (% of loci sharing genotypes) for the top match and difference between the top and 2nd best match (`diff`).
 
 Following that matching, we will need to consider whether any of the PGOD21 otoliths matched up to hearts/fish with "trustworthy", existing, otolith reads (i.e. we ended up with a right-side otolith in PGOD21, but the left-side otolith stayed put and was already read). Otherwise, we may have duplicate information for the same individual fish.
+
+The next step after this will be to *compare matches to existing AHRP data to check for duplicates*. 
 
 # Background
 
@@ -132,6 +132,10 @@ We started with 19,898 hearts from 8 collections. We removed 1,180 (5.9%) due to
 
 We started with 10,791 otoliths in PGOD21. We removed 522 (4.8%) due to missing, 87 (0.8%) due to duplicates (only 1 removed), and 785 (7.3%) due to contamination. Final set of otoliths is 9,397 (87.1%).
 
+### Duplicate Check
+
+After QA, we filtered down to a common set of 435 DWPs with 9,258 otoliths and 17,943 hearts and calculated the duplicate rate (% of loci sharing genotypes) for all otoliths and hearts within a DPW for a total of 394,316 total pairwise comparisons.
+
 ### Matching Prep
 
 Techniques for matching otoliths back to hearts were refined over time, however, the most definitive work is in this R Notebook `Known sample tests_Kyle.Rmd`, also titled `Matching tissues to otoliths with known samples`, which revisited T028 data to see if `CKMRsim` was better for matching tissues than a standard duplicate check. Andy Barclay had the idea to try `CKMRsim`, and while initial results were promising, they ultimately fared no better than a duplicate check.
@@ -163,6 +167,24 @@ GCLr::load_sillys(path = "../data/genotypes/postQA_join_48DWP_dupcheck/", rds = 
 ```
 
 # Sample Sizes
+
+How many DWPs, otoliths, and hearts.
+```{r}
+DWP_n %>% 
+  dplyr::filter(`48_DWP_tray_barcode` %in% DWPs_postQA) %>% 
+  dplyr::summarise(DWP = dplyr::n(),
+                   otolith = sum(otolith),
+                   heart = sum(heart))
+```
+
+How many pairwise duplicate comparisons?
+```{r}
+DWP_n %>% 
+  dplyr::filter(`48_DWP_tray_barcode` %in% DWPs_postQA) %>% 
+  dplyr::mutate(n_comparisons = heart * otolith) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::summarise(total_comparisons = sum(n_comparisons))
+```
 
 # Matching
 
@@ -201,18 +223,103 @@ dup_check_DWP_top1 %>%
 
 # Visualization
 
+## Transform Data
+
 Need to join in the DWP + position info from PGOD21 for visualization.
 ```{r}
-dup_check_DWP_top1 %>%
-  dplyr::left_join(
-    y = PGOD21_DWP.gcl %>% dplyr::select(silly_source, `48_DWP_tray_position`) %>% dplyr::rename(otolith_position = `48_DWP_tray_position`),
-    by = dplyr::join_by(otolith_fish_id == silly_source)
-  ) %>%
-  dplyr::left_join(
-    y = heart_genotypes_DWP.gcl %>% dplyr::select(silly_source, DNA_TRAY_WELL_POS) %>% dplyr::rename(heart_position = DNA_TRAY_WELL_POS),
-    by = dplyr::join_by(heart_fish_id == silly_source)
-  )
+(
+  matchy_data_mod <- dup_check_DWP_top1 %>%
+    dplyr::left_join(
+      y = PGOD21_DWP.gcl %>% dplyr::select(silly_source, `48_DWP_tray_position`) %>% dplyr::rename(otolith_position = `48_DWP_tray_position`),
+      by = dplyr::join_by(otolith_fish_id == silly_source)
+    ) %>%  # otolith DWP position: A1, B1, etc.
+    dplyr::left_join(
+      y = heart_genotypes_DWP.gcl %>% dplyr::select(silly_source, DNA_TRAY_WELL_POS) %>% dplyr::rename(heart_position = DNA_TRAY_WELL_POS),
+      by = dplyr::join_by(heart_fish_id == silly_source)
+    ) %>%  # heart DWP position: A1, B1, etc.
+    tidyr::separate(
+      col = otolith_position,
+      into = c("otolith_row", "otolith_col"),
+      sep = 1,
+      remove = FALSE
+    ) %>%  # separate row and column designators
+    tidyr::separate(
+      col = heart_position,
+      into = c("heart_row", "heart_col"),
+      sep = 1,
+      remove = FALSE
+    ) %>%
+    dplyr::mutate(
+      otolith_row = factor(x = otolith_row, levels = LETTERS[8:1]),
+      heart_row = factor(x = heart_row, levels = LETTERS[8:1]),
+      otolith_col = factor(x = otolith_col, levels = as.character(1:6)),
+      heart_col = factor(x = heart_col, levels = as.character(1:6))
+    )  # make row and columns factors so they all plot
+)
 ```
+
+## Function
+
+Pull in PGOD21 otolith reads to see if the matches matter if there are close ties?
+
+Any hearts match more than 1 otolith?
+```{r}
+matchy_data_mod %>%
+  dplyr::filter(`48_DWP_tray_barcode` == DWPs_postQA[1])
+```
+
+
+**Red** shows the location of the heart (original location of the otolith, pre-shipment)
+**Blue** shows where the otolith ended up at the MTAL (post-shipment)
+If there is an arrow, the otolith got shifted from it's original location.
+`NA` row and column values for an otolith mean that it was stuck to the lid or between wells
+```{r}
+matchy_data_mod %>%
+  dplyr::filter(`48_DWP_tray_barcode` == DWPs_postQA[1]) %>% {
+    ggplot2::ggplot(.) +
+      ggplot2::geom_point(
+        ggplot2::aes(x = heart_col, y = heart_row, colour = "heart"),
+        cex = 8,
+        alpha = 0.5
+      ) +
+      ggplot2::geom_point(
+        ggplot2::aes(x = otolith_col, y = otolith_row, colour = "otolith"),
+        cex = 6,
+        alpha = 0.5
+      ) +
+      ggplot2::geom_segment(
+        data = dplyr::filter(.data = ., heart_row != otolith_row |
+                               heart_col != otolith_col),
+        ggplot2::aes(
+          x = heart_col,
+          y = heart_row,
+          xend = otolith_col,
+          yend = otolith_row
+        ),
+        arrow = arrow(type = "closed", length = unit(0.5, "cm")),
+        lwd = 1.5
+      ) +
+      ggplot2::scale_x_discrete(drop = FALSE) +  # forces all factor levels to plot
+      ggplot2::scale_y_discrete(drop = FALSE) +  # forces all factor levels to plot
+      ggplot2::scale_color_manual(
+        name = '',
+        breaks = c('heart', 'otolith'),
+        values = c('heart' = 'red', 'otolith' = 'blue')
+      ) +
+      ggplot2::xlab("Column") +
+      ggplot2::ylab("Row") +
+      ggplot2::theme_bw() +
+      ggplot2::facet_wrap(facets = ggplot2::vars(`48_DWP_tray_barcode`))
+  }
+```
+
+Need to consider:
+`NA` otolith position
+Hearts that best match > 1 otolith and vice versa
+Do we want to see otolith count maps?
+
+
+## Test
 
 
 # Summary
