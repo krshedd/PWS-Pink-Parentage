@@ -98,4 +98,11 @@ erb_14_16_extr %>%
   readr::write_csv(file = "export_PERB14_PERB16_NOAA_lrrc9.csv")
 ```
 
+Write out plate map for NOAA.
+```{r}
+erb_14_16_extr %>%
+  dplyr::filter(FK_PLATE_ID > 61374) %>% 
+  readr::write_csv(file = "plate_map_PERB14_PERB16_NOAA_lrrc9.csv")
+```
+
 End
