@@ -1,0 +1,101 @@
+---
+title: "Heritability of Run Timing - How Does *lrrc9* Correlate to RS?"
+subtitle: "Export Request - NOAA Genotype Erb 2014/2016 for *lrrc9*"
+author: "Kyle Shedd"
+date: "2024-11-19"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+    toc_float: true
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Setup
+
+Load all necessary packages, as of 2023-08-11 Kyle switched to [GCLr](https://github.com/commfish/GCLr).
+```{r setup, message=FALSE, results='hide'}
+rm(list = ls(all.names = TRUE))
+
+if(!require("pacman")) install.packages("pacman"); library(pacman)
+
+pacman::p_load(
+  tidyverse,
+  scales,
+  janitor,
+  GCLr
+)
+
+knitr::opts_chunk$set(fig.width = 10)
+
+.username = readLines("~/R/usr_pw.txt", n = 1)  # LOKI username
+.password = readLines("~/R/usr_pw.txt" , n = 2)[[2]]  # LOKI password
+```
+
+# Objective
+
+The objective of this notebook is to generate an Export Request for 20uL of DNA from all Erb 2014 and 2016 (PERB14 and PERB16) plates.
+
+# Background
+
+Wes's lab at NOAA discovered a strong association between *lrrc9* and run timing in pink salmon (and sockeye and chum). This was independently verified by Mark Christie/Will Hemstrom at Purdue with the PWS Pink Salmon whole genome re-sequencing disaster fund project. Given that strong association, and that reproductive success (RS) is highly correlated with run timing and hatchery/natural-origin, we want to see how RS correlates to *lrrc9* genotypes. NOAA has offerred to do the single SNP genotyping on 384-well plates if we export the DNA.
+
+We selected Erb 2014/2016 since it has the highest proportion of offspring assigned to parents, and highest number of triads (offspring assigned to both parents). Kristen did some heritability analyses on sample date and found some pretty high associations: narrow sense heritability for Erb 14/16 triads ~0.182 (overall, correlation), 0.319 (overall, slope), 0.428 (overall, animal?). See <Erb_Heritability_14_16.Rmd>.
+
+# Import Data
+
+Get existing extractions for `PERB14` and `PERB16`.
+```{r}
+(
+  erb_14_16_extr <- GCLr::get_extraction_info(
+    sillyvec = c("PERB14", "PERB16"),
+    username = .username,
+    password = .password
+  )
+)
+```
+
+# Pick Plates
+
+What do we have?
+```{r}
+table(erb_14_16_extr$FK_PLATE_ID)
+```
+
+Okay, I looked into the first 4 plates in LOKI and there is no need to use those, I think they were used for Wei's population structure work. Start with 61375, which was part of eP009.
+
+**NOTE** this is 1 row per silly x plate.
+```{r}
+erb_14_16_extr %>% 
+  dplyr::filter(FK_PLATE_ID > 61374) %>% 
+  dplyr::count(SILLY_CODE, FK_PLATE_ID)
+```
+
+How many samples by silly?
+```{r}
+erb_14_16_extr %>%
+  dplyr::filter(FK_PLATE_ID > 61374) %>% 
+  dplyr::count(SILLY_CODE, FK_PLATE_ID) %>% 
+  dplyr::group_by(SILLY_CODE) %>% 
+  dplyr::summarise(plates = n(), n = sum(n))
+```
+
+How many unique plates?
+```{r}
+erb_14_16_extr %>%
+  dplyr::filter(FK_PLATE_ID > 61374) %>% 
+  dplyr::distinct(FK_PLATE_ID)
+```
+
+# Write
+
+Write out for the lab.
+```{r}
+erb_14_16_extr %>%
+  dplyr::filter(FK_PLATE_ID > 61374) %>% 
+  dplyr::count(SILLY_CODE, FK_PLATE_ID) %>% 
+  readr::write_csv(file = "export_PERB14_PERB16_NOAA_lrrc9.csv")
+```
+
+End
