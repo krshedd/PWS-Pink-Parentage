@@ -62,17 +62,19 @@ In addition to this GitHub repository, other materials can be found on the V: dr
 
 # Methods
 
-Here's a running list of methods and brief summary of results to help me remember how we got here since there are large gaps in between working on this project.
+Here's a running list of methods and brief summary of results to help me remember how we got here since there are large gaps in time between working on this project.
 
 ## Otolith Tranfers
 
-We determined which otoliths were "suspect" and had likely migrated between wells based on comparing the DWP otolith inventory at the MTAL (destination, post-GOD) to the the inventory at the GCL (origin, pre-GOD). Full documentation of the *rules* are located here: `data/raw_working_oto_sheets/working_oto_sheet_combined.xlsm`, tab "decisions". Briefly, any well that was had an inventory discrepancy was "bad" and any adjacent well was "suspect" and physically labelled along the left edge of the well.
+We determined which otoliths were "suspect" and had likely migrated between wells based on comparing the DWP otolith inventory at the MTAL (destination, post-GOD) to the the inventory at the GCL (origin, pre-GOD). Full documentation of the *rules* are located here: `data/raw_working_oto_sheets/working_oto_sheet_combined.xlsm`, tab "decisions". Briefly, any well that had an inventory discrepancy was "bad" and any adjacent well was "suspect" and physically labelled along the left edge of the well.
 
 All otoliths from "suspect" wells were transferred to 96 SWPs (i.e., standard otolith trays) with 1 otolith per well. Full documentation of the *rules* are located in the Excel files here: `data/raw_otolith_transfer_96`, see tab "oto_transfer_business_rules". After completing the transfers at the MTAL, SWPs were sent to the GCL for DNA extraction and genotyping.
 
 ## Laboratory
 
 DNA was extracted from `PGOD21` left-side or unknown otolith tissues of unknown origin using conventional Machery-Nagel DNA extraction kits. Otoliths were placed in T1 buffer for an overnight soak in clear 96 SWPs. Preamp at 14 cycles. Final elution volume was 75uL. All otoliths were transferred among plates with a jig. All liquid handling was done by robot. Samples were genotyped using GT-seq in lab projects P062, P065, P066, P067, P068, P069, P070, P071, P072, P073. QC samples were included in P067, P068, and P074.
+
+Projects P070-072 included an additional step to dry down extracted DNA to increase concentrations and genotyping success, however, this did not occur in P062-P069 and P073. There is a slight difference in average genotyping rate among these projects (75% vs. 68%), but insufficient to warrant re-running P062-P069 and P073. See e-mails from 2024-11-27 for more info.
 
 ## Analysis Workflow
 
@@ -134,7 +136,7 @@ We started with 10,791 otoliths in PGOD21. We removed 522 (4.8%) due to missing,
 
 ### Duplicate Check
 
-After QA, we filtered down to a common set of 435 DWPs with 9,258 otoliths and 17,943 hearts and calculated the duplicate rate (% of loci sharing genotypes) for all otoliths and hearts within a DPW for a total of 394,316 total pairwise comparisons.
+After QA, we filtered down to a common set of 435 DWPs with 9,258 otoliths (85.8%) and 17,943 hearts (90.2%) and calculated the duplicate rate (% of loci sharing genotypes) for all otoliths and hearts within a DPW for a total of 394,316 total pairwise comparisons.
 
 ### Matching Prep
 
@@ -188,6 +190,18 @@ DWP_n %>%
 
 # Matching
 
+## Output for *LOKI*
+
+Eric Lardizabal ultimately needs to know for each otolith:  
+
+  1) `Target Barcode` = `48_DWP_tray_barcode` (10-digit heart 48DWP barcode)  
+  2) `Target Well Position` = `heart_position` (heart 48DWP well position, i.e., A1, A2, etc.)
+
+The two other GOD columns in the *LOKI* tissue table are:  
+
+  * `Determination Collection` = "PGOD21", only used in the target collection (i.e., in PPADDY16 the Determination Collection = PGOD21)  
+  * `Target Container Type` = type of container the otolith is going into, should be 96 well SWP
+
 ## Top 2
 
 Get the top 2 matches (ignoring ties!) for each otolith. Should have 9,258 x 2 = 18,516 rows.
@@ -219,6 +233,28 @@ dup_check_DWP_top1 %>%
   ggplot2::ggplot(ggplot2::aes(x = diff, y = duplicate_rate)) +
   ggplot2::geom_point() + 
   ggplot2::theme_bw()
+```
+
+## Self - Unmoved Otoliths
+
+Include duplicate rate with self for otoliths that did not move. This is relevant for some uncomplicated DWPs where we genotyped wells that still had 2 otoliths, but were next to wells where otoliths were suspected to have moved (n_otolith != 2).
+```{r}
+(
+  dup_check_DWP_self <- dup_check_DWP %>%
+    dplyr::left_join(
+      y = PGOD21_DWP.gcl %>% dplyr::select(silly_source, `48_DWP_tray_position`) %>% dplyr::rename(otolith_position = `48_DWP_tray_position`),
+      by = dplyr::join_by(otolith_fish_id == silly_source)
+    ) %>%  # otolith DWP position: A1, B1, etc.
+    dplyr::left_join(
+      y = heart_genotypes_DWP.gcl %>% dplyr::select(silly_source, DNA_TRAY_WELL_POS) %>% dplyr::rename(heart_position = DNA_TRAY_WELL_POS),
+      by = dplyr::join_by(heart_fish_id == silly_source)
+    ) %>%
+    dplyr::filter(otolith_position == heart_position) %>%   # filter for otoliths that didn't move
+    dplyr::rename(heart_fish_id_self = heart_fish_id,
+                  heart_miss_loci_self = heart_miss_loci,
+                  duplicate_rate_self = duplicate_rate) %>% 
+    dplyr::select(otolith_fish_id, heart_fish_id_self, heart_miss_loci_self, duplicate_rate_self)
+)
 ```
 
 # Visualization
@@ -254,25 +290,122 @@ Need to join in the DWP + position info from PGOD21 for visualization.
       heart_row = factor(x = heart_row, levels = LETTERS[8:1]),
       otolith_col = factor(x = otolith_col, levels = as.character(1:6)),
       heart_col = factor(x = heart_col, levels = as.character(1:6))
-    )  # make row and columns factors so they all plot
+    ) %>%   # make row and columns factors so they all plot
+    dplyr::left_join(
+      y = dup_check_DWP_self,
+      by = "otolith_fish_id"
+    ) %>% 
+    dplyr::mutate(diff_self = duplicate_rate - duplicate_rate_self,
+                  match_type = dplyr::case_when(heart_fish_id == heart_fish_id_self ~ "self",
+                                                TRUE ~ "not_self")
+    ) %>% 
+    dplyr::arrange(`48_DWP_tray_barcode`, otolith_fish_id)
+)
+```
+
+## Distribution of Duplicate Rate
+
+Distribution of duplicate rate for top match
+```{r}
+matchy_data_mod %>% 
+  ggplot2::ggplot(ggplot2::aes(x = duplicate_rate, fill = match_type)) +
+  ggplot2::geom_histogram(binwidth = .01) + 
+  ggplot2::geom_vline(xintercept = 0.8, colour = "red", lwd = 1) +
+  ggplot2::labs(title = "Distribution of Locus Duplicate Rate for Best Match for Hearts and Otoliths") +
+  ggplot2::theme_bw() +
+  ggplot2::facet_grid(rows = dplyr::vars(match_type))
+```
+
+The overall distribution is fairly similar to tests with known samples, see histogram in `Known sample tests_Kyle.Rmd`. Kristen and Kyle decided on 2025-01-24 to go with a preliminary cutoff of **> 0.8 duplicate rate**. This resulted in very few incorrect assignments in the known sample tests. We also see that most of the self-assignments (otolith did not migrate to a new well) are above 0.8.
+
+## Distribution of Diff
+
+Distribution of difference rate between top 1 match and 2nd best match.
+```{r}
+matchy_data_mod %>% 
+  ggplot2::ggplot(ggplot2::aes(x = diff, fill = match_type)) +
+  ggplot2::geom_histogram(binwidth = .01) + 
+  ggplot2::geom_vline(xintercept = 0.25, colour = "red", lwd = 1) +
+  ggplot2::labs(title = "Distribution of Difference Between Best and 2nd Best Locus Duplicate Rate Match for Hearts and Otoliths") + 
+  ggplot2::theme_bw() +
+  ggplot2::facet_grid(rows = dplyr::vars(match_type))
+```
+
+The overall distribution is fairly similar to tests with known samples, see histogram in `Known sample tests_Kyle.Rmd`. Kristen and Kyle decided on 2025-01-24 to go with a preliminary cutoff of **> 0.25 diff**. This resulted in very few incorrect assignments in the known sample tests. We also see that most of the self-assignments (otolith did not migrate to a new well) had higher diffs.
+
+## Plot Duplicate Rate vs. Diff
+
+```{r}
+matchy_data_mod %>% 
+  ggplot2::ggplot(ggplot2::aes(x = diff, y = duplicate_rate, colour = match_type)) +
+  ggplot2::geom_point() + 
+  ggplot2::theme_bw()
+```
+
+## Save Output
+
+Save output as both .rds and a .csv so Kristen and I can make some matching decisions.
+```{r}
+GCLr::save_objects(objects = "matchy_data_mod", path = "../objects", rds = TRUE)
+readr::write_csv(x = matchy_data_mod, file = "../output/PGOD21_duplicate_rate_top_and_self_matches.csv")
+```
+
+## Multiple Matches?
+
+### Otolith Matches >1 Heart
+
+Any otoliths best match more than one heart?
+```{r}
+matchy_data_mod %>% 
+  dplyr::group_by(otolith_fish_id) %>% 
+  dplyr::filter(dplyr::n() > 1) %>% 
+  dplyr::arrange(dplyr::desc(duplicate_rate))
+```
+
+Yes, but duplicate rates are all pretty low, < 0.67. These are likely bogus matches.
+
+### Heart Matches >1 Otolith
+
+Any hearts best match more than one otolith?
+```{r}
+matchy_data_mod %>% 
+  dplyr::group_by(heart_fish_id) %>% 
+  dplyr::filter(dplyr::n() > 1) %>% 
+  dplyr::arrange(heart_fish_id)
+
+matchy_data_mod %>% 
+  dplyr::group_by(heart_fish_id) %>% 
+  dplyr::filter(dplyr::n() > 1) %>% 
+  ggplot2::ggplot(ggplot2::aes(x = heart_fish_id, y = duplicate_rate, colour = match_type)) +
+  ggplot2::geom_point() + 
+  ggplot2::theme_bw()
+```
+
+Yes, there are several hearts that are the best match for > 1 otolith, however, most of them most closely match themselves. It's okay for a heart to be the best match for up to 2 otoliths (left and right), so long as those otoliths have the same read (hatchery vs. wild + origin).
+
+## Filter >0.8 Duplicate + >0.25 Diff
+
+Use the preliminary cutoffs that Kristen and I agreed to on 2025-01-24.
+```{r}
+(
+  matchy_data_mod_0.8dup_0.25diff <- matchy_data_mod %>%
+    dplyr::filter(duplicate_rate >= 0.8, diff >= 0.25)
 )
 ```
 
 ## Function
 
-Pull in PGOD21 otolith reads to see if the matches matter if there are close ties?
-
-Any hearts match more than 1 otolith?
 ```{r}
 matchy_data_mod %>%
   dplyr::filter(`48_DWP_tray_barcode` == DWPs_postQA[1])
 ```
 
-
 **Red** shows the location of the heart (original location of the otolith, pre-shipment)
 **Blue** shows where the otolith ended up at the MTAL (post-shipment)
 If there is an arrow, the otolith got shifted from it's original location.
 `NA` row and column values for an otolith mean that it was stuck to the lid or between wells
+
+**Create 1 plot per DWP in a PDF**
 ```{r}
 matchy_data_mod %>%
   dplyr::filter(`48_DWP_tray_barcode` == DWPs_postQA[1]) %>% {
@@ -313,16 +446,17 @@ matchy_data_mod %>%
   }
 ```
 
-Need to consider:
+# Need to consider:
 `NA` otolith position
-Hearts that best match > 1 otolith and vice versa
+Hearts that best match up to 2 otoliths is okay, so long as otoliths have the same read (hatchery vs. wild + origin)
+Otoliths that best match > heart are a non-issue, bogus matches
 Do we want to see otolith count maps?
-
-
-## Test
+Pull in PGOD21 otolith reads to see if the matches matter if there are close ties or multiple matches?
 
 
 # Summary
+
+
 
 # Box Otoliths
 
