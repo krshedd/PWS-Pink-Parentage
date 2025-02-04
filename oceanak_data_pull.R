@@ -20,8 +20,6 @@ sillyvec <- paste0(species, rep(streams, each = length(yrs)), yrs)  # put it all
 
 not_tissues = "Otolith"  # OceanAK has 1 row of data per tissue, including both otolith and genetic tissues, we do not want the otolith stuff (this is different than otolith reads)
 
-source("~/R/Functions.GCL.R")  # set to your own path as necessary
-
 # End user input ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 start_time <- proc.time()
@@ -60,7 +58,9 @@ if(file.exists("C:/Program Files/R/RequiredLibraries/ojdbc8.jar")) {
   
 }
 
-url <-LOKI_URL.GCL()
+source("~/R/GCLr/R/loki_url.r")  # new with GCLr package, not exported with package, change path as necessary
+
+url <- loki_url() # LOKI_URL.GCL()
 
 con <- dbConnect(drv,url=url,user=username,password=password)
 
