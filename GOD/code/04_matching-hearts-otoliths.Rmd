@@ -168,6 +168,16 @@ Read in postQA `PGOD21.gcl` and heart genotypes for all affected DWPs.
 GCLr::load_sillys(path = "../data/genotypes/postQA_join_48DWP_dupcheck/", rds = TRUE)
 ```
 
+## Otolith Reads
+
+Got GOD otolith reads from Cordova Otolith lab (2025-02-05) with help from Eric L. (GCL AP) and Rachel E. (CDV Otolith Lab Manager). Want to see what the reads are for hearts that best match more than one otolith, since they may be from the same fish (left and right).
+```{r}
+(otolith_reads <- readr::read_csv("../data/GOD_otolith_reads_all.csv") %>% 
+   janitor::clean_names())
+```
+
+Total of 10,816 otoliths.
+
 # Sample Sizes
 
 How many DWPs, otoliths, and hearts.
@@ -187,6 +197,21 @@ DWP_n %>%
   dplyr::ungroup() %>% 
   dplyr::summarise(total_comparisons = sum(n_comparisons))
 ```
+
+How many GOD otoliths were successfully read?
+```{r}
+otolith_reads %>% 
+  dplyr::count(mark_present)
+
+otolith_reads %>% 
+  dplyr::filter(mark_present == "YES") %>% 
+  dplyr::count(mark_id)
+
+otolith_reads %>% 
+  dplyr::count(otolith_mark_status_code)
+```
+
+9,678 of 10,816 otoliths were successfully read (89.5%). Of those not read, 266 were lost and 760 were unreadable/overground. **NOTE** the otolith codes indicate that almost all are "left", but I'm not sure if that is completely true. Of the 1,648 otoliths with a hatchery mark, most were AFK (unsurpisingly), followed by Cannery Creek, Wally Norenburg, and Solomon Gulch.
 
 # Matching
 
@@ -259,7 +284,7 @@ Include duplicate rate with self for otoliths that did not move. This is relevan
 
 # Visualization
 
-## Transform Data
+## Join & Transform Data
 
 Need to join in the DWP + position info from PGOD21 for visualization.
 ```{r}
@@ -302,6 +327,8 @@ Need to join in the DWP + position info from PGOD21 for visualization.
     dplyr::arrange(`48_DWP_tray_barcode`, otolith_fish_id)
 )
 ```
+
+Data is 1 row per otolith, includes best heart match (`top1` could be self or migrated), difference between best and 2nd best match, and self heart match (otolith never moved, matches heart from same well).
 
 ## Distribution of Duplicate Rate
 
@@ -393,10 +420,78 @@ Use the preliminary cutoffs that Kristen and I agreed to on 2025-01-24.
 )
 ```
 
+How many self vs. not self?
+```{r}
+matchy_data_mod_0.8dup_0.25diff %>% 
+  dplyr::count(match_type)
+```
+
+### Heart Matches >1 Otolith
+
+Any hearts best match more than one otolith now that we've applied our `duplicate_rate` and `diff` cutoffs?
+```{r}
+matchy_data_mod_0.8dup_0.25diff %>% 
+  dplyr::group_by(heart_fish_id) %>% 
+  dplyr::filter(dplyr::n() > 1) %>% 
+  dplyr::arrange(heart_fish_id)
+
+matchy_data_mod_0.8dup_0.25diff %>% 
+  dplyr::count(heart_fish_id) %>% 
+  dplyr::count(n, name = "n_matching_otos_per_heart")
+
+matchy_data_mod_0.8dup_0.25diff %>% 
+  dplyr::group_by(heart_fish_id) %>% 
+  dplyr::filter(dplyr::n() > 1) %>% 
+  ggplot2::ggplot(ggplot2::aes(x = heart_fish_id, y = duplicate_rate, colour = match_type)) +
+  ggplot2::geom_point() + 
+  ggplot2::theme_bw()
+```
+
+Yes, there are 296 hearts that best match 2 otoliths (may be lefts and rights?) and 10 hearts that best match 10 otoliths (pieces? or bogus matches).
+
+Need to bring in the otolith reads to see if this matters or not. If both (or all 3) matching otoliths have the same read...no big deal.
+```{r}
+matchy_data_mod_0.8dup_0.25diff_multi_oto_match <- matchy_data_mod_0.8dup_0.25diff %>%
+  dplyr::group_by(heart_fish_id) %>%
+  dplyr::filter(dplyr::n() > 1) %>%
+  dplyr::arrange(heart_fish_id) %>%
+  dplyr::left_join(
+    y = PGOD21_DWP.gcl %>% dplyr::select(silly_source, oto_tray_and_well),
+    by = dplyr::join_by(otolith_fish_id == silly_source)
+  ) %>%  # get 96 otolith tray barcode and well for joining to otolith reads
+  dplyr::left_join(
+    y = otolith_reads %>%
+      dplyr::mutate(
+        oto_tray = as.numeric(tray_id),
+        oto_well = as.numeric(cell_number)
+      ) %>%
+      tidyr::unite(col = "oto_tray_and_well", c(oto_tray, oto_well), sep = "_") %>%
+      dplyr::select(oto_tray_and_well, mark_present, mark_id),
+    by = "oto_tray_and_well"
+  ) # join otolith reads
+
+# only looking at the mark present/absent level, not at the individual hatchery_id level yet
+heart_fish_id_match_multi_oto_conflict <- matchy_data_mod_0.8dup_0.25diff_multi_oto_match %>% 
+  dplyr::filter(!is.na(mark_present)) %>%  # remove NA otolith reads
+  dplyr::count(heart_fish_id, mark_present) %>%
+  dplyr::count(heart_fish_id) %>% 
+  dplyr::filter(n > 1) %>%  # filter for hearts that match both a hatchery and wild otolith read
+  dplyr::pull(heart_fish_id)  # 11 hearts
+
+matchy_data_mod_0.8dup_0.25diff_multi_oto_match %>% 
+  dplyr::filter(heart_fish_id %in% heart_fish_id_match_multi_oto_conflict)
+```
+
+There are 11 hearts that match > 1 otolith with different hatchery vs. wild otolith reads. While some of these have very high duplicate rates or there is a big disparity in the number of missing loci for the otolith genotype, it might just be cleanest to drop all 11 of these.
+
 ## Function
 
+Create a function for 1 plot per page for each DWP using the filtered cutoffs.
 ```{r}
 matchy_data_mod %>%
+  dplyr::filter(`48_DWP_tray_barcode` == DWPs_postQA[1])
+
+matchy_data_mod_0.8dup_0.25diff %>% 
   dplyr::filter(`48_DWP_tray_barcode` == DWPs_postQA[1])
 ```
 
@@ -407,8 +502,18 @@ If there is an arrow, the otolith got shifted from it's original location.
 
 **Create 1 plot per DWP in a PDF**
 ```{r}
-matchy_data_mod %>%
-  dplyr::filter(`48_DWP_tray_barcode` == DWPs_postQA[1]) %>% {
+pdf(
+  file = "../output/otolith_shift_DWP_visualization_dup-rate-0.8_diff-0.25.pdf",
+  width = 11,
+  height = 8.5,
+  family = "Helvetica",
+  pointsize = 12
+)
+
+for(DWP in unique(matchy_data_mod_0.8dup_0.25diff$`48_DWP_tray_barcode`)){
+
+DWP_plot <- matchy_data_mod_0.8dup_0.25diff %>%
+  dplyr::filter(`48_DWP_tray_barcode` == DWP) %>% {
     ggplot2::ggplot(.) +
       ggplot2::geom_point(
         ggplot2::aes(x = heart_col, y = heart_row, colour = "heart"),
@@ -444,15 +549,25 @@ matchy_data_mod %>%
       ggplot2::theme_bw() +
       ggplot2::facet_wrap(facets = ggplot2::vars(`48_DWP_tray_barcode`))
   }
+    
+  grid::grid.newpage()
+  grid::grid.draw(rbind(
+    ggplot2::ggplotGrob(DWP_plot),
+    size = "last"
+  ))
+  
+}
+
+dev.off()
 ```
 
 # Need to consider:
+
 `NA` otolith position
 Hearts that best match up to 2 otoliths is okay, so long as otoliths have the same read (hatchery vs. wild + origin)
 Otoliths that best match > heart are a non-issue, bogus matches
 Do we want to see otolith count maps?
 Pull in PGOD21 otolith reads to see if the matches matter if there are close ties or multiple matches?
-
 
 # Summary
 
