@@ -38,9 +38,12 @@ knitr::opts_chunk$set(fig.width = 10)
 
 The purpose of this notebook is to make individual matching decisions for otolith- and heart-genotypes within a deep well plate (DWP) based on the duplicate genotype rate (% of loci sharing genotypes) for the top match and difference between the top and 2nd best match (`diff`).
 
-Following that matching, we will need to consider whether any of the PGOD21 otoliths matched up to hearts/fish with "trustworthy", existing, otolith reads (i.e. we ended up with a right-side otolith in PGOD21, but the left-side otolith stayed put and was already read). Otherwise, we may have duplicate information for the same individual fish.
+Following that matching, we will need to consider:  
 
-The next step after this will be to *compare matches to existing AHRP data to check for duplicates*. 
+  1) whether we want to accept any GOD otoliths with valid reads, but no otolith-heart genotype match. For example, some DWPs may not have any GOD otoliths with hatchery marks, in which case heart-otolith pairing is moot. Alternatively, we could have some wells with 2 otoliths and all surrounding wells have been resolved, but no valid heart-otolith match for that well.  
+  2) whether any of the PGOD21 otoliths matched up to hearts/fish with "trustworthy", existing, non-GOD otolith reads (i.e. we ended up with a "unknown" [i.e., right-side] otolith in PGOD21, but the left-side otolith stayed put and was already read). Otherwise, we may have duplicate information for the same individual fish.
+
+The next steps after this will be to *investigate otoliths with reads but no heart match* and *compare heart matches to existing AHRP data*. 
 
 # Background
 
@@ -55,7 +58,7 @@ During shipment of otolith samples in February 2020 to the MTA in Juneau for rea
   * PGILMOUR18
   * PPADDY16
 
-In an attempt to rectify the "GOD" incident, we determined which otoliths were "suspect" and had likely migrated between wells, transferred those to 96 shallow well plates (SWP), extracted DNA from the otolith tissues, genotyped the otolith-derived DNA at 298 GT-seq loci, and are attempting to re-pair the otolith-heart samples from their genotypes. 
+In an attempt to rectify the "GOD" incident, we determined which otoliths were "suspect" and had likely migrated between wells, transferred left and unknown otoliths to 96 shallow well plates (SWP), extracted DNA from the otolith tissues, genotyped the otolith-derived DNA at 298 GT-seq loci, and are attempting to re-pair the otolith-heart samples from their genotypes. 
 
 In addition to this GitHub repository, other materials can be found on the V: drive here:
 [link](V:\Lab\Loki\Collection raw data sheets\Pink\Otolith Extravaganza\GOD Event 2020_2021)
@@ -68,7 +71,7 @@ Here's a running list of methods and brief summary of results to help me remembe
 
 We determined which otoliths were "suspect" and had likely migrated between wells based on comparing the DWP otolith inventory at the MTAL (destination, post-GOD) to the the inventory at the GCL (origin, pre-GOD). Full documentation of the *rules* are located here: `data/raw_working_oto_sheets/working_oto_sheet_combined.xlsm`, tab "decisions". Briefly, any well that had an inventory discrepancy was "bad" and any adjacent well was "suspect" and physically labelled along the left edge of the well.
 
-All otoliths from "suspect" wells were transferred to 96 SWPs (i.e., standard otolith trays) with 1 otolith per well. Full documentation of the *rules* are located in the Excel files here: `data/raw_otolith_transfer_96`, see tab "oto_transfer_business_rules". After completing the transfers at the MTAL, SWPs were sent to the GCL for DNA extraction and genotyping.
+Only **left or unknown** otoliths from "suspect" wells were transferred to 96 SWPs fro reading (i.e., standard otolith trays) with 1 otolith per well. Full documentation of the *rules* are located in the Excel files here: `data/raw_otolith_transfer_96`, see tab "oto_transfer_business_rules". Right otoliths were also transfered, but not read. After completing the transfers at the MTAL, SWPs were sent to the GCL for DNA extraction and genotyping.
 
 ## Laboratory
 
@@ -142,7 +145,7 @@ After QA, we filtered down to a common set of 435 DWPs with 9,258 otoliths (85.8
 
 Techniques for matching otoliths back to hearts were refined over time, however, the most definitive work is in this R Notebook `Known sample tests_Kyle.Rmd`, also titled `Matching tissues to otoliths with known samples`, which revisited T028 data to see if `CKMRsim` was better for matching tissues than a standard duplicate check. Andy Barclay had the idea to try `CKMRsim`, and while initial results were promising, they ultimately fared no better than a duplicate check.
 
-Bottom line, this R notebook refined the methods used for otolith-heart matching.
+Bottom line, this R notebook refined the methods used for otolith-heart matching. Using cutoffs for duplicate rate >= 0.8 and diff (best match - 2nd best match) >= 0.25 appears to maximize the number of correct matches while minimizing the number of incorrect matches.
 
 ### Previous Matching
 
@@ -447,13 +450,15 @@ matchy_data_mod_0.8dup_0.25diff %>%
   ggplot2::theme_bw()
 ```
 
-Yes, there are 296 hearts that best match 2 otoliths (may be lefts and rights?) and 10 hearts that best match 10 otoliths (pieces? or bogus matches).
+Yes, there are 296 hearts that best match 2 otoliths (may be lefts and unknown [rights]?) and 10 hearts that best match 3 otoliths (pieces? or bogus matches).
 
-Need to bring in the otolith reads to see if this matters or not. If both (or all 3) matching otoliths have the same read...no big deal.
+#### Join Otolith Read Data
+
+Need to bring in the otolith reads to see if this matters or not. If both (or all 3) matching otoliths have the same read (hatchery/wild)...no big deal.
 ```{r}
 matchy_data_mod_0.8dup_0.25diff_multi_oto_match <- matchy_data_mod_0.8dup_0.25diff %>%
   dplyr::group_by(heart_fish_id) %>%
-  dplyr::filter(dplyr::n() > 1) %>%
+  dplyr::filter(dplyr::n() > 1) %>%  # filter for multiple matches
   dplyr::arrange(heart_fish_id) %>%
   dplyr::left_join(
     y = PGOD21_DWP.gcl %>% dplyr::select(silly_source, oto_tray_and_well),
@@ -484,7 +489,23 @@ matchy_data_mod_0.8dup_0.25diff_multi_oto_match %>%
 
 There are 11 hearts that match > 1 otolith with different hatchery vs. wild otolith reads. While some of these have very high duplicate rates or there is a big disparity in the number of missing loci for the otolith genotype, it might just be cleanest to drop all 11 of these.
 
-## Function
+Look at `mark_id` conflicts
+```{r}
+# looking at the individual hatchery_id level
+heart_fish_id_match_multi_oto_conflict_mark_id <- matchy_data_mod_0.8dup_0.25diff_multi_oto_match %>% 
+  dplyr::filter(mark_present == "YES") %>%  # remove NA otolith reads
+  dplyr::count(heart_fish_id, mark_id) %>%
+  dplyr::count(heart_fish_id) %>% 
+  dplyr::filter(n > 1) %>%  # filter for hearts that match both a hatchery and wild otolith read
+  dplyr::pull(heart_fish_id)  # 11 hearts
+
+matchy_data_mod_0.8dup_0.25diff_multi_oto_match %>% 
+  dplyr::filter(heart_fish_id %in% heart_fish_id_match_multi_oto_conflict_mark_id)
+```
+
+Looks like there are 3 hearts that closely match 2 otoliths each, but clearly from different fish due to different otolith reads. Two are vial otoliths. Cleanest to drop all 3.
+
+## Function for DWP Shifting
 
 Create a function for 1 plot per page for each DWP using the filtered cutoffs.
 ```{r}
