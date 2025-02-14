@@ -109,3 +109,85 @@ PGOD21_48DWP_paired_otolith_reads %>%
   dplyr::select(`48_DWP_tray_barcode`, `48_DWP_tray_position`, mark_present, mark_id)
 ```
 
+## DWP 14452
+
+Looking at `GOD/data/raw_working_oto_sheets.xlsm` and `GOD/output/otolith_shift_DWP_visualization_dup-rate-0.8_diff-0.25.pdf`, this was a pretty clean DWP. Otoliths appear to have shifted from just a few wells.
+
+According to the DWP map, there could be otoliths from up to XX different fish in GOD.
+```{r}
+PGOD21_48DWP_paired_otolith_reads %>% 
+  dplyr::filter(`48_DWP_tray_barcode` == 14452) %>% 
+  dplyr::distinct(`48_DWP_tray_position`) %>% 
+  dplyr::arrange(`48_DWP_tray_position`)
+```
+
+How many different otolith reads?
+```{r}
+PGOD21_48DWP_paired_otolith_reads %>% 
+  dplyr::filter(`48_DWP_tray_barcode` == 14452) %>% 
+  dplyr::count(oto_side, mark_present)
+```
+
+Did we assign the sole hatchery fish? If so, we could resolve all other GOD otoliths.
+```{r}
+PGOD21_48DWP_paired_otolith_reads %>% 
+  dplyr::filter(`48_DWP_tray_barcode` == 14452 & mark_present == "YES")
+```
+
+This sole hatchery-origin otolith was in well F4, which was not assigned :(. Not going to be able to assign otolith reads to non-matched hearts.
+
+## DWP 14290
+
+Looking at `GOD/data/raw_working_oto_sheets.xlsm` and `GOD/output/otolith_shift_DWP_visualization_dup-rate-0.8_diff-0.25.pdf`, this was a pretty clean DWP. Otoliths appear to have shifted from just a few wells.
+
+According to the DWP map, there could be otoliths from up to XX different fish in GOD.
+```{r}
+PGOD21_48DWP_paired_otolith_reads %>% 
+  dplyr::filter(`48_DWP_tray_barcode` == 14290) %>% 
+  dplyr::distinct(`48_DWP_tray_position`) %>% 
+  dplyr::arrange(`48_DWP_tray_position`)
+```
+
+How many different otolith reads?
+```{r}
+PGOD21_48DWP_paired_otolith_reads %>% 
+  dplyr::filter(`48_DWP_tray_barcode` == 14290) %>% 
+  dplyr::count(oto_side, mark_present)
+```
+
+All GOD otoliths from this tray were unmarked, thus we can assign all reads with confidence.
+
+# DWP 14354
+
+How many different otolith reads?
+```{r}
+PGOD21_48DWP_paired_otolith_reads %>% 
+  dplyr::filter(`48_DWP_tray_barcode` == 14354) %>% 
+  dplyr::count(oto_side, mark_present)
+```
+
+All GOD otoliths from this tray were unmarked, thus we can assign all reads with confidence.
+
+# DWP 14394
+
+How many different otolith reads?
+```{r}
+PGOD21_48DWP_paired_otolith_reads %>% 
+  dplyr::filter(`48_DWP_tray_barcode` == 14394) %>% 
+  dplyr::count(oto_side, mark_present)
+```
+
+This one was a mess, unlikely that we'd be able to untangle this one.
+
+# DWP 16117
+
+How many different otolith reads?
+```{r}
+PGOD21_48DWP_paired_otolith_reads %>% 
+  dplyr::filter(`48_DWP_tray_barcode` == 16117) %>% 
+  dplyr::count(oto_side, mark_present)
+```
+
+Mix of hatchery and wild
+
+End
