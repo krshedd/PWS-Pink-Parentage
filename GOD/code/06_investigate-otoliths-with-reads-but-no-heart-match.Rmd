@@ -1,5 +1,5 @@
 ---
-title: "05 - Investigate Otoliths With Reads But No Heart Match"
+title: "06 - Investigate Otoliths With Reads But No Heart Match"
 subtitle: "What To Do With Wells With 2 Otoliths, But No Matching Data?"
 author: "Kyle Shedd"
 date: "Started: 2025-02-06, last opened: `r Sys.Date()`"
