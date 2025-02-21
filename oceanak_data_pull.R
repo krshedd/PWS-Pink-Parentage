@@ -5,9 +5,9 @@ rm(list = ls())
 
 # Begin user input ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-username = "kmgruenthal"  # LOKI username
+.username = readLines("~/usr_pw.txt", n = 1)  # LOKI username
 
-password = ""  # LOKI passowrd
+.password = readLines("~/usr_pw.txt" , n = 2)[[2]]  # LOKI password
 
 # Currently set up to read all pink data from all years
 species = "P"  # P = pink, C = chum
@@ -24,45 +24,18 @@ not_tissues = "Otolith"  # OceanAK has 1 row of data per tissue, including both 
 
 start_time <- proc.time()
 
-while(!require(RJDBC)){install.packages("RJDBC")}
+drvpath <- system.file("java", "ojdbc8.jar", package = "GCLr")  # get from GCLr package
 
-if(!file.exists(path.expand("~/R"))){
-  
-  dir<-path.expand("~/R")
-  
-  dir.create(dir)
-  
-  bool <- file.copy(from="V:/Analysis/R files/OJDBC_Jar/ojdbc8.jar",to=path.expand("~/R/ojdbc8.jar"))
-  
-} else {
-  
-  if(!file.exists(path.expand("~/R/ojdbc8.jar"))){
-    
-    bool <- file.copy(from="V:/Analysis/R files/OJDBC_Jar/ojdbc8.jar",to=path.expand("~/R/ojdbc8.jar"))
-    
-  }
-  
-}
+drv <- RJDBC::JDBC("oracle.jdbc.OracleDriver", classPath = drvpath, " ")
 
-start.time <- Sys.time() 
+source("~/GitHub_repos/GCLr/R/loki_url.r")  # new with GCLr package, not exported with package, change path as necessary
 
-options(java.parameters = "-Xmx10g")
+url <- loki_url() # get from local GitHub clone of GCLr package
 
-if(file.exists("C:/Program Files/R/RequiredLibraries/ojdbc8.jar")) {
-  
-  drv <- JDBC("oracle.jdbc.OracleDriver",classPath="C:/Program Files/R/RequiredLibraries/ojdbc8.jar"," ")#https://blogs.oracle.com/R/entry/r_to_oracle_database_connectivity    C:/app/awbarclay/product/11.1.0/db_1/jdbc/lib
-  
-} else {
-  
-  drv <- JDBC("oracle.jdbc.OracleDriver",classPath=path.expand("~/R/ojdbc8.jar")," ")
-  
-}
-
-source("~/R/GCLr/R/loki_url.r")  # new with GCLr package, not exported with package, change path as necessary
-
-url <- loki_url() # LOKI_URL.GCL()
-
-con <- dbConnect(drv,url=url,user=username,password=password)
+con <- RJDBC::dbConnect(drv,
+                        url = url,
+                        user = .username,
+                        password = .password)
 
 data_qry <-
   paste(
@@ -74,24 +47,30 @@ data_qry <-
     sep = ""
   )
 
-dataAll0 <- dbGetQuery(con, data_qry)   
+dataAll0 <- RJDBC::dbGetQuery(con, data_qry)   
 
-discon <- dbDisconnect(con)  # disconnect from OceanAK
+discon <- RJDBC::dbDisconnect(con)  # disconnect from OceanAK
 
 proc.time() - start_time  # how long did it take?
 
 glimpse(dataAll0)   # what does out data look like?
 
 dataAll0 %>% 
-  count(SILLY_CODE, TISSUE_TYPE)  # sample size by silly code and tissue type, should only be hearts and occassionally other random tissues
+  count(SILLY_CODE, TISSUE_TYPE)  # sample size by silly code and tissue type, should only be hearts and occasionally other random tissues
 
 
 # Write out the data to "V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\OceanAK" with timestamp
-write_csv(
+readr::write_csv(
   x = dataAll0,
   file = paste0(
     "../OceanAK/AHRP Salmon Biological Data ",
-    Sys.time() %>% str_remove_all(pattern = "-") %>% str_remove_all(pattern = ":") %>% str_replace(pattern = " ", replacement = "_"),
+    Sys.time() %>% stringr::str_remove_all(pattern = "-") %>% stringr::str_remove_all(pattern = ":") %>% stringr::str_replace(pattern = " ", replacement = "_"),
     ".csv"
   )
 )
+
+# for spot checking the data warehouse SALMON_BIO_FACT
+# data_qry_SBF <- "SELECT * FROM DWASL.SALMON_BIO_FACT@DWPROD WHERE DNA_TRAY_CODE IN ('0000028170')"  # this PERB18 DWP barcode did not exist as of 2025-02-20
+# data_qry_SBF_HWI <- "SELECT * FROM DWASL.SALMON_BIO_FACT@DWPROD WHERE BATCH_NUMBER IN ('HWI-PEDIGREE')"  # try getting all?
+
+# end
