@@ -1,0 +1,168 @@
+---
+title: "Compare Salmon Biological Fact to Cordova + MTAL Otolith Database"
+subtitle: "How to get the most recent AHRP otolith data?"
+author: "Kyle Shedd"
+date: "Started: 2025-02-27, last opened: `r Sys.Date()`"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+    toc_float: true
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Setup
+
+```{r setup, message=FALSE, results='hide'}
+rm(list = ls(all.names = TRUE))
+
+pacman::p_load(
+  tidyverse,
+  janitor
+)
+
+knitr::opts_chunk$set(fig.width = 10)
+```
+
+# Background
+
+With the recent migration to the cloud (November 2024), our standard data pulling from SALMON_BIO_FACT via `oceanak_data_pull.R` stopped working correctly. Only giving me 127,591 samples vs. 235,542 samples from 2022-12-12. Eric L. thinks that it is timing out due to the cloud migration. That looks to be correct given that the process chokes out part way through PHOGAN17.
+
+![Missing samples by SILLY_CODE.](../OceanAK/SALMON_BIO_FACT_missing_samples_2025-02-20.png)
+
+# OceanAK - Salmon Biological Fact
+
+Read in the most recent version of AHRP metadata from 2022-12-12
+```{r}
+(oceanak <- readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20221212_162324.csv"))
+```
+
+Count of mark status.
+```{r}
+oceanak %>% 
+  dplyr::count(OTOLITH_MARK_STATUS_CODE)
+```
+
+Make sure unique fish.
+```{r}
+table(table(paste(oceanak$SILLY_CODE, oceanak$FISH_ID, sep = "_")))
+table(table(paste(oceanak$DNA_TRAY_CODE, oceanak$DNA_TRAY_WELL_CODE, sep = "_")))
+```
+# Otolith Data
+
+## Cordova
+
+```{r}
+(cdv_oto <- readxl::read_excel(path = "../OceanAK/PWS_AHRP.xlsx", sheet = "DATA"))
+```
+
+Verify that no leading 0's were dropped
+```{r}
+table(nchar(cdv_oto$PWSTRAY))
+```
+
+## MTAL
+
+```{r}
+(mtal_oto <- readxl::read_excel(path = "../OceanAK/OTO_AHRP.xlsx", sheet = "DATA"))
+```
+
+## Join
+
+Join together Cordova and MTAL otolith sample data.
+```{r}
+(
+  join_oto <- dplyr::bind_rows(
+    cdv_oto %>%
+      dplyr::rename(
+        DNA_TRAY_CODE = PWSTRAY,
+        FISH_ID = FK_FISH_ID,
+        TISSUE_TYPE = PK_TISSUE_TYPE
+      ) %>%
+      dplyr::mutate(DNA_TRAY_WELL_CODE = as.numeric(PWSWELLCODE)) %>%
+      dplyr::select(-PWSWELLCODE),
+    mtal_oto %>%
+      dplyr::rename(
+        DNA_TRAY_CODE = OTOTRAY,
+        FISH_ID = FK_FISH_ID,
+        TISSUE_TYPE = PK_TISSUE_TYPE
+      ) %>%
+      dplyr::mutate(DNA_TRAY_WELL_CODE = as.numeric(OTOWELLCODE)) %>%
+      dplyr::select(-OTOWELLCODE)
+  )
+)
+```
+
+Make sure unique fish, use both `SillySource` and DWP unique identifiers.
+```{r}
+table(table(paste(join_oto$SILLY_CODE, join_oto$FISH_ID, sep = "_")))
+table(table(paste(join_oto$DNA_TRAY_CODE, join_oto$DNA_TRAY_WELL_CODE, sep = "_")))
+```
+
+# What's Missing?
+
+## In `join_oto`, but not `oceanak`
+
+```{r}
+dplyr::inner_join(join_oto, oceanak, by = join_by(DNA_TRAY_CODE, SILLY_CODE, FISH_ID, DNA_TRAY_WELL_CODE))
+```
+
+Okay, an inner join across all five columns gives us 231,364, which is less than 231,422 in `join_oto` (n = 58)
+If I drop `TISSUE_TYPE`, I get 231,378(difference n = 44)
+
+```{r}
+dplyr::inner_join(join_oto, oceanak, by = join_by(DNA_TRAY_CODE, SILLY_CODE, FISH_ID, DNA_TRAY_WELL_CODE)) %>% 
+  dplyr::filter(TISSUE_TYPE.x != TISSUE_TYPE.y)
+```
+
+Okay there are 14 discrepancies, with Fin Clip/Muscle != Heart-bulbus arteriousus.
+
+Looks like 44 fish in `join_oto` are not in `oceanak`, ignoring `TISSUE_TYPE`.
+```{r}
+dplyr::anti_join(join_oto, oceanak, by = join_by(DNA_TRAY_CODE, DNA_TRAY_WELL_CODE))
+```
+
+Which silly and DWP?
+```{r}
+dplyr::anti_join(join_oto, oceanak, by = join_by(DNA_TRAY_CODE, DNA_TRAY_WELL_CODE)) %>% 
+  dplyr::count(DNA_TRAY_CODE, SILLY_CODE)
+```
+
+## In `oceanak`, but not `join_oto`
+
+Missing 4,164 fish
+```{r}
+dplyr::anti_join(oceanak, join_oto, by = join_by(DNA_TRAY_CODE, DNA_TRAY_WELL_CODE))
+```
+
+Which silly and DWP?
+```{r}
+dplyr::anti_join(oceanak, join_oto, by = join_by(DNA_TRAY_CODE, DNA_TRAY_WELL_CODE)) %>% 
+  dplyr::count(SILLY_CODE)
+
+dplyr::anti_join(oceanak, join_oto, by = join_by(DNA_TRAY_CODE, DNA_TRAY_WELL_CODE)) %>% 
+  dplyr::count(DNA_TRAY_CODE, SILLY_CODE)
+```
+
+These clearly aren't all GOD samples, since several are from 2013.
+
+# How Stable is SALMON_BIO_FACT?
+
+Check the number of rows we get from 2020-10-28 to 2022-12-12. All field sampling wrapped up for PWS pink salmon in 2020.
+```{r}
+nrow(readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20201028_094948.csv", show_col_types = FALSE))
+nrow(readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20210222_161303.csv", show_col_types = FALSE))
+nrow(readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20220124_151655.csv", show_col_types = FALSE))
+nrow(readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20220426_092121.csv", show_col_types = FALSE))
+nrow(readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20220511_174609.csv", show_col_types = FALSE))
+nrow(readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20221212_162324.csv", show_col_types = FALSE))
+```
+
+Not perfect, but differences are < 100 fish.
+
+# Conclusion
+
+After starting this, Eric L. mentioned that he was aware of some of the missing data issues and would continue working on his end to get all the data.
+
+End
