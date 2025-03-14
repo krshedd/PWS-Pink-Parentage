@@ -161,8 +161,89 @@ nrow(readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20221212_162
 
 Not perfect, but differences are < 100 fish.
 
+```{r}
+nrow(readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20250303_092938.052746.csv", show_col_types = FALSE))
+```
+
+However, there are very few differences in otolith reads
+```{r}
+oceanak_20250303 <- readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20250303_092938.052746.csv", show_col_types = FALSE)
+oceanak_20221212 <- readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20221212_162324.csv", show_col_types = FALSE)
+dplyr::anti_join(
+  oceanak_20250303 ,
+  oceanak_20221212,
+  by = c(
+    "DNA_TRAY_CODE",
+    "DNA_TRAY_WELL_CODE",
+    "OTOLITH_MARK_PRESENT"
+  )
+) %>% dplyr::count(SILLY_CODE)
+```
+
+# Rough magnitude of GOD
+
+```{r}
+(no_oto_read <- oceanak_20250303 %>%
+  dplyr::filter(is.na(OTOLITH_MARK_PRESENT)) %>%  # all samples w/o otolith read, includes non-GOD samples as well
+  dplyr::count(SAMPLE_YEAR, LOCATION_CODE) %>%
+  tidyr::pivot_wider(names_from = SAMPLE_YEAR,
+                     values_from = n,
+                     values_fill = 0) %>%
+  tibble::column_to_rownames(var = "LOCATION_CODE") %>%
+  as.matrix())
+
+samp_size <- oceanak_20250303 %>%
+  dplyr::count(SAMPLE_YEAR, LOCATION_CODE) %>%
+  tidyr::pivot_wider(names_from = SAMPLE_YEAR,
+                     values_from = n,
+                     values_fill = 0) %>%
+  tibble::column_to_rownames(var = "LOCATION_CODE") %>%
+  as.matrix()
+
+round(no_oto_read / samp_size, 2)  # proportion of samples missing otoliths reads
+```
+
+The high proportion of missing otolith reads from Erb 2018 and Paddy 2017 + 2018 is disconcerting, since they were not part of the otoliths genotyped for GOD.
+
+Read contractor reports and it may be due to bear predation. Check contractor data to see the proportion of sampling missing 2 otoliths.
+```{r}
+stream_specimens <- readr::read_csv(file = "../Stream Specimens/StreamSpecimens_PWS_2013-2020_CSVReport.csv", show_col_types = FALSE) %>% 
+  janitor::clean_names()
+
+samp_size_pwssc <- stream_specimens %>% 
+  dplyr::mutate(stream = stringr::word(stream_name, 1),
+                date = lubridate::mdy(survey_date),
+                year = lubridate::year(date)) %>% 
+  dplyr::filter(year > 2013) %>%  # didn't collect missing_otoliths data in 2013
+  dplyr::count(year, stream) %>% 
+  tidyr::pivot_wider(names_from = year,
+                     values_from = n,
+                     values_fill = 0) %>%
+  tibble::column_to_rownames(var = "stream") %>%
+  as.matrix()
+
+miss_2oto_pwssc <- stream_specimens %>% 
+  dplyr::mutate(stream = stringr::word(stream_name, 1),
+                date = lubridate::mdy(survey_date),
+                year = lubridate::year(date)) %>% 
+  dplyr::filter(missing_otoliths == 2) %>%  # how many samples are missing both otoliths?
+  dplyr::count(year, stream) %>% 
+  tidyr::pivot_wider(names_from = year,
+                     values_from = n,
+                     values_fill = 0) %>%
+  tibble::column_to_rownames(var = "stream") %>%
+  as.matrix()
+
+round(miss_2oto_pwssc / samp_size_pwssc, 2)  # proportion of samples missing 2 otoliths
+```
+
 # Conclusion
 
 After starting this, Eric L. mentioned that he was aware of some of the missing data issues and would continue working on his end to get all the data.
+
+Update 2025-03-03
+I was able to get all 235,542 expected rows using `oceanak_data_pull.R`.
+
+Concerned about the high proportion of samples without otolith data from PERB18, PPADDY17, and PPADY18, but appears to be due to bear depredation based on the PWSSC contractor reports and the contractor data (Stream Specimens) indicating a high proportion of samples missing 2 otoliths from those systems.
 
 End
