@@ -14,7 +14,6 @@ editor_options:
 
 # Setup
 
-Load all necessary packages, as of 2023-08-11 Kyle switched to [GCLr](https://github.com/commfish/GCLr).
 ```{r setup, message=FALSE, results='hide'}
 rm(list = ls(all.names = TRUE))
 
@@ -22,7 +21,6 @@ if(!require("pacman")) install.packages("pacman"); library(pacman)
 
 pacman::p_load(
   tidyverse,
-  lubridate,
   scales,
   janitor,
   GCLr
@@ -30,8 +28,8 @@ pacman::p_load(
 
 knitr::opts_chunk$set(fig.width = 10)
 
-.username = readLines("~/R/usr_pw.txt", n = 1)  # LOKI username
-.password = readLines("~/R/usr_pw.txt" , n = 2)[[2]]  # LOKI password
+.username = readLines("~/usr_pw.txt", n = 1)  # LOKI username
+.password = readLines("~/usr_pw.txt" , n = 2)[[2]]  # LOKI password
 ```
 
 # Objective
@@ -94,25 +92,25 @@ How many otoliths with genotypes in `PGOD21.gcl`? By collection?
 
 Final stats for `PGOD21.gcl` from `01_import-genotypes-join-otlith-transfer-records`:
 
- silly_code        n
-     PERB15      478
-     PERB16    1,527
-     PERB17      525
- PGILMOUR15    1,587
- PGILMOUR16    1,555
- PGILMOUR17    2,600
- PGILMOUR18      856
-   PPADDY16    1,503
-       Box       159
-Unaccounted        1
-      Total   10,791
+ silly_code        n  
+     PERB15      478  
+     PERB16    1,527  
+     PERB17      525  
+ PGILMOUR15    1,587  
+ PGILMOUR16    1,555  
+ PGILMOUR17    2,600  
+ PGILMOUR18      856  
+   PPADDY16    1,503  
+       Box       159  
+Unaccounted        1  
+      Total   10,791  
 
-match_type         n
-          Box    159
- DWP+Position 10,201
-     DWP_Only    430
-       Nothin      1
-        Total 10,791
+match_type         n  
+          Box    159  
+ DWP+Position 10,201  
+     DWP_Only    430  
+       Nothin      1  
+        Total 10,791  
 
 **439 unique 48 DWPs**
 
@@ -154,8 +152,139 @@ However, there are some old R Notebooks that are also titled `old/PWS_pink_match
 
 ### Current Matching
 
-We took the within DWP duplicate checks for 9,258 post-QA otoliths to determine the highest `duplicate_rate`  and `diff` between duplicate rates for the 1st best and 2nd best match. Based on results from T028 in `Known sample tests_Kyle.Rmd`, Kristen and I decided to use threshold cutoffs of `duplicate_rate >= 0.8` and `diff >= 0.25` for assigning matches, as this minimized false positives. There is a .pdf in `output` with visualizations of how otoliths shifted within 48 DWPs, which can be compared to the original DWP otolith inventories `raw_working_oto_sheets`. No otoliths above this threshold matched > 1 heart (i.e., no ties). There were 306 hearts that were matched to 2 or 3 otoliths above threshold cutoffs. Of those, we kept 226 hearts that matched to otoliths with the same otolith reads (identical `mark_present` and `mark_id`) and the remaining matches were dropped.
+We took the within DWP duplicate checks for 9,258 post-QA otoliths to determine the highest `duplicate_rate`  and `diff` between duplicate rates for the 1st best and 2nd best match. Based on results from T028 in `Known sample tests_Kyle.Rmd`, Kristen and I decided to use threshold cutoffs of `duplicate_rate >= 0.8` and `diff >= 0.25` for assigning matches, as this minimized false positives. There is a .pdf in `output` with visualizations of how otoliths shifted within 48 DWPs, which can be compared to the original DWP otolith inventories `raw_working_oto_sheets`. No otoliths above this threshold matched > 1 heart (i.e., no ties). There were 306 hearts that were matched to 2 or 3 otoliths above threshold cutoffs. Of those, we kept 226 hearts that matched to otoliths with the same otolith reads (identical `mark_present` and `mark_id`) and the remaining matches were dropped. In total, **5,421** out of 9,258 post-QA otoliths were assigned to a heart based on genotype data (50.2%). Of those, the vast majority (3,947; 72.8%) had not moved (otolith and heart in same well).
 
 # Import Data
 
-Need to read in the latest and greatest otolith data from the warehouse.
+## Assigned PGOD Matches
+
+Read in PGOD21 match assignments based on genotypes.
+```{r}
+(PGOD21_48DWP_paired_genotype_matches <- readr::read_csv(file = "../output/PGOD21_48DWP_paired_genotype_matches.csv"))
+```
+
+## AHRP Salmon Biological Fact
+
+Need to read in the latest and greatest otolith data from the warehouse as of 2025-03-03.
+```{r}
+(
+  AHRP_oceanAK <-
+    readr::read_csv(file = "../../../OceanAK/AHRP Salmon Biological Data 20250303_092938.052746.csv") %>% 
+    janitor::clean_names() %>% 
+    tidyr::unite(col = "heart_fish_id", silly_code:fish_id, sep = "_", remove = FALSE)  # add heart SillySource
+)
+```
+
+# Verify Genotype Matches
+
+Filter for genotype matches, see if there are existing otolith reads.
+```{r}
+PGOD21_48DWP_paired_genotype_matches_join_oceanak <- PGOD21_48DWP_paired_genotype_matches %>%
+  dplyr::filter(genotype_match_assigned) %>%  # filter for matches to PGOD21 otolith
+  dplyr::left_join(
+    y = AHRP_oceanAK %>% dplyr::select(
+      heart_fish_id,
+      dna_tray_code,
+      dna_tray_well_code,
+      otolith_mark_present,
+      otolith_mark_id,
+      otolith_mark_status_code
+    ),
+    by = "heart_fish_id"
+  )  # join existing otolith read data from Salmon Biological Fact data warehouse
+```
+
+## Any Existing Otolth Reads?
+
+Do we even have a problem? Are there otoliths assigned to hearts with existing otolith reads?
+```{r}
+PGOD21_48DWP_paired_genotype_matches_join_oceanak %>% 
+  dplyr::count(otolith_mark_present)
+
+PGOD21_48DWP_paired_genotype_matches_join_oceanak %>% 
+  dplyr::count(otolith_mark_status_code)
+```
+
+Yes, we do have a problem. It looks like 51 individuals already have valid otolith reads. There are a handful of other individuals with different `otolith_mark_status_codes`, however, they all indicate that the other otolith was unavailable/missing (i.e., 4N26 - unreadable, none, overgrind left, no right otolith).
+
+Filter for these 51 individuals.
+```{r}
+PGOD21_48DWP_paired_genotype_matches_join_oceanak %>% 
+  dplyr::filter(!is.na(otolith_mark_present))
+```
+
+Verify that there are no DWP issues.
+```{r}
+PGOD21_48DWP_paired_genotype_matches_join_oceanak %>% 
+  dplyr::filter(!is.na(otolith_mark_present)) %>% 
+  dplyr::filter(`48_DWP_tray_barcode` != as.numeric(dna_tray_code))
+```
+
+Dig in to some of these based on the heart `dna_tray_code` + `dna_tray_well_code`.
+
+### 14297_24
+
+This otolith did not move, both it and the heart were in well H3. However, the heart assigned to an otolith in E4. Looking at <"output\otolith_shift_DWP_visualization_dup-rate-0.8_diff-0.25.pdf">, almost all of the otoliths in this DWP stayed put. Seems legit.
+
+### 22108_27
+
+This otolith did not move, both it and the heart were in well C4. However, the heart assigned to an otolith in D4.
+
+### 14573_33
+
+This otolith was on an edge and did not move from well A5. However, the heart assigned to an otolith in B5.
+
+### 21938_39
+
+This otolith did not move, and shouldn't have been read as it was slated for GOD. Regardless, the otolith matched the same heart in PGOD, so we are good!
+
+# Remove Genotype Matches With Existing Otolith Reads
+
+Eric Lardizabal ultimately needs to know for each otolith:  
+
+  1) `Target Barcode` = `48_DWP_tray_barcode` (10-digit heart 48DWP barcode)  
+  2) `Target Well Position` = `heart_position` (heart 48DWP well position, i.e., A1, A2, etc.)
+
+The two other GOD columns in the *LOKI* tissue table are:  
+
+  * `Determination Collection` = "PGOD21", only used in the target collection (i.e., in PPADDY16 the Determination Collection = PGOD21)  
+  * `Target Container Type` = type of container the otolith is going into, should be 96 well SWP
+
+Wipe out `heart_position` for these 51 individuals with existing otolith reads and add a boolean column for documentation.
+```{r}
+hearts_existing_otolith_read <- PGOD21_48DWP_paired_genotype_matches_join_oceanak %>%
+  dplyr::filter(!is.na(otolith_mark_present)) %>% 
+  dplyr::pull(heart_fish_id)
+
+PGOD21_48DWP_paired_genotype_matches_clean <- PGOD21_48DWP_paired_genotype_matches %>%
+  dplyr::mutate(existing_otolith_read = heart_fish_id %in% hearts_existing_otolith_read,
+                heart_position = dplyr::case_when(existing_otolith_read == TRUE ~ NA_character_,
+                                                  TRUE ~ heart_position)) %>% 
+  dplyr::relocate(existing_otolith_read, .after = otolith_moved)
+```
+
+Verify this did as intended.
+```{r}
+PGOD21_48DWP_paired_genotype_matches_clean %>% 
+  dplyr::count(existing_otolith_read)
+
+PGOD21_48DWP_paired_genotype_matches_clean %>% 
+  dplyr::filter(!is.na(heart_position))
+```
+
+Yup, down from 5,421 matches to 5,370 (51 removed).
+
+Save output. Do not create a new file, just overwrite existing.
+```{r}
+readr::write_csv(x = PGOD21_48DWP_paired_genotype_matches_clean, file = "../output/PGOD21_48DWP_paired_genotype_matches.csv")
+```
+
+# Future Work
+
+The next steps after this will be to *investigate GOD otoliths with reads but no heart match*.
+
+# Summary
+
+We cross referenced the 5,421 assigned genotype matches with existing otolith read data from Salmon Biological Fact (AHRP data warehouse). There were 51 PGOD21 otoliths that assigned to hearts with existing otolith reads. Those 51 matches were removed (i.e., `Target Well Position`  = `heart_position` = NA), leaving us with 5,370 matches.
+
+End
