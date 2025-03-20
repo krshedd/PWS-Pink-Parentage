@@ -1,0 +1,335 @@
+---
+title: "06 - Identify Wells In GOD"
+subtitle: "Which DWP Wells Have Unpaired Otolith Data?"
+author: "Kyle Shedd"
+date: "Started: 2025-03-19, last opened: `r Sys.Date()`"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+    toc_float: true
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Setup
+
+```{r setup, message=FALSE, results='hide'}
+rm(list = ls(all.names = TRUE))
+
+if(!require("pacman")) install.packages("pacman"); library(pacman)
+
+pacman::p_load(
+  tidyverse,
+  scales,
+  janitor,
+  GCLr
+)
+
+knitr::opts_chunk$set(fig.width = 10)
+
+.username = readLines("~/usr_pw.txt", n = 1)  # LOKI username
+.password = readLines("~/usr_pw.txt" , n = 2)[[2]]  # LOKI password
+```
+
+# Objective
+
+The purpose of this notebook is to identify which DWP wells were part of GOD. We already have the DWP well data for where GOD otoliths ended up (i.e., where they were removed from at MTAL for genotyping/otolith reading in `GOD/output/PGOD21_48DWP_paired.csv`), but we do not have a tidy, data friendly version of where they started. We will extract this info from the DWP maps in `GOD/data/raw_working_oto_sheets.xlsm`, which denote GOD wells with red font.
+
+The next steps after this will be to *investigate GOD otoliths with reads but no heart match* to make additional assignments, then *double check that we have not assigned otoliths to hearts that already have otolith reads* (repeat 05_verify), and ultimately *submit finalized PGOD21 matches to Eric Lardizabal*. 
+
+# Background
+
+During shipment of otolith samples in February 2020 to the MTA in Juneau for reading, a significant proportion of otoliths migrated between cells within DWPs due to poor containment of the acetate lids that were attached with rubber bands to the DWPs. This incident is known as "the great otolith debacle", aka the "GOD" incident. Since some otoliths moved from their original cells in the DWP, the paired integrity of the otolith-origin information and the rest of the paired data (genotype + field data) was lost for just under 11,000 individuals from the following collections:  
+
+  * PERB15
+  * PERB16
+  * PERB17
+  * PGILMOUR15
+  * PGILMOUR16
+  * PGILMOUR17
+  * PGILMOUR18
+  * PPADDY16
+
+In an attempt to rectify the "GOD" incident, we determined which otoliths were "suspect" and had likely migrated between wells, transferred left and unknown otoliths to 96 shallow well plates (SWP), extracted DNA from the otolith tissues, genotyped the otolith-derived DNA at 298 GT-seq loci, and are attempting to re-pair the otolith-heart samples from their genotypes. 
+
+In addition to this GitHub repository, other materials can be found on the V: drive here:
+[link](V:\Lab\Loki\Collection raw data sheets\Pink\Otolith Extravaganza\GOD Event 2020_2021)
+
+# Methods
+
+Here's a running list of methods and brief summary of results to help me remember how we got here since there are large gaps in time between working on this project.
+
+## Otolith Tranfers
+
+We determined which otoliths were "suspect" and had likely migrated between wells based on comparing the DWP otolith inventory at the MTAL (destination, post-GOD) to the the inventory at the GCL (origin, pre-GOD). Full documentation of the *rules* are located here: `data/raw_working_oto_sheets/working_oto_sheet_combined.xlsm`, tab "decisions". Briefly, any well that had an inventory discrepancy was "bad" and any adjacent well was "suspect" and physically labelled along the left edge of the well.
+
+Only **left or unknown** otoliths from "suspect" wells were transferred to 96 SWPs fro reading (i.e., standard otolith trays) with 1 otolith per well. Full documentation of the *rules* are located in the Excel files here: `data/raw_otolith_transfer_96`, see tab "oto_transfer_business_rules". Right otoliths were also transfered, but not read. After completing the transfers at the MTAL, SWPs were sent to the GCL for DNA extraction and genotyping.
+
+## Laboratory
+
+DNA was extracted from `PGOD21` left-side or unknown otolith tissues of unknown origin using conventional Machery-Nagel DNA extraction kits. Otoliths were placed in T1 buffer for an overnight soak in clear 96 SWPs. Preamp at 14 cycles. Final elution volume was 75uL. All otoliths were transferred among plates with a jig. All liquid handling was done by robot. Samples were genotyped using GT-seq in lab projects P062, P065, P066, P067, P068, P069, P070, P071, P072, P073. QC samples were included in P067, P068, and P074.
+
+Projects P070-072 included an additional step to dry down extracted DNA to increase concentrations and genotyping success, however, this did not occur in P062-P069 and P073. There is a slight difference in average genotyping rate among these projects (75% vs. 68%), but insufficient to warrant re-running P062-P069 and P073. See e-mails from 2024-11-27 for more info.
+
+## Analysis Workflow
+
+### Data Prep
+
+All data prep was done in the R Notebook `01_import-genotypes-join-otlith-transfer-records`. The purpose of that R Notebook was to come up with a definitive link between the `PGOD21.gcl` otoliths and their 96 SWP locations and the *original* 48 DWP or otolith box location. This was accomplished by linking these 3 things:  
+
+  1) `PGOD21.gcl` otolith genotypes from 96 SWP,
+  2) Otolith transfer records documenting the transfer of otoliths from their original 48 DWP (or box of 48 DWP),
+  3) AHRP Salmon Biological Fact data containing field data (silly code, stream, year, 48 DWP, etc.)
+  
+Bottom line, we need to know to the finest scale possible (48 DWP or box) where otoliths in `PGOD21.gcl` came from so we can limit our search space for matching.
+
+How many otoliths with genotypes in `PGOD21.gcl`? By collection?
+
+Final stats for `PGOD21.gcl` from `01_import-genotypes-join-otlith-transfer-records`:
+
+ silly_code        n  
+     PERB15      478  
+     PERB16    1,527  
+     PERB17      525  
+ PGILMOUR15    1,587  
+ PGILMOUR16    1,555  
+ PGILMOUR17    2,600  
+ PGILMOUR18      856  
+   PPADDY16    1,503  
+       Box       159  
+Unaccounted        1  
+      Total   10,791  
+
+match_type         n  
+          Box    159  
+ DWP+Position 10,201  
+     DWP_Only    430  
+       Nothin      1  
+        Total 10,791  
+
+**439 unique 48 DWPs**
+
+### Quality Assurance (QA)
+
+All QA was done in the R Notebook `02_genotype-QA-hearts-otoliths`. The purpose of that R Notebook was to perform genotyping quality assurance (QA) on the otoliths in PGOD21.gcl and GOD-affected hearts in Erb 2015-2017, Gilmour 2015-2018, and Paddy 2016.
+
+Hearts undergo standard AHRP PWS Pink Salmon QA:  
+
+  1) missing genotypes (<80% loci)
+  2) duplicate check (>95% loci, remove both)
+  3) contamination (heterozygosity outliers, +/- 3.5 modified z-score, separate for even/odd lineage)
+
+Otoliths undergo a revised QA:  
+
+  1) missing genotypes (<15% loci, arbitrary cutoff)
+  2) duplicate check (>99% loci[contamination + low genotyping success], remove 1 [keep sample w/ most location info and genotype data])
+  3) contamination (<20 non-heterozygous loci, all together not separate by lineage)
+
+We started with 19,898 hearts from 8 collections. We removed 1,180 (5.9%) due to missing, 60 (0.6%) due to duplicates (both removed), and 592 (3.0%) due to contamination. Final set of hearts is 18,066 (90.8%).
+
+We started with 10,791 otoliths in PGOD21. We removed 522 (4.8%) due to missing, 87 (0.8%) due to duplicates (only 1 removed), and 785 (7.3%) due to contamination. Final set of otoliths is 9,397 (87.1%).
+
+### Duplicate Check
+
+After QA, we filtered down to a common set of 435 DWPs with 9,258 otoliths (85.8%) and 17,943 hearts (90.2%) and calculated the duplicate rate (% of loci sharing genotypes) for all otoliths and hearts within a DPW for a total of 394,316 total pairwise comparisons.
+
+### Matching Prep
+
+Techniques for matching otoliths back to hearts were refined over time, however, the most definitive work is in this R Notebook `Known sample tests_Kyle.Rmd`, also titled `Matching tissues to otoliths with known samples`, which revisited T028 data to see if `CKMRsim` was better for matching tissues than a standard duplicate check. Andy Barclay had the idea to try `CKMRsim`, and while initial results were promising, they ultimately fared no better than a duplicate check.
+
+Bottom line, this R notebook refined the methods used for otolith-heart matching. Using cutoffs for duplicate rate >= 0.8 and diff (best match - 2nd best match) >= 0.25 appears to maximize the number of correct matches while minimizing the number of incorrect matches.
+
+### Previous Matching
+
+Previous matching was completed by Kristen in `old/PWS_pink_match_analysis_all.rmd` with results saved in `../dup_check_results_P066-P067_pass_with_wells.csv`. This is the latest modified file named "dup_check_results*", however, the name of the output file is a bit confusing given that it should have included more than just those two projects. 
+
+However, there are some old R Notebooks that are also titled `old/PWS_pink_match_analysis_P062-P065.Rmd` and `old/PWS_pink_match_analysis_P066-P067.Rmd`. Need to dig into these to see where their output is.
+
+### Current Matching
+
+We took the within DWP duplicate checks for 9,258 post-QA otoliths to determine the highest `duplicate_rate`  and `diff` between duplicate rates for the 1st best and 2nd best match. Based on results from T028 in `Known sample tests_Kyle.Rmd`, Kristen and I decided to use threshold cutoffs of `duplicate_rate >= 0.8` and `diff >= 0.25` for assigning matches, as this minimized false positives. There is a .pdf in `output` with visualizations of how otoliths shifted within 48 DWPs, which can be compared to the original DWP otolith inventories `raw_working_oto_sheets`. No otoliths above this threshold matched > 1 heart (i.e., no ties). There were 306 hearts that were matched to 2 or 3 otoliths above threshold cutoffs. Of those, we kept 226 hearts that matched to otoliths with the same otolith reads (identical `mark_present` and `mark_id`) and the remaining matches were dropped. In total, **5,421** out of 9,258 post-QA otoliths were assigned to a heart based on genotype data (50.2%). Of those, the vast majority (3,947; 72.8%) had not moved (otolith and heart in same well).
+
+We cross referenced the 5,421 assigned genotype matches with existing otolith read data from Salmon Biological Fact (AHRP data warehouse). There were 51 PGOD21 otoliths that assigned to hearts with existing otolith reads. Those 51 matches were removed (i.e., `Target Well Position`  = `heart_position` = NA), leaving us with **5,370** matches.
+
+# Import Data
+
+## DWP Maps
+
+Get the DWP maps data so I can relate the Excel cells to DWP barcode and position.
+
+**NOTE** `../data/raw_working_oto_sheets/DWP_maps_clean.xlsx` is a copy from `../data/raw_working_oto_sheets/working_oto_sheet_combined.xlsm`.
+```{r}
+(
+  DWP_maps <- readxl::read_excel(
+    path = "../data/raw_working_oto_sheets/DWP_maps_clean.xlsx",
+    sheet = "DWP maps",
+    range = "A1:G8073",
+    col_names = c("row_DWP", "col_1", "col_2", "col_3", "col_4", "col_5", "col_6")
+  )
+)
+```
+
+## GOD DWP Wells
+
+Get the Excel cells with red font that denote GOD DWP wells.
+```{r}
+(
+  red_cells <- readxl::read_excel(
+    path = "../data/raw_working_oto_sheets/DWP_maps_clean.xlsx",
+    sheet = "RedFontCells",
+    col_names = "cell", 
+    skip = 1  # skip header
+  )
+)
+```
+
+Total of 10,898 GOD DWP wells. This is close, but not the same as the 10,791 PGOD21 otoliths.
+
+## AHRP Salmon Biological Fact
+
+Need to read in the latest and greatest otolith data from the warehouse as of 2025-03-03.
+```{r}
+(
+  AHRP_oceanAK <-
+    readr::read_csv(file = "../../../OceanAK/AHRP Salmon Biological Data 20250303_092938.052746.csv") %>% 
+    janitor::clean_names() %>% 
+    tidyr::unite(col = "heart_fish_id", silly_code:fish_id, sep = "_", remove = FALSE)  # add heart SillySource
+)
+```
+
+# Translate Excel Cell to DWP Well
+
+## Columns
+
+First step, split Excel cells into row and column, then get DWP column based on excel column.
+```{r}
+excel_col_to_num <- function(col) {
+  sapply(col, function(x) {
+    sum((match(stringr::str_split(x, "")[[1]], LETTERS)) * 26^(seq_along(stringr::str_split(x, "")[[1]]) - 1))  # thanks ChatGPT
+  })
+}
+
+(
+  red_cells_mod <- red_cells %>%
+    dplyr::mutate(
+      col_excel = stringr::str_extract(cell, "^[A-Z]+"),  # Extract letters (column)
+      row_excel = as.numeric(stringr::str_extract(cell, "\\d+$")),  # Extract numbers (row)
+      col_DWP = excel_col_to_num(col_excel) - 1  # B = 1, C = 2, D = 3, E = 4, F = 5, G = 6
+    )
+)
+```
+
+## Rows
+
+Okay, now for the slightly harder part, translating the Excel row data into DWP row data.
+```{r}
+# Base R
+
+row_DWP_vec <- DWP_maps %>% dplyr::pull(row_DWP)  # just get the vector
+
+n_DWP <- (length(row_DWP_vec) + 1) / 11  # 11 rows per DWP: barcode, A:H, sum oto, NA
+
+DWP_barcode_i <- seq(from = 1, by = 11, length.out = n_DWP)
+
+DWPs <- row_DWP_vec[DWP_barcode_i]
+ 
+# red_cells_mod$row_DWP <- row_DWP_vec[red_cells_mod$row_excel]
+
+# tidyverse
+(
+  red_cells_mod <- red_cells_mod %>%
+    dplyr::left_join(
+      y = DWP_maps %>%
+        dplyr::mutate(row_excel = dplyr::row_number()) %>% 
+        dplyr::select(row_excel, row_DWP),
+      by = "row_excel"
+    )
+)
+```
+
+Confirm all equal base R vs. tidyverse.
+```{r}
+all.equal(red_cells_mod$row_DWP, row_DWP_vec[red_cells_mod$row_excel])
+```
+
+## DWP
+
+And finally, associating the DWP wells with a DWP barcode.
+```{r}
+# Base R
+(
+  red_cells_mod <- red_cells_mod %>%
+    dplyr::mutate(`48_DWP_tray_barcode` = DWPs[(row_excel %/% 11) + 1]) %>%  # integer division - get DWP barcode all rows below, repeat by 11
+    tidyr::unite(col = "heart_position", row_DWP:col_DWP, sep = "")
+)
+```
+
+## Write
+
+Write out.
+```{r}
+GOD_48DWP_wells <- red_cells_mod %>% 
+  dplyr::select(`48_DWP_tray_barcode`, heart_position)
+
+readr::write_csv(x = GOD_48DWP_wells, file = "../output/GOD_48DWP_wells.csv")
+```
+
+# Compare GOD Wells to Salmon Biological Fact
+
+Make sure that there are no otolith reads for these GOD DWP wells.
+
+Need to convert from `heart_position` A1:H6 to `dna_tray_well_code` 1:48.
+```{r}
+pos_to_code <- dplyr::tibble(pos = paste0(rep(LETTERS[1:8], times = 6), rep(1:6, each = 8)), 
+                             code = as.numeric(1:48))
+
+# join to get dna_tray_well_code, then join to get otolith data from AHRP_oceanak
+(
+  GOD_48DWP_wells_oceanak <- GOD_48DWP_wells %>%
+    dplyr::mutate(
+      dna_tray_code = stringr::str_pad(string = `48_DWP_tray_barcode`, side = "left", width = 10, pad = "0")
+    ) %>%  # need 10 digit barcode, including leading 0's
+    dplyr::left_join(y = pos_to_code, by = dplyr::join_by(heart_position == pos)) %>%
+    dplyr::left_join(
+      y = AHRP_oceanAK,
+      by = dplyr::join_by(dna_tray_code, code == dna_tray_well_code)
+    )
+)
+
+GOD_48DWP_wells_oceanak %>% 
+  dplyr::count(otolith_mark_present, otolith_mark_status_code)
+```
+
+Houston, we have a problem. There are *at least 180 GOD samples that have an existing otolith read*. None of these should have otolith reads...
+
+How many GOD samples per collection?
+```{r}
+GOD_48DWP_wells_oceanak %>% 
+  dplyr::count(silly_code)
+```
+
+WTF are these 218 samples without a `silly_code`?
+
+## Investigate GOD Samples With Otolith Reads
+
+Of these 180 samples, how are they spread across DWPs?
+```{r}
+GOD_48DWP_wells_oceanak %>% 
+  dplyr::filter(!is.na(otolith_mark_present)) %>% 
+  dplyr::count(silly_code, `48_DWP_tray_barcode`)
+```
+
+52 unique DWPs!!!
+
+*see how egregious these are and if we need to do something about it*
+
+# Future Work
+
+The next steps after this will be to *investigate GOD otoliths with reads but no heart match*, using `GOD_48DWP_wells` to determine how many wells have unpaired heart/otolith data and see if we can assign remaining PGOD21 otolith reads to wells not genetically assigned to a heart.
+
+# Summary
+
+We output a data friendly version of the 10,898 GOD DWP wells.
+
+End
