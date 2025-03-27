@@ -30,8 +30,8 @@ pacman::p_load(
 
 knitr::opts_chunk$set(fig.width = 10)
 
-.username = readLines("~/R/usr_pw.txt", n = 1)  # LOKI username
-.password = readLines("~/R/usr_pw.txt" , n = 2)[[2]]  # LOKI password
+.username = readLines("~/usr_pw.txt", n = 1)  # LOKI username
+.password = readLines("~/usr_pw.txt" , n = 2)[[2]]  # LOKI password
 ```
 
 # Objective
@@ -43,7 +43,7 @@ Following that matching, we will need to consider:
   1) whether we want to accept any GOD otoliths with valid reads, but no otolith-heart genotype match. For example, some DWPs may not have any GOD otoliths with hatchery marks, in which case heart-otolith pairing is moot. Alternatively, we could have some wells with 2 otoliths and all surrounding wells have been resolved, but no valid heart-otolith match for that well.  
   2) whether any of the PGOD21 otoliths matched up to hearts/fish with "trustworthy", existing, non-GOD otolith reads (i.e. we ended up with a "unknown" [i.e., right-side] otolith in PGOD21, but the left-side otolith stayed put and was already read). Otherwise, we may have duplicate information for the same individual fish.
 
-The next steps after this will be to *verify heart matches are GOD fish (i.e., don't have existing otolith reads)* and *investigate GOD otoliths with reads but no heart match*. 
+The next steps after this will be to *investigate GOD otoliths with reads but no heart match* and *verify heart matches are GOD fish (i.e., don't have existing otolith reads)*. 
 
 # Background
 
