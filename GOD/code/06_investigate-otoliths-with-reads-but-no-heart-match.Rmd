@@ -1,5 +1,5 @@
 ---
-title: "06 - Investigate Otoliths With Reads But No Heart Match"
+title: "07 - Investigate Otoliths With Reads But No Heart Match"
 subtitle: "What To Do With Wells With 2 Otoliths, But No Matching Data?"
 author: "Kyle Shedd"
 date: "Started: 2025-02-06, last opened: `r Sys.Date()`"
@@ -176,6 +176,22 @@ Recall that only left and unknown otoliths were transferred. No right-side otoli
 
 Total of 10,791 otoliths in `PGOD21.gcl`, 5,370 of which were assigned to a heart based on genetic data.
 
+### Redo `otolith_info`
+
+Noticed that some vial otoliths showed up as "DWP+Position" due to my bad code.
+```{r}
+PGOD21_48DWP_paired_genotype_matches <- PGOD21_48DWP_paired_genotype_matches %>% dplyr::mutate(
+      otolith_info = dplyr::case_when(
+        !is.na(`48_DWP_tray_barcode`) & !is.na(`48_DWP_tray_position`) ~ "DWP+Position",
+        !is.na(`48_DWP_tray_barcode`) & is.na(`48_DWP_tray_position`) ~ "DWP_Only",
+        !is.na(`48_DWP_tray_barcode`) & `48_DWP_tray_position` == "vial" ~ "DWP_Only",  # new
+        is.na(`48_DWP_tray_barcode`) & !is.na(box_number) ~ "Box",
+        is.na(`48_DWP_tray_barcode`) & is.na(box_number) ~ "Nothin",
+        TRUE ~ "WTF"
+      )
+```
+
+
 ## Otolith Reads
 
 Got GOD otolith reads from Cordova Otolith lab (2025-02-05) with help from Eric L. (GCL AP) and Rachel E. (CDV Otolith Lab Manager).
@@ -194,6 +210,17 @@ otolith_reads %>%
 ```
 
 Doesn't look like any rights were read (or at least noted).
+
+## GOD DWP Wells
+
+Read in the list of DWP wells involved in GOD (i.e., those with unpaired heart and otolith data)
+```{r}
+GOD_48DWP_wells <- readr::read_csv(file = "../output/GOD_48DWP_wells.csv")
+```
+
+**NEED TO SEE IF WE'VE ASSIGNED ANY PGOD21 OTOLITHS TO A NON-GOD DWP WELL**
+
+**Maybe save additional otoliths from columns 1 and 6 of a DWP if counts line up**
 
 # Join
 
