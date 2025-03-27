@@ -663,8 +663,9 @@ PGOD21_DWP_passQA.gcl <- readRDS(file = "../data/genotypes/postQA_join_48DWP/PGO
   PGOD21_48DWP_paired_genotype_matches <- PGOD21_48DWP_paired %>%
     dplyr::mutate(
       otolith_info = dplyr::case_when(
-        !is.na(`48_DWP_tray_barcode`) & !is.na(`48_DWP_tray_position`) ~ "DWP+Position",
+        !is.na(`48_DWP_tray_barcode`) & !is.na(`48_DWP_tray_position`) & `48_DWP_tray_position` != "vial" ~ "DWP+Position",
         !is.na(`48_DWP_tray_barcode`) & is.na(`48_DWP_tray_position`) ~ "DWP_Only",
+        !is.na(`48_DWP_tray_barcode`) & `48_DWP_tray_position` == "vial" ~ "DWP_Only",  # new
         is.na(`48_DWP_tray_barcode`) & !is.na(box_number) ~ "Box",
         is.na(`48_DWP_tray_barcode`) & is.na(box_number) ~ "Nothin",
         TRUE ~ "WTF"
