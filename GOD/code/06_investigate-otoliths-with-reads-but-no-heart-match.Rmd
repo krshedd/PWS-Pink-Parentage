@@ -1,6 +1,6 @@
 ---
 title: "06 - Investigate Otoliths With Reads But No Heart Match"
-subtitle: "What To Do With Wells With 2 Otoliths, But No Matching Data?"
+subtitle: "Can We Make Additional Assignments Using Logic?"
 author: "Kyle Shedd"
 date: "Started: 2025-02-06, last opened: `r Sys.Date()`"
 output:
@@ -34,7 +34,9 @@ knitr::opts_chunk$set(fig.width = 10)
 
 # Objective
 
-The purpose of this notebook is to dig into the GOD otolith read data for a set of DWPs to determine if we can salvage any wells that didn't have a heart-otolith match above our thresholds. For example, some DWPs may not have any GOD otoliths with hatchery marks, in which case heart-otolith pairing is moot. Alternatively, we could have some wells with 2 otoliths and all surrounding wells have been resolved, but no valid heart-otolith match for that well.
+The original purpose of this notebook is to dig into the GOD otolith read data for a set of DWPs to determine if we can salvage any wells that didn't have a heart-otolith match above our thresholds. For example, some DWPs may not have any GOD otoliths with hatchery marks, in which case heart-otolith pairing is moot. Alternatively, we could have some wells with 2 otoliths and all surrounding wells have been resolved, but no valid heart-otolith match for that well.
+
+However, after discussion with Kristen, we agreed that we are not going to hunt and peck and make individual DWP decisions due to time/effort constraints. We are only going to assign remaining GOD otoliths if all remaining unassigned reads are the same.
 
 The next step after this will be to *verify that we have not assigned otoliths to hearts that already have otolith reads* and then *submit finalized PGOD21 matches to Eric Lardizabal*. 
 
@@ -152,13 +154,31 @@ We took the within DWP duplicate checks for 9,258 post-QA otoliths to determine 
 
 ### Identify GOD DWP Wells
 
-In order to verify that GOD genotype matches are appropriate *and* assign PGOD21 otoliths to wells without a genotype match based on logic (i.e., all remaining otoliths are the same read), we need to know which wells were in GOD. There were 10,898 cells marked with red font in `data/raw_working_oto_sheets/working_oto_sheet_combined.xlsm` (aka `data/raw_working_oto_sheets/DWP_maps_clean.xlsm`), which were ostensibly GOD DWP wells. I removed unsampled wells (partially filled DWPs, otoliths migrated to unsampled wells) and any wells that had existing otolith data that were deemed to be trustworthy. This leaves 10,691 wells that are actually GOD wells.
+In order to verify that GOD genotype matches are appropriate *and* assign PGOD21 otoliths to wells without a genotype match based on logic (i.e., all remaining otoliths are the same read), we need to know which wells were in GOD. There were originally 10,898 cells with red font in `data\raw_working_oto_sheets\working_oto_sheet_combined.xlsm`, which were ostensibly GOD DWP wells. I copied the "DWP maps" tab into a separate spreadsheet `data\raw_working_oto_sheets\DWP_maps_clean.xlsm` and did extensive QA/QC of the GOD wells, extracting a list of red font cells with a VBA macro written with ChatGPT. The QA/QC process involved: removing unsampled wells (partially filled DWPs, otoliths migrated to unsampled wells), removing any wells that had existing otolith data and were deemed to be trustworthy, cross referencing GOD wells with otolith transfer data to add missing DWPs and wells, cross referencing GOD wells with existing otolith reads in Salmon Biological Fact to update "DWP maps", adding the 7 DWPs from in-house GCL otolith transfers, and identifying 233 wells that have existing otolith data that need to be deleted due untrustworthy data (i.e., DWP accidentally got sorted into the unaffected pile and read as is, wrong otoliths were transferred, etc.). I went through individual DWPs that had >3 GOD wells with existing otolith data to resolve discrepancies, but decided to existing otolith data from 57 wells from 46 different DWPs that had existing otolith data for <=3 GOD wells. I also added 41 GOD wells for otoliths that accidentally got transferred and self-assigned (i.e., `otolith_moved == FALSE`). This leaves **11,234** wells that are actually GOD wells. Once the **191** wells are deleted, no GOD wells will have existing otolith reads.
 
 # Import Data
 
+## AHRP Salmon Biological Fact
+
+Need to read in the latest and greatest otolith data from the warehouse as of 2025-03-03.
+```{r}
+pos_to_code <- dplyr::tibble(heart_position = paste0(rep(LETTERS[1:8], times = 6), rep(1:6, each = 8)), 
+                             dna_tray_well_code = as.numeric(1:48))
+
+(
+  AHRP_oceanAK <-
+    readr::read_csv(file = "../../../OceanAK/AHRP Salmon Biological Data 20250303_092938.052746.csv") %>% 
+    janitor::clean_names() %>% 
+    tidyr::unite(col = "heart_fish_id", silly_code:fish_id, sep = "_", remove = FALSE) %>%  # add heart SillySource
+    dplyr::mutate(sample_date = lubridate::as_date(sample_date),   # fix sample_date
+                  `48_DWP_tray_barcode` = as.numeric(dna_tray_code)) %>% 
+    dplyr::left_join(y = pos_to_code, by = "dna_tray_well_code")  # add DWP position for future joining ease
+)
+```
+
 ## Otolith Transfer & Matching Data
 
-Read in the otolith transfer data that matches up 96 well otolith tray barcodes and wells to the original 48 DWP barcodes and wells. This was generated in `01_import-genotypes-join-otlith-transfer-records` with duplicate rate data used to assign matches in `04_matching-hearts-otoliths`.
+Read in the otolith transfer data that matches up 96 well otolith tray barcodes and wells to the original 48 DWP barcodes and wells. This was generated in `01_import-genotypes-join-otlith-transfer-records` and updated with duplicate rate data used to assign matches in `04_matching-hearts-otoliths`.
 
 Eric Lardizabal ultimately needs to know for each otolith:  
 
@@ -170,7 +190,7 @@ The two other GOD columns in the *LOKI* tissue table are:
   * `Determination Collection` = "PGOD21", only used in the target collection (i.e., in PPADDY16 the Determination Collection = PGOD21)  
   * `Target Container Type` = type of container the otolith is going into, should be 96 well SWP
 
-Recall that only left and unknown otoliths were transferred. No right-side otoliths were transferred.
+Recall that only left and unknown otoliths were transferred. No right-side otoliths were transferred (ostensibly).
 ```{r}
 (PGOD21_48DWP_paired_genotype_matches <- readr::read_csv(file = "../output/PGOD21_48DWP_paired_genotype_matches.csv") %>% 
    dplyr::mutate(oto_side = stringr::str_to_lower(oto_side)))
@@ -199,12 +219,12 @@ Doesn't look like any rights were read (or at least noted).
 
 ## GOD DWP Wells
 
-Read in the list of DWP wells involved in GOD (i.e., those with unpaired heart and otolith data)
+Read in the list of DWP wells involved in GOD (i.e., those with unpaired heart and otolith data) that was generated in `05_identify-wells-in-GOD`.
 ```{r}
 (GOD_48DWP_wells <- readr::read_csv(file = "../output/GOD_48DWP_wells.csv"))
 ```
 
-Total of 10,691 DWP wells (samples) in GOD.
+Total of 11,234 DWP wells (samples) in GOD.
 
 # Join PGOD21 Otolith Reads
 
@@ -225,6 +245,8 @@ Join GOD otolith reads to the PGOD21 otolith transfer and genotype match assignm
 ```
 
 # Investigate
+
+2025-04-03: this section is legacy information that was originally used to help determine business rules.
 
 Visually inspect a few DWPs to help formulate some business rules. Going in order of DWP maps in `GOD/data/raw_working_oto_sheets.xlsm`.
 
@@ -628,7 +650,7 @@ Mix of hatchery and wild
 
 # DWPs With All Same Otolith Reads Unassigned
 
-As of 2025-03-20, Kristen and I decided that it is not worth the effort to hunt and peck, going through each DWP 1 by 1 to see if we feel comfortable making additional assignments. We need to cut our losses and move on.
+**NOTE** As of 2025-03-20, Kristen and I decided that it is not worth the effort to hunt and peck, going through each DWP 1 by 1 to see if we feel comfortable making additional assignments. We need to cut our losses and move on.
 
 There are three questions we need to ask to make additional assignments based on logic:  
 
@@ -636,7 +658,7 @@ There are three questions we need to ask to make additional assignments based on
   2) Which wells have been assigned (i.e., via genotype match above thresholds)?  
   3) What GOD otoliths are left?
   
-If the number of unassigned GOD otoliths is >= the number of unassigned GOD wells **and** they are all the same read type (`mark_present` + `mark_id`), then we can assign them without a genotype match.
+If the number of unassigned GOD otoliths is >= the number of unassigned GOD wells **and** they are all the same read type (`mark_present` + `mark_id`), then we can assign them based on logic without a genotype match.
 
 ## Iterate Over All DWPs
 
@@ -651,8 +673,6 @@ GOD_DWPs <- PGOD21_48DWP_paired_genotype_matches_otolith_reads %>%
 # loop through each GOD DWP
 GOD_DWPs_remaining_otos_same <- sapply(GOD_DWPs, function(DWP) {
   
-  
-  
   remaining_otos <- PGOD21_48DWP_paired_genotype_matches_otolith_reads %>% 
     dplyr::filter(`48_DWP_tray_barcode` == DWP,
                   is.na(heart_position)) %>% 
@@ -665,36 +685,224 @@ GOD_DWPs_remaining_otos_same <- sapply(GOD_DWPs, function(DWP) {
 table(GOD_DWPs_remaining_otos_same)
 ```
 
-There are 57 DWPs that have all remaining, unassigned GOD otoliths of a single read type. How many samples is that?
+There are 57 GOD DWPs that have all remaining, unassigned GOD otoliths of a single read type. How many samples is that?
 ```{r}
 PGOD21_48DWP_paired_genotype_matches_otolith_reads %>% 
-  dplyr::filter(`48_DWP_tray_barcode` %in% DWPs[DWPs_remaining_otos_same],
+  dplyr::filter(`48_DWP_tray_barcode` %in% GOD_DWPs[GOD_DWPs_remaining_otos_same],
                 is.na(heart_position)) %>% 
   dplyr::count(mark_present)
 ```
 
-This is a total of 358 samples, all but 1 are natural-origin.
+This is a total of 360 samples, all but 1 are natural-origin.
 
+This is likely an overestimate of how many logic matches that we'll be able to make, since there may be more unknown wells than there are remaining PGOD21 otoliths, for whatever reason.
 
+## Assign
 
+### Example - 14334
 
+Try one example to see if I can automate assigning wells.
+```{r}
+(DWP <- GOD_DWPs[GOD_DWPs_remaining_otos_same][7])
+```
 
+#### GOD Wells
 
+Which wells are unknown, in GOD?
+```{r}
+GOD_48DWP_wells %>% 
+  dplyr::filter(`48_DWP_tray_barcode` == DWP)
+```
 
+#### PGOD21 Genotype Matches
 
+Which wells are assigned to PGOD21 matches?
+```{r}
+PGOD21_48DWP_paired_genotype_matches_otolith_reads %>% 
+    dplyr::filter(`48_DWP_tray_barcode` == DWP,
+                  !is.na(heart_position))
+```
 
+#### Unassigned GOD Wells
 
+Which wells are unassigned?
+```{r}
+# which wells are unassigned?
+(
+  unassigned_GOD_wells <- dplyr::anti_join(
+    x = GOD_48DWP_wells %>%
+      dplyr::filter(`48_DWP_tray_barcode` == DWP),
+    y = PGOD21_48DWP_paired_genotype_matches_otolith_reads %>%
+      dplyr::filter(`48_DWP_tray_barcode` == DWP, !is.na(heart_position)),
+    by = dplyr::join_by(`48_DWP_tray_barcode`, heart_position)
+  )
+)
+```
 
+27 GOD wells - 19 assigned = 8 unassigned GOD wells
 
+#### Unassigned PGOD21 Otoliths
 
+How many PGOD21 otoliths left?
+```{r}
+# which PGOD21 otoliths are left?
+(
+  unassigned_PGOD21_otoliths <-
+    PGOD21_48DWP_paired_genotype_matches_otolith_reads %>%
+    dplyr::filter(`48_DWP_tray_barcode` == DWP, is.na(heart_position))
+)
+```
 
+Confirm
+```{r}
+ PGOD21_48DWP_paired_genotype_matches_otolith_reads %>%
+    dplyr::filter(`48_DWP_tray_barcode` == DWP)
+```
 
+33 PGOD21 - 19 assigned = 14 unassigned PGOD21 otoliths.
 
+If # unassigned PGOD21 otoliths >= # unassigned GOD wells, make assignments.
+```{r}
+if(nrow(unassigned_GOD_wells) > 0 & nrow(unassigned_PGOD21_otoliths) >= nrow(unassigned_GOD_wells)) {
+  
+  if(all(unassigned_GOD_wells$heart_position %in% unassigned_PGOD21_otoliths$`48_DWP_tray_position`)) {
+    
+    unassigned_PGOD21_otoliths %>% 
+      dplyr::mutate(heart_position = `48_DWP_tray_position`,
+                    logic_match_assigned = TRUE
+                    )
+    
+  } else {  # self-assignments, if possible
+
+    unassigned_PGOD21_otoliths %>%
+      dplyr::mutate(
+        heart_position = replace(
+          x = heart_position,
+          list = seq_along(unassigned_GOD_wells$heart_position),
+          values = unassigned_GOD_wells$heart_position
+        ),  # only fill in the first X PGOD21 otoliths for unassigned GOD wells
+        logic_match_assigned = TRUE
+      ) %>% 
+      dplyr::filter(!is.na(heart_position))
+    
+  }  # random assignments if not all self-assignments
+  
+}
+```
+
+# Assign Logic Matches
+
+Same code as above, just loop through all 57 DWPs where all remaining GOD otoliths have the same read.
+```{r}
+rm(DWP, unassigned_GOD_wells, unassigned_PGOD21_otoliths)
+
+# loop through each GOD DWP
+(
+  PGOD21_48DWP_paired_logic_matches <- lapply(GOD_DWPs[GOD_DWPs_remaining_otos_same], function(DWP) {
+    
+    # get unassigned GOD wells for this DWP
+    unassigned_GOD_wells <- dplyr::anti_join(
+      x = GOD_48DWP_wells %>%
+        dplyr::filter(`48_DWP_tray_barcode` == DWP),
+      y = PGOD21_48DWP_paired_genotype_matches_otolith_reads %>%
+        dplyr::filter(`48_DWP_tray_barcode` == DWP, !is.na(heart_position)),
+      by = dplyr::join_by(`48_DWP_tray_barcode`, heart_position)
+    )
+    
+    # get unassigned PGOD21 otoliths for this DWP
+    unassigned_PGOD21_otoliths <-
+      PGOD21_48DWP_paired_genotype_matches_otolith_reads %>%
+      dplyr::filter(`48_DWP_tray_barcode` == DWP, is.na(heart_position))
+    
+    # assign if unassigned PGOD21 otoliths >= unassigned GOD wells
+    if(nrow(unassigned_GOD_wells) > 0 & nrow(unassigned_PGOD21_otoliths) >= nrow(unassigned_GOD_wells)) {
+      
+      # self-assignments if all wells are unmoved
+      if(all(unassigned_GOD_wells$heart_position %in% unassigned_PGOD21_otoliths$`48_DWP_tray_position`)) {
+        
+        unassigned_PGOD21_otoliths %>% 
+          dplyr::mutate(heart_position = `48_DWP_tray_position`,
+                        logic_match_assigned = TRUE
+          )
+        
+      } else {  # self-assignments, if possible
+        unassigned_PGOD21_otoliths %>%
+          dplyr::mutate(
+            heart_position = replace(
+              x = heart_position,
+              list = seq_along(unassigned_GOD_wells$heart_position),
+              values = unassigned_GOD_wells$heart_position
+            ),  # only fill in the first X PGOD21 otoliths for unassigned GOD wells
+            logic_match_assigned = TRUE
+          ) %>% 
+          dplyr::filter(!is.na(heart_position))
+        
+      }  # random assignments
+      
+    }
+    
+}) %>% 
+  dplyr::bind_rows()
+)
+```
+
+**129 logic assignments**
+
+Need to update `otolith_moved` and `heart_fish_id` and add column for `logic_match_assigned`.
+```{r}
+(
+  PGOD21_48DWP_paired_logic_matches <- PGOD21_48DWP_paired_logic_matches %>%
+    dplyr::select(-heart_fish_id) %>%  # blank, remove
+    dplyr::mutate(
+      otolith_moved = dplyr::case_when(`48_DWP_tray_position` == heart_position ~ FALSE, 
+                                       TRUE ~ TRUE)  # otolith_moved
+    ) %>%
+    dplyr::left_join(
+      y = AHRP_oceanAK %>% dplyr::select(`48_DWP_tray_barcode`, heart_position, heart_fish_id),
+      by = dplyr::join_by(`48_DWP_tray_barcode`, heart_position)
+    ) %>%  # get heart_fish_id from Salmon Biological Fact
+    dplyr::relocate(heart_fish_id, .before = heart_position) %>%  # rearrange
+    dplyr::relocate(logic_match_assigned, .after = genotype_match_assigned) %>%  # put new column
+    dplyr::select(-(mark_present:otolith_mark_status_code))  # toss otolith read info
+)
+
+readr::write_csv(x = PGOD21_48DWP_paired_logic_matches, file = "../output/PGOD21_48DWP_paired_logic_matches.csv")
+```
+
+# Update PGOD21 Matches
+
+Update these 129 rows with logic matches.
+```{r}
+(
+  PGOD21_48DWP_paired_genotype_logic_matches <- PGOD21_48DWP_paired_genotype_matches %>%
+    dplyr::mutate(logic_match_assigned = FALSE) %>%  # force all to FALSE
+    dplyr::relocate(logic_match_assigned, .after = genotype_match_assigned) %>%  # same order as 
+    dplyr::rows_update(y = PGOD21_48DWP_paired_logic_matches, by = "SillySource")  # update 129 rows with logic matches
+)
+
+readr::write_csv(x = PGOD21_48DWP_paired_genotype_logic_matches, file = "../output/PGOD21_48DWP_paired_genotype_logic_matches.csv")
+```
+
+Verify all is as intended, should have 5,421 genotype matches and 129 logic matches for a total of 5,550 PGOD21 otoliths with a match assigned.
+```{r}
+PGOD21_48DWP_paired_genotype_logic_matches %>% 
+  dplyr::count(genotype_match_assigned, logic_match_assigned)
+```
+
+Looks good! Final confirmation.
+```{r}
+PGOD21_48DWP_paired_genotype_logic_matches %>% 
+  dplyr::filter(!is.na(heart_position))  # these are the matches
+```
+
+Still looks good!
 
 # Future Work
 
-**Maybe save additional otoliths from columns 1 and 6 of a DWP if counts line up**
+The next step after this will be to *verify that we have not assigned otoliths to hearts that already have otolith reads* and then *submit finalized PGOD21 matches to Eric Lardizabal*.
 
 # Summary
+
+After investigating several DWPs on an individual basis, Kristen and I decided **not** to hunt and peck through all 439 DWPs over concerns of time investment and consistency across DWPs. We chose to make very conservative additional *logic* assignments only when all remaining, unassigned PGOD21 otoliths had the same read (`mark_present` and `mark_id`) and the number of remaining, unassigned PGOD21 otoliths was >= the number of remaining, unassigned GOD wells. There were 57/439 DWPs representing 360 samples that had all remaining PGOD21 otoliths with the same read, all but 1 natural-origin. From those, we were able to assign **129** *logic* matches where the number of remaining, unassigned PGOD21 otoliths was >= the number of remaining, unassigned GOD wells.
 
 End
