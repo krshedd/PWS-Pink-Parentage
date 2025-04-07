@@ -261,13 +261,36 @@ PGOD21_tissues_GOD %>%
 
 Solid, this matches.
 
-# STOPPED HERE 2025-04-04 Write
+## Write
 
-**need to write this out for Eric, ask what he needs**
+Write out the final PGOD21 matches for Eric Lardizabal.
+```{r}
+readr::write_csv(x = PGOD21_tissues_GOD, file = "../output/PGOD21_assignments_for_LOKI_20250407.csv")
+```
 
 # Statistics
 
 Join final PGOD21 assignments with otolith reads for a final count of how many samples were "saved".
+
+## QA
+
+```{r}
+PGOD21_48DWP_paired_genotype_logic_matches_final %>% 
+  dplyr::count(pass_QA)
+```
+
+9,397 out of 10,791 PGOD21 otoliths passed genotype QA.
+
+## Assignments
+
+```{r}
+PGOD21_48DWP_paired_genotype_logic_matches_final %>% 
+  dplyr::count(genotype_match_assigned, logic_match_assigned, non_GOD_assignment)
+```
+
+Of the 5,523 final assignments, 5,394 were genotype and 129 were logic.
+
+## PGOD21 Otolith Reads
 
 ```{r}
 PGOD21_48DWP_paired_genotype_logic_matches_final %>% 
@@ -288,5 +311,7 @@ PGOD21_48DWP_paired_genotype_logic_matches_final %>%
 Out of the 5,523 PGOD21 assignments, we have valid otolith reads for **5,067** (47%) of the 10,816 otoliths in PGOD21.
 
 # Summary
+
+Of the 10,816 samples in PGOD21, 10,791 have genotypes, 9,397 of which made it through genotype QA. In total, 5,523 PGOD21 otoliths were assigned to samples involved in GOD, 5,394 were genotype assignments and 129 were logic assignments. Of the 5,523 PGOD21 assignments, 5,067 have valid otolith read data.
 
 End
