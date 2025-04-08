@@ -703,7 +703,7 @@ This is likely an overestimate of how many logic matches that we'll be able to m
 
 Try one example to see if I can automate assigning wells.
 ```{r}
-(DWP <- GOD_DWPs[GOD_DWPs_remaining_otos_same][7])
+(DWP <- GOD_DWPs[GOD_DWPs_remaining_otos_same][31])
 ```
 
 #### GOD Wells
@@ -739,7 +739,7 @@ Which wells are unassigned?
 )
 ```
 
-27 GOD wells - 19 assigned = 8 unassigned GOD wells
+16 GOD wells - 11 assigned = 5 unassigned GOD wells
 
 #### Unassigned PGOD21 Otoliths
 
@@ -759,20 +759,21 @@ Confirm
     dplyr::filter(`48_DWP_tray_barcode` == DWP)
 ```
 
-33 PGOD21 - 19 assigned = 14 unassigned PGOD21 otoliths.
+18 PGOD21 - 11 assigned = 7 unassigned PGOD21 otoliths.
 
 If # unassigned PGOD21 otoliths >= # unassigned GOD wells, make assignments.
 ```{r}
 if(nrow(unassigned_GOD_wells) > 0 & nrow(unassigned_PGOD21_otoliths) >= nrow(unassigned_GOD_wells)) {
   
-  if(all(unassigned_GOD_wells$heart_position %in% unassigned_PGOD21_otoliths$`48_DWP_tray_position`)) {
-    
-    unassigned_PGOD21_otoliths %>% 
-      dplyr::mutate(heart_position = `48_DWP_tray_position`,
-                    logic_match_assigned = TRUE
-                    )
-    
-  } else {  # self-assignments, if possible
+  # if(all(unassigned_GOD_wells$heart_position %in% unassigned_PGOD21_otoliths$`48_DWP_tray_position`)) {
+  #   
+  #   unassigned_PGOD21_otoliths %>% 
+  #     dplyr::mutate(heart_position = `48_DWP_tray_position`,
+  #                   logic_match_assigned = TRUE
+  #                   )
+  #   
+  # } else {  # self-assignments, if possible
+  # NOTE that self assignments caused problems, just going random
 
     unassigned_PGOD21_otoliths %>%
       dplyr::mutate(
@@ -785,7 +786,7 @@ if(nrow(unassigned_GOD_wells) > 0 & nrow(unassigned_PGOD21_otoliths) >= nrow(una
       ) %>% 
       dplyr::filter(!is.na(heart_position))
     
-  }  # random assignments if not all self-assignments
+  # }  # random assignments if not all self-assignments
   
 }
 ```
@@ -817,15 +818,17 @@ rm(DWP, unassigned_GOD_wells, unassigned_PGOD21_otoliths)
     # assign if unassigned PGOD21 otoliths >= unassigned GOD wells
     if(nrow(unassigned_GOD_wells) > 0 & nrow(unassigned_PGOD21_otoliths) >= nrow(unassigned_GOD_wells)) {
       
-      # self-assignments if all wells are unmoved
-      if(all(unassigned_GOD_wells$heart_position %in% unassigned_PGOD21_otoliths$`48_DWP_tray_position`)) {
-        
-        unassigned_PGOD21_otoliths %>% 
-          dplyr::mutate(heart_position = `48_DWP_tray_position`,
-                        logic_match_assigned = TRUE
-          )
-        
-      } else {  # self-assignments, if possible
+      # # self-assignments if all wells are unmoved
+      # if(all(unassigned_GOD_wells$heart_position %in% unassigned_PGOD21_otoliths$`48_DWP_tray_position`)) {
+      #   
+      #   unassigned_PGOD21_otoliths %>% 
+      #     dplyr::mutate(heart_position = `48_DWP_tray_position`,
+      #                   logic_match_assigned = TRUE
+      #     )
+      #   
+      # } else {  # self-assignments, if possible
+      
+      # NOTE that self assignments caused problems, just going random
         unassigned_PGOD21_otoliths %>%
           dplyr::mutate(
             heart_position = replace(
@@ -837,7 +840,7 @@ rm(DWP, unassigned_GOD_wells, unassigned_PGOD21_otoliths)
           ) %>% 
           dplyr::filter(!is.na(heart_position))
         
-      }  # random assignments
+      # }  # random assignments
       
     }
     
@@ -846,7 +849,7 @@ rm(DWP, unassigned_GOD_wells, unassigned_PGOD21_otoliths)
 )
 ```
 
-**129 logic assignments**
+**126 logic assignments**
 
 Need to update `otolith_moved` and `heart_fish_id` and add column for `logic_match_assigned`.
 ```{r}
@@ -871,7 +874,7 @@ readr::write_csv(x = PGOD21_48DWP_paired_logic_matches, file = "../output/PGOD21
 
 # Update PGOD21 Matches
 
-Update these 129 rows with logic matches.
+Update these 126 rows with logic matches.
 ```{r}
 (
   PGOD21_48DWP_paired_genotype_logic_matches <- PGOD21_48DWP_paired_genotype_matches %>%
@@ -883,11 +886,18 @@ Update these 129 rows with logic matches.
 readr::write_csv(x = PGOD21_48DWP_paired_genotype_logic_matches, file = "../output/PGOD21_48DWP_paired_genotype_logic_matches.csv")
 ```
 
-Verify all is as intended, should have 5,421 genotype matches and 129 logic matches for a total of 5,550 PGOD21 otoliths with a match assigned.
+Verify all is as intended, should have 5,421 genotype matches and 126 logic matches for a total of 5,547 PGOD21 otoliths with a match assigned.
 ```{r}
 PGOD21_48DWP_paired_genotype_logic_matches %>% 
   dplyr::count(genotype_match_assigned, logic_match_assigned)
 ```
+
+No duplicates?
+```{r}
+table(table(PGOD21_48DWP_paired_genotype_logic_matches$heart_fish_id))
+```
+
+Confirmed no duplicates!
 
 Looks good! Final confirmation.
 ```{r}
@@ -903,6 +913,6 @@ The next step after this will be to *verify that we have not assigned otoliths t
 
 # Summary
 
-After investigating several DWPs on an individual basis, Kristen and I decided **not** to hunt and peck through all 439 DWPs over concerns of time investment and consistency across DWPs. We chose to make very conservative additional *logic* assignments only when all remaining, unassigned PGOD21 otoliths had the same read (`mark_present` and `mark_id`) and the number of remaining, unassigned PGOD21 otoliths was >= the number of remaining, unassigned GOD wells. There were 57/439 DWPs representing 360 samples that had all remaining PGOD21 otoliths with the same read, all but 1 natural-origin. From those, we were able to assign **129** *logic* matches where the number of remaining, unassigned PGOD21 otoliths was >= the number of remaining, unassigned GOD wells.
+After investigating several DWPs on an individual basis, Kristen and I decided **not** to hunt and peck through all 439 DWPs over concerns of time investment and consistency across DWPs. We chose to make very conservative additional *logic* assignments only when all remaining, unassigned PGOD21 otoliths had the same read (`mark_present` and `mark_id`) and the number of remaining, unassigned PGOD21 otoliths was >= the number of remaining, unassigned GOD wells. There were 57/439 DWPs representing 360 samples that had all remaining PGOD21 otoliths with the same read, all but 1 natural-origin. From those, we were able to assign **126** *logic* matches where the number of remaining, unassigned PGOD21 otoliths was >= the number of remaining, unassigned GOD wells.
 
 End
