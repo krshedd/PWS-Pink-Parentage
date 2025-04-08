@@ -154,11 +154,11 @@ In order to verify that GOD genotype matches are appropriate *and* assign PGOD21
 
 ### Logic Matching
 
-After investigating several DWPs on an individual basis, we decided **not** to hunt and peck through all 439 DWPs over concerns of time investment and consistency across DWPs. We chose to make very conservative additional *logic* assignments only when all remaining, unassigned PGOD21 otoliths had the same read (`mark_present` and `mark_id`) and the number of remaining, unassigned PGOD21 otoliths was >= the number of remaining, unassigned GOD wells. This resulted in an additional **129** *logic* matches, bringing the total up to **5,550** PGOD21 matches.
+After investigating several DWPs on an individual basis, we decided **not** to hunt and peck through all 439 DWPs over concerns of time investment and consistency across DWPs. We chose to make very conservative additional *logic* assignments only when all remaining, unassigned PGOD21 otoliths had the same read (`mark_present` and `mark_id`) and the number of remaining, unassigned PGOD21 otoliths was >= the number of remaining, unassigned GOD wells. This resulted in an additional **126** *logic* matches, bringing the total up to **5,547** PGOD21 matches.
 
 ### Remove non-GOD Matches
 
-We cross referenced the 5,550 assigned genotype + logic matches with the 11,234 identified wells in GOD and removed **27** matches to non-GOD wells, leaving us with a total of **5,523** final PGOD21 assignments. This was cross referenced against existing otolith read data from Salmon Biological Fact (AHRP data warehouse; 2025-03-03), excluding the 191 wells with otolith data to be deleted, to verify that no PGOD21 assignments are to hearts with existing otolith reads.
+We cross referenced the 5,547 assigned genotype + logic matches with the 11,234 identified wells in GOD and removed **27** matches to non-GOD wells, leaving us with a total of **5,520** final PGOD21 assignments. This was cross referenced against existing otolith read data from Salmon Biological Fact (AHRP data warehouse; 2025-03-03), excluding the 191 wells with otolith data to be deleted, to verify that no PGOD21 assignments are to hearts with existing otolith reads.
 
 # Import Data
 
@@ -180,9 +180,11 @@ Shoot, it doesn't have the GOD columns, I'll just have to add them manually!
 
 ## AHRP GOD Tissue Table
 
+2025-04-07 Eric L. said that he needs the `GOD_DETERMINATION_COLLECTION` info for all the target collections (i.e., PERB15, etc.).
+
 Verify that all GOD Target `CONTAINER_ARRAY_TYPE_ID` is "DWP48" (aka CONTAINER_ARRAY_TYPE_ID = 2).
 ```{r}
-GCLr::get_tissue_data(
+target_tissue_tables <- GCLr::get_tissue_data(
   sillyvec = c(
     "PERB15",
     "PERB16",
@@ -196,7 +198,9 @@ GCLr::get_tissue_data(
   username = .username,
   password = .password,
   import.vars = TRUE
-) %>%
+) 
+
+target_tissue_tables %>%
   dplyr::count(CONTAINER_ARRAY_TYPE_ID)
 ```
 
@@ -224,48 +228,96 @@ The other GOD column in the *LOKI* tissue table is:
 
   * `Determination Collection` = "PGOD21", only used in the target collection (i.e., in PPADDY16 the Determination Collection = PGOD21)
 
+## PGOD21
+
 ```{r}
 (
   PGOD21_tissues_GOD <- PGOD21_tissues %>%
     dplyr::mutate(SillySource = paste0("PGOD21_", FK_FISH_ID)) %>%  # create SillySource in Tissue Table
     dplyr::left_join(
       y = PGOD21_48DWP_paired_genotype_logic_matches_final %>% dplyr::mutate(
-        GOD_TARGET_BARCODE = stringr::str_pad(
+        TARGET_DNA_TRAY_CODE = stringr::str_pad(
           string = `48_DWP_tray_barcode`,
           width = 10,
           side = "left",
           pad = "0"
         )
       ) %>%
-        dplyr::select(SillySource, GOD_TARGET_BARCODE, GOD_TARGET_WELL_POSITION = heart_position),
+        dplyr::select(SillySource, TARGET_DNA_TRAY_CODE, TARGET_DNA_TRAY_WELL_POS = heart_position),
       by = "SillySource"
     ) %>%
     dplyr::mutate(
-      GOD_TARGET_CONTAINER_TYPE = dplyr::case_when(is.na(GOD_TARGET_WELL_POSITION) ~ NA_character_, TRUE ~ "DWP48"),
-      GOD_TARGET_BARCODE = dplyr::case_when(
-        is.na(GOD_TARGET_WELL_POSITION) ~ NA_character_,
-        TRUE ~ GOD_TARGET_BARCODE
+      TARGET_CONTAINER_ARRAY_TYPE_ID = dplyr::case_when(is.na(TARGET_DNA_TRAY_WELL_POS) ~ NA_real_, TRUE ~ 2),
+      TARGET_DNA_TRAY_CODE = dplyr::case_when(
+        is.na(TARGET_DNA_TRAY_WELL_POS) ~ NA_character_,
+        TRUE ~ TARGET_DNA_TRAY_CODE
       )
     ) %>%
-    dplyr::relocate(GOD_TARGET_CONTAINER_TYPE, .before = GOD_TARGET_BARCODE) %>%
+    dplyr::relocate(TARGET_CONTAINER_ARRAY_TYPE_ID, .before = TARGET_DNA_TRAY_CODE) %>%
     dplyr::select(-SillySource)
 )
 ```
 
-Confirm there are still 5,523 matches
+Confirm there are still 5,520 matches
 ```{r}
 PGOD21_tissues_GOD %>% 
-  dplyr::filter(!is.na(GOD_TARGET_WELL_POSITION)) %>% 
+  dplyr::filter(!is.na(TARGET_DNA_TRAY_WELL_POS)) %>% 
   nrow()
 ```
 
 Solid, this matches.
+
+## Target Tissue Tables
+
+Need to add the Determination Collection for all samples with assignments.
+
+Create a key for each DWP barcode _ position.
+```{r}
+PGOD21_assignments_DWP_key <- PGOD21_tissues_GOD %>% 
+  tidyr::unite(
+      col = "DWP_key",
+      TARGET_DNA_TRAY_CODE:TARGET_DNA_TRAY_WELL_POS,
+      sep = "_",
+      remove = FALSE,
+      na.rm = TRUE
+    ) %>%  # make key
+  dplyr::mutate(DWP_key = dplyr::na_if(DWP_key, "")) %>% 
+  dplyr::filter(!is.na(DWP_key)) %>% 
+  dplyr::pull(DWP_key)
+```
+
+Update target tissue tables.
+```{r}
+(
+  target_tissue_tables_PGOD21 <- target_tissue_tables %>%
+    tidyr::unite(
+      col = "DWP_key",
+      DNA_TRAY_CODE:DNA_TRAY_WELL_POS,
+      sep = "_",
+      remove = FALSE
+    ) %>%  # make key
+    dplyr::mutate(
+      GOD_DETERMINATION_COLLECTION_ID = dplyr::case_when(
+        DWP_key %in% PGOD21_assignments_DWP_key &
+          PK_TISSUE_TYPE != "Otolith" ~ 55345,
+        TRUE ~ NA_real_
+      )
+    )
+)
+```
+
+Verify that all 5,520 samples are assigned.
+```{r}
+target_tissue_tables_PGOD21 %>% 
+  dplyr::filter(!is.na(GOD_DETERMINATION_COLLECTION_ID))
+```
 
 ## Write
 
 Write out the final PGOD21 matches for Eric Lardizabal.
 ```{r}
 readr::write_csv(x = PGOD21_tissues_GOD, file = "../output/PGOD21_assignments_for_LOKI_20250407.csv")
+readr::write_csv(x = target_tissue_tables_PGOD21, file = "../output/target_tissue_tables_GOD_20250407.csv")
 ```
 
 # Statistics
@@ -288,7 +340,20 @@ PGOD21_48DWP_paired_genotype_logic_matches_final %>%
   dplyr::count(genotype_match_assigned, logic_match_assigned, non_GOD_assignment)
 ```
 
-Of the 5,523 final assignments, 5,394 were genotype and 129 were logic.
+Of the 5,520 final assignments, 5,394 were genotype and 126 were logic.
+
+## By Silly
+
+How many assignments by silly code?
+```{r}
+PGOD21_48DWP_paired_genotype_logic_matches_final %>% 
+  dplyr::mutate(match_assigned = dplyr::case_when(!is.na(heart_position) ~ TRUE,
+                                                  TRUE ~ FALSE)) %>% 
+  dplyr::group_by(silly_code) %>% 
+  dplyr::count(match_assigned) %>% 
+  dplyr::mutate(proportion = n / sum(n)) %>% 
+  dplyr::filter(match_assigned == TRUE)
+```
 
 ## PGOD21 Otolith Reads
 
@@ -308,10 +373,10 @@ PGOD21_48DWP_paired_genotype_logic_matches_final %>%
   dplyr::count(mark_present)
 ```
 
-Out of the 5,523 PGOD21 assignments, we have valid otolith reads for **5,067** (47%) of the 10,816 otoliths in PGOD21.
+Out of the 5,520 PGOD21 assignments, we have valid otolith reads for **5,064** (47%) of the 10,816 otoliths in PGOD21.
 
 # Summary
 
-Of the 10,816 samples in PGOD21, 10,791 have genotypes, 9,397 of which made it through genotype QA. In total, 5,523 PGOD21 otoliths were assigned to samples involved in GOD, 5,394 were genotype assignments and 129 were logic assignments. Of the 5,523 PGOD21 assignments, 5,067 have valid otolith read data.
+Of the 10,816 samples in PGOD21, 10,791 have genotypes, 9,397 of which made it through genotype QA. In total, 5,520 PGOD21 otoliths were assigned to samples involved in GOD, 5,394 were genotype assignments and 126 were logic assignments. Of the 5,520 PGOD21 assignments, 5,064 have valid otolith read data.
 
 End
