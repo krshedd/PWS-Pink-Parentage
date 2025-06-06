@@ -1,0 +1,418 @@
+---
+title: "Finalize AHRP Metadata"
+subtitle: "Compare SBF Bypass to Salmon Biological Fact + GOD (delete + pairings) + Stream Specimens + Riverdist"
+author: "Kyle Shedd"
+date: "Started: 2025-04-25, last opened: `r Sys.Date()`"
+output:
+  html_notebook:
+    theme: united
+    toc: yes
+    toc_float: true
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Setup
+
+```{r setup, message=FALSE, results='hide'}
+rm(list = ls(all.names = TRUE))
+
+if(!require("pacman")) install.packages("pacman"); library(pacman)
+
+pacman::p_load(
+  tidyverse,
+  scales,
+  janitor,
+  GCLr
+)
+
+knitr::opts_chunk$set(fig.width = 10)
+
+.username = readLines("~/usr_pw.txt", n = 1)  # LOKI username
+.password = readLines("~/usr_pw.txt" , n = 2)[[2]]  # LOKI password
+```
+
+# Objective
+
+The purpose of this notebook is to join together all the AHRP pedigree sample metadata (excluding genotypes). Salmon Biological Fact broke due to DFG migration to the cloud and Eric has been trying to rebuild a slimmer version in `AKFINADM.V_AHRP_SBF_BYPASS`. However, since building that new view has been an iterative process I want to double check it against the latest and greatest pre-GOD resolution data.
+
+"V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\GIS\R\all_streams\stream_specimens_riverdist_all_streams_2013_2020.csv"
+"V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\GitHub-PWS-Pink-Parentage\GOD\output\AHRP_GOD_wells_to_delete_otolith_read_data.csv"
+"V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\GitHub-PWS-Pink-Parentage\GOD\output\PGOD21_assignments_for_LOKI_20250407.csv"
+"V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\GitHub-PWS-Pink-Parentage\GOD\data\GOD_otolith_reads_all.csv"
+"V:\Analysis\5_Coastwide\Multispecies\Alaska Hatchery Research Program\PWS Pink\OceanAK\AHRP Salmon Biological Data 20250303_092938.052746.csv"
+
+# Background
+
+# Import Data
+
+## Stream Specimens + `riverdist`
+
+This is from Stream Specimens from 2022-02-08.
+```{r}
+(
+  stream_specimens <- readr::read_csv("../GIS/R/all_streams/stream_specimens_riverdist_all_streams_2013_2020.csv") %>%
+    janitor::clean_names()
+)
+```
+
+## AHRP Salmon Biological Fact
+
+Need to read in the latest and greatest otolith data from the warehouse as of 2025-03-03. **NOTE** this does includes the 191 wells with otolith data to be deleted that were identified in `05_identify-wells-in-GOD`. Will remove those below.
+```{r}
+(
+  AHRP_oceanAK <-
+    readr::read_csv(file = "../OceanAK/AHRP Salmon Biological Data 20250303_092938.052746.csv") %>% 
+    janitor::clean_names() %>% 
+    dplyr::mutate(sample_date = lubridate::as_date(sample_date)) %>% 
+    tidyr::unite(col = "heart_fish_id", silly_code:fish_id, sep = "_", remove = FALSE) %>%  # add heart SillySource as data key for GOD
+    tidyr::unite(col = "sample", dna_tray_code:dna_tray_well_code, sep = "_", remove = FALSE)  # add DWP data key for stream specimens
+)
+```
+
+## GOD Wells To Delete Otolith Data
+
+Read in 191 wells with existing otolith data in Salmon Biological Fact to be deleted. This has occurred on the database end, but after the 2025-03-03 Salmon Biological Fact pull, so need to do it here.
+```{r}
+(
+  AHRP_wells_to_delete_otolith_data <- readr::read_csv(file = "GOD/output/AHRP_GOD_wells_to_delete_otolith_read_data.csv") %>%
+    tidyr::unite(
+      col = "DWP_key",
+      dna_tray_code:dna_tray_well_code,
+      sep = "_",
+      remove = FALSE
+    )  # make key
+)
+```
+
+## Assigned PGOD Matches
+
+Read in final PGOD21 match assignments based on genotypes and logic.
+```{r}
+(PGOD21_48DWP_paired_genotype_logic_matches <- readr::read_csv(file = "GOD/output/PGOD21_48DWP_paired_genotype_logic_matches_final.csv"))
+```
+
+## GOD Otolith Reads
+
+Got GOD otolith reads from Cordova Otolith lab (2025-02-05) with help from Eric L. (GCL AP) and Rachel E. (CDV Otolith Lab Manager).
+```{r}
+(GOD_otolith_reads <- readr::read_csv("GOD/data/GOD_otolith_reads_all.csv") %>% 
+   janitor::clean_names())
+```
+
+Total of 10,816 GOD otoliths.
+
+## Salmon Biological Fact Bypass
+
+Read in Eric Lardizabal's AHRP view that bypasses SBF.
+```{r}
+
+```
+
+# Compare Salmon Biological Fact to Bypass
+
+See `oceanak_data_pull.R` for details. Already know that the Bypass contains duplicated rows for GOD samples & is missing samples that never had otoliths logged (e.g. `is.na(OTOLITH_MARK_STATUS_CODE)`).
+
+TODO
+
+
+# Modify/Join Data
+
+## Delete 191 Otolith Reads
+
+Wipe existing otolith reads from GOD wells identified in `AHRP_wells_to_delete_otolith_data`
+```{r}
+AHRP_oceanAK_clean <- AHRP_oceanAK %>% 
+  tidyr::unite(col = "DWP_key", dna_tray_code:dna_tray_well_code, sep = "_", remove = FALSE) %>%  #  make key
+  dplyr::mutate(otolith_mark_present = dplyr::case_when(DWP_key %in% AHRP_wells_to_delete_otolith_data$DWP_key ~ NA_character_,
+                                                        TRUE ~ otolith_mark_present),
+                otolith_mark_id = dplyr::case_when(DWP_key %in% AHRP_wells_to_delete_otolith_data$DWP_key ~ NA_character_,
+                                                   TRUE ~ otolith_mark_id),
+                otolith_mark_status_code = dplyr::case_when(DWP_key %in% AHRP_wells_to_delete_otolith_data$DWP_key ~ NA_character_,
+                                                            TRUE ~ otolith_mark_status_code)) %>%   # wipe oto data
+  dplyr::select(-DWP_key)
+```
+
+## Join GOD Otolith Reads
+
+Join GOD otolith reads to the PGOD21 otolith transfer and genotype match assignments, filter for final assignments (5,520).
+```{r}
+(
+  PGOD21_48DWP_paired_genotype_logic_matches_otolith_reads <- PGOD21_48DWP_paired_genotype_logic_matches %>% 
+    dplyr::left_join(
+      y = GOD_otolith_reads %>%
+        dplyr::mutate(
+          oto_tray = as.numeric(tray_id),
+          oto_well = as.numeric(cell_number)
+        ) %>%
+        tidyr::unite(col = "oto_tray_and_well", c(oto_tray, oto_well), sep = "_") %>%
+        dplyr::select(oto_tray_and_well, mark_present, mark_id, otolith_mark_status_code),
+      by = "oto_tray_and_well"
+    ) %>%  # join otolith reads
+    dplyr::filter(!is.na(heart_fish_id) & non_GOD_assignment == FALSE) %>%  # filter for final GOD assignments
+    dplyr::rename(otolith_mark_present = mark_present,
+                  otolith_mark_id = mark_id)  # rename for joining
+)
+```
+
+## Update GOD Otolith Reads
+
+Replace otolith read data for 5,520 GOD assignments.
+```{r}
+(
+  AHRP_oceanAK_GOD <- AHRP_oceanAK_clean %>%
+    dplyr::mutate(
+      GOD_oto_read = heart_fish_id %in% PGOD21_48DWP_paired_genotype_logic_matches_otolith_reads$heart_fish_id
+    ) %>%  # record GOD oto assignments
+    dplyr::select(-c(target_dna_tray_code:sw_age)) %>%  # toss irrelevant columns
+    dplyr::left_join(
+      y = PGOD21_48DWP_paired_genotype_logic_matches_otolith_reads %>%
+        dplyr::select(
+          heart_fish_id,
+          otolith_mark_present:otolith_mark_status_code
+        ),
+      by = dplyr::join_by("heart_fish_id"),
+      suffix = c("", "_GOD")
+    ) %>%  # join assigned GOD otolith reads
+    dplyr::mutate(
+      otolith_mark_present = dplyr::case_when(
+        GOD_oto_read ~ otolith_mark_present_GOD, 
+        TRUE ~ otolith_mark_present),
+      otolith_mark_id = dplyr::case_when(
+        GOD_oto_read ~ otolith_mark_id_GOD, 
+        TRUE ~ otolith_mark_id),
+      otolith_mark_status_code = dplyr::case_when(
+        GOD_oto_read ~ otolith_mark_status_code_GOD, 
+        TRUE ~ otolith_mark_status_code)
+    ) %>%  # update GOD otolith reads
+    dplyr::select(-c(
+      otolith_mark_present_GOD:otolith_mark_status_code_GOD
+    ))  # toss extra GOD otolith read columns
+)
+```
+
+## Join Stream Specimens + `riverdist`
+
+First check and see if all `AHRP_oceanAK_GOD` in `stream_specimens`.
+```{r}
+all(AHRP_oceanAK_GOD$sample %in% stream_specimens$sample)
+```
+Hallelujah!
+
+Join starting with stream_specimens, reformat columns to match `all_streams_paired_XX_YY_filter`
+```{r}
+(
+  pws_pink_ped_dat <- stream_specimens %>%
+    dplyr::left_join(y = AHRP_oceanAK_GOD, by = "sample") %>%  # join Salmon Bio Fact to Stream Specimens + riverdist
+    dplyr::rename(date = sample_date,
+                  stream_trib = stream_name,
+                  length = length_mm,
+                  silly = silly_code,
+                  silly_source = heart_fish_id,
+                  distance_mouth = mouthdist,
+                  distance_tide = dist2tide,
+                  high_tide = hitide,
+                  partial_spawn = partial_spawner) %>% 
+    dplyr::mutate(franz_id = stringr::str_c(stringr::str_sub(silly, 1, 2),  # 1st letter of species name, 1st letter of stream name
+                                            stringr::str_sub(silly, -2, -1),  # 2 digit sample year
+                                            "_",
+                                            stringr::str_pad(fish_id, width = 5, pad = "0", side = "left")),  # 5 digit fishid using padded zeros up front
+                  year = lubridate::year(date),
+                  stream = stringr::str_remove(string = location_code, pattern = " Creek"),
+                  DOY = lubridate::yday(date),  # day of year
+                  sex = dplyr::case_when(
+                    sex == "M" ~ "Male",
+                    sex == "F" ~ "Female",
+                    sex == "U" ~ NA_character_,
+                    is.na(sex) ~ NA_character_),
+                  origin = dplyr::case_when(
+                    otolith_mark_present == "NO" ~ "Natural",
+                    otolith_mark_present == "YES" ~ "Hatchery"
+                  ),  # add origin variable
+                  origin = base::factor(origin, levels = c("Natural", "Hatchery")),  # make factor to ensure hatchery != red
+                  hatchery = dplyr::case_when(
+                    stringr::str_detect(otolith_mark_id, "AFK") ~ "AFK",
+                    stringr::str_detect(otolith_mark_id, "CCH") ~ "CC",
+                    stringr::str_detect(otolith_mark_id, "ARMSTRONG") ~ "PA",
+                    stringr::str_detect(otolith_mark_id, "GRAHAM") ~ "PG",
+                    stringr::str_detect(otolith_mark_id, "SGH") ~ "SG",
+                    stringr::str_detect(otolith_mark_id, "TUTKA") ~ "TUT",
+                    stringr::str_detect(otolith_mark_id, "UNKNOWN") ~ NA_character_,
+                    stringr::str_detect(otolith_mark_id, "WNH") ~ "WN",
+                    stringr::str_detect(otolith_mark_id, "AFK") ~ "AFK",
+                  ),  # add hatchery variable
+                  intertidal = dplyr::case_when(
+                    distance_tide <= 0 ~ "Intertidal",
+                    distance_tide > 0 ~ "Upstream",
+                    is.na(distance_tide) ~  NA_character_
+                  ),  # create intertidal
+                  spawning_state = dplyr::case_when(
+                    spawning_state == "Unknown" ~ NA_character_,
+                    TRUE ~ spawning_state
+                  )  # force Unknown to NA
+    ) %>%  
+    dplyr::select(
+      franz_id,  # unique identifier for FRANz (e.g. PE16_00001, species, stream, year, GCL fish_id)
+      sample,  # ultimate data key for AHRP, DWP barcode + DWP position
+      silly_source,  # unique identifier for LOKI (GCL database)
+      stream,  # 5 pedigree streams
+      year,  # sample year (aka death year for FRANz)
+      origin,  # hatchery or wild
+      hatchery,  # which hatchery
+      sex,  # male, female, unknown
+      date,  # sample date
+      DOY,  # day of year (aka julian sample date)
+      length,  # mideye to hypural plate length in mm
+      intertidal,  # sampling location above or below intertidal
+      distance_mouth,  # riverdist approximate sampling location from mouth in meters 
+      spawning_state,  # alive, pink gill, grey gill, rotting (aka index of stream life)
+      pre_spawn,  # TRUE/FALSE (added in 2016); if the eggs and milt do not easily release and carcass has completely full gonads
+      partial_spawn,  # TRUE/FALSE (added in 2015); fish is sampled (dead or alive) with more than a little eggs or milt
+      preyed_upon,  # TRUE/FALSE (added in 2015); gonads removed by predators
+      stream_trib,  # stream tributary (Gilmour, Paddy, and Stockdale have multiple)
+      latitude,  # sampling area (where fish were moved to prior to sampling, rough approximate of spawning location)
+      longitude,  # sampling area (where fish were moved to prior to sampling, rough approximate of spawning location)
+      otolith_mark_present,  # otolith mark present (yes = hatchery, no = natural)
+      otolith_mark_id,  # otolith hatchery mark
+      GOD_oto_read,  # TRUE/FALSE otolith read assigned via GOD match (aka great otolith debacle)
+      silly,  # GCL collection code
+      fish_id,  # GCL fish ID within a silly
+      dna_tray_code,  # 10-digit DWP barcode
+      dna_tray_well_code,  # 48 DWP position
+      distance_tide,  # riverdist approximate sampling location from maximum high tide
+      riverdist_seg,  # riverdist river segment
+      riverdist_vert,  # riverdist vertex
+      riverdist_snapdist,  # riverdist snapping distance (aka how far was sampling location lat/long from the stream polyline)
+      high_tide  # highest extent of high tide in meters from mouth, unique to each stream
+    )  
+)
+```
+
+These are the columns in all_streams_paired_XX_YY_filter see 2_Parentage_XX R Notebook, line 258:
+
+  * franz_id = PE16_00001, species, stream, year, GCL fish_id
+  * stream = 5 pedigree streams
+  * year
+  * origin = factor of Hatchery vs Natural
+  * sex = Female or Male
+  * date = sample date
+  * DOY = julian date
+  * length
+  * distance_mouth = mouthdist
+  * intertidal = Intertidal vs. Upstream
+  * distance_tide = dist2tide
+  * otolith_mark_present
+  * otolith_mark_id
+  * *GOD_oto_read* (new)
+  * *hatchery* (new)
+  * *silly_source* (new)
+  * silly
+  * fish_id
+  * sample = DWP barcode _ DWP position
+  * dna_tray_code
+  * dna_tray_well_code
+  * stream_trib = stream_specimens$stream_name (includes separate tribs)
+  * spawning_state
+  * pre_spawn
+  * partial_spawn
+  * preyed_upon
+  * riverdist_seg
+  * riverdist_vert
+  * riverdist_snapdist
+  * latitude
+  * longitude
+  * high_tide
+
+# Confirm
+
+**Note** there are 151 more samples in `stream_specimens` than `AHRP_oceanAK` (aka Salmon Biological Fact). These 151 samples will likely be excluded from all final analyses.
+
+## QA/QC
+
+Confirm origin is correct.
+```{r}
+pws_pink_ped_dat %>% 
+  dplyr::count(origin, otolith_mark_present)
+```
+
+Confirm hatchery origin is correct.
+```{r}
+pws_pink_ped_dat %>% 
+  dplyr::count(origin, hatchery, otolith_mark_id)
+```
+
+The hatchery brood year thing is a bit weird, or am I missing something?
+```{r}
+pws_pink_ped_dat %>% 
+  dplyr::filter(!is.na(otolith_mark_id)) %>% 
+  dplyr::mutate(oto_mark_year = as.numeric(stringr::str_extract_all(otolith_mark_id, "\\d+")) + 2000,
+                oto_mark_year_diff = year - oto_mark_year) %>% 
+  dplyr::count(oto_mark_year_diff)
+```
+
+Okay, yes, there are some errors, but most are brood years.
+
+Confirm sex is correct.
+```{r}
+pws_pink_ped_dat %>% 
+  dplyr::count(sex)
+```
+What is date range within each year?
+```{r}
+pws_pink_ped_dat %>% 
+  dplyr::group_by(year) %>% 
+  dplyr::summarise(start = min(DOY),
+                   end = max(DOY),
+                   total_days = end - start)
+```
+
+Confirm intertidal.
+```{r}
+pws_pink_ped_dat %>% 
+  dplyr::count(intertidal)
+```
+
+Confirm spawning state.
+```{r}
+pws_pink_ped_dat %>% 
+  dplyr::count(spawning_state)
+```
+
+Confirm when data on pre_spawn, partial_spawn, and preyed_upon started being collected.
+```{r}
+pws_pink_ped_dat %>% 
+  dplyr::filter(!is.na(pre_spawn)) %>% 
+  dplyr::count(year)
+
+pws_pink_ped_dat %>% 
+  dplyr::filter(!is.na(partial_spawn)) %>% 
+  dplyr::count(year)
+
+pws_pink_ped_dat %>% 
+  dplyr::filter(!is.na(preyed_upon)) %>% 
+  dplyr::count(year)
+```
+
+Huh, `pre_spawn` started in 2016, but `partial_spawn` and `preyed_upon` started in 2015. Added definitions above based on the 2015 and 2016 AHRP contrator reports from PWSSC.
+
+## Sample Sizes
+
+```{r}
+pws_pink_ped_dat %>% 
+  dplyr::count(stream, year) %>% 
+  dplyr::arrange(year) %>% 
+  tidyr::pivot_wider(names_from = year, values_from = n)
+```
+
+# Save Final Dataset
+
+TODO, currently this is based on Salmon Biological Fact!
+
+Save as .rds (factors!) and .csv (last forever, transferrable)
+```{r}
+fs::dir_create("data")
+GCLr::save_objects(objects = "pws_pink_ped_dat", path = "data", rds = TRUE)
+readr::write_csv(x = pws_pink_ped_dat, path = "data/pws_pink_ped_dat_salmon_bio_fact_20250605.csv")
+```
+
+End
